@@ -61,14 +61,15 @@ class VendorRegistrationValidationProbeTest extends TestCase
             ->assertJsonPath('data.profile.operating_hours', '06:00 - 09:00');
     }
 
-    public function test_registration_accepts_heic_logo_from_mobile_camera(): void
+    public function test_registration_rejects_heic_logo_with_clear_message(): void
     {
         $payload = $this->basePayload();
         $payload['logo'] = UploadedFile::fake()->create('logo.heic', 50, 'image/heic');
 
-        $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
-            ->assertCreated()
-            ->assertJsonPath('data.logo_url', fn ($url) => is_string($url) && $url !== '');
+        $response = $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json']);
+
+        $response->assertStatus(422)->assertJsonPath('success', false);
+        $this->assertStringContainsStringIgnoringCase('heic', (string) $response->json('message'));
     }
 
     public function test_registration_accepts_document_file_aliases(): void

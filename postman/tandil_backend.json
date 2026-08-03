@@ -1190,7 +1190,7 @@
                                     "key": "trade_license",
                                     "type": "file",
                                     "src": [],
-                                    "description": "Trade license upload (PDF or image). Required."
+                                    "description": "Trade license (PDF or JPEG/PNG/WebP). Required. Images up to 100 MB auto-compress under 2 MB; PDFs must already be under 2 MB."
                                 },
                                 {
                                     "key": "address",
@@ -1214,7 +1214,7 @@
                                     "key": "logo",
                                     "type": "file",
                                     "src": [],
-                                    "description": "Company logo (optional image)."
+                                    "description": "Company logo (optional). JPEG/PNG/WebP up to 100 MB — auto-compressed under 2 MB before save. HEIC not supported."
                                 },
                                 {
                                     "key": "vat_number",

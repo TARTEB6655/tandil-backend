@@ -2,7 +2,10 @@
 
 namespace App\Services;
 
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Compress image files over a size limit (default 1 MB) so they are stored under the limit.
@@ -12,6 +15,11 @@ use Illuminate\Support\Facades\Log;
 class ImageCompressionService
 {
     public const DEFAULT_MAX_BYTES = 1 * 1024 * 1024; // 1 MB target
+
+    /** Hard cap for mobile registration / profile photos saved to disk. */
+    public const MOBILE_UPLOAD_MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+    public const MOBILE_UPLOAD_MAX_DIMENSION = 1920;
 
     /** Product main + gallery images (admin upload). */
     public const PRODUCT_GALLERY_MAX_BYTES = 800 * 1024; // 800 KB
@@ -30,9 +38,9 @@ class ImageCompressionService
     public const VISIT_PHOTO_MAX_DIMENSION = 1280;
 
     /** Vendor store logo / profile picture (mobile Edit Profile). */
-    public const VENDOR_PROFILE_PICTURE_MAX_BYTES = 1024 * 1024; // 1 MB
+    public const VENDOR_PROFILE_PICTURE_MAX_BYTES = self::MOBILE_UPLOAD_MAX_BYTES;
 
-    public const VENDOR_PROFILE_PICTURE_MAX_DIMENSION = 1024;
+    public const VENDOR_PROFILE_PICTURE_MAX_DIMENSION = self::MOBILE_UPLOAD_MAX_DIMENSION;
 
     /** Max size for maintenance before/after showcase images. */
     public const MAINTENANCE_PHOTO_MAX_BYTES = 512 * 1024; // 512 KB
@@ -189,7 +197,7 @@ class ImageCompressionService
 
     /**
      * Optimize vendor profile picture / store logo for fast mobile loading.
-     * Accepts large uploads; resizes and compresses to ~1 MB max (same target as user profiles).
+     * Accepts large uploads; resizes and compresses to under 2 MB.
      */
     public static function optimizeVendorProfilePictureFromPublicPath(string $relativePath): bool
     {
@@ -206,6 +214,172 @@ class ImageCompressionService
     public static function optimizeUserProfilePictureFromPublicPath(string $relativePath): bool
     {
         return self::optimizeVendorProfilePictureFromPublicPath($relativePath);
+    }
+
+    /**
+     * Compress an upload to under $maxBytes (default 2 MB) BEFORE saving to the public disk.
+     * Large camera photos (tens of MB) are resized once and encoded as high-quality JPEG.
+     *
+     * @throws \InvalidArgumentException when the file cannot be processed safely
+     */
+    public static function storeCompressedPublic(
+        UploadedFile $file,
+        string $directory,
+        int $maxBytes = self::MOBILE_UPLOAD_MAX_BYTES
+    ): string {
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(90);
+
+        $directory = trim(str_replace('\\', '/', $directory), '/');
+        $ext = strtolower((string) $file->getClientOriginalExtension());
+        $mime = strtolower((string) ($file->getMimeType() ?: $file->getClientMimeType() ?: ''));
+        $size = (int) $file->getSize();
+
+        if (in_array($ext, ['heic', 'heif'], true) || str_contains($mime, 'heic') || str_contains($mime, 'heif')) {
+            throw new \InvalidArgumentException(
+                'HEIC/HEIF photos are not supported. Please upload a JPEG or PNG image and try again.'
+            );
+        }
+
+        // PDFs are not GD-compressible — only accept when already under the storage cap.
+        if ($ext === 'pdf' || str_contains($mime, 'pdf')) {
+            if ($size > $maxBytes) {
+                throw new \InvalidArgumentException(
+                    'PDF must be under 2 MB. Please compress the PDF and try again.'
+                );
+            }
+
+            return $file->store($directory, 'public');
+        }
+
+        $sourcePath = $file->getRealPath() ?: $file->getPathname();
+        if (! is_string($sourcePath) || $sourcePath === '' || ! is_file($sourcePath)) {
+            throw new \InvalidArgumentException('Upload failed. Please select the file again and retry.');
+        }
+
+        $diskSize = (int) (@filesize($sourcePath) ?: 0);
+        $size = max($size, $diskSize);
+
+        // Already small enough and is a normal raster image — store as-is (fast path).
+        $info = @getimagesize($sourcePath);
+        if ($info !== false && $size > 0 && $size <= $maxBytes) {
+            return $file->store($directory, 'public');
+        }
+
+        if ($info === false) {
+            // Unknown/non-decodable binary: keep only when already under the storage cap.
+            if ($size > 0 && $size <= $maxBytes) {
+                return $file->store($directory, 'public');
+            }
+
+            // Empty test stubs / unreadable large blobs.
+            if ($diskSize === 0 && $size <= $maxBytes) {
+                return $file->store($directory, 'public');
+            }
+
+            throw new \InvalidArgumentException(
+                'This file type cannot be compressed automatically. Please upload a JPEG or PNG under 2 MB.'
+            );
+        }
+
+        $workPath = sys_get_temp_dir().DIRECTORY_SEPARATOR.'tandil_'.Str::uuid()->toString().'.jpg';
+        if (! @copy($sourcePath, $workPath)) {
+            throw new \InvalidArgumentException('Could not read the uploaded image. Please try again.');
+        }
+
+        try {
+            if (! self::forceCompressJpegUnder($workPath, $maxBytes, self::MOBILE_UPLOAD_MAX_DIMENSION)) {
+                throw new \InvalidArgumentException(
+                    'Could not compress this image. Please try a different JPEG or PNG photo.'
+                );
+            }
+
+            clearstatcache(true, $workPath);
+            $finalSize = (int) filesize($workPath);
+            if ($finalSize <= 0 || $finalSize > $maxBytes) {
+                throw new \InvalidArgumentException(
+                    'Image is still too large after compression. Please try a clearer, smaller photo.'
+                );
+            }
+
+            $relative = $directory.'/'.Str::uuid()->toString().'.jpg';
+            $stream = fopen($workPath, 'rb');
+            if ($stream === false) {
+                throw new \InvalidArgumentException('Could not save the compressed image. Please try again.');
+            }
+            Storage::disk('public')->put($relative, $stream);
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+
+            return $relative;
+        } finally {
+            if (is_file($workPath)) {
+                @unlink($workPath);
+            }
+        }
+    }
+
+    /**
+     * Fast high-quality JPEG compressor: resize longest side, then step quality / size until under maxBytes.
+     */
+    public static function forceCompressJpegUnder(string $path, int $maxBytes, int $maxDimension = self::MOBILE_UPLOAD_MAX_DIMENSION): bool
+    {
+        $info = @getimagesize($path);
+        if ($info === false) {
+            return false;
+        }
+
+        $width = (int) $info[0];
+        $height = (int) $info[1];
+        $type = (int) $info[2];
+        $image = self::loadImage($path, $type);
+        if ($image === null) {
+            return false;
+        }
+
+        try {
+            $dimension = max(640, $maxDimension);
+            $qualitySteps = [88, 82, 76, 70, 62, 54, 46];
+
+            while ($dimension >= 640) {
+                $scale = min(1.0, $dimension / (float) max($width, $height, 1));
+                $outW = max(1, (int) round($width * $scale));
+                $outH = max(1, (int) round($height * $scale));
+                $out = imagecreatetruecolor($outW, $outH);
+                if ($out === false) {
+                    return false;
+                }
+
+                $white = imagecolorallocate($out, 255, 255, 255);
+                imagefilledrectangle($out, 0, 0, $outW, $outH, $white);
+                imagecopyresampled($out, $image, 0, 0, 0, 0, $outW, $outH, $width, $height);
+
+                foreach ($qualitySteps as $quality) {
+                    if (! imagejpeg($out, $path, $quality)) {
+                        imagedestroy($out);
+
+                        return false;
+                    }
+                    clearstatcache(true, $path);
+                    $newSize = filesize($path);
+                    if ($newSize !== false && $newSize <= $maxBytes) {
+                        imagedestroy($out);
+
+                        return true;
+                    }
+                }
+
+                imagedestroy($out);
+                $dimension = (int) round($dimension * 0.75);
+            }
+
+            return false;
+        } finally {
+            if (is_resource($image) || $image instanceof \GdImage) {
+                imagedestroy($image);
+            }
+        }
     }
 
     /**
@@ -278,7 +452,7 @@ class ImageCompressionService
         $ext = pathinfo($path, PATHINFO_EXTENSION);
         // Start at high quality; step down only if still above target. Bounded to a few
         // encodes on the small resized image, so this stays fast for any input size.
-        $qualitySteps = [82, 70, 58, 46];
+        $qualitySteps = [88, 80, 70, 60, 50];
         $saved = false;
         foreach ($qualitySteps as $quality) {
             $saved = self::saveImage($out, $path, $type, $ext, $quality);
@@ -288,9 +462,28 @@ class ImageCompressionService
             clearstatcache(true, $path);
             $newSize = filesize($path);
             if ($newSize === false || $newSize <= $maxBytes) {
-                break;
+                imagedestroy($out);
+
+                return true;
             }
         }
+
+        // Still over target — shrink further once and re-encode.
+        if ($saved) {
+            $shrink = 0.75;
+            $w2 = max(1, (int) round($outW * $shrink));
+            $h2 = max(1, (int) round($outH * $shrink));
+            $smaller = imagecreatetruecolor($w2, $h2);
+            if ($smaller !== false) {
+                imagecopyresampled($smaller, $out, 0, 0, 0, 0, $w2, $h2, $outW, $outH);
+                imagedestroy($out);
+                $saved = self::saveImage($smaller, $path, $type, $ext, 54);
+                imagedestroy($smaller);
+
+                return $saved;
+            }
+        }
+
         imagedestroy($out);
 
         return $saved;

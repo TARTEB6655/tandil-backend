@@ -4,12 +4,12 @@ namespace App\Services\Vendor;
 
 use App\Enums\VendorDocumentType;
 use App\Enums\VendorStatus;
-use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
 use App\Models\VendorDocument;
 use App\Models\VendorProfile;
+use App\Services\ImageCompressionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -30,71 +30,110 @@ class VendorRegistrationService
      */
     public function register(array $data, ?UploadedFile $logo = null, array $documentFiles = []): Vendor
     {
-        // Keep the DB transaction short — no disk I/O or admin fan-out inside it.
-        $vendor = DB::transaction(function () use ($data) {
-            $user = User::create([
-                'name' => $data['owner_name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'] ?? null,
-                'password' => $data['password'],
-                'role' => 'vendor',
-                'status' => 'active',
-            ]);
-            $this->ensureVendorRole($user);
+        // Compress uploads FIRST (under 2 MB) so we never persist huge originals
+        // and fail with a clear message before creating the user account.
+        $preparedLogo = null;
+        $preparedDocs = [];
+        try {
+            if ($logo) {
+                $preparedLogo = ImageCompressionService::storeCompressedPublic($logo, 'vendors/logos');
+            }
+            foreach ($documentFiles as $type => $file) {
+                if (! $file instanceof UploadedFile) {
+                    continue;
+                }
+                if (! in_array($type, VendorDocumentType::values(), true)) {
+                    continue;
+                }
+                $preparedDocs[$type] = [
+                    'path' => ImageCompressionService::storeCompressedPublic(
+                        $file,
+                        'vendors/tmp-docs'
+                    ),
+                    'original_name' => $file->getClientOriginalName(),
+                ];
+            }
 
-            $vendor = Vendor::create([
-                'user_id' => $user->id,
-                'status' => VendorStatus::UnderReview->value,
-            ]);
-
-            $profileData = array_merge(
-                $this->mapProfileFields($data),
-                [
-                    'vendor_id' => $vendor->id,
-                    'business_name' => $data['business_name'],
-                    'owner_name' => $data['owner_name'],
+            $vendor = DB::transaction(function () use ($data, $preparedLogo) {
+                $user = User::create([
+                    'name' => $data['owner_name'],
                     'email' => $data['email'],
-                    'logo_path' => null,
-                    'onboarding_completed_at' => now(),
-                ]
-            );
+                    'phone' => $data['phone'] ?? null,
+                    'password' => $data['password'],
+                    'role' => 'vendor',
+                    'status' => 'active',
+                ]);
+                $this->ensureVendorRole($user);
 
-            if ($this->termsAccepted($data)) {
-                $profileData['terms_accepted_at'] = now();
+                $vendor = Vendor::create([
+                    'user_id' => $user->id,
+                    'status' => VendorStatus::UnderReview->value,
+                ]);
+
+                $profileData = array_merge(
+                    $this->mapProfileFields($data),
+                    [
+                        'vendor_id' => $vendor->id,
+                        'business_name' => $data['business_name'],
+                        'owner_name' => $data['owner_name'],
+                        'email' => $data['email'],
+                        'logo_path' => $preparedLogo,
+                        'onboarding_completed_at' => now(),
+                    ]
+                );
+
+                if ($this->termsAccepted($data)) {
+                    $profileData['terms_accepted_at'] = now();
+                }
+
+                $vendor->setRelation('profile', VendorProfile::create($profileData));
+                $vendor->setRelation('user', $user);
+
+                if (! empty($data['category_ids']) && is_array($data['category_ids'])) {
+                    $this->application->syncCategories($vendor, $data['category_ids']);
+                }
+
+                VendorApprovalLog::create([
+                    'vendor_id' => $vendor->id,
+                    'performed_by' => null,
+                    'action' => 'submitted_for_review',
+                    'old_status' => null,
+                    'new_status' => VendorStatus::UnderReview->value,
+                    'notes' => 'Vendor registration submitted for admin review.',
+                ]);
+
+                return $vendor;
+            });
+
+            $documents = [];
+            foreach ($preparedDocs as $type => $prepared) {
+                $finalPath = $this->movePreparedDocument($prepared['path'], $vendor->id);
+                $documents[] = VendorDocument::create([
+                    'vendor_id' => $vendor->id,
+                    'type' => $type,
+                    'file_path' => $finalPath,
+                    'original_name' => $prepared['original_name'],
+                    'verification_status' => 'pending',
+                ]);
             }
+            $vendor->setRelation('documents', collect($documents));
 
-            $vendor->setRelation('profile', VendorProfile::create($profileData));
-            $vendor->setRelation('user', $user);
-
-            if (! empty($data['category_ids']) && is_array($data['category_ids'])) {
-                $this->application->syncCategories($vendor, $data['category_ids']);
-            }
-
-            VendorApprovalLog::create([
-                'vendor_id' => $vendor->id,
-                'performed_by' => null,
-                'action' => 'submitted_for_review',
-                'old_status' => null,
-                'new_status' => VendorStatus::UnderReview->value,
-                'notes' => 'Vendor registration submitted for admin review.',
-            ]);
+            $vendorId = $vendor->id;
+            dispatch(function () use ($vendorId) {
+                $fresh = Vendor::query()->with('profile')->find($vendorId);
+                if ($fresh) {
+                    app(VendorAdminNotifier::class)->newRegistration($fresh);
+                }
+            })->afterResponse();
 
             return $vendor;
-        });
-
-        // File storage after commit (avoids holding DB locks during multi-MB uploads).
-        $documents = $this->storeRegistrationUploads($vendor, $logo, $documentFiles);
-        $vendor->setRelation('documents', collect($documents));
-
-        $vendorId = $vendor->id;
-        dispatch(function () use ($vendorId) {
-            $fresh = Vendor::query()->with('profile')->find($vendorId);
-            if ($fresh) {
-                app(VendorAdminNotifier::class)->newRegistration($fresh);
-            }
-        })->afterResponse();
-
-        return $vendor;
+        } catch (\Throwable $e) {
+            $this->cleanupPreparedPaths(array_filter([
+                $preparedLogo,
+                ...array_column($preparedDocs, 'path'),
+            ]));
+            throw $e;
+        }
     }
 
     /**
@@ -123,42 +162,36 @@ class VendorRegistrationService
         ];
     }
 
-    /**
-     * @param  array<string, UploadedFile|null>  $documentFiles
-     * @return list<VendorDocument>
-     */
-    private function storeRegistrationUploads(Vendor $vendor, ?UploadedFile $logo, array $documentFiles): array
+    private function movePreparedDocument(string $relativePath, int $vendorId): string
     {
-        $documents = [];
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $filename = basename($relativePath);
+        $destination = "vendors/{$vendorId}/documents/{$filename}";
 
-        if ($logo) {
-            $logoPath = $this->storeAndOptimizeImage($logo, 'vendors/logos');
-            $vendor->profile?->update(['logo_path' => $logoPath]);
-            if ($vendor->profile) {
-                $vendor->profile->logo_path = $logoPath;
-            }
+        if ($relativePath !== $destination && Storage::disk('public')->exists($relativePath)) {
+            Storage::disk('public')->move($relativePath, $destination);
+
+            return $destination;
         }
 
-        foreach ($documentFiles as $type => $file) {
-            if (! $file instanceof UploadedFile) {
-                continue;
-            }
-            if (! in_array($type, VendorDocumentType::values(), true)) {
-                continue;
-            }
+        return $relativePath;
+    }
 
-            // New vendor — skip replace lookup used by general upload().
-            $path = $file->store("vendors/{$vendor->id}/documents", 'public');
-            $documents[] = VendorDocument::create([
-                'vendor_id' => $vendor->id,
-                'type' => $type,
-                'file_path' => $path,
-                'original_name' => $file->getClientOriginalName(),
-                'verification_status' => 'pending',
-            ]);
+    /**
+     * @param  list<string|null>  $paths
+     */
+    private function cleanupPreparedPaths(array $paths): void
+    {
+        foreach ($paths as $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+            try {
+                Storage::disk('public')->delete($path);
+            } catch (\Throwable) {
+                // best-effort cleanup
+            }
         }
-
-        return $documents;
     }
 
     /**
@@ -288,13 +321,8 @@ class VendorRegistrationService
 
     private function storeAndOptimizeImage(UploadedFile $file, string $directory): string
     {
-        $path = $file->store($directory, 'public');
-
-        // Defer GD compression until after the HTTP response so large camera
-        // uploads cannot hold the registration DB transaction / hang the mobile spinner.
-        OptimizePublicDiskImageJob::dispatch($path, 'vendor')->afterResponse();
-
-        return $path;
+        // Compress under 2 MB before persisting — keeps DB/media lean and APIs fast.
+        return ImageCompressionService::storeCompressedPublic($file, $directory);
     }
 
     private function ensureVendorRole(User $user): void

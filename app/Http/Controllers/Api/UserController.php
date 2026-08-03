@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
 use App\Models\WalletCredit;
 use App\Services\AccountDeletionService;
+use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Support\RefundPolicy;
 use App\Support\UserNotificationInbox;
@@ -159,12 +159,13 @@ class UserController extends Controller
             'name' => 'sometimes|string|max:255',
             'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'phone' => ['sometimes', 'nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($user->id)],
-            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:102400',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
         ], [
             'phone.unique' => 'This phone number is already registered. Please use a different phone number.',
-            'profile_picture.max' => 'Profile picture must not be larger than 10 MB.',
+            'profile_picture.max' => 'Profile picture must not be larger than 100 MB. It will be compressed under 2 MB automatically.',
+            'profile_picture.image' => 'Profile picture must be a JPEG, PNG, GIF, or WebP image.',
         ]);
 
         if ($request->filled('password')) {
@@ -176,23 +177,24 @@ class UserController extends Controller
 
         $user->fill(\Illuminate\Support\Arr::except($validated, ['profile_picture', 'current_password', 'password', 'password_confirmation']));
 
-        $storedPicture = null;
-        if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
-            $storedPicture = $profileFile->store('profiles', 'public');
-            $user->profile_picture = $storedPicture;
-        } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
-            $storedPicture = ProfilePictureUploadService::storeFromMultipartPut($request);
-            if ($storedPicture) {
-                $user->profile_picture = $storedPicture;
+        try {
+            if ($profileFile && is_object($profileFile) && method_exists($profileFile, 'store')) {
+                $user->profile_picture = ImageCompressionService::storeCompressedPublic($profileFile, 'profiles');
+            } elseif ($request->isMethod('PUT') && str_contains((string) $request->header('Content-Type'), 'multipart/form-data')) {
+                $storedPicture = ProfilePictureUploadService::storeFromMultipartPut($request);
+                if ($storedPicture) {
+                    // Multipart PUT helper already stored raw bytes — compress in place under 2 MB.
+                    ImageCompressionService::optimizeUserProfilePictureFromPublicPath($storedPicture);
+                    $user->profile_picture = $storedPicture;
+                }
             }
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422, [
+                'profile_picture' => [$e->getMessage()],
+            ]);
         }
 
         $user->save();
-
-        // Defer GD compression so mobile never waits >30s on large camera photos.
-        if (is_string($storedPicture) && $storedPicture !== '') {
-            OptimizePublicDiskImageJob::dispatch($storedPicture, 'user')->afterResponse();
-        }
 
         return ApiResponse::success('Profile updated successfully.', $this->profileToArray($user->fresh()));
     }

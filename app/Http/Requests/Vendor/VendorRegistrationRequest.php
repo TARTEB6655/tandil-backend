@@ -7,10 +7,10 @@ use Illuminate\Http\UploadedFile;
 class VendorRegistrationRequest extends VendorProfileFormRequest
 {
     /** @var list<string> */
-    private const IMAGE_EXTENSIONS = 'jpeg,jpg,png,gif,webp,heic,heif';
+    private const IMAGE_EXTENSIONS = 'jpeg,jpg,png,gif,webp';
 
     /** @var list<string> */
-    private const DOCUMENT_EXTENSIONS = 'pdf,jpeg,jpg,png,webp,heic,heif';
+    private const DOCUMENT_EXTENSIONS = 'pdf,jpeg,jpg,png,webp';
 
     public function authorize(): bool
     {
@@ -64,11 +64,11 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['required', 'accepted'],
 
-            // Prefer extensions (camera HEIC) but also allow mimes for extensionless uploads.
-            'logo' => ['nullable', 'file', 'max:10240', 'extensions:'.self::IMAGE_EXTENSIONS],
+            // Accept up to 100 MB; server compresses images to under 2 MB before saving.
+            'logo' => ['nullable', 'file', 'max:102400', 'extensions:'.self::IMAGE_EXTENSIONS],
 
-            'trade_license' => ['required', 'file', 'max:10240', 'extensions:'.self::DOCUMENT_EXTENSIONS],
-            'emirates_id' => ['required', 'file', 'max:10240', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'trade_license' => ['required', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'emirates_id' => ['required', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
 
             'opens_at' => ['nullable', 'date_format:H:i'],
             'closes_at' => ['nullable', 'date_format:H:i'],
@@ -86,14 +86,14 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
         return array_merge(parent::messages(), [
             'email.unique' => 'This email is already registered. Please log in or use a different email.',
             'phone.unique' => 'This phone number is already registered. Please log in or use a different phone number.',
-            'logo.extensions' => 'Logo must be a JPEG, PNG, GIF, WebP, or HEIC image.',
-            'logo.max' => 'Logo must not be larger than 10 MB.',
+            'logo.extensions' => 'Logo must be a JPEG, PNG, GIF, or WebP image (HEIC is not supported — please convert to JPEG/PNG).',
+            'logo.max' => 'Logo must not be larger than 100 MB. It will be compressed under 2 MB automatically.',
             'trade_license.required' => 'Trade license document is required.',
-            'trade_license.extensions' => 'Trade license must be a PDF or image (JPEG, PNG, WebP, HEIC).',
-            'trade_license.max' => 'Trade license must not be larger than 10 MB.',
+            'trade_license.extensions' => 'Trade license must be a PDF or image (JPEG, PNG, WebP). HEIC is not supported.',
+            'trade_license.max' => 'Trade license must not be larger than 100 MB. Images are compressed under 2 MB automatically; PDFs must already be under 2 MB.',
             'emirates_id.required' => 'Emirates ID document is required.',
-            'emirates_id.extensions' => 'Emirates ID must be a PDF or image (JPEG, PNG, WebP, HEIC).',
-            'emirates_id.max' => 'Emirates ID must not be larger than 10 MB.',
+            'emirates_id.extensions' => 'Emirates ID must be a PDF or image (JPEG, PNG, WebP). HEIC is not supported.',
+            'emirates_id.max' => 'Emirates ID must not be larger than 100 MB. Images are compressed under 2 MB automatically; PDFs must already be under 2 MB.',
             'opens_at.date_format' => 'Opening time must be in HH:MM format (e.g. 06:00).',
             'closes_at.date_format' => 'Closing time must be in HH:MM format (e.g. 22:00).',
         ]);
@@ -180,14 +180,25 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             }
 
             $base = pathinfo($original !== '' ? $original : $key, PATHINFO_FILENAME) ?: $key;
-            $renamed = new UploadedFile(
-                $file->getPathname(),
-                $base.'.'.$inferred,
-                $clientMime !== '' ? $clientMime : ($detectedMime !== '' ? $detectedMime : null),
-                $file->getError(),
-                true
-            );
-            $this->files->set($key, $renamed);
+            $newName = $base.'.'.$inferred;
+
+            // Preserve Laravel's Testing\File size/mime overrides used in feature tests.
+            if ($file instanceof \Illuminate\Http\Testing\File) {
+                $replacement = new \Illuminate\Http\Testing\File($newName, $file->tempFile);
+                $replacement->sizeToReport = $file->sizeToReport;
+                $replacement->mimeTypeToReport = $file->mimeTypeToReport
+                    ?: ($clientMime !== '' ? $clientMime : $detectedMime);
+                $this->files->set($key, $replacement);
+            } else {
+                $renamed = new UploadedFile(
+                    $file->getPathname(),
+                    $newName,
+                    $clientMime !== '' ? $clientMime : ($detectedMime !== '' ? $detectedMime : null),
+                    $file->getError(),
+                    true
+                );
+                $this->files->set($key, $renamed);
+            }
         }
 
         // Request::file() caches converted uploads; clear so validators see renames.

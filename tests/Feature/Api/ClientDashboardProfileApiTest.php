@@ -2,15 +2,14 @@
 
 namespace Tests\Feature\Api;
 
-use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\Package;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Models\UserAddress;
+use App\Services\ImageCompressionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -159,10 +158,9 @@ class ClientDashboardProfileApiTest extends TestCase
         $this->assertSame('Updated Client Name', $this->client->name);
     }
 
-    public function test_user_profile_photo_update_defers_compression_and_stays_fast(): void
+    public function test_user_profile_photo_update_compresses_under_2mb_and_stays_fast(): void
     {
         Storage::fake('public');
-        Bus::fake([OptimizePublicDiskImageJob::class]);
 
         $started = microtime(true);
         $response = $this->post('/api/user/profile', [
@@ -181,10 +179,13 @@ class ClientDashboardProfileApiTest extends TestCase
             ->assertJsonPath('data.name', 'devavology12')
             ->assertJsonPath('data.phone', '983434343');
 
-        $this->assertNotEmpty($response->json('data.profile_picture'));
-        Bus::assertDispatched(OptimizePublicDiskImageJob::class, function (OptimizePublicDiskImageJob $job) {
-            return $job->profile === 'user' && str_contains($job->relativePath, 'profiles/');
-        });
+        $relative = (string) $response->json('data.profile_picture');
+        $this->assertNotSame('', $relative);
+        $this->assertTrue(Storage::disk('public')->exists($relative));
+        $this->assertLessThanOrEqual(
+            ImageCompressionService::MOBILE_UPLOAD_MAX_BYTES,
+            Storage::disk('public')->size($relative)
+        );
         $this->assertLessThan(2500, $elapsedMs, "Client profile update took {$elapsedMs}ms");
     }
 

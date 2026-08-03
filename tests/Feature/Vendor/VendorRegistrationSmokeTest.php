@@ -3,12 +3,10 @@
 namespace Tests\Feature\Vendor;
 
 use App\Enums\VendorStatus;
-use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\User;
 use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -82,20 +80,26 @@ class VendorRegistrationSmokeTest extends TestCase
         $this->assertDatabaseHas('roles', ['name' => 'vendor', 'guard_name' => 'web']);
     }
 
-    public function test_registration_defers_logo_optimization_after_response(): void
+    public function test_registration_compresses_logo_under_2mb_before_save(): void
     {
-        Bus::fake([OptimizePublicDiskImageJob::class]);
         Role::findOrCreate('vendor', 'web');
 
-        $email = 'smoke-defer-'.uniqid().'@test.com';
+        $email = 'smoke-compress-'.uniqid().'@test.com';
 
-        $this->post('/api/vendor/auth/register', $this->screenshotLikePayload($email), [
+        $response = $this->post('/api/vendor/auth/register', $this->screenshotLikePayload($email), [
             'Accept' => 'application/json',
         ])->assertCreated();
 
-        Bus::assertDispatched(OptimizePublicDiskImageJob::class, function (OptimizePublicDiskImageJob $job) {
-            return $job->profile === 'vendor' && str_contains($job->relativePath, 'vendors/logos/');
-        });
+        $logoUrl = (string) $response->json('data.logo_url');
+        $this->assertNotSame('', $logoUrl);
+
+        $relative = (string) \App\Models\VendorProfile::where('email', $email)->value('logo_path');
+        $this->assertNotSame('', $relative);
+        $this->assertTrue(Storage::disk('public')->exists($relative));
+        $this->assertLessThanOrEqual(
+            \App\Services\ImageCompressionService::MOBILE_UPLOAD_MAX_BYTES,
+            Storage::disk('public')->size($relative)
+        );
     }
 
     public function test_registration_accepts_extensionless_document_upload(): void
