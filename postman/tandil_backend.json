@@ -1178,7 +1178,7 @@
                                     "key": "phone",
                                     "value": "+971500000000",
                                     "type": "text",
-                                    "description": "Phone number. Required."
+                                    "description": "Phone number. Required. Must be unique on users.phone — duplicate returns 422 (not SQL)."
                                 },
                                 {
                                     "key": "trade_license_number",
@@ -1232,7 +1232,7 @@
                                     "key": "vendor_type",
                                     "value": "fruits",
                                     "type": "text",
-                                    "description": "Required. fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other"
+                                    "description": "Required. Preferred: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values map to other."
                                 },
                                 {
                                     "key": "emirate",

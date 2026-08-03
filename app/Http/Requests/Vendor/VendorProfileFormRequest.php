@@ -79,6 +79,10 @@ abstract class VendorProfileFormRequest extends FormRequest
             'company_name' => 'business_name',
             'authorized_person_name' => 'owner_name',
             'delivery_radius_km' => 'delivery_radius',
+            'business_type' => 'vendor_type',
+            'store_type' => 'vendor_type',
+            'shop_type' => 'vendor_type',
+            'type' => 'vendor_type',
         ];
 
         foreach ($aliases as $from => $to) {
@@ -89,26 +93,23 @@ abstract class VendorProfileFormRequest extends FormRequest
     }
 
     /**
-     * Mobile pickers sometimes send "Dubai"/"dubai" or "Fruits"/"FRUITS".
+     * Mobile pickers sometimes send "Dubai"/"dubai", "Fruits"/"FRUITS", or loose aliases.
      */
     protected function normalizeVendorTypeAndEmirate(): void
     {
         $merge = [];
 
         if ($this->filled('vendor_type')) {
-            $raw = strtolower(trim((string) $this->input('vendor_type')));
-            foreach (VendorType::values() as $value) {
-                if ($raw === $value || $raw === strtolower(VendorType::from($value)->label())) {
-                    $merge['vendor_type'] = $value;
-                    break;
-                }
+            $resolved = VendorType::resolve($this->input('vendor_type'));
+            if ($resolved !== null) {
+                $merge['vendor_type'] = $resolved;
             }
         }
 
         if ($this->filled('emirate')) {
             $raw = strtolower(trim((string) $this->input('emirate')));
             foreach (VendorProfile::emirates() as $emirate) {
-                if ($raw === strtolower($emirate)) {
+                if ($raw === strtolower($emirate) || $raw === strtolower(str_replace(' ', '', $emirate))) {
                     $merge['emirate'] = $emirate;
                     break;
                 }

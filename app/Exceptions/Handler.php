@@ -101,11 +101,35 @@ class Handler extends ExceptionHandler
             ], 404);
         }
 
-        // Handle QueryException (Database errors) - show actual message so client can fix
+        // Handle QueryException — never leak raw SQL to mobile clients.
         if ($e instanceof \Illuminate\Database\QueryException) {
+            $sqlMessage = $e->getMessage();
+
+            if (str_contains($sqlMessage, 'users_phone_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'phone'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This phone number is already registered. Please log in or use a different phone number.',
+                    'errors' => [
+                        'phone' => ['This phone number is already registered. Please log in or use a different phone number.'],
+                    ],
+                ], 422);
+            }
+
+            if (str_contains($sqlMessage, 'users_email_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'email'))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already registered. Please log in or use a different email.',
+                    'errors' => [
+                        'email' => ['This email is already registered. Please log in or use a different email.'],
+                    ],
+                ], 422);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => $message,
+                'message' => $isDebug
+                    ? $message
+                    : 'Unable to complete the request. Please try again or contact support.',
             ], 500);
         }
 

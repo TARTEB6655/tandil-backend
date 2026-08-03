@@ -117,13 +117,44 @@ return Application::configure(basePath: dirname(__DIR__))
                         'message' => $e->getMessage() ?: 'An error occurred.',
                     ], $e->getStatusCode());
                 }
-                // Other exceptions: for API always show actual error message so client knows what to fix
+                // QueryException: map unique collisions to 422; never leak raw SQL to clients
+                if ($e instanceof \Illuminate\Database\QueryException) {
+                    $sqlMessage = $e->getMessage();
+
+                    if (str_contains($sqlMessage, 'users_phone_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'phone'))) {
+                        $msg = 'This phone number is already registered. Please log in or use a different phone number.';
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => $msg,
+                            'errors' => ['phone' => [$msg]],
+                        ], 422);
+                    }
+
+                    if (str_contains($sqlMessage, 'users_email_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'email'))) {
+                        $msg = 'This email is already registered. Please log in or use a different email.';
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => $msg,
+                            'errors' => ['email' => [$msg]],
+                        ], 422);
+                    }
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => config('app.debug')
+                            ? ($e->getMessage() ?: 'Database error.')
+                            : 'Unable to complete the request. Please try again or contact support.',
+                    ], 500);
+                }
+                // Other exceptions: keep debug detail in local; hide internals in production
                 $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
                 $message = $e->getMessage() ?: 'An error occurred.';
 
                 return response()->json([
                     'success' => false,
-                    'message' => $message,
+                    'message' => config('app.debug') ? $message : 'An error occurred.',
                 ], $statusCode);
             }
 

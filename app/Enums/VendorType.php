@@ -45,4 +45,50 @@ enum VendorType: string
 
         return $options;
     }
+
+    /**
+     * Resolve mobile/UI picker values (labels, plurals, loose aliases) to a stored enum value.
+     */
+    public static function resolve(mixed $raw): ?string
+    {
+        $value = strtolower(trim((string) $raw));
+        if ($value === '') {
+            return null;
+        }
+
+        $compact = preg_replace('/[\s\-_]+/', '', $value) ?? $value;
+
+        foreach (self::cases() as $case) {
+            if ($compact === preg_replace('/[\s\-_]+/', '', $case->value)
+                || $compact === preg_replace('/[\s\-_]+/', '', strtolower($case->label()))) {
+                return $case->value;
+            }
+        }
+
+        $aliases = [
+            'fruit' => self::Fruits->value,
+            'veg' => self::Vegetables->value,
+            'veggie' => self::Vegetables->value,
+            'vegetable' => self::Vegetables->value,
+            'veggies' => self::Vegetables->value,
+            'fish' => self::Seafood->value,
+            'seafood' => self::Seafood->value,
+            'chicken' => self::Poultry->value,
+            'bird' => self::Poultry->value,
+            'beef' => self::Meat->value,
+            'lamb' => self::Meat->value,
+            'cafe' => self::Restaurant->value,
+            'café' => self::Restaurant->value,
+            'resturant' => self::Restaurant->value, // common typo
+            'grocery' => self::Other->value,
+            'groceries' => self::Other->value,
+            'supplier' => self::Other->value,
+            'general' => self::Other->value,
+            'food' => self::Other->value,
+            'store' => self::Other->value,
+            'shop' => self::Other->value,
+        ];
+
+        return $aliases[$compact] ?? null;
+    }
 }

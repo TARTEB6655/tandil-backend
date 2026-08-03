@@ -111,4 +111,54 @@ class VendorRegistrationSmokeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
     }
+
+    public function test_duplicate_phone_returns_friendly_422_not_sql(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+
+        User::factory()->create([
+            'phone' => '0555381810',
+            'email' => 'existing-phone-'.uniqid().'@test.com',
+        ]);
+
+        $payload = $this->screenshotLikePayload('hamood-'.uniqid().'@outlook.com');
+        $payload['phone'] = '0555381810';
+
+        $response = $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json']);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'This phone number is already registered. Please log in or use a different phone number.')
+            ->assertJsonValidationErrors(['phone']);
+
+        $this->assertStringNotContainsString('SQLSTATE', (string) $response->json('message'));
+        $this->assertStringNotContainsString('Duplicate entry', (string) $response->json('message'));
+    }
+
+    public function test_unknown_vendor_type_falls_back_to_other_instead_of_422(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+
+        $email = 'smoke-type-'.uniqid().'@test.com';
+        $payload = $this->screenshotLikePayload($email);
+        $payload['vendor_type'] = 'Grocery Store'; // not in enum; mobile picker mismatch
+
+        $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.profile.vendor_type', 'other');
+    }
+
+    public function test_business_type_alias_and_fruit_singular_resolve(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+
+        $email = 'smoke-alias-'.uniqid().'@test.com';
+        $payload = $this->screenshotLikePayload($email);
+        unset($payload['vendor_type']);
+        $payload['business_type'] = 'Fruit';
+
+        $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.profile.vendor_type', 'fruits');
+    }
 }

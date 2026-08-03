@@ -36,6 +36,11 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
                 'owner_name' => $this->input('owner_name') ?: $name,
             ]);
         }
+
+        // Unknown mobile picker values should not block signup — store as "other".
+        if ($this->filled('vendor_type') && ! in_array($this->input('vendor_type'), \App\Enums\VendorType::values(), true)) {
+            $this->merge(['vendor_type' => \App\Enums\VendorType::Other->value]);
+        }
     }
 
     /**
@@ -55,6 +60,7 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'authorized_person_name' => ['sometimes', 'string', 'max:255'],
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email', 'unique:vendor_profiles,email'],
+            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['required', 'accepted'],
 
@@ -78,6 +84,8 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     public function messages(): array
     {
         return array_merge(parent::messages(), [
+            'email.unique' => 'This email is already registered. Please log in or use a different email.',
+            'phone.unique' => 'This phone number is already registered. Please log in or use a different phone number.',
             'logo.extensions' => 'Logo must be a JPEG, PNG, GIF, WebP, or HEIC image.',
             'logo.max' => 'Logo must not be larger than 10 MB.',
             'trade_license.required' => 'Trade license document is required.',
