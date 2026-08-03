@@ -161,4 +161,24 @@ class VendorRegistrationSmokeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.profile.vendor_type', 'fruits');
     }
+
+    public function test_registration_responds_quickly_without_blocking_on_admin_notify(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+        Role::findOrCreate('admin', 'web');
+        User::factory()->create(['role' => 'admin', 'email' => 'admin-fast-'.uniqid().'@test.com'])
+            ->assignRole('admin');
+
+        $email = 'smoke-fast-'.uniqid().'@test.com';
+        $started = microtime(true);
+
+        $this->post('/api/vendor/auth/register', $this->screenshotLikePayload($email), [
+            'Accept' => 'application/json',
+        ])->assertCreated();
+
+        $elapsedMs = (microtime(true) - $started) * 1000;
+
+        // Hot path must stay under a couple seconds locally (uploads are fakes).
+        $this->assertLessThan(2500, $elapsedMs, "Registration took {$elapsedMs}ms — expected a fast response.");
+    }
 }

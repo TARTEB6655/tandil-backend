@@ -23,14 +23,11 @@ class VendorAuthController extends Controller
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
-        return ApiResponse::success(VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE, [
-            'vendor_id' => $vendor->id,
-            'status' => $vendor->status,
-            'logo_url' => $vendor->logo_url,
-            'profile' => $vendor->profile,
-            'documents' => $vendor->documents,
-            'completion_percent' => app(\App\Services\Vendor\VendorApplicationService::class)->completionPercent($vendor),
-        ], 201);
+        return ApiResponse::success(
+            VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE,
+            $this->registration->registrationResponsePayload($vendor),
+            201
+        );
     }
 
     public function logout(Request $request): JsonResponse

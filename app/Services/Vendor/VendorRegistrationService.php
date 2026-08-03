@@ -8,6 +8,7 @@ use App\Jobs\OptimizePublicDiskImageJob;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
+use App\Models\VendorDocument;
 use App\Models\VendorProfile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -29,7 +30,8 @@ class VendorRegistrationService
      */
     public function register(array $data, ?UploadedFile $logo = null, array $documentFiles = []): Vendor
     {
-        $vendor = DB::transaction(function () use ($data, $logo, $documentFiles) {
+        // Keep the DB transaction short — no disk I/O or admin fan-out inside it.
+        $vendor = DB::transaction(function () use ($data) {
             $user = User::create([
                 'name' => $data['owner_name'],
                 'email' => $data['email'],
@@ -45,8 +47,6 @@ class VendorRegistrationService
                 'status' => VendorStatus::UnderReview->value,
             ]);
 
-            $logoPath = $logo ? $this->storeAndOptimizeImage($logo, 'vendors/logos') : null;
-
             $profileData = array_merge(
                 $this->mapProfileFields($data),
                 [
@@ -54,7 +54,7 @@ class VendorRegistrationService
                     'business_name' => $data['business_name'],
                     'owner_name' => $data['owner_name'],
                     'email' => $data['email'],
-                    'logo_path' => $logoPath,
+                    'logo_path' => null,
                     'onboarding_completed_at' => now(),
                 ]
             );
@@ -63,16 +63,11 @@ class VendorRegistrationService
                 $profileData['terms_accepted_at'] = now();
             }
 
-            VendorProfile::create($profileData);
+            $vendor->setRelation('profile', VendorProfile::create($profileData));
+            $vendor->setRelation('user', $user);
 
             if (! empty($data['category_ids']) && is_array($data['category_ids'])) {
                 $this->application->syncCategories($vendor, $data['category_ids']);
-            }
-
-            foreach ($documentFiles as $type => $file) {
-                if ($file instanceof UploadedFile) {
-                    $this->documents->upload($vendor, $type, $file);
-                }
             }
 
             VendorApprovalLog::create([
@@ -84,12 +79,86 @@ class VendorRegistrationService
                 'notes' => 'Vendor registration submitted for admin review.',
             ]);
 
-            return $vendor->load(['profile', 'user', 'documents', 'categories']);
+            return $vendor;
         });
 
-        app(VendorAdminNotifier::class)->newRegistration($vendor);
+        // File storage after commit (avoids holding DB locks during multi-MB uploads).
+        $documents = $this->storeRegistrationUploads($vendor, $logo, $documentFiles);
+        $vendor->setRelation('documents', collect($documents));
+
+        $vendorId = $vendor->id;
+        dispatch(function () use ($vendorId) {
+            $fresh = Vendor::query()->with('profile')->find($vendorId);
+            if ($fresh) {
+                app(VendorAdminNotifier::class)->newRegistration($fresh);
+            }
+        })->afterResponse();
 
         return $vendor;
+    }
+
+    /**
+     * Lean payload for the mobile thank-you screen (avoids extra relation queries).
+     *
+     * @return array<string, mixed>
+     */
+    public function registrationResponsePayload(Vendor $vendor): array
+    {
+        $profile = $vendor->profile;
+        $documents = $vendor->relationLoaded('documents')
+            ? $vendor->documents
+            : $vendor->documents()->get(['id', 'vendor_id', 'type', 'file_path', 'original_name', 'verification_status', 'created_at', 'updated_at']);
+
+        $docCount = $documents->count();
+        // Full wizard submit ≈ profile + terms + required docs; categories optional.
+        $completion = $docCount >= 2 ? 95 : ($docCount === 1 ? 85 : 75);
+
+        return [
+            'vendor_id' => $vendor->id,
+            'status' => $vendor->status,
+            'logo_url' => $vendor->logo_url,
+            'profile' => $profile,
+            'documents' => $documents->values(),
+            'completion_percent' => $completion,
+        ];
+    }
+
+    /**
+     * @param  array<string, UploadedFile|null>  $documentFiles
+     * @return list<VendorDocument>
+     */
+    private function storeRegistrationUploads(Vendor $vendor, ?UploadedFile $logo, array $documentFiles): array
+    {
+        $documents = [];
+
+        if ($logo) {
+            $logoPath = $this->storeAndOptimizeImage($logo, 'vendors/logos');
+            $vendor->profile?->update(['logo_path' => $logoPath]);
+            if ($vendor->profile) {
+                $vendor->profile->logo_path = $logoPath;
+            }
+        }
+
+        foreach ($documentFiles as $type => $file) {
+            if (! $file instanceof UploadedFile) {
+                continue;
+            }
+            if (! in_array($type, VendorDocumentType::values(), true)) {
+                continue;
+            }
+
+            // New vendor — skip replace lookup used by general upload().
+            $path = $file->store("vendors/{$vendor->id}/documents", 'public');
+            $documents[] = VendorDocument::create([
+                'vendor_id' => $vendor->id,
+                'type' => $type,
+                'file_path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'verification_status' => 'pending',
+            ]);
+        }
+
+        return $documents;
     }
 
     /**
@@ -231,12 +300,17 @@ class VendorRegistrationService
     private function ensureVendorRole(User $user): void
     {
         try {
-            if (class_exists(Role::class)) {
-                Role::findOrCreate('vendor', 'web');
+            if (! class_exists(Role::class)) {
+                return;
             }
-            if (method_exists($user, 'assignRole') && ! $user->hasRole('vendor')) {
-                $user->assignRole('vendor');
-            }
+
+            $role = Role::findOrCreate('vendor', 'web');
+            // Fast path: skip Spatie assignRole (permission cache flush) on hot signup.
+            DB::table(config('permission.table_names.model_has_roles'))->insertOrIgnore([
+                'role_id' => $role->id,
+                'model_type' => $user->getMorphClass(),
+                'model_id' => $user->getKey(),
+            ]);
         } catch (\Throwable) {
             // Spatie optional / already attached via users.role
         }
