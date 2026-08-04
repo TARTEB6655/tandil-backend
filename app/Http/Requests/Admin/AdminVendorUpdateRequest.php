@@ -80,8 +80,10 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'logo_remove' => ['sometimes', 'nullable', 'boolean'],
             'trade_license' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
             'emirates_id' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
-            'category_ids' => ['sometimes', 'nullable', 'array'],
-            'category_ids.*' => ['integer', 'exists:categories,id'],
+            'category_ids' => ['prohibited'],
+            'category_ids.*' => ['prohibited'],
+            'years_in_business' => ['prohibited'],
+            'description' => ['prohibited'],
             'vendor_type' => ['sometimes', Rule::in($allowedVendorTypeSlugs)],
             'status' => ['sometimes', 'nullable', Rule::in([VendorStatus::Approved->value, VendorStatus::UnderReview->value, VendorStatus::Pending->value])],
         ]);

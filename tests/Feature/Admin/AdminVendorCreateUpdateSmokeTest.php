@@ -160,8 +160,6 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
             'closes_at' => '21:00',
             'minimum_order_amount' => '75',
             'vat_number' => 'TRN000111222',
-            'years_in_business' => '8',
-            'description' => 'Updated description',
             'password' => 'newpass12',
             'password_confirmation' => 'newpass12',
             'trade_license' => UploadedFile::fake()->create('new-license.pdf', 200, 'application/pdf'),
@@ -172,8 +170,7 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
             ->assertJsonPath('data.detail.summary.business_name', 'Updated Farms LLC')
             ->assertJsonPath('data.detail.business_details.vendor_type', 'vegetables')
             ->assertJsonPath('data.detail.business_details.emirate', 'Sharjah')
-            ->assertJsonPath('data.detail.business_details.operating_hours', '07:00 - 21:00')
-            ->assertJsonPath('data.detail.business_details.years_in_business', 8);
+            ->assertJsonPath('data.detail.business_details.operating_hours', '07:00 - 21:00');
 
         $vendor = Vendor::with('profile', 'user')->findOrFail($vendorId);
         $this->assertSame('Updated Farms LLC', $vendor->profile->business_name);
@@ -200,6 +197,37 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
             ->assertJsonPath('data.status', 'approved');
 
         $this->assertDatabaseHas('vendors', ['id' => $vendorId, 'status' => 'approved']);
+    }
+
+    public function test_admin_update_rejects_category_ids(): void
+    {
+        $email = 'admin-category-'.uniqid().'@test.com';
+        $create = $this->post('/api/admin/vendors', $this->fullRegistrationPayload($email), $this->auth())
+            ->assertCreated();
+        $vendorId = (int) $create->json('data.vendor_id');
+
+        $this->post('/api/admin/vendors/'.$vendorId, [
+            'category_ids' => [1, 2, 3],
+        ], $this->auth())
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['category_ids']);
+    }
+
+    public function test_admin_update_rejects_years_in_business_and_description(): void
+    {
+        $email = 'admin-update-fields-'.uniqid().'@test.com';
+        $create = $this->post('/api/admin/vendors', $this->fullRegistrationPayload($email), $this->auth())
+            ->assertCreated();
+        $vendorId = (int) $create->json('data.vendor_id');
+
+        $this->post('/api/admin/vendors/'.$vendorId, [
+            'years_in_business' => '8',
+            'description' => 'Updated description',
+        ], $this->auth())
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors(['years_in_business', 'description']);
     }
 
     public function test_admin_updates_vendor_with_inactive_current_vendor_type(): void

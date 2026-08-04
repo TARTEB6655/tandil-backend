@@ -25317,18 +25317,6 @@
                                                     "description": "Minimum order AED."
                                                 },
                                                 {
-                                                    "key": "years_in_business",
-                                                    "value": "5",
-                                                    "type": "text",
-                                                    "description": "Optional integer."
-                                                },
-                                                {
-                                                    "key": "description",
-                                                    "value": "Fresh produce supplier",
-                                                    "type": "text",
-                                                    "description": "Optional store description."
-                                                },
-                                                {
                                                     "key": "terms_accepted",
                                                     "value": "1",
                                                     "type": "text",
@@ -25528,34 +25516,16 @@
                                                     "description": "Minimum order AED."
                                                 },
                                                 {
-                                                    "key": "years_in_business",
-                                                    "value": "5",
+                                                    "key": "terms_accepted",
+                                                    "value": "1",
                                                     "type": "text",
-                                                    "description": "Optional integer."
-                                                },
-                                                {
-                                                    "key": "description",
-                                                    "value": "Fresh produce supplier",
-                                                    "type": "text",
-                                                    "description": "Optional store description."
-                                                },
-                                                {
-                                                    "key": "category_ids",
-                                                    "value": "",
-                                                    "type": "text",
-                                                    "description": "Optional comma-separated category IDs e.g. 1,2,3"
+                                                    "description": "Required. 1 = accept Terms & Conditions."
                                                 },
                                                 {
                                                     "key": "status",
                                                     "value": "approved",
                                                     "type": "text",
                                                     "description": "Optional vendor status: approved, under_review, pending."
-                                                },
-                                                {
-                                                    "key": "logo_remove",
-                                                    "value": "0",
-                                                    "type": "text",
-                                                    "description": "Set 1 to remove logo."
                                                 }
                                             ]
                                         },
