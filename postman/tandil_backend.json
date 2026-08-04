@@ -25141,7 +25141,7 @@
                                     }
                                 },
                                 {
-                                    "name": "8. Create vendor (admin form-data)",
+                                    "name": "9. Create vendor (admin form-data)",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -25363,7 +25363,7 @@
                                     }
                                 },
                                 {
-                                    "name": "9. Update vendor (full form-data)",
+                                    "name": "10. Update vendor (full form-data)",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -25552,6 +25552,12 @@
                                                     "description": "Optional comma-separated category IDs e.g. 1,2,3"
                                                 },
                                                 {
+                                                    "key": "status",
+                                                    "value": "approved",
+                                                    "type": "text",
+                                                    "description": "Optional vendor status: approved, under_review, pending."
+                                                },
+                                                {
                                                     "key": "logo_remove",
                                                     "value": "0",
                                                     "type": "text",
@@ -25575,7 +25581,7 @@
                                     }
                                 },
                                 {
-                                    "name": "10. Approve vendor",
+                                    "name": "11. Approve vendor",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -25613,7 +25619,7 @@
                                     }
                                 },
                                 {
-                                    "name": "11. Reject vendor (Cancel button)",
+                                    "name": "12. Reject vendor (Cancel button)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -25651,7 +25657,7 @@
                                     }
                                 },
                                 {
-                                    "name": "12. Mark under review",
+                                    "name": "13. Mark under review",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -25680,7 +25686,7 @@
                                     }
                                 },
                                 {
-                                    "name": "13. Disable vendor",
+                                    "name": "14. Disable vendor",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -25709,7 +25715,7 @@
                                     }
                                 },
                                 {
-                                    "name": "14. Delete vendor (permanent)",
+                                    "name": "15. Delete vendor (permanent)",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [

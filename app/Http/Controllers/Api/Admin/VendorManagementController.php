@@ -526,6 +526,18 @@ class VendorManagementController extends Controller
             VendorRegistrationService::documentFilesFromRequest($request)
         );
 
+        if ($request->filled('status')) {
+            $newStatus = VendorStatus::tryFrom((string) $request->input('status'));
+            if ($newStatus !== null && $newStatus->value !== $vendor->status) {
+                $vendor = $this->approval->transition(
+                    $vendor,
+                    $newStatus,
+                    $request->user(),
+                    'Vendor updated by admin.'
+                );
+            }
+        }
+
         $vendor->load(['profile', 'user', 'documents', 'categories']);
 
         return ApiResponse::success('Vendor updated successfully.', [

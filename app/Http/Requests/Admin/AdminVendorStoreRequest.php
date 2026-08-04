@@ -50,13 +50,14 @@ class AdminVendorStoreRequest extends VendorRegistrationRequest
 
     protected function allowedVendorTypeSlugs(): array
     {
-        if ($this->vendorTypesTableReady()) {
-            $slugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
-            if ($slugs !== []) {
-                return $slugs;
-            }
+        $enumSlugs = VendorTypeEnum::values();
+
+        if (! $this->vendorTypesTableReady()) {
+            return $enumSlugs;
         }
 
-        return VendorTypeEnum::values();
+        $dbSlugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
+
+        return array_values(array_unique(array_merge($dbSlugs, $enumSlugs)));
     }
 }

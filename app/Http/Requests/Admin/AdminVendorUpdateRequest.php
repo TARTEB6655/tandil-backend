@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\VendorStatus;
 use App\Enums\VendorType as VendorTypeEnum;
 use App\Http\Requests\Vendor\VendorProfileFormRequest;
 use App\Models\Vendor;
@@ -82,6 +83,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'category_ids' => ['sometimes', 'nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
             'vendor_type' => ['sometimes', Rule::in($allowedVendorTypeSlugs)],
+            'status' => ['sometimes', 'nullable', Rule::in([VendorStatus::Approved->value, VendorStatus::UnderReview->value, VendorStatus::Pending->value])],
         ]);
     }
 
@@ -96,6 +98,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'logo.extensions' => 'Logo must be a JPEG, PNG, GIF, or WebP image.',
             'trade_license.extensions' => 'Trade license must be a PDF or image (JPEG, PNG, WebP).',
             'emirates_id.extensions' => 'Emirates ID must be a PDF or image (JPEG, PNG, WebP).',
+            'status.in' => 'Status must be approved, under_review, or pending.',
         ]);
     }
 

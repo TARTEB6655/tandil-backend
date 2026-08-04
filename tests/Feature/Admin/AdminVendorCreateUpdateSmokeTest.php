@@ -182,6 +182,26 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpass12', $vendor->user->password));
     }
 
+    public function test_admin_updates_vendor_status(): void
+    {
+        $email = 'admin-status-'.uniqid().'@test.com';
+        $create = $this->post('/api/admin/vendors', array_merge($this->fullRegistrationPayload($email), [
+            'status' => 'under_review',
+        ]), $this->auth())
+            ->assertCreated();
+        $vendorId = (int) $create->json('data.vendor_id');
+
+        $response = $this->post('/api/admin/vendors/'.$vendorId, [
+            'status' => 'approved',
+        ], $this->auth());
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'approved');
+
+        $this->assertDatabaseHas('vendors', ['id' => $vendorId, 'status' => 'approved']);
+    }
+
     public function test_admin_updates_vendor_with_inactive_current_vendor_type(): void
     {
         $email = 'admin-inactive-'.uniqid().'@test.com';
