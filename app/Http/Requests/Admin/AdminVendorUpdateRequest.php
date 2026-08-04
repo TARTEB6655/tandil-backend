@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\VendorType as VendorTypeEnum;
 use App\Http\Requests\Vendor\VendorProfileFormRequest;
 use App\Models\Vendor;
 use App\Models\VendorType as VendorTypeModel;
@@ -51,13 +52,6 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
         $profileId = $vendor?->profile?->id;
 
         $allowedVendorTypeSlugs = $this->allowedVendorTypeSlugs();
-        $currentVendorType = $vendor?->profile?->vendor_type;
-        if ($currentVendorType !== null) {
-            $resolvedCurrentType = VendorTypeModel::resolveToSlug($currentVendorType) ?? $currentVendorType;
-            if (! in_array($resolvedCurrentType, $allowedVendorTypeSlugs, true)) {
-                $allowedVendorTypeSlugs[] = $resolvedCurrentType;
-            }
-        }
 
         return array_merge($this->businessProfileRules(false), [
             'business_name' => ['sometimes', 'string', 'max:255'],
@@ -101,6 +95,18 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'trade_license.extensions' => 'Trade license must be a PDF or image (JPEG, PNG, WebP).',
             'emirates_id.extensions' => 'Emirates ID must be a PDF or image (JPEG, PNG, WebP).',
         ]);
+    }
+
+    protected function allowedVendorTypeSlugs(): array
+    {
+        if ($this->vendorTypesTableReady()) {
+            $slugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
+            if ($slugs !== []) {
+                return $slugs;
+            }
+        }
+
+        return VendorTypeEnum::values();
     }
 
     protected function normalizeRegistrationFileAliases(): void

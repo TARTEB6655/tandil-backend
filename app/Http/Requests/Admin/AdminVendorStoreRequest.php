@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\VendorType as VendorTypeEnum;
 use App\Http\Requests\Vendor\VendorRegistrationRequest;
+use App\Models\VendorType as VendorTypeModel;
 use Illuminate\Validation\Rule;
 
 /**
@@ -44,5 +46,17 @@ class AdminVendorStoreRequest extends VendorRegistrationRequest
         return array_merge(parent::messages(), [
             'status.in' => 'Status must be approved, under_review, or pending.',
         ]);
+    }
+
+    protected function allowedVendorTypeSlugs(): array
+    {
+        if ($this->vendorTypesTableReady()) {
+            $slugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
+            if ($slugs !== []) {
+                return $slugs;
+            }
+        }
+
+        return VendorTypeEnum::values();
     }
 }
