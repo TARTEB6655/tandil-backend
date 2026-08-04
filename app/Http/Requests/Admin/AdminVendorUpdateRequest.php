@@ -49,8 +49,14 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
         $userId = $vendor?->user_id;
         $profileId = $vendor?->profile?->id;
 
+        $allowedVendorTypeSlugs = $this->allowedVendorTypeSlugs();
+        $currentVendorType = $vendor?->profile?->vendor_type;
+        if ($currentVendorType !== null && ! in_array($currentVendorType, $allowedVendorTypeSlugs, true)) {
+            $allowedVendorTypeSlugs[] = $currentVendorType;
+        }
+
         return array_merge($this->businessProfileRules(false), [
-            'company_name' => ['sometimes', 'string', 'max:255'],
+            'business_name' => ['sometimes', 'string', 'max:255'],
             'authorized_person_name' => ['sometimes', 'string', 'max:255'],
             'name' => ['sometimes', 'string', 'max:255'],
             'email' => [
@@ -75,6 +81,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'emirates_id' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
             'category_ids' => ['sometimes', 'nullable', 'array'],
             'category_ids.*' => ['integer', 'exists:categories,id'],
+            'vendor_type' => ['sometimes', Rule::in($allowedVendorTypeSlugs)],
         ]);
     }
 

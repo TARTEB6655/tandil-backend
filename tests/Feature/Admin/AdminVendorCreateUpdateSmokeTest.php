@@ -182,6 +182,29 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpass12', $vendor->user->password));
     }
 
+    public function test_admin_updates_vendor_with_inactive_current_vendor_type(): void
+    {
+        $email = 'admin-inactive-'.uniqid().'@test.com';
+        $create = $this->post('/api/admin/vendors', $this->fullRegistrationPayload($email), $this->auth())
+            ->assertCreated();
+        $vendorId = (int) $create->json('data.vendor_id');
+
+        \App\Models\VendorType::query()->where('slug', 'fruits')->update(['is_active' => false]);
+
+        $update = $this->post('/api/admin/vendors/'.$vendorId, [
+            'company_name' => 'Updated Farms LLC',
+            'vendor_type' => 'fruits',
+        ], $this->auth());
+
+        $update->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.detail.business_details.vendor_type', 'fruits');
+
+        $vendor = Vendor::with('profile')->findOrFail($vendorId);
+        $this->assertSame('Updated Farms LLC', $vendor->profile->business_name);
+        $this->assertSame('fruits', $vendor->profile->vendor_type);
+    }
+
     public function test_non_admin_cannot_create_vendor(): void
     {
         $client = User::factory()->create(['role' => 'client']);
