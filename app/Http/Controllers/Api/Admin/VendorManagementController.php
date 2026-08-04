@@ -6,6 +6,8 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorDocumentType;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\AdminVendorStoreRequest;
+use App\Http\Requests\Admin\AdminVendorUpdateRequest;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
@@ -22,6 +24,8 @@ use App\Services\Vendor\VendorDashboardService;
 use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\QueryException;
 use Illuminate\Validation\ValidationException;
 
 class VendorManagementController extends Controller
@@ -458,35 +462,77 @@ class VendorManagementController extends Controller
         ]);
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function store(AdminVendorStoreRequest $request): JsonResponse
     {
-        $vendor = Vendor::with('profile')->findOrFail($id);
-        $data = $request->validate([
-            'business_name' => 'sometimes|string|max:255',
-            'owner_name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255',
-            'phone' => 'nullable|string|max:32',
-            'trade_license_number' => 'nullable|string|max:100',
-            'vendor_type' => ['nullable', \Illuminate\Validation\Rule::in(\App\Enums\VendorType::values())],
-            'emirate' => 'nullable|string|max:100',
-            'city' => 'nullable|string|max:100',
-            'address' => 'nullable|string|max:2000',
-            'google_maps_location' => 'nullable|string|max:500',
-            'bank_name' => 'nullable|string|max:191',
-            'iban' => 'nullable|string|max:64',
-            'account_holder_name' => 'nullable|string|max:191',
-            'delivery_radius' => 'nullable|numeric|min:0|max:10000',
-            'operating_hours' => 'nullable|string|max:500',
-            'minimum_order_amount' => 'nullable|numeric|min:0|max:1000000',
-            'tax_vat_number' => 'nullable|string|max:64',
-            'description' => 'nullable|string|max:5000',
-            'logo' => 'nullable|image|max:5120',
-            'logo_remove' => 'nullable|boolean',
+        try {
+            $statusInput = $request->input('status', 'approved');
+            $initialStatus = VendorStatus::tryFrom((string) $statusInput) ?? VendorStatus::Approved;
+
+            $vendor = $this->registration->register(
+                $request->validated(),
+                $request->file('logo'),
+                VendorRegistrationService::documentFilesFromRequest($request),
+                $request->user(),
+                $initialStatus
+            );
+
+            $vendor->load(['profile', 'user', 'documents', 'categories']);
+
+            return ApiResponse::success('Vendor created successfully.', [
+                'detail' => $this->buildApplicationDetail($vendor),
+                'vendor_id' => $vendor->id,
+                'status' => $vendor->status,
+            ], 201);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422, [
+                'upload' => [$e->getMessage()],
+            ]);
+        } catch (QueryException $e) {
+            $sql = $e->getMessage();
+            if (str_contains($sql, 'users_phone_unique') || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'phone'))) {
+                $msg = 'This phone number is already registered.';
+
+                return ApiResponse::error($msg, 422, ['phone' => [$msg]]);
+            }
+            if (str_contains($sql, 'users_email_unique') || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'email'))) {
+                $msg = 'This email is already registered.';
+
+                return ApiResponse::error($msg, 422, ['email' => [$msg]]);
+            }
+
+            Log::error('Admin vendor create DB error: '.$e->getMessage());
+
+            return ApiResponse::error('Vendor could not be saved. Please check your details and try again.', 500);
+        } catch (\Throwable $e) {
+            Log::error('Admin vendor create failed: '.$e->getMessage(), [
+                'exception' => $e::class,
+            ]);
+
+            return ApiResponse::error('Vendor creation failed. Please try again.', 500);
+        }
+    }
+
+    public function update(AdminVendorUpdateRequest $request, int $id): JsonResponse
+    {
+        $vendor = Vendor::with(['profile', 'user'])->findOrFail($id);
+
+        $vendor = $this->registration->updateProfile(
+            $vendor,
+            $request->validated(),
+            $request->file('logo'),
+            $request->boolean('logo_remove'),
+            VendorRegistrationService::documentFilesFromRequest($request)
+        );
+
+        $vendor->load(['profile', 'user', 'documents', 'categories']);
+
+        return ApiResponse::success('Vendor updated successfully.', [
+            'detail' => $this->buildApplicationDetail($vendor),
+            'vendor_id' => $vendor->id,
+            'status' => $vendor->status,
         ]);
-
-        $vendor = $this->registration->updateProfile($vendor, $data, $request->file('logo'), $request->boolean('logo_remove'));
-
-        return ApiResponse::success('Vendor updated.', ['vendor' => $vendor]);
     }
 
     public function approve(Request $request, int $id): JsonResponse

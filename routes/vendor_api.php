@@ -115,6 +115,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::get('/management', [VendorManagementController::class, 'management']);
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
+    Route::post('/', [VendorManagementController::class, 'store']);
     Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
     Route::post('/{vendorId}/products/{productId}/toggle', [VendorManagementController::class, 'toggleProduct']);
     Route::delete('/{vendorId}/products/{productId}', [VendorManagementController::class, 'destroyProduct']);

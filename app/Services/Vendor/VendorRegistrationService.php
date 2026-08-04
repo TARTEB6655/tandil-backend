@@ -27,8 +27,15 @@ class VendorRegistrationService
     /**
      * @param  array<string, mixed>  $data
      * @param  array<string, UploadedFile|null>  $documentFiles  type => file
+     * @param  VendorStatus|null  $initialStatus  When set (admin create), applied after signup.
      */
-    public function register(array $data, ?UploadedFile $logo = null, array $documentFiles = []): Vendor
+    public function register(
+        array $data,
+        ?UploadedFile $logo = null,
+        array $documentFiles = [],
+        ?User $adminCreator = null,
+        ?VendorStatus $initialStatus = null
+    ): Vendor
     {
         // Compress uploads FIRST (under 2 MB) so we never persist huge originals
         // and fail with a clear message before creating the user account.
@@ -119,14 +126,36 @@ class VendorRegistrationService
             $vendor->setRelation('documents', collect($documents));
 
             $vendorId = $vendor->id;
-            dispatch(function () use ($vendorId) {
-                $fresh = Vendor::query()->with('profile')->find($vendorId);
-                if ($fresh) {
-                    app(VendorAdminNotifier::class)->newRegistration($fresh);
-                }
-            })->afterResponse();
+            if ($adminCreator === null) {
+                dispatch(function () use ($vendorId) {
+                    $fresh = Vendor::query()->with('profile')->find($vendorId);
+                    if ($fresh) {
+                        app(VendorAdminNotifier::class)->newRegistration($fresh);
+                    }
+                })->afterResponse();
+            }
 
-            return $vendor;
+            $targetStatus = $initialStatus ?? VendorStatus::UnderReview;
+            if ($targetStatus !== VendorStatus::UnderReview) {
+                $vendor = app(VendorApprovalService::class)->transition(
+                    $vendor->fresh(['profile', 'user']),
+                    $targetStatus,
+                    $adminCreator,
+                    $adminCreator ? 'Vendor created by admin.' : null
+                );
+            } elseif ($adminCreator !== null) {
+                VendorApprovalLog::query()
+                    ->where('vendor_id', $vendor->id)
+                    ->where('action', 'submitted_for_review')
+                    ->latest('id')
+                    ->limit(1)
+                    ->update([
+                        'performed_by' => $adminCreator->id,
+                        'notes' => 'Vendor created by admin.',
+                    ]);
+            }
+
+            return $vendor->fresh(['profile', 'user', 'documents', 'categories']);
         } catch (\Throwable $e) {
             $this->cleanupPreparedPaths(array_filter([
                 $preparedLogo,
@@ -233,8 +262,21 @@ class VendorRegistrationService
                 $this->application->syncCategories($vendor, $data['category_ids']);
             }
 
-            if (! empty($data['owner_name'])) {
-                $vendor->user->update(['name' => $data['owner_name']]);
+            $userUpdates = [];
+            if (array_key_exists('owner_name', $data) && $data['owner_name'] !== null && $data['owner_name'] !== '') {
+                $userUpdates['name'] = $data['owner_name'];
+            }
+            if (array_key_exists('email', $data) && $data['email'] !== null && $data['email'] !== '') {
+                $userUpdates['email'] = $data['email'];
+            }
+            if (array_key_exists('phone', $data)) {
+                $userUpdates['phone'] = $data['phone'] === '' ? null : $data['phone'];
+            }
+            if (! empty($data['password'])) {
+                $userUpdates['password'] = $data['password'];
+            }
+            if ($userUpdates !== []) {
+                $vendor->user->update($userUpdates);
             }
 
             foreach ($documentFiles as $type => $file) {

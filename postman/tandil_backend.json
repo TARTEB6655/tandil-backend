@@ -24791,7 +24791,7 @@
                         },
                         {
                             "name": "B. Vendor Approval & Actions",
-                            "description": "**Vendor onboarding & admin actions** — pending requests, approve/reject, full CRUD.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`).\n\n**Approval flow:** 2 Recent requests → 3 List pending → 4 Application detail → 10 Approve / 11 Reject\n\n**Suspend / reactivate:** folder **A** → request **5** (`POST .../account-status`).\n\n**Also includes:** stats (1), analytics (6), products/orders (7–8), profile update (9), disable/delete (13–14).",
+                            "description": "**Vendor approval + admin create/edit.** Login as admin first.\n\n**Create:** `8. Create vendor` — same form fields as public registration; default status `approved`.\n\n**Edit:** `9. Update vendor` — full profile + documents + password (all optional).\n\nThen approve/reject/suspend as needed.",
                             "item": [
                                 {
                                     "name": "1. Vendor stats",
@@ -25141,7 +25141,28 @@
                                     }
                                 },
                                 {
-                                    "name": "9. Update vendor (multipart)",
+                                    "name": "8. Create vendor (admin form-data)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "pm.test('Status 201', function () { pm.response.to.have.status(201); });",
+                                                    "if (pm.response.code === 201) {",
+                                                    "    var j = pm.response.json();",
+                                                    "    pm.expect(j.success).to.eql(true);",
+                                                    "    pm.expect(j.data).to.have.property('vendor_id');",
+                                                    "    pm.expect(j.data).to.have.property('detail');",
+                                                    "    if (j.data.vendor_id) {",
+                                                    "        pm.environment.set('vendor_id', String(j.data.vendor_id));",
+                                                    "        pm.collectionVariables.set('vendor_id', String(j.data.vendor_id));",
+                                                    "    }",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ],
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -25158,64 +25179,383 @@
                                             "mode": "formdata",
                                             "formdata": [
                                                 {
-                                                    "key": "business_name",
-                                                    "value": "Green Farms LLC",
-                                                    "type": "text"
+                                                    "key": "company_name",
+                                                    "value": "Admin Created Farms LLC",
+                                                    "type": "text",
+                                                    "description": "Company name (alias: business_name)."
                                                 },
                                                 {
-                                                    "key": "vendor_type",
-                                                    "value": "fruits",
-                                                    "type": "text"
+                                                    "key": "authorized_person_name",
+                                                    "value": "Sara Vendor",
+                                                    "type": "text",
+                                                    "description": "Authorized person (alias: owner_name)."
                                                 },
                                                 {
-                                                    "key": "emirate",
-                                                    "value": "Dubai",
-                                                    "type": "text"
+                                                    "key": "email",
+                                                    "value": "admin-vendor@example.com",
+                                                    "type": "text",
+                                                    "description": "Unique email."
                                                 },
                                                 {
-                                                    "key": "city",
-                                                    "value": "Dubai",
-                                                    "type": "text"
+                                                    "key": "phone",
+                                                    "value": "+971501234567",
+                                                    "type": "text",
+                                                    "description": "Unique phone."
                                                 },
                                                 {
                                                     "key": "trade_license_number",
-                                                    "value": "TL-12345",
-                                                    "type": "text"
+                                                    "value": "TL-ADMIN-001",
+                                                    "type": "text",
+                                                    "description": "Trade license number."
                                                 },
                                                 {
-                                                    "key": "bank_name",
-                                                    "value": "Emirates NBD",
-                                                    "type": "text"
+                                                    "key": "trade_license",
+                                                    "type": "file",
+                                                    "src": [],
+                                                    "description": "PDF or image. Required on create."
                                                 },
                                                 {
-                                                    "key": "iban",
-                                                    "value": "AE070331234567890123456",
-                                                    "type": "text"
+                                                    "key": "address",
+                                                    "value": "Industrial Area 1, Warehouse 5",
+                                                    "type": "text",
+                                                    "description": "Business address."
                                                 },
                                                 {
-                                                    "key": "account_holder_name",
-                                                    "value": "Green Farms LLC",
-                                                    "type": "text"
+                                                    "key": "password",
+                                                    "value": "secret12",
+                                                    "type": "text",
+                                                    "description": "Min 6 chars. Required on create."
                                                 },
                                                 {
-                                                    "key": "delivery_radius",
-                                                    "value": "15",
-                                                    "type": "text"
-                                                },
-                                                {
-                                                    "key": "operating_hours",
-                                                    "value": "Mon-Sun 9AM-9PM",
-                                                    "type": "text"
-                                                },
-                                                {
-                                                    "key": "minimum_order_amount",
-                                                    "value": "50",
-                                                    "type": "text"
+                                                    "key": "password_confirmation",
+                                                    "value": "secret12",
+                                                    "type": "text",
+                                                    "description": "Must match password."
                                                 },
                                                 {
                                                     "key": "logo",
                                                     "type": "file",
-                                                    "src": []
+                                                    "src": [],
+                                                    "description": "Optional company logo (JPEG/PNG/WebP)."
+                                                },
+                                                {
+                                                    "key": "vat_number",
+                                                    "value": "TRN123456789",
+                                                    "type": "text",
+                                                    "description": "Optional VAT/TRN."
+                                                },
+                                                {
+                                                    "key": "emirates_id",
+                                                    "type": "file",
+                                                    "src": [],
+                                                    "description": "PDF or image. Required on create."
+                                                },
+                                                {
+                                                    "key": "vendor_type",
+                                                    "value": "fruits",
+                                                    "type": "text",
+                                                    "description": "Active vendor type slug from registration-options."
+                                                },
+                                                {
+                                                    "key": "emirate",
+                                                    "value": "Dubai",
+                                                    "type": "text",
+                                                    "description": "Active emirate name from registration-options."
+                                                },
+                                                {
+                                                    "key": "city",
+                                                    "value": "Dubai",
+                                                    "type": "text",
+                                                    "description": "Optional city."
+                                                },
+                                                {
+                                                    "key": "google_maps_location",
+                                                    "value": "25.2048,55.2708",
+                                                    "type": "text",
+                                                    "description": "lat,lng or Maps URL."
+                                                },
+                                                {
+                                                    "key": "bank_name",
+                                                    "value": "Emirates NBD",
+                                                    "type": "text",
+                                                    "description": "Bank name."
+                                                },
+                                                {
+                                                    "key": "iban",
+                                                    "value": "AE070331234567890123456",
+                                                    "type": "text",
+                                                    "description": "IBAN."
+                                                },
+                                                {
+                                                    "key": "account_holder_name",
+                                                    "value": "Admin Created Farms LLC",
+                                                    "type": "text",
+                                                    "description": "Account holder."
+                                                },
+                                                {
+                                                    "key": "delivery_radius",
+                                                    "value": "25",
+                                                    "type": "text",
+                                                    "description": "Delivery radius km."
+                                                },
+                                                {
+                                                    "key": "opens_at",
+                                                    "value": "08:00",
+                                                    "type": "text",
+                                                    "description": "Opening time HH:MM."
+                                                },
+                                                {
+                                                    "key": "closes_at",
+                                                    "value": "22:00",
+                                                    "type": "text",
+                                                    "description": "Closing time HH:MM."
+                                                },
+                                                {
+                                                    "key": "minimum_order_amount",
+                                                    "value": "50",
+                                                    "type": "text",
+                                                    "description": "Minimum order AED."
+                                                },
+                                                {
+                                                    "key": "years_in_business",
+                                                    "value": "5",
+                                                    "type": "text",
+                                                    "description": "Optional integer."
+                                                },
+                                                {
+                                                    "key": "description",
+                                                    "value": "Fresh produce supplier",
+                                                    "type": "text",
+                                                    "description": "Optional store description."
+                                                },
+                                                {
+                                                    "key": "category_ids",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional comma-separated category IDs e.g. 1,2,3"
+                                                },
+                                                {
+                                                    "key": "terms_accepted",
+                                                    "value": "1",
+                                                    "type": "text",
+                                                    "description": "Optional for admin (defaults to 1)."
+                                                },
+                                                {
+                                                    "key": "status",
+                                                    "value": "approved",
+                                                    "type": "text",
+                                                    "description": "Optional: approved (default), under_review, pending."
+                                                }
+                                            ]
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/vendors",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "vendors"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/vendors — Admin creates vendor with same fields as public registration (multipart form-data). Default status: approved. Response: data.vendor_id, data.status, data.detail (full application shape). Auth: Bearer admin {{token}}."
+                                    }
+                                },
+                                {
+                                    "name": "9. Update vendor (full form-data)",
+                                    "event": [
+                                        {
+                                            "listen": "test",
+                                            "script": {
+                                                "type": "text/javascript",
+                                                "exec": [
+                                                    "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                                    "if (pm.response.code === 200) {",
+                                                    "    var j = pm.response.json();",
+                                                    "    pm.expect(j.success).to.eql(true);",
+                                                    "    pm.expect(j.data).to.have.property('detail');",
+                                                    "}"
+                                                ]
+                                            }
+                                        }
+                                    ],
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "formdata",
+                                            "formdata": [
+                                                {
+                                                    "key": "company_name",
+                                                    "value": "Admin Created Farms LLC",
+                                                    "type": "text",
+                                                    "description": "Company name (alias: business_name)."
+                                                },
+                                                {
+                                                    "key": "authorized_person_name",
+                                                    "value": "Sara Vendor",
+                                                    "type": "text",
+                                                    "description": "Authorized person (alias: owner_name)."
+                                                },
+                                                {
+                                                    "key": "email",
+                                                    "value": "admin-vendor@example.com",
+                                                    "type": "text",
+                                                    "description": "Unique email."
+                                                },
+                                                {
+                                                    "key": "phone",
+                                                    "value": "+971501234567",
+                                                    "type": "text",
+                                                    "description": "Unique phone."
+                                                },
+                                                {
+                                                    "key": "trade_license_number",
+                                                    "value": "TL-ADMIN-001",
+                                                    "type": "text",
+                                                    "description": "Trade license number."
+                                                },
+                                                {
+                                                    "key": "trade_license",
+                                                    "type": "file",
+                                                    "src": [],
+                                                    "description": "PDF or image. Required on create."
+                                                },
+                                                {
+                                                    "key": "address",
+                                                    "value": "Industrial Area 1, Warehouse 5",
+                                                    "type": "text",
+                                                    "description": "Business address."
+                                                },
+                                                {
+                                                    "key": "password",
+                                                    "value": "secret12",
+                                                    "type": "text",
+                                                    "description": "Min 6 chars. Required on create."
+                                                },
+                                                {
+                                                    "key": "password_confirmation",
+                                                    "value": "secret12",
+                                                    "type": "text",
+                                                    "description": "Must match password."
+                                                },
+                                                {
+                                                    "key": "logo",
+                                                    "type": "file",
+                                                    "src": [],
+                                                    "description": "Optional company logo (JPEG/PNG/WebP)."
+                                                },
+                                                {
+                                                    "key": "vat_number",
+                                                    "value": "TRN123456789",
+                                                    "type": "text",
+                                                    "description": "Optional VAT/TRN."
+                                                },
+                                                {
+                                                    "key": "emirates_id",
+                                                    "type": "file",
+                                                    "src": [],
+                                                    "description": "PDF or image. Required on create."
+                                                },
+                                                {
+                                                    "key": "vendor_type",
+                                                    "value": "fruits",
+                                                    "type": "text",
+                                                    "description": "Active vendor type slug from registration-options."
+                                                },
+                                                {
+                                                    "key": "emirate",
+                                                    "value": "Dubai",
+                                                    "type": "text",
+                                                    "description": "Active emirate name from registration-options."
+                                                },
+                                                {
+                                                    "key": "city",
+                                                    "value": "Dubai",
+                                                    "type": "text",
+                                                    "description": "Optional city."
+                                                },
+                                                {
+                                                    "key": "google_maps_location",
+                                                    "value": "25.2048,55.2708",
+                                                    "type": "text",
+                                                    "description": "lat,lng or Maps URL."
+                                                },
+                                                {
+                                                    "key": "bank_name",
+                                                    "value": "Emirates NBD",
+                                                    "type": "text",
+                                                    "description": "Bank name."
+                                                },
+                                                {
+                                                    "key": "iban",
+                                                    "value": "AE070331234567890123456",
+                                                    "type": "text",
+                                                    "description": "IBAN."
+                                                },
+                                                {
+                                                    "key": "account_holder_name",
+                                                    "value": "Admin Created Farms LLC",
+                                                    "type": "text",
+                                                    "description": "Account holder."
+                                                },
+                                                {
+                                                    "key": "delivery_radius",
+                                                    "value": "25",
+                                                    "type": "text",
+                                                    "description": "Delivery radius km."
+                                                },
+                                                {
+                                                    "key": "opens_at",
+                                                    "value": "08:00",
+                                                    "type": "text",
+                                                    "description": "Opening time HH:MM."
+                                                },
+                                                {
+                                                    "key": "closes_at",
+                                                    "value": "22:00",
+                                                    "type": "text",
+                                                    "description": "Closing time HH:MM."
+                                                },
+                                                {
+                                                    "key": "minimum_order_amount",
+                                                    "value": "50",
+                                                    "type": "text",
+                                                    "description": "Minimum order AED."
+                                                },
+                                                {
+                                                    "key": "years_in_business",
+                                                    "value": "5",
+                                                    "type": "text",
+                                                    "description": "Optional integer."
+                                                },
+                                                {
+                                                    "key": "description",
+                                                    "value": "Fresh produce supplier",
+                                                    "type": "text",
+                                                    "description": "Optional store description."
+                                                },
+                                                {
+                                                    "key": "category_ids",
+                                                    "value": "",
+                                                    "type": "text",
+                                                    "description": "Optional comma-separated category IDs e.g. 1,2,3"
+                                                },
+                                                {
+                                                    "key": "logo_remove",
+                                                    "value": "0",
+                                                    "type": "text",
+                                                    "description": "Set 1 to remove logo."
                                                 }
                                             ]
                                         },
@@ -25231,7 +25571,7 @@
                                                 "{{vendor_id}}"
                                             ]
                                         },
-                                        "description": "Admin edit of any Business Profile field. PUT or POST (use POST with form-data for logo)."
+                                        "description": "POST or PUT /api/admin/vendors/{vendor_id} — Admin full edit (same fields as registration). All fields optional (partial update). Upload trade_license/emirates_id to replace documents. Optional password + password_confirmation. Response: data.detail, data.vendor_id, data.status."
                                     }
                                 },
                                 {
