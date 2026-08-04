@@ -34,6 +34,8 @@ class AdminVendorStoreRequest extends VendorRegistrationRequest
         $rules = parent::rules();
         $rules['terms_accepted'] = ['nullable', 'accepted'];
         $rules['status'] = ['nullable', Rule::in(['approved', 'under_review', 'pending'])];
+        $rules['category_ids'] = ['prohibited'];
+        $rules['category_ids.*'] = ['prohibited'];
 
         return $rules;
     }

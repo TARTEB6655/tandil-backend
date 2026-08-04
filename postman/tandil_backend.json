@@ -25329,12 +25329,6 @@
                                                     "description": "Optional store description."
                                                 },
                                                 {
-                                                    "key": "category_ids",
-                                                    "value": "",
-                                                    "type": "text",
-                                                    "description": "Optional comma-separated category IDs e.g. 1,2,3"
-                                                },
-                                                {
                                                     "key": "terms_accepted",
                                                     "value": "1",
                                                     "type": "text",
