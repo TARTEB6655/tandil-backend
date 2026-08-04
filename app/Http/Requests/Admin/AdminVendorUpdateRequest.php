@@ -40,6 +40,8 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
                 'owner_name' => $this->input('owner_name') ?: $name,
             ]);
         }
+
+        $this->normalizeAdminVendorTypeFallback();
     }
 
     /**
@@ -99,14 +101,31 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
 
     protected function allowedVendorTypeSlugs(): array
     {
-        if ($this->vendorTypesTableReady()) {
-            $slugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
-            if ($slugs !== []) {
-                return $slugs;
-            }
+        $enumSlugs = VendorTypeEnum::values();
+
+        if (! $this->vendorTypesTableReady()) {
+            return $enumSlugs;
         }
 
-        return VendorTypeEnum::values();
+        $dbSlugs = VendorTypeModel::query()->orderBy('name')->pluck('slug')->all();
+
+        return array_values(array_unique(array_merge($dbSlugs, $enumSlugs)));
+    }
+
+    protected function normalizeAdminVendorTypeFallback(): void
+    {
+        if (! $this->filled('vendor_type')) {
+            return;
+        }
+
+        $resolvedType = VendorTypeModel::resolveToSlug($this->input('vendor_type'))
+            ?? VendorTypeEnum::resolve($this->input('vendor_type'));
+
+        if ($resolvedType === null) {
+            return;
+        }
+
+        $this->merge(['vendor_type' => $resolvedType]);
     }
 
     protected function normalizeRegistrationFileAliases(): void
