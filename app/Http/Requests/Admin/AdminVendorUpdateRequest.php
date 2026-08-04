@@ -4,6 +4,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Vendor\VendorProfileFormRequest;
 use App\Models\Vendor;
+use App\Models\VendorType as VendorTypeModel;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 
@@ -51,8 +52,11 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
 
         $allowedVendorTypeSlugs = $this->allowedVendorTypeSlugs();
         $currentVendorType = $vendor?->profile?->vendor_type;
-        if ($currentVendorType !== null && ! in_array($currentVendorType, $allowedVendorTypeSlugs, true)) {
-            $allowedVendorTypeSlugs[] = $currentVendorType;
+        if ($currentVendorType !== null) {
+            $resolvedCurrentType = VendorTypeModel::resolveToSlug($currentVendorType) ?? $currentVendorType;
+            if (! in_array($resolvedCurrentType, $allowedVendorTypeSlugs, true)) {
+                $allowedVendorTypeSlugs[] = $resolvedCurrentType;
+            }
         }
 
         return array_merge($this->businessProfileRules(false), [
