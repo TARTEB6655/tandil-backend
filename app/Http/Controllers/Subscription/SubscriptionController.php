@@ -7,6 +7,7 @@ use App\Helpers\ApiResponse;
 use Illuminate\Http\Request;
 use App\Models\Subscription;
 use App\Models\Visit;
+use App\Models\User;
 use App\Http\Requests\StoreSubscriptionRequest;
 use Carbon\Carbon;
 
@@ -78,119 +79,118 @@ class SubscriptionController extends Controller
     {
         $user = $request->user();
         $data = $request->validated();
-        
-        // Set client_id: admins can set it, others use their own ID
+
+        // Helper to create a single subscription and its visits
+        $createForClient = function ($data, $clientId) use ($user) {
+            $d = $data;
+            $d['client_id'] = $clientId;
+
+            // Determine start_date (default to today if missing)
+            $start = isset($d['start_date']) && $d['start_date']
+                ? Carbon::parse($d['start_date'])
+                : Carbon::today();
+            $d['start_date'] = $start->toDateString();
+
+            // Compute end_date based on plan length (if not provided)
+            if (!isset($d['end_date']) || !$d['end_date']) {
+                $planMap = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
+                $months = $planMap[$d['plan']] ?? 1;
+                $end = $start->copy()->addMonthsNoOverflow($months)->subDay();
+                $d['end_date'] = $end->toDateString();
+            } else {
+                $d['end_date'] = Carbon::parse($d['end_date'])->toDateString();
+            }
+
+            if (!isset($d['payment_status'])) {
+                $d['payment_status'] = 'pending';
+            }
+
+            // Load prices if amount missing
+            if (!isset($d['amount']) || empty($d['amount'])) {
+                $planMap = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
+                $months = $planMap[$d['plan']] ?? 1;
+                $plansConfig = config('subscriptions.plans', []);
+                $d['amount'] = isset($plansConfig[$d['plan']]['price'])
+                    ? (float) $plansConfig[$d['plan']]['price']
+                    : (500.00 * $months);
+            }
+
+            if (!isset($d['total_visits']) || $d['total_visits'] === null) {
+                $planMap = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
+                $d['total_visits'] = $planMap[$d['plan']] ?? 1;
+            }
+
+            if (!isset($d['completed_visits']) || $d['completed_visits'] === null) {
+                $d['completed_visits'] = 0;
+            }
+
+            if ($d['payment_status'] === 'paid' && !isset($d['paid_at'])) {
+                $d['paid_at'] = now();
+            }
+
+            $sub = Subscription::create($d);
+
+            // Generate visits
+            $visits = [];
+            $totalVisits = $d['total_visits'];
+            $startDate = Carbon::parse($d['start_date']);
+            $endDate = Carbon::parse($d['end_date']);
+            $daysDiff = $startDate->diffInDays($endDate);
+            $visitInterval = $totalVisits > 1 ? floor($daysDiff / ($totalVisits - 1)) : 0;
+
+            for ($i = 0; $i < $totalVisits; $i++) {
+                if ($i === 0) {
+                    $scheduled = $startDate->toDateString();
+                } else {
+                    $scheduled = $startDate->copy()->addDays($visitInterval * $i)->toDateString();
+                    if (Carbon::parse($scheduled)->gt($endDate)) {
+                        $scheduled = $endDate->toDateString();
+                    }
+                }
+
+                $visit = Visit::create([
+                    'subscription_id' => $sub->id,
+                    'scheduled_date' => $scheduled,
+                    'status' => 'pending',
+                ]);
+                $visits[] = $visit;
+            }
+
+            $sub->load('visits');
+
+            try {
+                $sub->client?->notify(new \App\Notifications\SubscriptionCreated($sub));
+            } catch (\Throwable $e) {
+                // ignore notify errors
+            }
+
+            return $sub;
+        };
+
+        // If admin wants to apply to multiple clients or all clients
+        $created = [];
+        if ($user->hasRole('admin') && (!empty($data['apply_to_all']) || !empty($data['client_ids']))) {
+            if (!empty($data['apply_to_all'])) {
+                $clientIds = User::role('client')->pluck('id')->toArray();
+            } else {
+                $clientIds = $data['client_ids'] ?? [];
+            }
+
+            foreach ($clientIds as $cid) {
+                $created[] = $createForClient($data, $cid);
+            }
+
+            return ApiResponse::success('Subscriptions created successfully.', $created, 201);
+        }
+
+        // Default single subscription creation (client_id resolved above in request)
         if (!isset($data['client_id'])) {
             $data['client_id'] = $user->id;
         } elseif (!$user->hasRole('admin')) {
-            // Non-admins cannot set client_id to another user
             $data['client_id'] = $user->id;
         }
 
-        // Determine start_date (default to today if missing)
-        $start = isset($data['start_date']) && $data['start_date']
-            ? Carbon::parse($data['start_date'])
-            : Carbon::today();
-        $data['start_date'] = $start->toDateString();
-
-        // Compute end_date based on plan length (if not provided)
-        if (!isset($data['end_date']) || !$data['end_date']) {
-            $planMap = [
-                '1_month' => 1,
-                '3_month' => 3,
-                '6_month' => 6,
-                '12_month' => 12,
-            ];
-            $months = $planMap[$data['plan']] ?? 1;
-            // End date is last day of the last month of subscription
-            $end = $start->copy()->addMonthsNoOverflow($months)->subDay();
-            $data['end_date'] = $end->toDateString();
-        } else {
-            $data['end_date'] = Carbon::parse($data['end_date'])->toDateString();
-        }
-
-        // Set default payment_status if not provided
-        if (!isset($data['payment_status'])) {
-            $data['payment_status'] = 'pending';
-        }
-
-        // Load prices from config (fallback to hardcoded price if config missing)
-        if (!isset($data['amount']) || empty($data['amount'])) {
-            $planMap = [
-                '1_month' => 1,
-                '3_month' => 3,
-                '6_month' => 6,
-                '12_month' => 12,
-            ];
-            $months = $planMap[$data['plan']] ?? 1;
-            $plansConfig = config('subscriptions.plans', []);
-            $data['amount'] = isset($plansConfig[$data['plan']]['price'])
-                ? (float) $plansConfig[$data['plan']]['price']
-                : (500.00 * $months);
-        }
-
-        // Set total_visits if not provided (default to plan months)
-        if (!isset($data['total_visits']) || $data['total_visits'] === null) {
-            $planMap = [
-                '1_month' => 1,
-                '3_month' => 3,
-                '6_month' => 6,
-                '12_month' => 12,
-            ];
-            $data['total_visits'] = $planMap[$data['plan']] ?? 1;
-        }
-
-        // Set completed_visits default to 0 if not provided
-        if (!isset($data['completed_visits']) || $data['completed_visits'] === null) {
-            $data['completed_visits'] = 0;
-        }
-
-        // Set paid_at if payment_status is paid and paid_at is not set
-        if ($data['payment_status'] === 'paid' && !isset($data['paid_at'])) {
-            $data['paid_at'] = now();
-        }
-
-        $sub = Subscription::create($data);
-
-        // Generate visits synchronously based on total_visits
-        $visits = [];
-        $totalVisits = $data['total_visits'];
-        
-        // Calculate visit interval based on subscription duration
-        $startDate = Carbon::parse($data['start_date']);
-        $endDate = Carbon::parse($data['end_date']);
-        $daysDiff = $startDate->diffInDays($endDate);
-        $visitInterval = $totalVisits > 1 ? floor($daysDiff / ($totalVisits - 1)) : 0;
-        
-        for ($i = 0; $i < $totalVisits; $i++) {
-            if ($i === 0) {
-                $scheduled = $startDate->toDateString();
-            } else {
-                $scheduled = $startDate->copy()->addDays($visitInterval * $i)->toDateString();
-                // Ensure scheduled date doesn't exceed end_date
-                if (Carbon::parse($scheduled)->gt($endDate)) {
-                    $scheduled = $endDate->toDateString();
-                }
-            }
-            
-            $visit = Visit::create([
-                'subscription_id' => $sub->id,
-                'scheduled_date' => $scheduled,
-                'status' => 'pending',
-            ]);
-            $visits[] = $visit;
-        }
-
-        // Reload subscription with visits
-        $sub->load('visits');
-
-        // Notify the client (database + mail) that subscription created
-        try {
-            $user->notify(new \App\Notifications\SubscriptionCreated($sub));
-        } catch (\Throwable $e) {
-            // Log error here if needed, but don't break the flow
-            // \Log::error('Failed to send subscription notification: '.$e->getMessage());
-        }
+        $sub = $createForClient($data, $data['client_id']);
 
         return ApiResponse::success('Subscription created successfully.', $sub, 201);
     }
@@ -216,6 +216,9 @@ class SubscriptionController extends Controller
             'total_visits' => 'nullable|integer|min:0',
             'completed_visits' => 'nullable|integer|min:0',
             'payment_reference' => 'nullable|string|max:255',
+            'plan_name' => 'nullable|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'features' => 'nullable|array',
         ]);
 
         if ($request->has('start_date')) {
@@ -238,6 +241,15 @@ class SubscriptionController extends Controller
         }
         if ($request->has('payment_reference') && $user->hasRole('admin')) {
             $sub->payment_reference = $request->input('payment_reference');
+        }
+        if ($request->has('plan_name') && $user->hasRole('admin')) {
+            $sub->plan_name = $request->input('plan_name');
+        }
+        if ($request->has('subtitle') && $user->hasRole('admin')) {
+            $sub->subtitle = $request->input('subtitle');
+        }
+        if ($request->has('features') && $user->hasRole('admin')) {
+            $sub->features = $request->input('features');
         }
 
         $sub->save();

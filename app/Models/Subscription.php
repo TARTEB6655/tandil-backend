@@ -10,7 +10,8 @@ class Subscription extends Model
     use HasFactory;
     protected $fillable = [
         'client_id','plan','start_date','end_date','amount',
-        'payment_status','payment_reference','paid_at','total_visits','completed_visits'
+        'payment_status','payment_reference','paid_at','total_visits','completed_visits',
+        'plan_name','subtitle','features','apply_to_all'
     ];
 
     protected $casts = [
@@ -20,6 +21,8 @@ class Subscription extends Model
         'amount' => 'decimal:2',
         'total_visits' => 'integer',
         'completed_visits' => 'integer',
+        'features' => 'array',
+        'apply_to_all' => 'boolean',
     ];
 
     public function client()

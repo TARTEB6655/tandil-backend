@@ -13,12 +13,18 @@ class StoreSubscriptionRequest extends BaseFormRequest
     {
         return [
             'plan' => 'required|string|in:1_month,3_month,6_month,12_month',
+            'plan_name' => 'nullable|string|max:255',
+            'subtitle' => 'nullable|string|max:255',
+            'features' => 'nullable|array',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'amount' => 'nullable|numeric|min:0',
             'payment_status' => 'nullable|string|in:pending,paid,failed,refunded,cancelled',
             'payment_reference' => 'nullable|string|max:255',
             'client_id' => 'nullable|exists:users,id', // Only admins can set this
+            'apply_to_all' => 'nullable|boolean',
+            'client_ids' => 'nullable|array',
+            'client_ids.*' => 'nullable|exists:users,id',
             'total_visits' => 'nullable|integer|min:0',
             'completed_visits' => 'nullable|integer|min:0',
         ];
