@@ -78,6 +78,11 @@ class SubscriptionController extends Controller
     public function store(StoreSubscriptionRequest $request)
     {
         $user = $request->user();
+        // Only admins may create subscriptions (admin creates plans/subscriptions for clients)
+        if (! $user->hasRole('admin')) {
+            return ApiResponse::error('Forbidden: only admin can create subscriptions', 403);
+        }
+
         $data = $request->validated();
 
         // Helper to create a single subscription and its visits
