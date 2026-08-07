@@ -754,6 +754,21 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
 
 /*
 |--------------------------------------------------------------------------
+| CLIENT MEMBERSHIP CHECKOUT (Renew / Upgrade a subscription via Stripe)
+|--------------------------------------------------------------------------
+| Separate from admin subscription management (/api/subscriptions) and
+| from wallet add-money. Client or admin (acting on the client's behalf)
+| may pay to renew the current plan or upgrade to a higher plan.
+*/
+Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('client/memberships')->group(function () {
+    Route::get('/{id}/upgrade-options', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'upgradeOptions']);
+    Route::post('/{id}/renew/payment-intent', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'renewPaymentIntent']);
+    Route::post('/{id}/upgrade/payment-intent', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'upgradePaymentIntent']);
+    Route::post('/payment/confirm', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'confirm']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | BANNERS (Public - for customer home screen)
 |--------------------------------------------------------------------------
 */

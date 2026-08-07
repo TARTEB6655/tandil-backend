@@ -390,6 +390,9 @@ class ShopPaymentController extends Controller
                 // Wallet Add Money — never create shop orders.
                 if ($purpose === \App\Services\WalletTopUpStripeService::PURPOSE) {
                     app(\App\Services\WalletTopUpStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
+                } elseif ($purpose === \App\Services\SubscriptionPaymentStripeService::PURPOSE) {
+                    // Membership renew/upgrade — never create shop orders or credit wallet.
+                    app(\App\Services\SubscriptionPaymentStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
                 } else {
                     app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
                 }

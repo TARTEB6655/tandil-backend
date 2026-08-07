@@ -3080,132 +3080,7 @@
               }
             },
             {
-              "name": "Create Subscription",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 201) {",
-                      "    var jsonData = pm.response.json();",
-                      "    var d = jsonData.data;",
-                      "    if (Array.isArray(d) && d.length > 0) {",
-                      "        pm.environment.set('subscription_id', d[0].id);",
-                      "        console.log('Subscription(s) created:', d.length, '- first id:', d[0].id);",
-                      "    } else if (d && d.id) {",
-                      "        pm.environment.set('subscription_id', d.id);",
-                      "        console.log('Subscription ID saved:', d.id);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "plan",
-                      "value": "6_month",
-                      "type": "text",
-                      "description": "Required. One of: 1_month | 3_month | 6_month | 12_month"
-                    },
-                    {
-                      "key": "target_type",
-                      "value": "specific_clients",
-                      "type": "text",
-                      "description": "'specific_clients' (default) = use client_id / client_ids below | 'all_users' = every client in the app (client_id/client_ids ignored)"
-                    },
-                    {
-                      "key": "plan_name",
-                      "value": "VIP 6 Months",
-                      "type": "text"
-                    },
-                    {
-                      "key": "subtitle",
-                      "value": "VIP half-year plan",
-                      "type": "text"
-                    },
-                    {
-                      "key": "description",
-                      "value": "Comprehensive 6-month farm care subscription.",
-                      "type": "text"
-                    },
-                    {
-                      "key": "picture",
-                      "type": "file",
-                      "src": [],
-                      "description": "Optional subscription image"
-                    },
-                    {
-                      "key": "amount",
-                      "value": "5600.00",
-                      "type": "text"
-                    },
-                    {
-                      "key": "payment_status",
-                      "value": "paid",
-                      "type": "text",
-                      "description": "pending | paid | failed | refunded | cancelled"
-                    },
-                    {
-                      "key": "payment_reference",
-                      "value": "ADMIN-REF-001",
-                      "type": "text"
-                    },
-                    {
-                      "key": "start_date",
-                      "value": "2026-08-05",
-                      "type": "text"
-                    },
-                    {
-                      "key": "end_date",
-                      "value": "2027-02-05",
-                      "type": "text"
-                    },
-                    {
-                      "key": "client_id",
-                      "value": "{{client_id}}",
-                      "type": "text",
-                      "description": "MODE 1 — Specific single client. Set target_type=specific_clients and fill this. Leave client_ids[] below disabled."
-                    },
-                    {
-                      "key": "client_ids[]",
-                      "value": "",
-                      "type": "text",
-                      "disabled": true,
-                      "description": "MODE 2 — Multiple specific clients. Enable this row, set target_type=specific_clients, disable client_id above, and add one client_ids[] row per client id (duplicate this row, do NOT reuse example user IDs — type the real client user id each time)."
-                    }
-                  ]
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "subscriptions"
-                  ]
-                },
-                "description": "✅ STEP 5: Create subscription (Admin only). ONE endpoint, 3 modes via `target_type` + `client_id`/`client_ids`:\n\n1. **All users** — `target_type=all_users`. Disable `client_id` and `client_ids[]`. Server auto-creates one subscription per existing client. Returns an array.\n2. **Specific single client** — `target_type=specific_clients` + `client_id=<id>` (keep `client_ids[]` disabled). Returns a single subscription object.\n3. **Multiple specific clients** — `target_type=specific_clients`, disable `client_id`, enable `client_ids[]` and duplicate the row once per client id (type real ids — the field ships empty and disabled on purpose so nobody accidentally submits it against the wrong users). Returns an array.\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\n⚠️ Only ever enable ONE of `client_id` / `client_ids[]` at a time — if `client_ids[]` has any enabled rows, the server ignores `client_id` completely and switches to bulk mode.\n\nImage URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
-              }
-            },
-            {
-              "name": "List Subscriptions",
+              "name": "List My Memberships",
               "event": [
                 {
                   "listen": "test",
@@ -3244,11 +3119,11 @@
                     "subscriptions"
                   ]
                 },
-                "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
+                "description": "✅ STEP 6: List my memberships (client sees only their own subscriptions; admin token here would see all — use the Admin folder for that). Alias: GET /api/client/memberships."
               }
             },
             {
-              "name": "Get Subscription Details",
+              "name": "Get Membership Details",
               "request": {
                 "method": "GET",
                 "header": [
@@ -3276,7 +3151,54 @@
               }
             },
             {
-              "name": "Update Subscription",
+              "name": "Get Upgrade Options",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/client/memberships/{{subscription_id}}/upgrade-options",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "client",
+                    "memberships",
+                    "{{subscription_id}}",
+                    "upgrade-options"
+                  ]
+                },
+                "description": "Membership screen data: current plan summary, `renew_price` (price to renew the same plan), `upgrade_plans[]` (only plans priced higher than the current one — each with `plan`, `label`, `price`, `price_difference`), and `payment_methods` (stripe, apple_pay). Call this before showing the \"Upgrade plans\" list. Owner client or admin only (403 otherwise)."
+              }
+            },
+            {
+              "name": "Renew – Create Payment Intent",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var d = pm.response.json().data;",
+                      "    if (d && d.payment_intent_id) {",
+                      "        pm.environment.set('membership_payment_intent_id', d.payment_intent_id);",
+                      "        console.log('payment_intent_id saved:', d.payment_intent_id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "request": {
                 "method": "POST",
                 "header": [
@@ -3293,104 +3215,49 @@
                   "mode": "formdata",
                   "formdata": [
                     {
-                      "key": "plan",
-                      "value": "6_month",
+                      "key": "payment_method",
+                      "value": "stripe",
                       "type": "text",
-                      "description": "Admin only. One of: 1_month | 3_month | 6_month | 12_month"
-                    },
-                    {
-                      "key": "plan_name",
-                      "value": "VIP 6 Months Updated",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "subtitle",
-                      "value": "Updated subtitle",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "description",
-                      "value": "Updated subscription description",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "target_type",
-                      "value": "specific_clients",
-                      "type": "text",
-                      "description": "Admin only. specific_clients | all_users"
-                    },
-                    {
-                      "key": "picture",
-                      "type": "file",
-                      "src": [],
-                      "description": "Admin or owner. Select subscription image file to upload"
-                    },
-                    {
-                      "key": "amount",
-                      "value": "5600.00",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "payment_status",
-                      "value": "paid",
-                      "type": "text",
-                      "description": "Admin only. pending | paid | failed | refunded | cancelled"
-                    },
-                    {
-                      "key": "payment_reference",
-                      "value": "PAY-123456",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "completed_visits",
-                      "value": "2",
-                      "type": "text",
-                      "description": "Admin only"
-                    },
-                    {
-                      "key": "features[]",
-                      "value": "Weekly visit",
-                      "type": "text",
-                      "disabled": true,
-                      "description": "Admin only. Enable + repeat for multiple feature strings"
-                    },
-                    {
-                      "key": "start_date",
-                      "value": "2026-08-05",
-                      "type": "text",
-                      "disabled": true,
-                      "description": "Admin or owner"
-                    },
-                    {
-                      "key": "end_date",
-                      "value": "2027-02-05",
-                      "type": "text",
-                      "disabled": true,
-                      "description": "Admin or owner"
+                      "description": "Optional: stripe (default) | apple_pay"
                     }
                   ]
                 },
                 "url": {
-                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "raw": "{{base_url}}/api/client/memberships/{{subscription_id}}/renew/payment-intent",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "api",
-                    "subscriptions",
-                    "{{subscription_id}}"
+                    "client",
+                    "memberships",
+                    "{{subscription_id}}",
+                    "renew",
+                    "payment-intent"
                   ]
                 },
-                "description": "Update subscription details\n\n**Uses POST, not PUT.** PHP does not parse request fields for PUT requests with a multipart/form-data body (only POST), so a real PUT here would silently do nothing while still returning a 200 success. The backend route accepts both PUT and POST for this endpoint — use POST here because this request uploads a `picture` file.\n\n**Updatable Fields (Admin Only):** `plan`, `plan_name`, `subtitle`, `description`, `target_type`, `picture`, `amount`, `payment_status`, `payment_reference`, `completed_visits`, `features`\n\n**Updatable Fields (Admin or Owner):** `start_date`, `end_date`, `picture`, `description`\n\n**Note:** Only admins can update pricing/status/plan fields. Regular users (subscription owners) can only update `start_date`, `end_date`, `picture`, and `description` for their own subscriptions. `client_id`/`client_ids` cannot be changed after creation — cancel and recreate the subscription under a different client instead."
+                "description": "Membership checkout — **Renew** (charges the current plan's price again, extends `end_date` by one more cycle on confirm). Same Payment Sheet pattern as Wallet → Add Money: response gives `client_secret` + `publishable_key` for the mobile Stripe/Apple Pay Payment Sheet. After the sheet succeeds, call **Confirm Membership Payment** below with the returned `payment_intent_id`."
               }
             },
             {
-              "name": "Mark Subscription Paid",
+              "name": "Upgrade – Create Payment Intent",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var d = pm.response.json().data;",
+                      "    if (d && d.payment_intent_id) {",
+                      "        pm.environment.set('membership_payment_intent_id', d.payment_intent_id);",
+                      "        console.log('payment_intent_id saved:', d.payment_intent_id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
               "request": {
                 "method": "POST",
                 "header": [
@@ -3403,25 +3270,44 @@
                     "value": "application/json"
                   }
                 ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "target_plan",
+                      "value": "12_month",
+                      "type": "text",
+                      "description": "Required. One of: 1_month | 3_month | 6_month | 12_month. Must differ from the current plan (get valid targets from Get Upgrade Options)."
+                    },
+                    {
+                      "key": "payment_method",
+                      "value": "stripe",
+                      "type": "text",
+                      "description": "Optional: stripe (default) | apple_pay"
+                    }
+                  ]
+                },
                 "url": {
-                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}/mark-paid",
+                  "raw": "{{base_url}}/api/client/memberships/{{subscription_id}}/upgrade/payment-intent",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "api",
-                    "subscriptions",
+                    "client",
+                    "memberships",
                     "{{subscription_id}}",
-                    "mark-paid"
+                    "upgrade",
+                    "payment-intent"
                   ]
                 },
-                "description": "Mark subscription as paid\n\n**Purpose:**\n- Updates subscription payment_status to 'paid'\n- Sends notification to client about payment confirmation\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- After payment gateway webhook confirmation\n- Manual payment confirmation by admin\n- Client confirming their own payment"
+                "description": "Membership checkout — **Upgrade** (charges the target plan's full price; on confirm, switches `plan` to `target_plan` and restarts the billing cycle from today). Same Payment Sheet pattern as Wallet → Add Money. After the sheet succeeds, call **Confirm Membership Payment** below with the returned `payment_intent_id`."
               }
             },
             {
-              "name": "Delete Subscription",
+              "name": "Confirm Membership Payment",
               "request": {
-                "method": "DELETE",
+                "method": "POST",
                 "header": [
                   {
                     "key": "Authorization",
@@ -3432,22 +3318,35 @@
                     "value": "application/json"
                   }
                 ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "payment_intent_id",
+                      "value": "{{membership_payment_intent_id}}",
+                      "type": "text",
+                      "description": "Required. From Renew/Upgrade – Create Payment Intent, or the id returned by the mobile Stripe Payment Sheet."
+                    }
+                  ]
+                },
                 "url": {
-                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "raw": "{{base_url}}/api/client/memberships/payment/confirm",
                   "host": [
                     "{{base_url}}"
                   ],
                   "path": [
                     "api",
-                    "subscriptions",
-                    "{{subscription_id}}"
+                    "client",
+                    "memberships",
+                    "payment",
+                    "confirm"
                   ]
                 },
-                "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
+                "description": "One shared confirm endpoint for both Renew and Upgrade (the payment intent's metadata already records which action + target plan). Server re-verifies the PaymentIntent directly with Stripe (never trusts the client) — checks `metadata.purpose`, `metadata.user_id`, and `status === 'succeeded'` — then applies the renewal/upgrade to the subscription: sets `payment_status=paid`, `payment_reference`, `paid_at`, updates `plan`/`amount`/`end_date`, and generates fresh visits for the new cycle. Idempotent — safe to call even if a Stripe webhook also fulfills the same payment intent."
               }
             }
           ],
-          "description": "Subscription management — Get plans (public), create (single/multiple/all-users via target_type), list, view, update, mark paid, and delete subscriptions. Create/Update/Delete are Admin-only for fields beyond dates/picture/description; Admin only can create."
+          "description": "Client membership screen: browse plans, view my memberships, and pay to **renew** or **upgrade** via Stripe/Apple Pay (same Payment Sheet pattern as Wallet → Add Money). Admin-side create/update/delete/mark-paid management lives in **5. Admin Dashboard → J. Subscriptions**."
         },
         {
           "name": "K. Banners (Public)",
@@ -11549,6 +11448,403 @@
             }
           ],
           "description": "Admin only — before/after maintenance showcase for client app.\n\n**Flow:** 1 List → 2 Get detail (edit screen) → 3 Add / 4–5 Update → 6 Delete.\n\n**Fields only:** title, before_image, after_image, priority, active.\n\n**Image URLs** in responses use `/media/` (e.g. `.../media/maintenance_photos/before/xxx.jpg`).\n\nClient read-only: folder **8 → L**. Auth: Bearer **admin** token. Use form-data for uploads."
+        },
+        {
+          "name": "J. Subscriptions",
+          "item": [
+            {
+              "name": "Get Plans (Public)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/plans",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "plans"
+                  ]
+                },
+                "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
+              }
+            },
+            {
+              "name": "Create Subscription",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    var d = jsonData.data;",
+                      "    if (Array.isArray(d) && d.length > 0) {",
+                      "        pm.environment.set('subscription_id', d[0].id);",
+                      "        console.log('Subscription(s) created:', d.length, '- first id:', d[0].id);",
+                      "    } else if (d && d.id) {",
+                      "        pm.environment.set('subscription_id', d.id);",
+                      "        console.log('Subscription ID saved:', d.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "plan",
+                      "value": "6_month",
+                      "type": "text",
+                      "description": "Required. One of: 1_month | 3_month | 6_month | 12_month"
+                    },
+                    {
+                      "key": "target_type",
+                      "value": "specific_clients",
+                      "type": "text",
+                      "description": "'specific_clients' (default) = use client_id / client_ids below | 'all_users' = every client in the app (client_id/client_ids ignored)"
+                    },
+                    {
+                      "key": "plan_name",
+                      "value": "VIP 6 Months",
+                      "type": "text"
+                    },
+                    {
+                      "key": "subtitle",
+                      "value": "VIP half-year plan",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Comprehensive 6-month farm care subscription.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "picture",
+                      "type": "file",
+                      "src": [],
+                      "description": "Optional subscription image"
+                    },
+                    {
+                      "key": "amount",
+                      "value": "5600.00",
+                      "type": "text"
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "paid",
+                      "type": "text",
+                      "description": "pending | paid | failed | refunded | cancelled"
+                    },
+                    {
+                      "key": "payment_reference",
+                      "value": "ADMIN-REF-001",
+                      "type": "text"
+                    },
+                    {
+                      "key": "start_date",
+                      "value": "2026-08-05",
+                      "type": "text"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2027-02-05",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{client_id}}",
+                      "type": "text",
+                      "description": "MODE 1 — Specific single client. Set target_type=specific_clients and fill this. Leave client_ids[] below disabled."
+                    },
+                    {
+                      "key": "client_ids[]",
+                      "value": "",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "MODE 2 — Multiple specific clients. Enable this row, set target_type=specific_clients, disable client_id above, and add one client_ids[] row per client id (duplicate this row, do NOT reuse example user IDs — type the real client user id each time)."
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions"
+                  ]
+                },
+                "description": "✅ STEP 5: Create subscription (Admin only). ONE endpoint, 3 modes via `target_type` + `client_id`/`client_ids`:\n\n1. **All users** — `target_type=all_users`. Disable `client_id` and `client_ids[]`. Server auto-creates one subscription per existing client. Returns an array.\n2. **Specific single client** — `target_type=specific_clients` + `client_id=<id>` (keep `client_ids[]` disabled). Returns a single subscription object.\n3. **Multiple specific clients** — `target_type=specific_clients`, disable `client_id`, enable `client_ids[]` and duplicate the row once per client id (type real ids — the field ships empty and disabled on purpose so nobody accidentally submits it against the wrong users). Returns an array.\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\n⚠️ Only ever enable ONE of `client_id` / `client_ids[]` at a time — if `client_ids[]` has any enabled rows, the server ignores `client_id` completely and switches to bulk mode.\n\nImage URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
+              }
+            },
+            {
+              "name": "List Subscriptions (All Clients)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('subscription_id')) {",
+                      "        pm.environment.set('subscription_id', jsonData.data[0].id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions"
+                  ]
+                },
+                "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
+              }
+            },
+            {
+              "name": "Get Subscription Details (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "{{subscription_id}}"
+                  ]
+                },
+                "description": "✅ STEP 7: Get subscription details\n\n**Returns:**\n- Full subscription information\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Review payment status"
+              }
+            },
+            {
+              "name": "Update Subscription",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "plan",
+                      "value": "6_month",
+                      "type": "text",
+                      "description": "Admin only. One of: 1_month | 3_month | 6_month | 12_month"
+                    },
+                    {
+                      "key": "plan_name",
+                      "value": "VIP 6 Months Updated",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "subtitle",
+                      "value": "Updated subtitle",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Updated subscription description",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "target_type",
+                      "value": "specific_clients",
+                      "type": "text",
+                      "description": "Admin only. specific_clients | all_users"
+                    },
+                    {
+                      "key": "picture",
+                      "type": "file",
+                      "src": [],
+                      "description": "Admin or owner. Select subscription image file to upload"
+                    },
+                    {
+                      "key": "amount",
+                      "value": "5600.00",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "paid",
+                      "type": "text",
+                      "description": "Admin only. pending | paid | failed | refunded | cancelled"
+                    },
+                    {
+                      "key": "payment_reference",
+                      "value": "PAY-123456",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "completed_visits",
+                      "value": "2",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "features[]",
+                      "value": "Weekly visit",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin only. Enable + repeat for multiple feature strings"
+                    },
+                    {
+                      "key": "start_date",
+                      "value": "2026-08-05",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin or owner"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2027-02-05",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin or owner"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "{{subscription_id}}"
+                  ]
+                },
+                "description": "Update subscription details\n\n**Uses POST, not PUT.** PHP does not parse request fields for PUT requests with a multipart/form-data body (only POST), so a real PUT here would silently do nothing while still returning a 200 success. The backend route accepts both PUT and POST for this endpoint — use POST here because this request uploads a `picture` file.\n\n**Updatable Fields (Admin Only):** `plan`, `plan_name`, `subtitle`, `description`, `target_type`, `picture`, `amount`, `payment_status`, `payment_reference`, `completed_visits`, `features`\n\n**Updatable Fields (Admin or Owner):** `start_date`, `end_date`, `picture`, `description`\n\n**Note:** Only admins can update pricing/status/plan fields. Regular users (subscription owners) can only update `start_date`, `end_date`, `picture`, and `description` for their own subscriptions. `client_id`/`client_ids` cannot be changed after creation — cancel and recreate the subscription under a different client instead."
+              }
+            },
+            {
+              "name": "Mark Subscription Paid",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}/mark-paid",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "{{subscription_id}}",
+                    "mark-paid"
+                  ]
+                },
+                "description": "Mark subscription as paid\n\n**Purpose:**\n- Updates subscription payment_status to 'paid'\n- Sends notification to client about payment confirmation\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- After payment gateway webhook confirmation\n- Manual payment confirmation by admin\n- Client confirming their own payment"
+              }
+            },
+            {
+              "name": "Delete Subscription",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "{{subscription_id}}"
+                  ]
+                },
+                "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
+              }
+            }
+          ],
+          "description": "Admin subscription management (Bearer admin token). Create is admin-only; List here returns every client's subscriptions; Update covers plan/amount/payment_status/dates/picture. For a client paying to renew or upgrade their own membership, see **4. Client Dashboard → J. Subscriptions** (real Stripe/Apple Pay checkout — this folder's Update/Mark-Paid are manual admin overrides, not a payment gateway)."
         }
       ]
     },
@@ -26646,6 +26942,12 @@
       "value": "",
       "type": "string",
       "description": "Stripe-Signature header value when manually testing POST /api/shop/webhooks/stripe; use Stripe CLI for real signatures."
+    },
+    {
+      "key": "membership_payment_intent_id",
+      "value": "",
+      "type": "string",
+      "description": "Set by Postman test script on 4. Client Dashboard -> J. Subscriptions -> Renew/Upgrade Create Payment Intent."
     }
   ]
 }
