@@ -34,6 +34,45 @@ class SubscriptionPaymentStripeService
     ];
 
     /**
+     * Full Membership screen in one call: the client's currently active membership
+     * (with renew_price + upgrade_plans, same shape as upgradeOptions()) plus the
+     * full "Your memberships" list — so the app never has to call List + Get
+     * Upgrade Options separately just to render this screen.
+     *
+     * @return array{ok: true, data: array}
+     */
+    public function membershipScreen(User $user): array
+    {
+        $subs = Subscription::where('client_id', $user->id)
+            ->with('visits')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        $today = Carbon::today();
+        $active = $subs->first(function (Subscription $s) use ($today) {
+            return $s->payment_status === 'paid'
+                && $s->end_date
+                && Carbon::parse($s->end_date)->gte($today);
+        });
+
+        $activeMembership = null;
+        if ($active) {
+            $options = $this->upgradeOptions($user, $active);
+            if ($options['ok']) {
+                $activeMembership = $options['data'];
+            }
+        }
+
+        return [
+            'ok' => true,
+            'data' => [
+                'active_membership' => $activeMembership,
+                'memberships' => $subs->values()->toArray(),
+            ],
+        ];
+    }
+
+    /**
      * Membership checkout "Upgrade plans" list: current plan + eligible upgrade targets.
      *
      * @return array{ok: true, data: array}|array{ok: false, message: string, code: int}

@@ -761,6 +761,7 @@ Route::middleware(['auth:sanctum', 'role:client'])->prefix('client')->group(func
 | may pay to renew the current plan or upgrade to a higher plan.
 */
 Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('client/memberships')->group(function () {
+    Route::get('/screen', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'screen']);
     Route::get('/{id}/upgrade-options', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'upgradeOptions']);
     Route::post('/{id}/renew/payment-intent', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'renewPaymentIntent']);
     Route::post('/{id}/upgrade/payment-intent', [\App\Http\Controllers\Api\Client\MembershipPaymentController::class, 'upgradePaymentIntent']);

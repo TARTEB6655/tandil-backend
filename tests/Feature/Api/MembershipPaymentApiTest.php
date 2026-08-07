@@ -68,6 +68,64 @@ class MembershipPaymentApiTest extends TestCase
         ], $overrides));
     }
 
+    public function test_membership_screen_returns_active_membership_and_full_list(): void
+    {
+        $active = $this->makeSubscription([
+            'plan' => '6_month',
+            'start_date' => '2026-08-05',
+            'end_date' => '2027-02-05',
+            'amount' => 2900.00,
+            'payment_status' => 'paid',
+        ]);
+        $expired = $this->makeSubscription([
+            'plan' => '3_month',
+            'start_date' => '2025-01-01',
+            'end_date' => '2025-04-01',
+            'amount' => 1450.00,
+            'payment_status' => 'paid',
+        ]);
+
+        $res = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/client/memberships/screen')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.active_membership.current_membership.subscription_id', $active->id)
+            ->assertJsonPath('data.active_membership.current_membership.plan', '6_month')
+            ->assertJsonPath('data.active_membership.renew_price', 2900);
+
+        $upgradePlans = collect($res->json('data.active_membership.upgrade_plans'))->pluck('plan')->all();
+        $this->assertSame(['12_month'], $upgradePlans);
+
+        $membershipIds = collect($res->json('data.memberships'))->pluck('id')->all();
+        $this->assertContains($active->id, $membershipIds);
+        $this->assertContains($expired->id, $membershipIds);
+        $this->assertCount(2, $membershipIds, 'memberships list should include every subscription for the client, active or not');
+    }
+
+    public function test_membership_screen_active_membership_is_null_when_none_active(): void
+    {
+        $this->makeSubscription(['end_date' => '2020-01-01', 'payment_status' => 'paid']);
+        $this->makeSubscription(['payment_status' => 'pending']);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/client/memberships/screen')
+            ->assertOk()
+            ->assertJsonPath('data.active_membership', null)
+            ->assertJsonCount(2, 'data.memberships');
+    }
+
+    public function test_membership_screen_only_shows_own_memberships(): void
+    {
+        $this->makeSubscription(['client_id' => $this->otherClient->id]);
+        $this->makeSubscription();
+
+        $res = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/client/memberships/screen')
+            ->assertOk();
+
+        $this->assertCount(1, $res->json('data.memberships'));
+    }
+
     public function test_upgrade_options_returns_current_membership_and_eligible_plans(): void
     {
         $sub = $this->makeSubscription();

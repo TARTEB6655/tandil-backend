@@ -20,6 +20,19 @@ class MembershipPaymentController extends Controller
     }
 
     /**
+     * GET /api/client/memberships/screen
+     * One call for the whole Membership screen: active_membership (current plan
+     * summary + renew_price + upgrade_plans, or null if none active) + memberships
+     * (full "Your memberships" list). Avoids calling List + Get Upgrade Options separately.
+     */
+    public function screen(Request $request)
+    {
+        $result = $this->payments->membershipScreen($request->user());
+
+        return ApiResponse::success('Membership screen data retrieved successfully.', $result['data']);
+    }
+
+    /**
      * GET /api/client/memberships/{id}/upgrade-options
      * Membership screen: current plan + eligible upgrade plans + payment methods.
      */

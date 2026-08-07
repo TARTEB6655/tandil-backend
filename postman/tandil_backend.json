@@ -3056,6 +3056,52 @@
           "name": "J. Subscriptions",
           "item": [
             {
+              "name": "Membership Screen (Active + Upgrade Plans + Your Memberships)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var d = pm.response.json().data;",
+                      "    if (d && d.active_membership && d.active_membership.current_membership && d.active_membership.current_membership.subscription_id) {",
+                      "        pm.environment.set('subscription_id', d.active_membership.current_membership.subscription_id);",
+                      "        console.log('subscription_id saved from active_membership:', d.active_membership.current_membership.subscription_id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/client/memberships/screen",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "client",
+                    "memberships",
+                    "screen"
+                  ]
+                },
+                "description": "ONE call for the whole Membership screen — no need to call List My Memberships + Get Upgrade Options separately.\n\n`data.active_membership`: null if the client has no currently paid + not-yet-expired subscription; otherwise the same shape as **Get Upgrade Options** (`current_membership` with `subscription_id`/`plan`/`plan_name`/`amount`/`start_date`/`end_date`, plus `renew_price`, `upgrade_plans[]`, `payment_methods`). This is the top \"Active\" card + \"Upgrade plans\" list.\n\n`data.memberships`: full list of the client's subscriptions (same rows as List My Memberships) — this is the \"Your memberships\" list at the bottom.\n\nUse `data.active_membership.current_membership.subscription_id` (auto-saved to `{{subscription_id}}`) for the Renew/Upgrade – Create Payment Intent calls below."
+              }
+            },
+            {
               "name": "Get Plans (Public)",
               "request": {
                 "method": "GET",
