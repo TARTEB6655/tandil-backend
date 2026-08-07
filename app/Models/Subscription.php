@@ -12,7 +12,7 @@ class Subscription extends Model
     protected $fillable = [
         'client_id','plan','start_date','end_date','amount',
         'payment_status','payment_reference','paid_at','total_visits','completed_visits',
-        'plan_name','subtitle','features','apply_to_all','picture','description'
+        'plan_name','subtitle','features','apply_to_all','target_type','picture','description'
     ];
 
     protected $appends = ['picture_url'];
@@ -31,6 +31,7 @@ class Subscription extends Model
         'completed_visits' => 'integer',
         'features' => 'array',
         'apply_to_all' => 'boolean',
+        'target_type'  => 'string',
     ];
 
     /**

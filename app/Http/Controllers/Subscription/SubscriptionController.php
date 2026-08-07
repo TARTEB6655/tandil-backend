@@ -90,6 +90,19 @@ class SubscriptionController extends Controller
             unset($data['total_visits']);
         }
 
+        // ---------------------------------------------------------------
+        // Resolve target_type:
+        //   'all_users'        → plan will be assigned to every client
+        //   'specific_clients' → plan for selected clients only (default)
+        // ---------------------------------------------------------------
+        $targetType = $data['target_type'] ?? 'specific_clients';
+        $data['target_type'] = $targetType;
+
+        // 'all_users' implicitly means apply_to_all = true
+        if ($targetType === 'all_users') {
+            $data['apply_to_all'] = true;
+        }
+
         if ($request->hasFile('picture')) {
             $path = $request->file('picture')->store('subscriptions', 'public');
             $data['picture'] = $path;
@@ -185,7 +198,9 @@ class SubscriptionController extends Controller
             return $sub;
         };
 
-        // If admin wants to apply to multiple clients or all clients
+        // ---------------------------------------------------------------
+        // Route: all_users OR explicit apply_to_all / client_ids array
+        // ---------------------------------------------------------------
         $created = [];
         if ($user->hasRole('admin') && (!empty($data['apply_to_all']) || !empty($data['client_ids']))) {
             if (!empty($data['apply_to_all'])) {
@@ -198,10 +213,16 @@ class SubscriptionController extends Controller
                 $created[] = $createForClient($data, $cid);
             }
 
-            return ApiResponse::success('Subscriptions created successfully.', $created, 201);
+            $msg = $targetType === 'all_users'
+                ? 'Subscription created for all users successfully.'
+                : 'Subscriptions created for specific clients successfully.';
+
+            return ApiResponse::success($msg, $created, 201);
         }
 
-        // Default single subscription creation (client_id resolved above in request)
+        // ---------------------------------------------------------------
+        // Single client subscription
+        // ---------------------------------------------------------------
         if (!isset($data['client_id'])) {
             $data['client_id'] = $user->id;
         } elseif (!$user->hasRole('admin')) {
@@ -238,6 +259,7 @@ class SubscriptionController extends Controller
             'plan_name' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string|max:255',
             'features' => 'nullable|array',
+            'target_type' => 'nullable|string|in:all_users,specific_clients',
         ]);
 
         if ($request->has('start_date')) {
@@ -280,6 +302,11 @@ class SubscriptionController extends Controller
         }
         if ($request->has('features') && $user->hasRole('admin')) {
             $sub->features = $request->input('features');
+        }
+        if ($request->has('target_type') && $user->hasRole('admin')) {
+            $sub->target_type = $request->input('target_type');
+            // Keep apply_to_all in sync
+            $sub->apply_to_all = ($request->input('target_type') === 'all_users');
         }
 
         $sub->save();

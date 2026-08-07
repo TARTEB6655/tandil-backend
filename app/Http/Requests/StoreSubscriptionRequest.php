@@ -19,6 +19,10 @@ class StoreSubscriptionRequest extends BaseFormRequest
             'image' => 'nullable',
             'description' => 'nullable|string',
             'features' => 'nullable|array',
+            // Who is this subscription for?
+            // 'all_users'        → visible/assigned to every client
+            // 'specific_clients' → only the selected clients (default)
+            'target_type' => 'nullable|string|in:all_users,specific_clients',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date',
             'amount' => 'nullable|numeric|min:0',

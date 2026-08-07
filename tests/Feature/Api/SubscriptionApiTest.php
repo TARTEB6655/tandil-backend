@@ -14,6 +14,7 @@ class SubscriptionApiTest extends TestCase
 
     private User $admin;
     private User $client;
+    private User $client2;
 
     protected function setUp(): void
     {
@@ -27,7 +28,14 @@ class SubscriptionApiTest extends TestCase
 
         $this->client = User::factory()->create();
         $this->client->assignRole('client');
+
+        $this->client2 = User::factory()->create();
+        $this->client2->assignRole('client');
     }
+
+    // -----------------------------------------------------------------------
+    // Plans
+    // -----------------------------------------------------------------------
 
     public function test_public_plans_endpoint_returns_plans_with_picture_and_description_without_total_visits(): void
     {
@@ -50,16 +58,21 @@ class SubscriptionApiTest extends TestCase
         }
     }
 
-    public function test_admin_can_create_subscription_with_picture_and_description(): void
+    // -----------------------------------------------------------------------
+    // target_type: specific_clients (default)
+    // -----------------------------------------------------------------------
+
+    public function test_admin_can_create_subscription_for_specific_client(): void
     {
         $payload = [
-            'client_id' => $this->client->id,
-            'plan' => '3_month',
-            'plan_name' => 'Premium Package',
-            'subtitle' => 'Quarterly Service',
-            'picture' => 'https://example.com/images/subscription-3month.jpg',
+            'client_id'   => $this->client->id,
+            'plan'        => '3_month',
+            'plan_name'   => 'Premium Package',
+            'subtitle'    => 'Quarterly Service',
+            'target_type' => 'specific_clients',
+            'picture'     => 'https://example.com/images/subscription-3month.jpg',
             'description' => 'Comprehensive 3-month farm inspection and treatment plan.',
-            'amount' => 1450.00,
+            'amount'      => 1450.00,
             'payment_status' => 'pending',
         ];
 
@@ -68,6 +81,8 @@ class SubscriptionApiTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.target_type', 'specific_clients')
+            ->assertJsonPath('data.client_id', $this->client->id)
             ->assertJsonPath('data.picture', 'https://example.com/images/subscription-3month.jpg')
             ->assertJsonPath('data.description', 'Comprehensive 3-month farm inspection and treatment plan.');
 
@@ -75,18 +90,126 @@ class SubscriptionApiTest extends TestCase
         $this->assertArrayNotHasKey('total_visits', $data);
 
         $this->assertDatabaseHas('subscriptions', [
-            'client_id' => $this->client->id,
-            'plan' => '3_month',
-            'picture' => 'https://example.com/images/subscription-3month.jpg',
-            'description' => 'Comprehensive 3-month farm inspection and treatment plan.',
+            'client_id'   => $this->client->id,
+            'plan'        => '3_month',
+            'target_type' => 'specific_clients',
+            'picture'     => 'https://example.com/images/subscription-3month.jpg',
         ]);
     }
+
+    public function test_admin_can_create_subscription_for_multiple_specific_clients(): void
+    {
+        $payload = [
+            'plan'        => '1_month',
+            'plan_name'   => 'Basic Monthly',
+            'target_type' => 'specific_clients',
+            'client_ids'  => [$this->client->id, $this->client2->id],
+            'amount'      => 500.00,
+        ];
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/subscriptions', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $message = $response->json('message');
+        $this->assertStringContainsString('specific clients', $message);
+
+        // Both clients should have a subscription
+        $this->assertDatabaseHas('subscriptions', [
+            'client_id'   => $this->client->id,
+            'target_type' => 'specific_clients',
+        ]);
+        $this->assertDatabaseHas('subscriptions', [
+            'client_id'   => $this->client2->id,
+            'target_type' => 'specific_clients',
+        ]);
+    }
+
+    // -----------------------------------------------------------------------
+    // target_type: all_users
+    // -----------------------------------------------------------------------
+
+    public function test_admin_can_create_subscription_for_all_users(): void
+    {
+        $payload = [
+            'plan'        => '6_month',
+            'plan_name'   => 'VIP 6 Months',
+            'subtitle'    => 'VIP half-year plan',
+            'target_type' => 'all_users',   // <-- the key flag
+            'picture'     => 'https://example.com/vip6.jpg',
+            'description' => 'Available to every client in the app.',
+            'amount'      => 2900.00,
+            'payment_status' => 'pending',
+        ];
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/subscriptions', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        $message = $response->json('message');
+        $this->assertStringContainsString('all users', $message);
+
+        // Both clients should have been assigned the subscription
+        $this->assertDatabaseHas('subscriptions', [
+            'client_id'   => $this->client->id,
+            'target_type' => 'all_users',
+            'apply_to_all' => true,
+        ]);
+        $this->assertDatabaseHas('subscriptions', [
+            'client_id'   => $this->client2->id,
+            'target_type' => 'all_users',
+            'apply_to_all' => true,
+        ]);
+
+        // Check target_type in each returned record
+        $created = $response->json('data');
+        foreach ($created as $item) {
+            $this->assertEquals('all_users', $item['target_type']);
+        }
+    }
+
+    public function test_target_type_defaults_to_specific_clients_when_not_provided(): void
+    {
+        $payload = [
+            'client_id' => $this->client->id,
+            'plan'      => '1_month',
+            'amount'    => 500.00,
+        ];
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/subscriptions', $payload);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.target_type', 'specific_clients');
+    }
+
+    public function test_target_type_validation_rejects_invalid_value(): void
+    {
+        $payload = [
+            'client_id'   => $this->client->id,
+            'plan'        => '1_month',
+            'target_type' => 'invalid_value',
+        ];
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/subscriptions', $payload);
+
+        $response->assertStatus(422);
+    }
+
+    // -----------------------------------------------------------------------
+    // General CRUD
+    // -----------------------------------------------------------------------
 
     public function test_client_cannot_create_subscription(): void
     {
         $payload = [
-            'plan' => '1_month',
-            'picture' => 'https://example.com/pic.jpg',
+            'plan'        => '1_month',
+            'picture'     => 'https://example.com/pic.jpg',
             'description' => 'Test',
         ];
 
@@ -96,11 +219,12 @@ class SubscriptionApiTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_get_subscriptions_list_returns_picture_and_description_without_total_visits(): void
+    public function test_get_subscriptions_list_returns_target_type_picture_and_description(): void
     {
         Subscription::factory()->create([
-            'client_id' => $this->client->id,
-            'picture' => 'https://example.com/sub.jpg',
+            'client_id'   => $this->client->id,
+            'target_type' => 'specific_clients',
+            'picture'     => 'https://example.com/sub.jpg',
             'description' => 'Existing subscription description',
         ]);
 
@@ -116,14 +240,16 @@ class SubscriptionApiTest extends TestCase
             $this->assertArrayNotHasKey('total_visits', $sub);
             $this->assertArrayHasKey('picture', $sub);
             $this->assertArrayHasKey('description', $sub);
+            $this->assertArrayHasKey('target_type', $sub);
         }
     }
 
-    public function test_get_single_subscription_returns_picture_and_description_without_total_visits(): void
+    public function test_get_single_subscription_returns_target_type_picture_and_description(): void
     {
         $sub = Subscription::factory()->create([
-            'client_id' => $this->client->id,
-            'picture' => 'https://example.com/single.jpg',
+            'client_id'   => $this->client->id,
+            'target_type' => 'all_users',
+            'picture'     => 'https://example.com/single.jpg',
             'description' => 'Single subscription details',
         ]);
 
@@ -132,6 +258,7 @@ class SubscriptionApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.target_type', 'all_users')
             ->assertJsonPath('data.picture', 'https://example.com/single.jpg')
             ->assertJsonPath('data.description', 'Single subscription details');
 
@@ -139,16 +266,18 @@ class SubscriptionApiTest extends TestCase
         $this->assertArrayNotHasKey('total_visits', $data);
     }
 
-    public function test_admin_can_update_subscription_picture_and_description(): void
+    public function test_admin_can_update_subscription_target_type_picture_and_description(): void
     {
         $sub = Subscription::factory()->create([
-            'client_id' => $this->client->id,
-            'picture' => 'https://example.com/old.jpg',
+            'client_id'   => $this->client->id,
+            'target_type' => 'specific_clients',
+            'picture'     => 'https://example.com/old.jpg',
             'description' => 'Old description',
         ]);
 
         $payload = [
-            'picture' => 'https://example.com/new.jpg',
+            'target_type' => 'all_users',
+            'picture'     => 'https://example.com/new.jpg',
             'description' => 'Updated description content',
         ];
 
@@ -157,6 +286,7 @@ class SubscriptionApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.target_type', 'all_users')
             ->assertJsonPath('data.picture', 'https://example.com/new.jpg')
             ->assertJsonPath('data.description', 'Updated description content');
 
@@ -164,19 +294,21 @@ class SubscriptionApiTest extends TestCase
         $this->assertArrayNotHasKey('total_visits', $data);
 
         $this->assertDatabaseHas('subscriptions', [
-            'id' => $sub->id,
-            'picture' => 'https://example.com/new.jpg',
-            'description' => 'Updated description content',
+            'id'          => $sub->id,
+            'target_type' => 'all_users',
+            'apply_to_all' => true,
+            'picture'     => 'https://example.com/new.jpg',
         ]);
     }
 
     public function test_mark_paid_endpoint_returns_subscription_without_total_visits(): void
     {
         $sub = Subscription::factory()->create([
-            'client_id' => $this->client->id,
+            'client_id'      => $this->client->id,
             'payment_status' => 'pending',
-            'picture' => 'https://example.com/pay.jpg',
-            'description' => 'Pending payment plan',
+            'target_type'    => 'specific_clients',
+            'picture'        => 'https://example.com/pay.jpg',
+            'description'    => 'Pending payment plan',
         ]);
 
         $response = $this->actingAs($this->admin, 'sanctum')
@@ -190,6 +322,7 @@ class SubscriptionApiTest extends TestCase
         $this->assertArrayNotHasKey('total_visits', $data);
         $this->assertArrayHasKey('picture', $data);
         $this->assertArrayHasKey('description', $data);
+        $this->assertArrayHasKey('target_type', $data);
     }
 
     public function test_admin_can_delete_subscription(): void
