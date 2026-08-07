@@ -27,6 +27,8 @@ class SubscriptionFactory extends Factory
             'paid_at' => $paymentStatus === 'paid' ? $start->copy()->addHours(rand(1, 24)) : null,
             'total_visits' => rand(1,12),
             'completed_visits' => 0,
+            'picture' => $this->faker->imageUrl(640, 480, 'business', true),
+            'description' => $this->faker->sentence(),
         ];
     }
 }

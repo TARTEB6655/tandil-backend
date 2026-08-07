@@ -57,6 +57,8 @@ class SubscriptionController extends Controller
                 'plan' => $plan,
                 'price' => $price,
                 'label' => str_replace('_', ' ', $plan),
+                'picture' => null,
+                'description' => str_replace('_', ' ', $plan) . ' subscription plan',
             ];
         })->values();
 
@@ -84,6 +86,9 @@ class SubscriptionController extends Controller
         }
 
         $data = $request->validated();
+        if (isset($data['total_visits'])) {
+            unset($data['total_visits']);
+        }
 
         // Helper to create a single subscription and its visits
         $createForClient = function ($data, $clientId) use ($user) {
@@ -120,10 +125,8 @@ class SubscriptionController extends Controller
                     : (500.00 * $months);
             }
 
-            if (!isset($d['total_visits']) || $d['total_visits'] === null) {
-                $planMap = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
-                $d['total_visits'] = $planMap[$d['plan']] ?? 1;
-            }
+            $planMap = ['1_month' => 1, '3_month' => 3, '6_month' => 6, '12_month' => 12];
+            $d['total_visits'] = $planMap[$d['plan']] ?? 1;
 
             if (!isset($d['completed_visits']) || $d['completed_visits'] === null) {
                 $d['completed_visits'] = 0;
@@ -218,7 +221,8 @@ class SubscriptionController extends Controller
             'end_date' => 'nullable|date',
             'payment_status' => 'nullable|string|in:pending,paid,failed,refunded,cancelled',
             'amount' => 'nullable|numeric|min:0',
-            'total_visits' => 'nullable|integer|min:0',
+            'picture' => 'nullable|string|max:1000',
+            'description' => 'nullable|string',
             'completed_visits' => 'nullable|integer|min:0',
             'payment_reference' => 'nullable|string|max:255',
             'plan_name' => 'nullable|string|max:255',
@@ -238,8 +242,11 @@ class SubscriptionController extends Controller
         if ($request->has('amount') && $user->hasRole('admin')) {
             $sub->amount = $request->input('amount');
         }
-        if ($request->has('total_visits') && $user->hasRole('admin')) {
-            $sub->total_visits = $request->input('total_visits');
+        if ($request->has('picture')) {
+            $sub->picture = $request->input('picture');
+        }
+        if ($request->has('description')) {
+            $sub->description = $request->input('description');
         }
         if ($request->has('completed_visits') && $user->hasRole('admin')) {
             $sub->completed_visits = $request->input('completed_visits');

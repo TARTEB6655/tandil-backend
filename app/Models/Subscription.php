@@ -11,7 +11,11 @@ class Subscription extends Model
     protected $fillable = [
         'client_id','plan','start_date','end_date','amount',
         'payment_status','payment_reference','paid_at','total_visits','completed_visits',
-        'plan_name','subtitle','features','apply_to_all'
+        'plan_name','subtitle','features','apply_to_all','picture','description'
+    ];
+
+    protected $hidden = [
+        'total_visits',
     ];
 
     protected $casts = [
