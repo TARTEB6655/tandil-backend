@@ -3098,31 +3098,7 @@
                     "screen"
                   ]
                 },
-                "description": "ONE call for the whole Membership screen — no need to call List My Memberships + Get Upgrade Options separately.\n\n`data.active_membership`: null if the client has no currently paid + not-yet-expired subscription; otherwise the same shape as **Get Upgrade Options** (`current_membership` with `subscription_id`/`plan`/`plan_name`/`amount`/`start_date`/`end_date`, plus `renew_price`, `upgrade_plans[]`, `payment_methods`). This is the top \"Active\" card + \"Upgrade plans\" list.\n\n`data.memberships`: full list of the client's subscriptions (same rows as List My Memberships) — this is the \"Your memberships\" list at the bottom.\n\nUse `data.active_membership.current_membership.subscription_id` (auto-saved to `{{subscription_id}}`) for the Renew/Upgrade – Create Payment Intent calls below."
-              }
-            },
-            {
-              "name": "Get Plans (Public)",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions/plans",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "subscriptions",
-                    "plans"
-                  ]
-                },
-                "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
+                "description": "ONE call for the whole Membership screen — no need to call List My Memberships + Get Upgrade Options separately.\n\n`data.active_membership`: null if the client has no currently paid + not-yet-expired subscription; otherwise:\n- `current_membership` — `subscription_id`, `plan`, `plan_name`, `amount`, `start_date`, `end_date`, `payment_status`, and **`status`** (`active` | `expired` | `pending` | `failed` | `refunded` | `cancelled`) — this is the top \"Active\" card.\n- `renew_price`, `upgrade_plans[]`, `payment_methods` — the \"Upgrade plans\" list.\n- **`history[]`** — the current plan's renew/upgrade payment history (succeeded payments only, newest first): `id`, `action` (renew|upgrade), `from_plan`, `to_plan`, `amount`, `currency`, `payment_method`, `paid_at`.\n\n`data.memberships`: full list of the client's subscriptions (same rows as List My Memberships), each with the computed **`status`** field added — this is the \"Your memberships\" list at the bottom.\n\nUse `data.active_membership.current_membership.subscription_id` (auto-saved to `{{subscription_id}}`) for the Renew/Upgrade – Create Payment Intent calls below."
               }
             },
             {
@@ -3223,7 +3199,7 @@
                     "upgrade-options"
                   ]
                 },
-                "description": "Membership screen data: current plan summary, `renew_price` (price to renew the same plan), `upgrade_plans[]` (only plans priced higher than the current one — each with `plan`, `label`, `price`, `price_difference`), and `payment_methods` (stripe, apple_pay). Call this before showing the \"Upgrade plans\" list. Owner client or admin only (403 otherwise)."
+                "description": "Membership screen data: current plan summary (now includes computed **`status`**: `active` | `expired` | `pending` | `failed` | `refunded` | `cancelled`), `renew_price` (price to renew the same plan), `upgrade_plans[]` (only plans priced higher than the current one — each with `plan`, `label`, `price`, `price_difference`), and `payment_methods` (stripe, apple_pay). Call this before showing the \"Upgrade plans\" list. Owner client or admin only (403 otherwise). Prefer **Membership Screen** above for the main screen — it includes this same data plus `history` and the full memberships list in one call."
               }
             },
             {

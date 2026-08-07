@@ -91,15 +91,63 @@ class MembershipPaymentApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.active_membership.current_membership.subscription_id', $active->id)
             ->assertJsonPath('data.active_membership.current_membership.plan', '6_month')
-            ->assertJsonPath('data.active_membership.renew_price', 2900);
+            ->assertJsonPath('data.active_membership.current_membership.status', 'active')
+            ->assertJsonPath('data.active_membership.renew_price', 2900)
+            ->assertJsonPath('data.active_membership.history', []);
 
         $upgradePlans = collect($res->json('data.active_membership.upgrade_plans'))->pluck('plan')->all();
         $this->assertSame(['12_month'], $upgradePlans);
 
-        $membershipIds = collect($res->json('data.memberships'))->pluck('id')->all();
-        $this->assertContains($active->id, $membershipIds);
-        $this->assertContains($expired->id, $membershipIds);
-        $this->assertCount(2, $membershipIds, 'memberships list should include every subscription for the client, active or not');
+        $memberships = collect($res->json('data.memberships'))->keyBy('id');
+        $this->assertContains($active->id, $memberships->keys()->all());
+        $this->assertContains($expired->id, $memberships->keys()->all());
+        $this->assertCount(2, $memberships, 'memberships list should include every subscription for the client, active or not');
+        $this->assertSame('active', $memberships[$active->id]['status']);
+        $this->assertSame('expired', $memberships[$expired->id]['status'], 'a paid subscription past its end_date should be reported as expired');
+    }
+
+    public function test_membership_screen_includes_renew_upgrade_payment_history(): void
+    {
+        $active = $this->makeSubscription(['plan' => '6_month', 'amount' => 2900.00]);
+
+        SubscriptionPayment::create([
+            'subscription_id' => $active->id,
+            'client_id' => $this->client->id,
+            'action' => 'renew',
+            'from_plan' => '6_month',
+            'to_plan' => '6_month',
+            'amount' => 2900,
+            'amount_minor' => 290000,
+            'currency' => 'aed',
+            'stripe_payment_intent_id' => 'pi_history_renew',
+            'status' => 'succeeded',
+            'payment_method' => 'stripe',
+            'consumed_at' => now()->subDay(),
+        ]);
+        SubscriptionPayment::create([
+            'subscription_id' => $active->id,
+            'client_id' => $this->client->id,
+            'action' => 'upgrade',
+            'from_plan' => '3_month',
+            'to_plan' => '6_month',
+            'amount' => 2900,
+            'amount_minor' => 290000,
+            'currency' => 'aed',
+            'stripe_payment_intent_id' => 'pi_history_upgrade',
+            'status' => 'pending',
+            'payment_method' => 'stripe',
+        ]);
+
+        $res = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/client/memberships/screen')
+            ->assertOk();
+
+        $history = $res->json('data.active_membership.history');
+        $this->assertCount(1, $history, 'only succeeded payments should appear in history');
+        $this->assertSame('renew', $history[0]['action']);
+        $this->assertSame('stripe', $history[0]['payment_method']);
+        $this->assertSame(2900, $history[0]['amount']);
+        $this->assertNotNull($history[0]['paid_at']);
     }
 
     public function test_membership_screen_active_membership_is_null_when_none_active(): void
@@ -107,11 +155,15 @@ class MembershipPaymentApiTest extends TestCase
         $this->makeSubscription(['end_date' => '2020-01-01', 'payment_status' => 'paid']);
         $this->makeSubscription(['payment_status' => 'pending']);
 
-        $this->actingAs($this->client, 'sanctum')
+        $res = $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/client/memberships/screen')
             ->assertOk()
             ->assertJsonPath('data.active_membership', null)
             ->assertJsonCount(2, 'data.memberships');
+
+        $statuses = collect($res->json('data.memberships'))->pluck('status')->all();
+        $this->assertContains('expired', $statuses);
+        $this->assertContains('pending', $statuses);
     }
 
     public function test_membership_screen_only_shows_own_memberships(): void

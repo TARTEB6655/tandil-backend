@@ -60,16 +60,66 @@ class SubscriptionPaymentStripeService
             $options = $this->upgradeOptions($user, $active);
             if ($options['ok']) {
                 $activeMembership = $options['data'];
+                $activeMembership['history'] = $this->paymentHistory($active);
             }
         }
+
+        $memberships = $subs->map(function (Subscription $s) {
+            $arr = $s->toArray();
+            $arr['status'] = $this->membershipStatus($s);
+
+            return $arr;
+        })->values()->toArray();
 
         return [
             'ok' => true,
             'data' => [
                 'active_membership' => $activeMembership,
-                'memberships' => $subs->values()->toArray(),
+                'memberships' => $memberships,
             ],
         ];
+    }
+
+    /**
+     * Renew/upgrade payment history for a subscription (newest first), so the
+     * app can show "current plan history" under the active membership card.
+     */
+    private function paymentHistory(Subscription $subscription): array
+    {
+        return SubscriptionPayment::query()
+            ->where('subscription_id', $subscription->id)
+            ->where('status', 'succeeded')
+            ->orderBy('consumed_at', 'desc')
+            ->get()
+            ->map(fn (SubscriptionPayment $p) => [
+                'id' => $p->id,
+                'action' => $p->action,
+                'from_plan' => $p->from_plan,
+                'to_plan' => $p->to_plan,
+                'amount' => round((float) $p->amount, 2),
+                'currency' => strtoupper((string) $p->currency),
+                'payment_method' => $p->payment_method,
+                'paid_at' => optional($p->consumed_at)->toDateTimeString(),
+            ])
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Computed lifecycle status for a subscription: active | expired | plus any
+     * non-paid payment_status (pending, failed, refunded, cancelled) as-is.
+     */
+    private function membershipStatus(Subscription $subscription): string
+    {
+        if ($subscription->payment_status !== 'paid') {
+            return $subscription->payment_status;
+        }
+
+        if ($subscription->end_date && Carbon::parse($subscription->end_date)->isPast()) {
+            return 'expired';
+        }
+
+        return 'active';
     }
 
     /**
@@ -108,6 +158,7 @@ class SubscriptionPaymentStripeService
                     'start_date' => optional($subscription->start_date)->toDateString(),
                     'end_date' => optional($subscription->end_date)->toDateString(),
                     'payment_status' => $subscription->payment_status,
+                    'status' => $this->membershipStatus($subscription),
                 ],
                 'renew_price' => $currentPrice,
                 'upgrade_plans' => $targets,
