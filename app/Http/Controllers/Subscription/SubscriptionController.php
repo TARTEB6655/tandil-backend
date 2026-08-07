@@ -28,7 +28,7 @@ class SubscriptionController extends Controller
             $subs = Subscription::with('client')->orderBy('created_at', 'desc')->get();
         } else {
             // Clients only see their own subscriptions
-            $subs = Subscription::where('client_id', $user->id)->with('visits')->orderBy('created_at', 'desc')->get();
+            $subs = Subscription::where('client_id', $user->id)->orderBy('created_at', 'desc')->get();
         }
 
         // Return full data array so list APIs show all fields in Postman
@@ -92,10 +92,10 @@ class SubscriptionController extends Controller
 
         if ($request->hasFile('picture')) {
             $path = $request->file('picture')->store('subscriptions', 'public');
-            $data['picture'] = asset('storage/' . $path);
+            $data['picture'] = $path;
         } elseif ($request->hasFile('image')) {
             $path = $request->file('image')->store('subscriptions', 'public');
-            $data['picture'] = asset('storage/' . $path);
+            $data['picture'] = $path;
         } elseif (isset($data['image']) && !isset($data['picture'])) {
             $data['picture'] = $data['image'];
         }
@@ -254,10 +254,10 @@ class SubscriptionController extends Controller
         }
         if ($request->hasFile('picture')) {
             $path = $request->file('picture')->store('subscriptions', 'public');
-            $sub->picture = asset('storage/' . $path);
+            $sub->picture = $path;
         } elseif ($request->hasFile('image')) {
             $path = $request->file('image')->store('subscriptions', 'public');
-            $sub->picture = asset('storage/' . $path);
+            $sub->picture = $path;
         } elseif ($request->has('picture')) {
             $sub->picture = $request->input('picture');
         } elseif ($request->has('image')) {
