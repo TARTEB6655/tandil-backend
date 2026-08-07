@@ -90,6 +90,16 @@ class SubscriptionController extends Controller
             unset($data['total_visits']);
         }
 
+        if ($request->hasFile('picture')) {
+            $path = $request->file('picture')->store('subscriptions', 'public');
+            $data['picture'] = asset('storage/' . $path);
+        } elseif ($request->hasFile('image')) {
+            $path = $request->file('image')->store('subscriptions', 'public');
+            $data['picture'] = asset('storage/' . $path);
+        } elseif (isset($data['image']) && !isset($data['picture'])) {
+            $data['picture'] = $data['image'];
+        }
+
         // Helper to create a single subscription and its visits
         $createForClient = function ($data, $clientId) use ($user) {
             $d = $data;
@@ -242,8 +252,16 @@ class SubscriptionController extends Controller
         if ($request->has('amount') && $user->hasRole('admin')) {
             $sub->amount = $request->input('amount');
         }
-        if ($request->has('picture')) {
+        if ($request->hasFile('picture')) {
+            $path = $request->file('picture')->store('subscriptions', 'public');
+            $sub->picture = asset('storage/' . $path);
+        } elseif ($request->hasFile('image')) {
+            $path = $request->file('image')->store('subscriptions', 'public');
+            $sub->picture = asset('storage/' . $path);
+        } elseif ($request->has('picture')) {
             $sub->picture = $request->input('picture');
+        } elseif ($request->has('image')) {
+            $sub->picture = $request->input('image');
         }
         if ($request->has('description')) {
             $sub->description = $request->input('description');
