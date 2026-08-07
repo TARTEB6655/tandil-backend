@@ -5,6 +5,8 @@ namespace Tests\Feature\Api;
 use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -298,6 +300,41 @@ class SubscriptionApiTest extends TestCase
             'target_type' => 'all_users',
             'apply_to_all' => true,
             'picture'     => 'https://example.com/new.jpg',
+        ]);
+    }
+
+    /**
+     * PHP never populates request fields for PUT requests with a
+     * multipart/form-data body (only POST gets that) — a real PUT+file-upload
+     * update silently no-ops even though the endpoint returns 200. The route
+     * accepts POST as well for this reason; this test guards that alias.
+     */
+    public function test_admin_can_update_subscription_via_post_route_for_file_uploads(): void
+    {
+        $sub = Subscription::factory()->create([
+            'client_id'  => $this->client->id,
+            'plan_name'  => 'Old Name',
+            'amount'     => 100,
+        ]);
+
+        Storage::fake('public');
+        $file = UploadedFile::fake()->image('subscription.jpg');
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->post('/api/subscriptions/' . $sub->id, [
+                'plan_name' => 'Updated Via POST',
+                'amount'    => 250,
+                'picture'   => $file,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.plan_name', 'Updated Via POST')
+            ->assertJsonPath('data.amount', '250.00');
+
+        $this->assertDatabaseHas('subscriptions', [
+            'id'        => $sub->id,
+            'plan_name' => 'Updated Via POST',
         ]);
     }
 

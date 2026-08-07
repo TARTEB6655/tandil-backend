@@ -3127,7 +3127,7 @@
                       "key": "target_type",
                       "value": "specific_clients",
                       "type": "text",
-                      "description": "'specific_clients' (default) = use client_id / client_ids below | 'all_users' = every client in the app (client_id/client_ids ignored)"
+                      "description": "'specific_clients' (default) = use client_id below | 'all_users' = every client in the app (client_id ignored)"
                     },
                     {
                       "key": "plan_name",
@@ -3180,20 +3180,7 @@
                       "key": "client_id",
                       "value": "{{client_id}}",
                       "type": "text",
-                      "description": "Use for a SINGLE specific client. Leave disabled if using client_ids[] or target_type=all_users."
-                    },
-                    {
-                      "key": "client_ids[]",
-                      "value": "1",
-                      "type": "text",
-                      "disabled": true,
-                      "description": "Enable + repeat this field (one per client) for MULTIPLE specific clients. Disable client_id above when using this."
-                    },
-                    {
-                      "key": "client_ids[]",
-                      "value": "2",
-                      "type": "text",
-                      "disabled": true
+                      "description": "Use for a SINGLE specific client. Leave empty when target_type=all_users."
                     }
                   ]
                 },
@@ -3207,7 +3194,65 @@
                     "subscriptions"
                   ]
                 },
-                "description": "✅ STEP 5: Create subscription(s) (Admin only). This single endpoint covers all three targeting modes via `target_type` (+ `client_id`/`client_ids`):\n\n1. **Specific client** — `target_type=specific_clients` + `client_id=<id>`. Returns a single subscription object.\n2. **Multiple specific clients** — `target_type=specific_clients` + enable the repeated `client_ids[]` fields (one per client, disable `client_id`). Returns an array, one subscription per client.\n3. **All users** — `target_type=all_users` (disable `client_id`/`client_ids[]`). Server auto-creates one subscription per existing client. Returns an array.\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\nSee the 3 saved example responses below for what each mode returns. Image URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
+                "description": "✅ STEP 5: Create subscription (Admin only). This form-data request covers:\n\n1. **Specific client** — `target_type=specific_clients` + `client_id=<id>`. Returns a single subscription object.\n2. **All users** — `target_type=all_users` (leave `client_id` empty). Server auto-creates one subscription per existing client. Returns an array.\n\nFor creating subscriptions for **several specific clients at once**, use the separate **\"Create Subscription – Multiple Specific Clients\"** request below (raw JSON body with a `client_ids` array) instead of adding fields here — mixing that into this form via checkboxes is error-prone (an accidentally-enabled field would silently switch the whole request into bulk mode and ignore `client_id`).\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\nImage URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
+              }
+            },
+            {
+              "name": "Create Subscription – Multiple Specific Clients",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    var d = jsonData.data;",
+                      "    if (Array.isArray(d) && d.length > 0) {",
+                      "        pm.environment.set('subscription_id', d[0].id);",
+                      "        console.log('Subscriptions created:', d.length, '- first id:', d[0].id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"plan\": \"3_month\",\n  \"target_type\": \"specific_clients\",\n  \"client_ids\": [1, 2, 3],\n  \"plan_name\": \"Basic 3 Months\",\n  \"amount\": 1200.00,\n  \"payment_status\": \"pending\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions"
+                  ]
+                },
+                "description": "Create subscriptions for **multiple explicit clients** in one call (Admin only). Same `POST /api/subscriptions` endpoint as \"Create Subscription\" above, just with `client_ids` as a JSON array instead of a single `client_id`. Deliberately kept as a separate raw-JSON request (no picture upload) so bulk-mode can't be triggered by accident — you have to explicitly type the `client_ids` array to use it.\n\nResponse is an array, one subscription per listed client."
               }
             },
             {
@@ -3284,7 +3329,7 @@
             {
               "name": "Update Subscription",
               "request": {
-                "method": "PUT",
+                "method": "POST",
                 "header": [
                   {
                     "key": "Authorization",
@@ -3392,7 +3437,7 @@
                     "{{subscription_id}}"
                   ]
                 },
-                "description": "Update subscription details\n\n**Updatable Fields (Admin Only):** `plan`, `plan_name`, `subtitle`, `description`, `target_type`, `picture`, `amount`, `payment_status`, `payment_reference`, `completed_visits`, `features`\n\n**Updatable Fields (Admin or Owner):** `start_date`, `end_date`, `picture`, `description`\n\n**Note:** Only admins can update pricing/status/plan fields. Regular users (subscription owners) can only update `start_date`, `end_date`, `picture`, and `description` for their own subscriptions. `client_id`/`client_ids` cannot be changed after creation — cancel and recreate the subscription under a different client instead."
+                "description": "Update subscription details\n\n**Uses POST, not PUT.** PHP does not parse request fields for PUT requests with a multipart/form-data body (only POST), so a real PUT here would silently do nothing while still returning a 200 success. The backend route accepts both PUT and POST for this endpoint — use POST here because this request uploads a `picture` file.\n\n**Updatable Fields (Admin Only):** `plan`, `plan_name`, `subtitle`, `description`, `target_type`, `picture`, `amount`, `payment_status`, `payment_reference`, `completed_visits`, `features`\n\n**Updatable Fields (Admin or Owner):** `start_date`, `end_date`, `picture`, `description`\n\n**Note:** Only admins can update pricing/status/plan fields. Regular users (subscription owners) can only update `start_date`, `end_date`, `picture`, and `description` for their own subscriptions. `client_id`/`client_ids` cannot be changed after creation — cancel and recreate the subscription under a different client instead."
               }
             },
             {

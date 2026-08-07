@@ -163,6 +163,7 @@ Route::middleware(['auth:sanctum', 'role:client|admin'])->prefix('subscriptions'
     Route::post('/', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'update']);
+    Route::post('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'update']);
     Route::post('/{id}/mark-paid', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'markPaid']);
     Route::delete('/{id}', [\App\Http\Controllers\Subscription\SubscriptionController::class, 'destroy']);
 });

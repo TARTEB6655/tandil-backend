@@ -252,7 +252,7 @@ class SubscriptionController extends Controller
             'end_date' => 'nullable|date',
             'payment_status' => 'nullable|string|in:pending,paid,failed,refunded,cancelled',
             'amount' => 'nullable|numeric|min:0',
-            'picture' => 'nullable|string|max:1000',
+            'picture' => 'nullable',
             'description' => 'nullable|string',
             'completed_visits' => 'nullable|integer|min:0',
             'payment_reference' => 'nullable|string|max:255',
