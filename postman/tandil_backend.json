@@ -3127,7 +3127,7 @@
                       "key": "target_type",
                       "value": "specific_clients",
                       "type": "text",
-                      "description": "'specific_clients' (default) = use client_id below | 'all_users' = every client in the app (client_id ignored)"
+                      "description": "'specific_clients' (default) = use client_id / client_ids below | 'all_users' = every client in the app (client_id/client_ids ignored)"
                     },
                     {
                       "key": "plan_name",
@@ -3180,7 +3180,14 @@
                       "key": "client_id",
                       "value": "{{client_id}}",
                       "type": "text",
-                      "description": "Use for a SINGLE specific client. Leave empty when target_type=all_users."
+                      "description": "MODE 1 — Specific single client. Set target_type=specific_clients and fill this. Leave client_ids[] below disabled."
+                    },
+                    {
+                      "key": "client_ids[]",
+                      "value": "",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "MODE 2 — Multiple specific clients. Enable this row, set target_type=specific_clients, disable client_id above, and add one client_ids[] row per client id (duplicate this row, do NOT reuse example user IDs — type the real client user id each time)."
                     }
                   ]
                 },
@@ -3194,65 +3201,7 @@
                     "subscriptions"
                   ]
                 },
-                "description": "✅ STEP 5: Create subscription (Admin only). This form-data request covers:\n\n1. **Specific client** — `target_type=specific_clients` + `client_id=<id>`. Returns a single subscription object.\n2. **All users** — `target_type=all_users` (leave `client_id` empty). Server auto-creates one subscription per existing client. Returns an array.\n\nFor creating subscriptions for **several specific clients at once**, use the separate **\"Create Subscription – Multiple Specific Clients\"** request below (raw JSON body with a `client_ids` array) instead of adding fields here — mixing that into this form via checkboxes is error-prone (an accidentally-enabled field would silently switch the whole request into bulk mode and ignore `client_id`).\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\nImage URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
-              }
-            },
-            {
-              "name": "Create Subscription – Multiple Specific Clients",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 201) {",
-                      "    var jsonData = pm.response.json();",
-                      "    var d = jsonData.data;",
-                      "    if (Array.isArray(d) && d.length > 0) {",
-                      "        pm.environment.set('subscription_id', d[0].id);",
-                      "        console.log('Subscriptions created:', d.length, '- first id:', d[0].id);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"plan\": \"3_month\",\n  \"target_type\": \"specific_clients\",\n  \"client_ids\": [1, 2, 3],\n  \"plan_name\": \"Basic 3 Months\",\n  \"amount\": 1200.00,\n  \"payment_status\": \"pending\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "subscriptions"
-                  ]
-                },
-                "description": "Create subscriptions for **multiple explicit clients** in one call (Admin only). Same `POST /api/subscriptions` endpoint as \"Create Subscription\" above, just with `client_ids` as a JSON array instead of a single `client_id`. Deliberately kept as a separate raw-JSON request (no picture upload) so bulk-mode can't be triggered by accident — you have to explicitly type the `client_ids` array to use it.\n\nResponse is an array, one subscription per listed client."
+                "description": "✅ STEP 5: Create subscription (Admin only). ONE endpoint, 3 modes via `target_type` + `client_id`/`client_ids`:\n\n1. **All users** — `target_type=all_users`. Disable `client_id` and `client_ids[]`. Server auto-creates one subscription per existing client. Returns an array.\n2. **Specific single client** — `target_type=specific_clients` + `client_id=<id>` (keep `client_ids[]` disabled). Returns a single subscription object.\n3. **Multiple specific clients** — `target_type=specific_clients`, disable `client_id`, enable `client_ids[]` and duplicate the row once per client id (type real ids — the field ships empty and disabled on purpose so nobody accidentally submits it against the wrong users). Returns an array.\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\n⚠️ Only ever enable ONE of `client_id` / `client_ids[]` at a time — if `client_ids[]` has any enabled rows, the server ignores `client_id` completely and switches to bulk mode.\n\nImage URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
               }
             },
             {
