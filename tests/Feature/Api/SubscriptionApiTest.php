@@ -301,6 +301,53 @@ class SubscriptionApiTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_update_subscription_plan(): void
+    {
+        $sub = Subscription::factory()->create([
+            'client_id' => $this->client->id,
+            'plan'      => '1_month',
+        ]);
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/subscriptions/' . $sub->id, ['plan' => '6_month']);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.plan', '6_month');
+
+        $this->assertDatabaseHas('subscriptions', [
+            'id'   => $sub->id,
+            'plan' => '6_month',
+        ]);
+    }
+
+    public function test_update_subscription_rejects_invalid_plan(): void
+    {
+        $sub = Subscription::factory()->create([
+            'client_id' => $this->client->id,
+            'plan'      => '1_month',
+        ]);
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/subscriptions/' . $sub->id, ['plan' => 'not_a_plan']);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_client_cannot_update_own_subscription_plan(): void
+    {
+        $sub = Subscription::factory()->create([
+            'client_id' => $this->client->id,
+            'plan'      => '1_month',
+        ]);
+
+        $response = $this->actingAs($this->client, 'sanctum')
+            ->putJson('/api/subscriptions/' . $sub->id, ['plan' => '6_month']);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.plan', '1_month');
+    }
+
     public function test_mark_paid_endpoint_returns_subscription_without_total_visits(): void
     {
         $sub = Subscription::factory()->create([

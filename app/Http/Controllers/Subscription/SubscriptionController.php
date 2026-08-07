@@ -256,12 +256,16 @@ class SubscriptionController extends Controller
             'description' => 'nullable|string',
             'completed_visits' => 'nullable|integer|min:0',
             'payment_reference' => 'nullable|string|max:255',
+            'plan' => 'nullable|string|in:1_month,3_month,6_month,12_month',
             'plan_name' => 'nullable|string|max:255',
             'subtitle' => 'nullable|string|max:255',
             'features' => 'nullable|array',
             'target_type' => 'nullable|string|in:all_users,specific_clients',
         ]);
 
+        if ($request->has('plan') && $user->hasRole('admin')) {
+            $sub->plan = $request->input('plan');
+        }
         if ($request->has('start_date')) {
             $sub->start_date = $request->input('start_date');
         }

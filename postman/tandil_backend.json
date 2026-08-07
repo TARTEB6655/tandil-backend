@@ -3077,27 +3077,10 @@
                   ]
                 },
                 "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
-              },
-              "response": [
-                {
-                  "name": "Get Plans (Public) Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Plans retrieved successfully.\",\n  \"data\": [\n    {\n      \"plan\": \"1_month\",\n      \"price\": 500,\n      \"label\": \"1 month\",\n      \"picture\": null,\n      \"description\": \"1 month subscription plan\"\n    },\n    {\n      \"plan\": \"3_month\",\n      \"price\": 1450,\n      \"label\": \"3 month\",\n      \"picture\": null,\n      \"description\": \"3 month subscription plan\"\n    },\n    {\n      \"plan\": \"6_month\",\n      \"price\": 2900,\n      \"label\": \"6 month\",\n      \"picture\": null,\n      \"description\": \"6 month subscription plan\"\n    },\n    {\n      \"plan\": \"12_month\",\n      \"price\": 5500,\n      \"label\": \"12 month\",\n      \"picture\": null,\n      \"description\": \"12 month subscription plan\"\n    }\n  ]\n}"
-                }
-              ]
+              }
             },
             {
-              "name": "Create Subscription – Specific Client",
+              "name": "Create Subscription",
               "event": [
                 {
                   "listen": "test",
@@ -3105,9 +3088,13 @@
                     "exec": [
                       "if (pm.response.code === 201) {",
                       "    var jsonData = pm.response.json();",
-                      "    if (jsonData.data && jsonData.data.id) {",
-                      "        pm.environment.set('subscription_id', jsonData.data.id);",
-                      "        console.log('Subscription ID saved:', jsonData.data.id);",
+                      "    var d = jsonData.data;",
+                      "    if (Array.isArray(d) && d.length > 0) {",
+                      "        pm.environment.set('subscription_id', d[0].id);",
+                      "        console.log('Subscription(s) created:', d.length, '- first id:', d[0].id);",
+                      "    } else if (d && d.id) {",
+                      "        pm.environment.set('subscription_id', d.id);",
+                      "        console.log('Subscription ID saved:', d.id);",
                       "    }",
                       "}"
                     ],
@@ -3118,130 +3105,110 @@
               "request": {
                 "method": "POST",
                 "header": [
-                  { "key": "Authorization", "value": "Bearer {{token}}" },
-                  { "key": "Accept", "value": "application/json" }
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
                 ],
                 "body": {
                   "mode": "formdata",
                   "formdata": [
-                    { "key": "plan", "value": "6_month", "type": "text", "description": "Plan: 1_month | 3_month | 6_month | 12_month" },
-                    { "key": "target_type", "value": "specific_clients", "type": "text", "description": "'specific_clients' = only selected clients | 'all_users' = every client in the app" },
-                    { "key": "plan_name", "value": "VIP 6 Months", "type": "text" },
-                    { "key": "subtitle", "value": "VIP half-year plan", "type": "text" },
-                    { "key": "description", "value": "Comprehensive 6-month farm care subscription.", "type": "text" },
-                    { "key": "picture", "type": "file", "src": [], "description": "Upload subscription image" },
-                    { "key": "amount", "value": "5600.00", "type": "text" },
-                    { "key": "payment_status", "value": "paid", "type": "text", "description": "pending | paid | failed | refunded | cancelled" },
-                    { "key": "payment_reference", "value": "ADMIN-REF-001", "type": "text" },
-                    { "key": "start_date", "value": "2026-08-05", "type": "text" },
-                    { "key": "end_date", "value": "2027-02-05", "type": "text" },
-                    { "key": "client_id", "value": "{{client_id}}", "type": "text", "description": "Single client ID (admin only)" }
+                    {
+                      "key": "plan",
+                      "value": "6_month",
+                      "type": "text",
+                      "description": "Required. One of: 1_month | 3_month | 6_month | 12_month"
+                    },
+                    {
+                      "key": "target_type",
+                      "value": "specific_clients",
+                      "type": "text",
+                      "description": "'specific_clients' (default) = use client_id / client_ids below | 'all_users' = every client in the app (client_id/client_ids ignored)"
+                    },
+                    {
+                      "key": "plan_name",
+                      "value": "VIP 6 Months",
+                      "type": "text"
+                    },
+                    {
+                      "key": "subtitle",
+                      "value": "VIP half-year plan",
+                      "type": "text"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Comprehensive 6-month farm care subscription.",
+                      "type": "text"
+                    },
+                    {
+                      "key": "picture",
+                      "type": "file",
+                      "src": [],
+                      "description": "Optional subscription image"
+                    },
+                    {
+                      "key": "amount",
+                      "value": "5600.00",
+                      "type": "text"
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "paid",
+                      "type": "text",
+                      "description": "pending | paid | failed | refunded | cancelled"
+                    },
+                    {
+                      "key": "payment_reference",
+                      "value": "ADMIN-REF-001",
+                      "type": "text"
+                    },
+                    {
+                      "key": "start_date",
+                      "value": "2026-08-05",
+                      "type": "text"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2027-02-05",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_id",
+                      "value": "{{client_id}}",
+                      "type": "text",
+                      "description": "Use for a SINGLE specific client. Leave disabled if using client_ids[] or target_type=all_users."
+                    },
+                    {
+                      "key": "client_ids[]",
+                      "value": "1",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Enable + repeat this field (one per client) for MULTIPLE specific clients. Disable client_id above when using this."
+                    },
+                    {
+                      "key": "client_ids[]",
+                      "value": "2",
+                      "type": "text",
+                      "disabled": true
+                    }
                   ]
                 },
                 "url": {
                   "raw": "{{base_url}}/api/subscriptions",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "subscriptions"]
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "subscriptions"
+                  ]
                 },
-                "description": "✅ STEP 5a: Create subscription for a **specific client** (Admin only).\n\n**target_type = 'specific_clients'** → subscription is assigned only to the given client_id.\n\n**Required:** `plan`, `target_type`\n**For specific client:** `client_id` (single) OR `client_ids` (array)\n\nImage URL in response will always use the correct server host (e.g. https://your-server.com/media/subscriptions/...)"
-              },
-              "response": [
-                {
-                  "name": "Specific Client – Response",
-                  "originalRequest": {},
-                  "status": "Created",
-                  "code": 201,
-                  "_postman_previewlanguage": "json",
-                  "header": [{ "key": "Content-Type", "value": "application/json" }],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription created successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"target_type\": \"specific_clients\",\n    \"picture\": \"subscriptions/example.jpg\",\n    \"picture_url\": \"https://phpstack-1180784-6050385.cloudwaysapps.com/media/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      { \"id\": 101, \"subscription_id\": 1, \"scheduled_date\": \"2026-08-05\", \"status\": \"pending\" }\n    ]\n  }\n}"
-                }
-              ]
-            },
-            {
-              "name": "Create Subscription – All Users",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 201) {",
-                      "    var jsonData = pm.response.json();",
-                      "    if (jsonData.data && jsonData.data.length > 0) {",
-                      "        pm.environment.set('subscription_id', jsonData.data[0].id);",
-                      "        console.log('All-users subscription IDs created:', jsonData.data.length);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  { "key": "Authorization", "value": "Bearer {{token}}" },
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Accept", "value": "application/json" }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"plan\": \"6_month\",\n  \"target_type\": \"all_users\",\n  \"plan_name\": \"VIP 6 Months – For Everyone\",\n  \"subtitle\": \"Available to all clients\",\n  \"description\": \"This plan will be visible and available to every client in the app.\",\n  \"amount\": 5600.00,\n  \"payment_status\": \"pending\"\n}",
-                  "options": { "raw": { "language": "json" } }
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "subscriptions"]
-                },
-                "description": "✅ STEP 5b: Create subscription for **all users** (Admin only).\n\n**target_type = 'all_users'** → system creates one subscription record for every existing client in the app automatically. No need to specify client_id or client_ids.\n\nThe response is an array of created subscriptions, one per client.\n\n**Required:** `plan`, `target_type: all_users`"
-              },
-              "response": [
-                {
-                  "name": "All Users – Response",
-                  "originalRequest": {},
-                  "status": "Created",
-                  "code": 201,
-                  "_postman_previewlanguage": "json",
-                  "header": [{ "key": "Content-Type", "value": "application/json" }],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription created for all users successfully.\",\n  \"data\": [\n    {\n      \"id\": 10,\n      \"client_id\": 1,\n      \"plan\": \"6_month\",\n      \"plan_name\": \"VIP 6 Months – For Everyone\",\n      \"target_type\": \"all_users\",\n      \"apply_to_all\": true,\n      \"picture\": null,\n      \"picture_url\": null,\n      \"description\": \"This plan will be visible and available to every client in the app.\",\n      \"start_date\": \"2026-08-07\",\n      \"end_date\": \"2027-02-06\",\n      \"amount\": \"5600.00\",\n      \"payment_status\": \"pending\",\n      \"completed_visits\": 0,\n      \"created_at\": \"2026-08-07T07:00:00.000000Z\",\n      \"updated_at\": \"2026-08-07T07:00:00.000000Z\"\n    },\n    {\n      \"id\": 11,\n      \"client_id\": 2,\n      \"plan\": \"6_month\",\n      \"plan_name\": \"VIP 6 Months – For Everyone\",\n      \"target_type\": \"all_users\",\n      \"apply_to_all\": true,\n      \"picture\": null,\n      \"picture_url\": null,\n      \"description\": \"This plan will be visible and available to every client in the app.\",\n      \"start_date\": \"2026-08-07\",\n      \"end_date\": \"2027-02-06\",\n      \"amount\": \"5600.00\",\n      \"payment_status\": \"pending\",\n      \"completed_visits\": 0,\n      \"created_at\": \"2026-08-07T07:00:00.000000Z\",\n      \"updated_at\": \"2026-08-07T07:00:00.000000Z\"\n    }\n  ]\n}"
-                }
-              ]
-            },
-            {
-              "name": "Create Subscription – Multiple Specific Clients",
-              "request": {
-                "method": "POST",
-                "header": [
-                  { "key": "Authorization", "value": "Bearer {{token}}" },
-                  { "key": "Content-Type", "value": "application/json" },
-                  { "key": "Accept", "value": "application/json" }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"plan\": \"3_month\",\n  \"target_type\": \"specific_clients\",\n  \"client_ids\": [1, 2, 3],\n  \"plan_name\": \"Basic 3 Months\",\n  \"amount\": 1200.00,\n  \"payment_status\": \"pending\"\n}",
-                  "options": { "raw": { "language": "json" } }
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions",
-                  "host": ["{{base_url}}"],
-                  "path": ["api", "subscriptions"]
-                },
-                "description": "✅ STEP 5c: Create subscription for **multiple selected clients** (Admin only).\n\n**target_type = 'specific_clients'** with `client_ids` array → creates one subscription per listed client.\n\nResponse is an array of created subscriptions."
-              },
-              "response": [
-                {
-                  "name": "Multiple Specific Clients – Response",
-                  "originalRequest": {},
-                  "status": "Created",
-                  "code": 201,
-                  "_postman_previewlanguage": "json",
-                  "header": [{ "key": "Content-Type", "value": "application/json" }],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscriptions created for specific clients successfully.\",\n  \"data\": [\n    {\n      \"id\": 20,\n      \"client_id\": 1,\n      \"plan\": \"3_month\",\n      \"target_type\": \"specific_clients\",\n      \"apply_to_all\": false,\n      \"picture\": null,\n      \"picture_url\": null,\n      \"amount\": \"1200.00\",\n      \"payment_status\": \"pending\"\n    },\n    {\n      \"id\": 21,\n      \"client_id\": 2,\n      \"plan\": \"3_month\",\n      \"target_type\": \"specific_clients\",\n      \"apply_to_all\": false,\n      \"picture\": null,\n      \"picture_url\": null,\n      \"amount\": \"1200.00\",\n      \"payment_status\": \"pending\"\n    }\n  ]\n}"
-                }
-              ]
+                "description": "✅ STEP 5: Create subscription(s) (Admin only). This single endpoint covers all three targeting modes via `target_type` (+ `client_id`/`client_ids`):\n\n1. **Specific client** — `target_type=specific_clients` + `client_id=<id>`. Returns a single subscription object.\n2. **Multiple specific clients** — `target_type=specific_clients` + enable the repeated `client_ids[]` fields (one per client, disable `client_id`). Returns an array, one subscription per client.\n3. **All users** — `target_type=all_users` (disable `client_id`/`client_ids[]`). Server auto-creates one subscription per existing client. Returns an array.\n\n**Required:** `plan`. `target_type` defaults to `specific_clients` if omitted.\n\nSee the 3 saved example responses below for what each mode returns. Image URL in the response always uses the correct server host (e.g. `https://your-server.com/media/subscriptions/...`)."
+              }
             },
             {
               "name": "List Subscriptions",
@@ -3283,25 +3250,8 @@
                     "subscriptions"
                   ]
                 },
-                "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
-              },
-              "response": [
-                {
-                  "name": "List Subscriptions Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscriptions retrieved successfully.\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"client_id\": 1,\n      \"plan\": \"6_month\",\n      \"plan_name\": \"VIP 6 Months\",\n      \"subtitle\": \"VIP half-year plan\",\n      \"picture\": \"/storage/subscriptions/example.jpg\",\n      \"description\": \"Comprehensive 6-month farm care subscription.\",\n      \"start_date\": \"2026-08-05\",\n      \"end_date\": \"2027-02-05\",\n      \"amount\": \"5600.00\",\n      \"payment_status\": \"paid\",\n      \"payment_reference\": \"ADMIN-REF-001\",\n      \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"completed_visits\": 0,\n      \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"visits\": [\n        {\n          \"id\": 101,\n          \"subscription_id\": 1,\n          \"scheduled_date\": \"2026-08-05\",\n          \"status\": \"pending\"\n        }\n      ]\n    }\n  ],\n  \"total\": 1\n}"
-                }
-              ]
+                "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
+              }
             },
             {
               "name": "Get Subscription Details",
@@ -3328,25 +3278,122 @@
                     "{{subscription_id}}"
                   ]
                 },
-                "description": "✅ STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
-              },
-              "response": [
-                {
-                  "name": "Get Subscription Details Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
+                "description": "✅ STEP 7: Get subscription details\n\n**Returns:**\n- Full subscription information\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Review payment status"
+              }
+            },
+            {
+              "name": "Update Subscription",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
                     {
-                      "key": "Content-Type",
-                      "value": "application/json"
+                      "key": "plan",
+                      "value": "6_month",
+                      "type": "text",
+                      "description": "Admin only. One of: 1_month | 3_month | 6_month | 12_month"
+                    },
+                    {
+                      "key": "plan_name",
+                      "value": "VIP 6 Months Updated",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "subtitle",
+                      "value": "Updated subtitle",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "description",
+                      "value": "Updated subscription description",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "target_type",
+                      "value": "specific_clients",
+                      "type": "text",
+                      "description": "Admin only. specific_clients | all_users"
+                    },
+                    {
+                      "key": "picture",
+                      "type": "file",
+                      "src": [],
+                      "description": "Admin or owner. Select subscription image file to upload"
+                    },
+                    {
+                      "key": "amount",
+                      "value": "5600.00",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "payment_status",
+                      "value": "paid",
+                      "type": "text",
+                      "description": "Admin only. pending | paid | failed | refunded | cancelled"
+                    },
+                    {
+                      "key": "payment_reference",
+                      "value": "PAY-123456",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "completed_visits",
+                      "value": "2",
+                      "type": "text",
+                      "description": "Admin only"
+                    },
+                    {
+                      "key": "features[]",
+                      "value": "Weekly visit",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin only. Enable + repeat for multiple feature strings"
+                    },
+                    {
+                      "key": "start_date",
+                      "value": "2026-08-05",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin or owner"
+                    },
+                    {
+                      "key": "end_date",
+                      "value": "2027-02-05",
+                      "type": "text",
+                      "disabled": true,
+                      "description": "Admin or owner"
                     }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
+                  "host": [
+                    "{{base_url}}"
                   ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription retrieved successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                }
-              ]
+                  "path": [
+                    "api",
+                    "subscriptions",
+                    "{{subscription_id}}"
+                  ]
+                },
+                "description": "Update subscription details\n\n**Updatable Fields (Admin Only):** `plan`, `plan_name`, `subtitle`, `description`, `target_type`, `picture`, `amount`, `payment_status`, `payment_reference`, `completed_visits`, `features`\n\n**Updatable Fields (Admin or Owner):** `start_date`, `end_date`, `picture`, `description`\n\n**Note:** Only admins can update pricing/status/plan fields. Regular users (subscription owners) can only update `start_date`, `end_date`, `picture`, and `description` for their own subscriptions. `client_id`/`client_ids` cannot be changed after creation — cancel and recreate the subscription under a different client instead."
+              }
             },
             {
               "name": "Mark Subscription Paid",
@@ -3375,120 +3422,7 @@
                   ]
                 },
                 "description": "Mark subscription as paid\n\n**Purpose:**\n- Updates subscription payment_status to 'paid'\n- Sends notification to client about payment confirmation\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- After payment gateway webhook confirmation\n- Manual payment confirmation by admin\n- Client confirming their own payment"
-              },
-              "response": [
-                {
-                  "name": "Mark Subscription Paid Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription marked as paid.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                }
-              ]
-            },
-            {
-              "name": "Update Subscription",
-              "request": {
-                "method": "PUT",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "plan_name",
-                      "value": "VIP 6 Months Updated",
-                      "type": "text",
-                      "description": "Subscription plan name"
-                    },
-                    {
-                      "key": "subtitle",
-                      "value": "Updated subtitle",
-                      "type": "text",
-                      "description": "Plan subtitle"
-                    },
-                    {
-                      "key": "description",
-                      "value": "Updated subscription description",
-                      "type": "text",
-                      "description": "Plan description"
-                    },
-                    {
-                      "key": "picture",
-                      "type": "file",
-                      "src": [],
-                      "description": "Select subscription image file to upload"
-                    },
-                    {
-                      "key": "amount",
-                      "value": "5600.00",
-                      "type": "text",
-                      "description": "Price amount"
-                    },
-                    {
-                      "key": "payment_status",
-                      "value": "paid",
-                      "type": "text",
-                      "description": "Payment status"
-                    },
-                    {
-                      "key": "payment_reference",
-                      "value": "PAY-123456",
-                      "type": "text",
-                      "description": "Payment reference"
-                    }
-                  ]
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "subscriptions",
-                    "{{subscription_id}}"
-                  ]
-                },
-                "description": "Update subscription details\n\n**Updatable Fields (Admin Only):**\n- `amount` (decimal): Update subscription price/amount in AED\n- `payment_status` (string): Update payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled`\n- `total_visits` (integer): Update total number of visits\n- `completed_visits` (integer): Update number of completed visits\n- `payment_reference` (string): Payment transaction ID or reference\n\n**Updatable Fields (All Users):**\n- `start_date` (date): Update subscription start date\n- `end_date` (date): Update subscription end date\n\n**Note:** Only admins can update `amount`, `payment_status`, `total_visits`, `completed_visits`, and `payment_reference`. Regular users can only update dates for their own subscriptions."
-              },
-              "response": [
-                {
-                  "name": "Update Subscription Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription updated successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months Updated\",\n    \"subtitle\": \"Updated subtitle\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Updated subscription description\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                }
-              ]
+              }
             },
             {
               "name": "Delete Subscription",
@@ -3515,28 +3449,11 @@
                     "{{subscription_id}}"
                   ]
                 },
-                "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n- All associated visits will be deleted (cascade)\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
-              },
-              "response": [
-                {
-                  "name": "Delete Subscription Response",
-                  "originalRequest": {},
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": "json",
-                  "header": [
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n  \"success\": true,\n  \"message\": \"Subscription cancelled successfully.\"\n}"
-                }
-              ]
+                "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
+              }
             }
           ],
-          "description": "Subscription management - Get plans, create, view, update subscriptions"
+          "description": "Subscription management — Get plans (public), create (single/multiple/all-users via target_type), list, view, update, mark paid, and delete subscriptions. Create/Update/Delete are Admin-only for fields beyond dates/picture/description; Admin only can create."
         },
         {
           "name": "K. Banners (Public)",
@@ -15752,481 +15669,6 @@
                 },
                 "description": "GET single product by ID (admin). Response: data.images, data.image_url (primary), data.service_ids (array of linked service IDs), and for variable products: data.option_groups[].name + data.option_groups[].options[].label, image_url, price_modifier. 200 = success; 404 = not found; 401 = missing token. Auth: Bearer {{token}}."
               }
-            },
-            {
-              "name": "J. Subscriptions",
-              "item": [
-                {
-                  "name": "Get Plans (Public)",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions/plans",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions",
-                        "plans"
-                      ]
-                    },
-                    "description": "✅ STEP 4: Get available subscription plans (Public - no auth needed)"
-                  },
-                  "response": [
-                    {
-                      "name": "Get Plans (Public) Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Plans retrieved successfully.\",\n  \"data\": [\n    {\n      \"plan\": \"1_month\",\n      \"price\": 500,\n      \"label\": \"1 month\",\n      \"picture\": null,\n      \"description\": \"1 month subscription plan\"\n    },\n    {\n      \"plan\": \"3_month\",\n      \"price\": 1450,\n      \"label\": \"3 month\",\n      \"picture\": null,\n      \"description\": \"3 month subscription plan\"\n    },\n    {\n      \"plan\": \"6_month\",\n      \"price\": 2900,\n      \"label\": \"6 month\",\n      \"picture\": null,\n      \"description\": \"6 month subscription plan\"\n    },\n    {\n      \"plan\": \"12_month\",\n      \"price\": 5500,\n      \"label\": \"12 month\",\n      \"picture\": null,\n      \"description\": \"12 month subscription plan\"\n    }\n  ]\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "Create Subscription",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "if (pm.response.code === 201) {",
-                          "    var jsonData = pm.response.json();",
-                          "    if (jsonData.data && jsonData.data.id) {",
-                          "        pm.environment.set('subscription_id', jsonData.data.id);",
-                          "        console.log('Subscription ID saved:', jsonData.data.id);",
-                          "    }",
-                          "}"
-                        ],
-                        "type": "text/javascript"
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "plan",
-                          "value": "6_month",
-                          "type": "text",
-                          "description": "Plan duration: 1_month, 3_month, 6_month, 12_month"
-                        },
-                        {
-                          "key": "plan_name",
-                          "value": "VIP 6 Months",
-                          "type": "text",
-                          "description": "Subscription plan name"
-                        },
-                        {
-                          "key": "subtitle",
-                          "value": "VIP half-year plan",
-                          "type": "text",
-                          "description": "Plan subtitle"
-                        },
-                        {
-                          "key": "description",
-                          "value": "Comprehensive 6-month farm care subscription.",
-                          "type": "text",
-                          "description": "Plan description"
-                        },
-                        {
-                          "key": "picture",
-                          "type": "file",
-                          "src": [],
-                          "description": "Select subscription image file to upload"
-                        },
-                        {
-                          "key": "amount",
-                          "value": "5600.00",
-                          "type": "text",
-                          "description": "Price amount"
-                        },
-                        {
-                          "key": "payment_status",
-                          "value": "paid",
-                          "type": "text",
-                          "description": "payment_status: pending, paid, failed, refunded, cancelled"
-                        },
-                        {
-                          "key": "payment_reference",
-                          "value": "ADMIN-REF-001",
-                          "type": "text",
-                          "description": "Payment transaction reference"
-                        },
-                        {
-                          "key": "start_date",
-                          "value": "2026-08-05",
-                          "type": "text",
-                          "description": "Start date (YYYY-MM-DD)"
-                        },
-                        {
-                          "key": "end_date",
-                          "value": "2027-02-05",
-                          "type": "text",
-                          "description": "End date (YYYY-MM-DD)"
-                        },
-                        {
-                          "key": "client_id",
-                          "value": "1",
-                          "type": "text",
-                          "description": "Client user ID (Admin creation)"
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions"
-                      ]
-                    },
-                    "description": "✅ STEP 5: Create a new subscription (visits will be auto-generated)\n\n**ADMIN ONLY:** This endpoint must be called with an admin token. Clients cannot create subscriptions.\n\n**Required Fields:**\n- `plan` (string): Subscription plan - one of: `1_month`, `3_month`, `6_month`, `12_month`\n\n**Optional Fields:**\n- `plan_name` (string): Display name shown to clients\n- `subtitle` (string): Short subtitle shown on membership card\n- `features` (array): List of feature strings shown to clients\n- `apply_to_all` (boolean): If true, subscription will be created for all clients\n- `client_ids` (array): Specific client IDs to create subscriptions for\n- `start_date` (date): Start date of subscription (defaults to today)\n- `end_date` (date): End date of subscription (auto-calculated if not provided)\n- `amount` (decimal): Subscription amount in AED (auto-calculated from plan if not provided)\n- `payment_status` (string): Payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled` (defaults to `pending`)\n- `payment_reference` (string): Payment reference number (optional)\n- `client_id` (integer): Client user ID (only admins can set this, defaults to authenticated user)\n- `total_visits` (integer): Total number of visits (defaults to plan months)\n- `completed_visits` (integer): Number of completed visits (defaults to 0)\n\n**Note:** If `payment_status` is `paid` and `paid_at` is not provided, it will be automatically set to current timestamp."
-                  },
-                  "response": [
-                    {
-                      "name": "Create Subscription Response",
-                      "originalRequest": {},
-                      "status": "Created",
-                      "code": 201,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscription created successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "List Subscriptions",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "if (pm.response.code === 200) {",
-                          "    var jsonData = pm.response.json();",
-                          "    if (jsonData.data && jsonData.data.length > 0 && !pm.environment.get('subscription_id')) {",
-                          "        pm.environment.set('subscription_id', jsonData.data[0].id);",
-                          "    }",
-                          "}"
-                        ],
-                        "type": "text/javascript"
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions"
-                      ]
-                    },
-                    "description": "✅ STEP 6: List all subscriptions (client sees own, admin sees all)\n\n**Returns:**\n- Array of subscriptions\n- Clients see only their own subscriptions\n- Admins see all subscriptions\n- Includes subscription details and client info\n\n**Use Cases:**\n- Subscription management dashboard\n- Client subscription history\n- Admin overview of all subscriptions"
-                  },
-                  "response": [
-                    {
-                      "name": "List Subscriptions Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscriptions retrieved successfully.\",\n  \"data\": [\n    {\n      \"id\": 1,\n      \"client_id\": 1,\n      \"plan\": \"6_month\",\n      \"plan_name\": \"VIP 6 Months\",\n      \"subtitle\": \"VIP half-year plan\",\n      \"picture\": \"/storage/subscriptions/example.jpg\",\n      \"description\": \"Comprehensive 6-month farm care subscription.\",\n      \"start_date\": \"2026-08-05\",\n      \"end_date\": \"2027-02-05\",\n      \"amount\": \"5600.00\",\n      \"payment_status\": \"paid\",\n      \"payment_reference\": \"ADMIN-REF-001\",\n      \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"completed_visits\": 0,\n      \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n      \"visits\": [\n        {\n          \"id\": 101,\n          \"subscription_id\": 1,\n          \"scheduled_date\": \"2026-08-05\",\n          \"status\": \"pending\"\n        }\n      ]\n    }\n  ],\n  \"total\": 1\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "Get Subscription Details",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions",
-                        "{{subscription_id}}"
-                      ]
-                    },
-                    "description": "✅ STEP 7: Get subscription details with visits\n\n**Returns:**\n- Full subscription information\n- Associated visits with status\n- Client information (if admin)\n- Payment details and dates\n\n**Use Cases:**\n- View subscription details page\n- Check visit schedule\n- Review payment status"
-                  },
-                  "response": [
-                    {
-                      "name": "Get Subscription Details Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscription retrieved successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "Mark Subscription Paid",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}/mark-paid",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions",
-                        "{{subscription_id}}",
-                        "mark-paid"
-                      ]
-                    },
-                    "description": "Mark subscription as paid\n\n**Purpose:**\n- Updates subscription payment_status to 'paid'\n- Sends notification to client about payment confirmation\n- Can be used by admin or subscription owner\n\n**Use Cases:**\n- After payment gateway webhook confirmation\n- Manual payment confirmation by admin\n- Client confirming their own payment"
-                  },
-                  "response": [
-                    {
-                      "name": "Mark Subscription Paid Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscription marked as paid.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months\",\n    \"subtitle\": \"VIP half-year plan\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Comprehensive 6-month farm care subscription.\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "Update Subscription",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "plan_name",
-                          "value": "VIP 6 Months Updated",
-                          "type": "text",
-                          "description": "Subscription plan name"
-                        },
-                        {
-                          "key": "subtitle",
-                          "value": "Updated subtitle",
-                          "type": "text",
-                          "description": "Plan subtitle"
-                        },
-                        {
-                          "key": "description",
-                          "value": "Updated subscription description",
-                          "type": "text",
-                          "description": "Plan description"
-                        },
-                        {
-                          "key": "picture",
-                          "type": "file",
-                          "src": [],
-                          "description": "Select subscription image file to upload"
-                        },
-                        {
-                          "key": "amount",
-                          "value": "5600.00",
-                          "type": "text",
-                          "description": "Price amount"
-                        },
-                        {
-                          "key": "payment_status",
-                          "value": "paid",
-                          "type": "text",
-                          "description": "Payment status"
-                        },
-                        {
-                          "key": "payment_reference",
-                          "value": "PAY-123456",
-                          "type": "text",
-                          "description": "Payment reference"
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions",
-                        "{{subscription_id}}"
-                      ]
-                    },
-                    "description": "Update subscription details\n\n**Updatable Fields (Admin Only):**\n- `amount` (decimal): Update subscription price/amount in AED\n- `payment_status` (string): Update payment status - one of: `pending`, `paid`, `failed`, `refunded`, `cancelled`\n- `total_visits` (integer): Update total number of visits\n- `completed_visits` (integer): Update number of completed visits\n- `payment_reference` (string): Payment transaction ID or reference\n\n**Updatable Fields (All Users):**\n- `start_date` (date): Update subscription start date\n- `end_date` (date): Update subscription end date\n\n**Note:** Only admins can update `amount`, `payment_status`, `total_visits`, `completed_visits`, and `payment_reference`. Regular users can only update dates for their own subscriptions."
-                  },
-                  "response": [
-                    {
-                      "name": "Update Subscription Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscription updated successfully.\",\n  \"data\": {\n    \"id\": 1,\n    \"client_id\": 1,\n    \"plan\": \"6_month\",\n    \"plan_name\": \"VIP 6 Months Updated\",\n    \"subtitle\": \"Updated subtitle\",\n    \"picture\": \"/storage/subscriptions/example.jpg\",\n    \"description\": \"Updated subscription description\",\n    \"start_date\": \"2026-08-05\",\n    \"end_date\": \"2027-02-05\",\n    \"amount\": \"5600.00\",\n    \"payment_status\": \"paid\",\n    \"payment_reference\": \"ADMIN-REF-001\",\n    \"paid_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"completed_visits\": 0,\n    \"created_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"updated_at\": \"2026-08-05T12:00:00.000000Z\",\n    \"visits\": [\n      {\n        \"id\": 101,\n        \"subscription_id\": 1,\n        \"scheduled_date\": \"2026-08-05\",\n        \"status\": \"pending\"\n      }\n    ]\n  }\n}"
-                    }
-                  ]
-                },
-                {
-                  "name": "Delete Subscription",
-                  "request": {
-                    "method": "DELETE",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/subscriptions/{{subscription_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "subscriptions",
-                        "{{subscription_id}}"
-                      ]
-                    },
-                    "description": "Cancel/delete subscription\n\n**Purpose:**\n- Permanently deletes a subscription\n- Can be used by admin or subscription owner\n- All associated visits will be deleted (cascade)\n\n**Use Cases:**\n- Client cancelling their subscription\n- Admin removing invalid subscriptions\n- Refund processing"
-                  },
-                  "response": [
-                    {
-                      "name": "Delete Subscription Response",
-                      "originalRequest": {},
-                      "status": "OK",
-                      "code": 200,
-                      "_postman_previewlanguage": "json",
-                      "header": [
-                        {
-                          "key": "Content-Type",
-                          "value": "application/json"
-                        }
-                      ],
-                      "cookie": [],
-                      "body": "{\n  \"success\": true,\n  \"message\": \"Subscription cancelled successfully.\"\n}"
-                    }
-                  ]
-                }
-              ],
-              "description": "Subscription management - Get plans, create, view, update subscriptions"
             },
             {
               "name": "Update Product (POST multipart – recommended)",
