@@ -13,7 +13,7 @@
                 </a>
             </div>
 
-            <div class="order-2 ml-auto flex items-center gap-3 sm:gap-4 lg:order-3 lg:ml-0 flex-shrink-0">
+            <div class="order-2 ml-auto flex items-center gap-3 sm:gap-4 lg:order-3 lg:ml-0 flex-shrink-0 d-none">
                 <div class="relative flex-shrink-0" x-data="{ open: false }">
                     <button
                         type="button"
