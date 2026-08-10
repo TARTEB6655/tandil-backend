@@ -6,6 +6,7 @@ use App\Models\Visit;
 use App\Models\VisitOffer;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use App\Services\JobSchedulingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -55,6 +56,17 @@ class VisitOfferService
             ->with('employee');
 
         $candidates = $query->orderBy('name')->get();
+
+        // Job Scheduling: skip technicians already booked at this visit's date/time.
+        if ($visit->scheduled_date && $visit->scheduled_time) {
+            $candidates = $candidates->reject(fn (User $tech) => JobSchedulingService::hasTechnicianConflict(
+                $tech->id,
+                $visit->scheduled_date->toDateString(),
+                $visit->scheduled_time,
+                $visit->id
+            ))->values();
+        }
+
         if ($candidates->isEmpty()) {
             return null;
         }

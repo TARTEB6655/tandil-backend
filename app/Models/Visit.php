@@ -19,6 +19,7 @@ class Visit extends Model
         'supervisor_id',
         'area_id',
         'scheduled_date',
+        'scheduled_time',
         'completed_date',
         'status',
         'approved_by',

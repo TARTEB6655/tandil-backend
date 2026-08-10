@@ -10,6 +10,7 @@ use App\Support\CapsPagination;
 use App\Support\VisitAreaResolver;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use App\Services\JobSchedulingService;
 use App\Services\VisitOfferService;
 use Illuminate\Support\Facades\Validator;
 
@@ -191,6 +192,38 @@ class VisitController extends Controller
     }
 
     /**
+     * GET /api/visits/available-slots?date=YYYY-MM-DD
+     * Job Scheduling: available time slots for a date (client picks one before
+     * creating the visit). Respects working hours, capacity, and blocked dates/slots.
+     */
+    public function availableSlots(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'date' => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $date = $request->input('date');
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Available slots retrieved successfully.',
+            'data' => [
+                'date' => $date,
+                'date_blocked' => JobSchedulingService::isDateFullyBlocked($date),
+                'slots' => JobSchedulingService::availableSlots($date),
+            ],
+        ], 200);
+    }
+
+    /**
      * Create a new visit
      */
     public function store(Request $request)
@@ -213,6 +246,7 @@ class VisitController extends Controller
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
                 'scheduled_date' => 'required|date',
+                'scheduled_time' => 'nullable|date_format:H:i',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
                 'notes' => 'nullable|string|max:5000',
                 'price' => 'nullable|numeric|min:0',
@@ -257,6 +291,19 @@ class VisitController extends Controller
                 ], 422);
             }
 
+            // Job Scheduling: validate the chosen date/time against working hours, capacity, and blocked dates/slots.
+            $schedulingError = JobSchedulingService::validateSlotForBooking($request->input('scheduled_date'), $request->input('scheduled_time'));
+            if ($schedulingError) {
+                return response()->json(['status' => false, 'message' => $schedulingError], 422);
+            }
+
+            // Job Scheduling: reject an explicitly-chosen technician who is already booked at this date/time.
+            if ($request->filled('technician_id') && $request->filled('scheduled_time')) {
+                if (JobSchedulingService::hasTechnicianConflict((int) $request->input('technician_id'), $request->input('scheduled_date'), $request->input('scheduled_time'))) {
+                    return response()->json(['status' => false, 'message' => 'Selected technician is already booked for this date and time.'], 422);
+                }
+            }
+
             // Create visit
             $visit = Visit::create([
                 'subscription_id' => $request->subscription_id,
@@ -264,6 +311,7 @@ class VisitController extends Controller
                 'supervisor_id' => $resolvedSupervisorId,
                 'area_id' => (int) $area->id,
                 'scheduled_date' => $request->scheduled_date,
+                'scheduled_time' => $request->input('scheduled_time'),
                 'status' => $request->status ?? 'pending',
                 'notes' => $request->input('notes'),
                 'price' => $request->filled('price') ? (float) $request->input('price') : null,
@@ -290,11 +338,14 @@ class VisitController extends Controller
 
             // 🔔 Send notifications
             try {
+                $when = $visit->scheduled_date.($visit->scheduled_time ? ' '.$visit->scheduled_time : '');
+
                 // Notify client
                 if ($visit->subscription && $visit->subscription->client) {
                     $visit->subscription->client->notify(new AdminNotification(
                         'New Visit Scheduled',
-                        "A new visit has been scheduled for {$visit->scheduled_date}."
+                        "A new visit has been scheduled for {$when}.",
+                        ['type' => 'booking_confirmed', 'visit_id' => $visit->id, 'scheduled_date' => (string) $visit->scheduled_date, 'scheduled_time' => $visit->scheduled_time]
                     ));
                 }
 
@@ -304,7 +355,8 @@ class VisitController extends Controller
                     if ($technician) {
                         $technician->notify(new AdminNotification(
                             'New Visit Assigned',
-                            "You have been assigned a new visit scheduled for {$visit->scheduled_date}."
+                            "You have been assigned a new visit scheduled for {$when}.",
+                            ['type' => 'booking_confirmed', 'visit_id' => $visit->id, 'scheduled_date' => (string) $visit->scheduled_date, 'scheduled_time' => $visit->scheduled_time]
                         ));
                     }
                 }
@@ -417,6 +469,7 @@ class VisitController extends Controller
 
             $validator = Validator::make($request->all(), [
                 'scheduled_date' => 'nullable|date',
+                'scheduled_time' => 'nullable|date_format:H:i',
                 'notes' => 'nullable|string|max:5000',
                 'price' => 'nullable|numeric|min:0',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
@@ -427,6 +480,25 @@ class VisitController extends Controller
 
             if ($validator->fails()) {
                 return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
+            }
+
+            // Job Scheduling: re-validate the effective date/time and technician availability
+            // whenever the reschedule fields (or the assigned technician) are being touched.
+            if ($request->has('scheduled_date') || $request->has('scheduled_time') || $request->has('technician_id')) {
+                $effectiveDate = $request->input('scheduled_date', optional($visit->scheduled_date)->toDateString());
+                $effectiveTime = $request->has('scheduled_time') ? $request->input('scheduled_time') : $visit->scheduled_time;
+
+                if ($request->has('scheduled_date') || $request->has('scheduled_time')) {
+                    $schedulingError = JobSchedulingService::validateSlotForBooking($effectiveDate, $effectiveTime, $visit->id);
+                    if ($schedulingError) {
+                        return response()->json(['status' => false, 'message' => $schedulingError], 422);
+                    }
+                }
+
+                $effectiveTechnicianId = $request->has('technician_id') ? $request->input('technician_id') : $visit->technician_id;
+                if ($effectiveTechnicianId && JobSchedulingService::hasTechnicianConflict((int) $effectiveTechnicianId, $effectiveDate, $effectiveTime, $visit->id)) {
+                    return response()->json(['status' => false, 'message' => 'Selected technician is already booked for this date and time.'], 422);
+                }
             }
 
             // Role-based status restrictions
@@ -463,6 +535,9 @@ class VisitController extends Controller
             if ($request->has('scheduled_date')) {
                 $visit->scheduled_date = $request->input('scheduled_date');
             }
+            if ($request->has('scheduled_time')) {
+                $visit->scheduled_time = $request->input('scheduled_time');
+            }
             if ($request->has('notes')) {
                 $visit->notes = $request->input('notes');
             }
@@ -484,7 +559,40 @@ class VisitController extends Controller
             }
 
             $oldStatus = $visit->getOriginal('status');
+            $oldScheduledDate = $visit->getOriginal('scheduled_date');
+            $oldScheduledDate = $oldScheduledDate instanceof \Carbon\Carbon ? $oldScheduledDate->toDateString() : $oldScheduledDate;
+            $oldScheduledTime = $visit->getOriginal('scheduled_time');
             $visit->save();
+
+            // 🔔 Job Scheduling: notify on reschedule (date/time changed) or other field updates.
+            try {
+                $newScheduledDate = optional($visit->scheduled_date)->toDateString();
+                $rescheduled = ($request->has('scheduled_date') && $oldScheduledDate !== $newScheduledDate)
+                    || ($request->has('scheduled_time') && $oldScheduledTime !== $visit->scheduled_time);
+
+                if ($rescheduled) {
+                    $when = $newScheduledDate.($visit->scheduled_time ? ' '.$visit->scheduled_time : '');
+                    $meta = ['type' => 'booking_rescheduled', 'visit_id' => $visit->id, 'scheduled_date' => $newScheduledDate, 'scheduled_time' => $visit->scheduled_time];
+
+                    if ($visit->subscription && $visit->subscription->client) {
+                        $visit->subscription->client->notify(new AdminNotification('Visit Rescheduled', "Your visit has been rescheduled to {$when}.", $meta));
+                    }
+                    if ($visit->technician_id) {
+                        User::find($visit->technician_id)?->notify(new AdminNotification('Visit Rescheduled', "Visit #{$visit->id} has been rescheduled to {$when}.", $meta));
+                    }
+                } elseif ($request->has('price') || $request->has('notes') || $request->has('technician_id') || $request->has('supervisor_id') || $request->has('area_id')) {
+                    $meta = ['type' => 'booking_updated', 'visit_id' => $visit->id];
+
+                    if ($visit->subscription && $visit->subscription->client) {
+                        $visit->subscription->client->notify(new AdminNotification('Visit Updated', "Your visit #{$visit->id} details have been updated.", $meta));
+                    }
+                    if ($visit->technician_id) {
+                        User::find($visit->technician_id)?->notify(new AdminNotification('Visit Updated', "Visit #{$visit->id} details have been updated.", $meta));
+                    }
+                }
+            } catch (\Exception $e) {
+                \Log::error('Failed to send visit reschedule/update notifications: ' . $e->getMessage());
+            }
 
             // 🔔 Send notifications based on status change
             try {

@@ -177,9 +177,32 @@ Route::middleware(['auth:sanctum', 'role:technician|supervisor|area_manager|clie
     Route::get('/', [\App\Http\Controllers\Visit\VisitController::class, 'index']);
     Route::get('/areas', [\App\Http\Controllers\Visit\VisitController::class, 'areas']);
     Route::post('/resolve-area', [\App\Http\Controllers\Visit\VisitController::class, 'resolveArea']);
+    Route::get('/available-slots', [\App\Http\Controllers\Visit\VisitController::class, 'availableSlots']);
     Route::post('/', [\App\Http\Controllers\Visit\VisitController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Visit\VisitController::class, 'update']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN JOB SCHEDULING (Working hours & capacity, Time slots, Blocked
+| dates & slots, Jobs calendar)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/job-scheduling')->group(function () {
+    Route::get('/working-hours', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'getWorkingHours']);
+    Route::put('/working-hours', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'updateWorkingHours']);
+
+    Route::get('/time-slots', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'listTimeSlots']);
+    Route::post('/time-slots', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'addTimeSlot']);
+    Route::post('/time-slots/{id}/toggle', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'toggleTimeSlot']);
+    Route::delete('/time-slots/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteTimeSlot']);
+
+    Route::get('/blocked-dates', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'listBlockedDates']);
+    Route::post('/blocked-dates', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'addBlockedDate']);
+    Route::delete('/blocked-dates/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteBlockedDate']);
+
+    Route::get('/calendar', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'calendar']);
 });
 
 /*

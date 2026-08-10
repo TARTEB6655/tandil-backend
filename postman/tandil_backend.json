@@ -3505,6 +3505,41 @@
               }
             },
             {
+              "name": "Get Available Slots",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/visits/available-slots?date=2026-08-17",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "visits",
+                    "available-slots"
+                  ],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2026-08-17",
+                      "description": "Required, Y-m-d. The date the client picked on the calendar."
+                    }
+                  ]
+                },
+                "description": "Job Scheduling - Customer \"select date and available time slot\" step. Call before Create Visit once a date is chosen. Response data: date, date_blocked (true when admin closed the whole date), slots[] (id, start_time, end_time, duration_minutes, booked_count, remaining, available). Only show/enable slots where available is true. Pass the chosen slot's start_time as scheduled_time on Create Visit."
+              }
+            },
+            {
               "name": "List Areas (for visit creation)",
               "request": {
                 "method": "GET",
@@ -3750,6 +3785,12 @@
                       "description": "Required. Date (YYYY-MM-DD)."
                     },
                     {
+                      "key": "scheduled_time",
+                      "value": "10:00",
+                      "type": "text",
+                      "description": "Optional. HH:mm (24h) time slot chosen from GET /api/visits/available-slots. Leave empty for a date-only visit (no slot/capacity/technician-overlap checks apply)."
+                    },
+                    {
                       "key": "status",
                       "value": "pending",
                       "type": "text",
@@ -3779,7 +3820,7 @@
                     "visits"
                   ]
                 },
-                "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**App form field compatibility:** Supports location form keys `full_name`, `street_address`, `city`, `state`, `zip_code`, `country`.\n\n**Area/supervisor resolution flow:** You may pass **area_id** directly, or send app location inputs (`street_address/city/state/zip_code/country`) and backend auto-resolves active area + mapped supervisor. GPS (`latitude/longitude`) is also supported. You can pre-resolve using **POST /api/visits/resolve-area**.\n\n**How the job reaches supervisor dashboard:** Job must resolve to an active area with a mapped supervisor. Then supervisor sees it in **GET /api/supervisor/assignments** and can assign technician via **POST /api/supervisor/assignments/{id}** with **technician_id**.\n\n**Price:** Set **price** (e.g. 289.99) and/or include in **notes** using format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5`."
+                "description": "Create a new visit (job). **Who can create:** Admin, or Client (for their own subscription). Use **form-data** body.\n\n**App form field compatibility:** Supports location form keys `full_name`, `street_address`, `city`, `state`, `zip_code`, `country`.\n\n**Area/supervisor resolution flow:** You may pass **area_id** directly, or send app location inputs (`street_address/city/state/zip_code/country`) and backend auto-resolves active area + mapped supervisor. GPS (`latitude/longitude`) is also supported. You can pre-resolve using **POST /api/visits/resolve-area**.\n\n**How the job reaches supervisor dashboard:** Job must resolve to an active area with a mapped supervisor. Then supervisor sees it in **GET /api/supervisor/assignments** and can assign technician via **POST /api/supervisor/assignments/{id}** with **technician_id**.\n\n**Price:** Set **price** (e.g. 289.99) and/or include in **notes** using format: `Farm | Service | Location | 120 min | AED 289.99 | 5/5`. Job Scheduling: optional scheduled_time (HH:mm) - get valid values from Get Available Slots first. When set, the booking is validated against working hours, capacity (max bookings per slot/day), and blocked dates/slots, and (when a technician is assigned or auto-dispatched) checked for a technician double-booking conflict."
               }
             },
             {
@@ -3804,6 +3845,12 @@
                       "value": "2025-01-25",
                       "type": "text",
                       "description": "Optional. Date (YYYY-MM-DD)."
+                    },
+                    {
+                      "key": "scheduled_time",
+                      "value": "10:00",
+                      "type": "text",
+                      "description": "Optional. HH:mm (24h) time slot chosen from GET /api/visits/available-slots. Leave empty for a date-only visit (no slot/capacity/technician-overlap checks apply)."
                     },
                     {
                       "key": "notes",
@@ -3854,7 +3901,7 @@
                     "{{visit_id}}"
                   ]
                 },
-                "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply."
+                "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply. Job Scheduling: optional scheduled_time (HH:mm) to reschedule. Changing scheduled_date and/or scheduled_time re-runs the same slot/capacity/blocked-date/technician-conflict checks as Create Visit, and notifies the client + assigned technician that the booking was rescheduled."
               }
             }
           ],
@@ -11867,6 +11914,517 @@
             }
           ],
           "description": "Admin subscription management (Bearer admin token). Create is admin-only; List here returns every client's subscriptions; Update covers plan/amount/payment_status/dates/picture. For a client paying to renew or upgrade their own membership, see **4. Client Dashboard → J. Subscriptions** (real Stripe/Apple Pay checkout — this folder's Update/Mark-Paid are manual admin overrides, not a payment gateway)."
+        },
+        {
+          "name": "K. Job Scheduling",
+          "description": "Admin Job Scheduling: Working hours & capacity, Time slots, Blocked dates & slots, Jobs calendar. Auth: Bearer admin {{token}}. Client-facing 'available slots' lookup used when creating a service request lives in 4. Client Dashboard -> M. Visits -> Get Available Slots.",
+          "item": [
+            {
+              "name": "A. Working Hours & Capacity",
+              "item": [
+                {
+                  "name": "1. Get Working Hours & Capacity",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/working-hours",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "working-hours"
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/working-hours - Working days/hours screen. Response data: working_hours[] (7 rows: day mon..sun, enabled, start HH:mm, end HH:mm), max_bookings_per_slot, max_bookings_per_day, buffer_minutes (minutes kept free between jobs for the same technician)."
+                  }
+                },
+                {
+                  "name": "2. Update Working Hours & Capacity",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/working-hours",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "working-hours"
+                      ]
+                    },
+                    "description": "PUT /api/admin/job-scheduling/working-hours - All fields optional (partial update). working_hours[]: exactly the 7 day rows (day one of mon|tue|wed|thu|fri|sat|sun, enabled boolean, start/end HH:mm 24h, end must be after start). max_bookings_per_slot: max jobs allowed in one time slot. max_bookings_per_day: max jobs allowed on one date. buffer_minutes: minutes required between two jobs for the same technician (used by double-booking prevention). Returns the updated settings (same shape as GET).",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"working_hours\": [\n    {\n      \"day\": \"mon\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"tue\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"wed\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"thu\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"fri\",\n      \"enabled\": false,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sat\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sun\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    }\n  ],\n  \"max_bookings_per_slot\": 2,\n  \"max_bookings_per_day\": 12,\n  \"buffer_minutes\": 15\n}"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "name": "B. Time Slots",
+              "item": [
+                {
+                  "name": "1. List Time Slots",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/time-slots",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "time-slots"
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/time-slots - All configured slots, ordered by sort_order/start_time. Response data[]: id, start_time (HH:mm), end_time (computed), duration_minutes, is_active, sort_order."
+                  }
+                },
+                {
+                  "name": "2. Add Time Slot",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    var d = pm.response.json().data;",
+                          "    if (d && d.id) { pm.environment.set('job_time_slot_id', d.id); }",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/time-slots",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "time-slots"
+                      ]
+                    },
+                    "description": "POST /api/admin/job-scheduling/time-slots - Add slot. Body: start_time (required, HH:mm 24h, must be unique), duration_minutes (optional, default 60), is_active (optional, default true). 422 if a slot already exists at that start_time.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"start_time\": \"18:00\",\n  \"duration_minutes\": 60\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "3. Toggle Time Slot (On/Off)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/time-slots/{{job_time_slot_id}}/toggle",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "time-slots",
+                        "{{job_time_slot_id}}",
+                        "toggle"
+                      ]
+                    },
+                    "description": "POST /api/admin/job-scheduling/time-slots/{id}/toggle - Flips is_active (matches the checkmark/circle toggle per row on the Time slots screen)."
+                  }
+                },
+                {
+                  "name": "4. Delete Time Slot",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/time-slots/{{job_time_slot_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "time-slots",
+                        "{{job_time_slot_id}}"
+                      ]
+                    },
+                    "description": "DELETE /api/admin/job-scheduling/time-slots/{id} - Remove slot (trash icon)."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "C. Blocked Dates & Slots",
+              "item": [
+                {
+                  "name": "1. List Blocked Dates",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/blocked-dates?from=&to=",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "blocked-dates"
+                      ],
+                      "query": [
+                        {
+                          "key": "from",
+                          "value": "",
+                          "description": "Optional Y-m-d filter"
+                        },
+                        {
+                          "key": "to",
+                          "value": "",
+                          "description": "Optional Y-m-d filter"
+                        }
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/blocked-dates - \"Current blocks\" list. Response data[]: id, date, block_type (full_day|time_slot), time (HH:mm, only for time_slot), reason."
+                  }
+                },
+                {
+                  "name": "2. Add Block - Full day",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "if (pm.response.code === 201) {",
+                          "    var d = pm.response.json().data;",
+                          "    if (d && d.id) { pm.environment.set('job_blocked_date_id', d.id); }",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/blocked-dates",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "blocked-dates"
+                      ]
+                    },
+                    "description": "POST /api/admin/job-scheduling/blocked-dates - Full day tab. Body: date (required, Y-m-d), block_type=full_day, reason (optional). Closes the whole date - GET Available Slots for that date returns date_blocked=true and an empty slots list.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"date\": \"2026-08-15\",\n  \"block_type\": \"full_day\",\n  \"reason\": \"Public holiday / team offsite\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "3. Add Block - Time slot",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/blocked-dates",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "blocked-dates"
+                      ]
+                    },
+                    "description": "POST /api/admin/job-scheduling/blocked-dates - Time slot tab. Body: date (required), block_type=time_slot, time (required, HH:mm - must match one of that date's slots), reason (optional). Only that one slot becomes unavailable; other slots on the date stay open.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"date\": \"2026-08-11\",\n  \"block_type\": \"time_slot\",\n  \"time\": \"11:00\",\n  \"reason\": \"Training session\"\n}"
+                    }
+                  }
+                },
+                {
+                  "name": "4. Delete Block",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/blocked-dates/{{job_blocked_date_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "blocked-dates",
+                        "{{job_blocked_date_id}}"
+                      ]
+                    },
+                    "description": "DELETE /api/admin/job-scheduling/blocked-dates/{id} - Remove a block (trash icon on \"Current blocks\" row)."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "D. Jobs Calendar",
+              "item": [
+                {
+                  "name": "1. Jobs Calendar - Day view",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/calendar?view=day&date=2026-08-10",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "calendar"
+                      ],
+                      "query": [
+                        {
+                          "key": "view",
+                          "value": "day",
+                          "description": "day | week | month"
+                        },
+                        {
+                          "key": "date",
+                          "value": "2026-08-10",
+                          "description": "Anchor date, Y-m-d. Defaults to today."
+                        }
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/calendar?view=day - Jobs calendar screen. Response data: view, from, to, total, overlap_count, jobs[] (id, scheduled_date, scheduled_time, status, notes, technician {id,name}|null, client {id,name}|null, technician_overlap true when this job's technician has another overlapping job the same day - shown as the red \"Technician overlap\" warning on the mockup)."
+                  }
+                },
+                {
+                  "name": "2. Jobs Calendar - Week view",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/calendar?view=week&date=2026-08-10",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "calendar"
+                      ],
+                      "query": [
+                        {
+                          "key": "view",
+                          "value": "week"
+                        },
+                        {
+                          "key": "date",
+                          "value": "2026-08-10"
+                        }
+                      ]
+                    },
+                    "description": "Same as Day view, view=week - from/to span the whole week containing the anchor date."
+                  }
+                },
+                {
+                  "name": "3. Jobs Calendar - Month view",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/calendar?view=month&date=2026-08-10",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "calendar"
+                      ],
+                      "query": [
+                        {
+                          "key": "view",
+                          "value": "month"
+                        },
+                        {
+                          "key": "date",
+                          "value": "2026-08-10"
+                        }
+                      ]
+                    },
+                    "description": "Same as Day view, view=month - from/to span the whole month containing the anchor date."
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },
