@@ -12,15 +12,9 @@
     display: none;
 }
 
-
-.mb-6.rounded-lg.border.border-slate-200.bg-slate-50.px-4.py-3.text-sm.text-slate-600 {
-    display: none !important;
+.d-none {
+    display: none!important;
 }
-
-.order-2.ml-auto.flex.items-center.gap-3.sm\:gap-4.lg\:order-3.lg\:ml-0.flex-shrink-0 {
-    display: none !important;
-}
-
 
 .no-scrollbar {
     -ms-overflow-style: none;
