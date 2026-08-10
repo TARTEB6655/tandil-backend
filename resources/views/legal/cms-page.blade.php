@@ -3,7 +3,7 @@
 @section('title', $payload['title'] ?? 'CMS Page')
 
 @section('content')
-    <div class="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 d-none">
+    <div class="mb-6 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 hidden">
         Preview for <strong>{{ ucfirst($audience) }} App</strong> · locale <strong>{{ strtoupper($locale) }}</strong>
     </div>
 
