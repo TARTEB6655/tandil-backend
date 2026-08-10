@@ -20,6 +20,7 @@ class Visit extends Model
         'area_id',
         'scheduled_date',
         'scheduled_time',
+        'duration_minutes',
         'completed_date',
         'status',
         'approved_by',

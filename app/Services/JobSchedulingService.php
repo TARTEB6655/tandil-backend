@@ -102,8 +102,11 @@ class JobSchedulingService
      * Validate a (date, time) booking request. Returns an error message, or
      * null when it's bookable. When $time is null, no slot rules apply — this
      * keeps every existing scheduled_time-less visit flow unaffected.
+     * $requireConfiguredSlot: false lets admin's Booking detail screen set a
+     * custom Start/End range that isn't one of the customer-facing preset
+     * time slots (working hours/blocked-date/capacity rules still apply).
      */
-    public static function validateSlotForBooking(string $date, ?string $time, ?int $excludeVisitId = null): ?string
+    public static function validateSlotForBooking(string $date, ?string $time, ?int $excludeVisitId = null, bool $requireConfiguredSlot = true): ?string
     {
         if ($time === null || $time === '') {
             return null;
@@ -128,9 +131,11 @@ class JobSchedulingService
             return 'Selected time slot is blocked and not available for booking.';
         }
 
-        $slot = JobTimeSlot::where('start_time', $time)->where('is_active', true)->first();
-        if (! $slot) {
-            return 'Selected time is not a valid active time slot.';
+        if ($requireConfiguredSlot) {
+            $slot = JobTimeSlot::where('start_time', $time)->where('is_active', true)->first();
+            if (! $slot) {
+                return 'Selected time is not a valid active time slot.';
+            }
         }
 
         $bookedForSlot = Visit::whereDate('scheduled_date', $date)
@@ -157,15 +162,17 @@ class JobSchedulingService
      * True when the technician already has an overlapping (date, time) job —
      * time+duration+buffer taken into account. When $time is null (no slot
      * chosen), no conflict is reported, so date-only visits keep working.
+     * $durationMinutes overrides the slot-lookup duration (used by the admin
+     * Booking detail screen, which lets admin set a custom Start/End range).
      */
-    public static function hasTechnicianConflict(int $technicianId, string $date, ?string $time, ?int $excludeVisitId = null): bool
+    public static function hasTechnicianConflict(int $technicianId, string $date, ?string $time, ?int $excludeVisitId = null, ?int $durationMinutes = null): bool
     {
         if ($time === null || $time === '') {
             return false;
         }
 
         $buffer = self::settings()->buffer_minutes;
-        $duration = self::slotDurationMinutes($time);
+        $duration = $durationMinutes ?? self::slotDurationMinutes($time);
         $newStart = Carbon::parse($date.' '.$time);
         $newEnd = $newStart->copy()->addMinutes($duration + $buffer);
         $newStartBuffered = $newStart->copy()->subMinutes($buffer);
@@ -175,11 +182,12 @@ class JobSchedulingService
             ->whereNotNull('scheduled_time')
             ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
             ->when($excludeVisitId, fn ($q) => $q->where('id', '!=', $excludeVisitId))
-            ->get(['id', 'scheduled_date', 'scheduled_time']);
+            ->get(['id', 'scheduled_date', 'scheduled_time', 'duration_minutes']);
 
         foreach ($existing as $visit) {
             $exStart = Carbon::parse($visit->scheduled_date->toDateString().' '.$visit->scheduled_time);
-            $exEnd = $exStart->copy()->addMinutes(self::slotDurationMinutes($visit->scheduled_time));
+            $exDuration = $visit->duration_minutes ?? self::slotDurationMinutes($visit->scheduled_time);
+            $exEnd = $exStart->copy()->addMinutes($exDuration);
 
             if ($newStartBuffered->lt($exEnd) && $newEnd->gt($exStart)) {
                 return true;
@@ -187,5 +195,11 @@ class JobSchedulingService
         }
 
         return false;
+    }
+
+    /** Minutes between two HH:mm strings (end must be after start). */
+    public static function minutesBetween(string $startTime, string $endTime): int
+    {
+        return Carbon::parse($startTime)->diffInMinutes(Carbon::parse($endTime));
     }
 }

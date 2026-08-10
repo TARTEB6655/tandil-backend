@@ -253,7 +253,7 @@ class JobSchedulingController extends Controller
                 continue;
             }
             foreach ($group as $v) {
-                if (JobSchedulingService::hasTechnicianConflict((int) $v->technician_id, $v->scheduled_date->toDateString(), $v->scheduled_time, (int) $v->id)) {
+                if (JobSchedulingService::hasTechnicianConflict((int) $v->technician_id, $v->scheduled_date->toDateString(), $v->scheduled_time, (int) $v->id, $v->duration_minutes)) {
                     $overlappingIds[$v->id] = true;
                 }
             }
@@ -264,6 +264,7 @@ class JobSchedulingController extends Controller
                 'id' => $v->id,
                 'scheduled_date' => $v->scheduled_date?->toDateString(),
                 'scheduled_time' => $v->scheduled_time,
+                'end_time' => $this->computeEndTime($v),
                 'status' => $v->status,
                 'notes' => $v->notes,
                 'technician' => $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null,
@@ -280,5 +281,78 @@ class JobSchedulingController extends Controller
             'overlap_count' => count($overlappingIds),
             'jobs' => $jobs,
         ]);
+    }
+
+    /**
+     * GET /api/admin/job-scheduling/jobs/{id}
+     * Booking detail screen: tap a job on the Jobs calendar. Editing/saving
+     * uses the existing PUT /api/visits/{id} (Update Visit) — both "Save
+     * changes" and "Reschedule & notify" map to that same endpoint; it already
+     * validates the slot/technician conflict and fires the reschedule/update
+     * notification to the client + technician.
+     */
+    public function bookingDetail(int $id)
+    {
+        $visit = Visit::with(['technician:id,name', 'subscription.client:id,name'])->find($id);
+        if (! $visit) {
+            return ApiResponse::error('Job not found.', 404);
+        }
+
+        $endTime = $this->computeEndTime($visit);
+        $scheduledDate = $visit->scheduled_date?->toDateString();
+        $currentScheduleLabel = $scheduledDate
+            ? Carbon::parse($scheduledDate)->format('D, M j').($visit->scheduled_time ? ' · '.$visit->scheduled_time.($endTime ? '–'.$endTime : '') : '')
+            : null;
+
+        $overlap = ($visit->technician_id && $visit->scheduled_time)
+            ? JobSchedulingService::hasTechnicianConflict((int) $visit->technician_id, $scheduledDate, $visit->scheduled_time, $visit->id, $visit->duration_minutes)
+            : false;
+
+        return ApiResponse::success('Booking detail retrieved successfully.', [
+            'id' => $visit->id,
+            'title' => $this->jobTitleFromNotes((string) $visit->notes, $visit->id),
+            'client' => $visit->subscription?->client ? ['id' => $visit->subscription->client->id, 'name' => $visit->subscription->client->name] : null,
+            'technician' => $visit->technician ? ['id' => $visit->technician->id, 'name' => $visit->technician->name] : null,
+            'scheduled_date' => $scheduledDate,
+            'scheduled_time' => $visit->scheduled_time,
+            'end_time' => $endTime,
+            'duration_minutes' => $visit->duration_minutes,
+            'current_schedule_label' => $currentScheduleLabel ? 'Currently '.$currentScheduleLabel : null,
+            'status' => $visit->status,
+            'notes' => $visit->notes,
+            'technician_overlap' => $overlap,
+        ]);
+    }
+
+    private function computeEndTime(Visit $v): ?string
+    {
+        if (! $v->scheduled_time) {
+            return null;
+        }
+
+        $duration = $v->duration_minutes;
+        if (! $duration) {
+            $slot = JobTimeSlot::where('start_time', $v->scheduled_time)->first();
+            $duration = $slot ? (int) $slot->duration_minutes : 60;
+        }
+
+        $totalMinutes = (self::toMinutes($v->scheduled_time) + $duration) % (24 * 60);
+
+        return sprintf('%02d:%02d', intdiv($totalMinutes, 60), $totalMinutes % 60);
+    }
+
+    private static function toMinutes(string $time): int
+    {
+        [$h, $m] = array_map('intval', explode(':', $time));
+
+        return $h * 60 + $m;
+    }
+
+    private function jobTitleFromNotes(string $notes, int $visitId): string
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
+
+        return ($parts[0] ?? '') !== '' ? $parts[0] : 'Job #'.$visitId;
     }
 }

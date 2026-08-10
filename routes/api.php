@@ -203,6 +203,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/job-scheduling'
     Route::delete('/blocked-dates/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteBlockedDate']);
 
     Route::get('/calendar', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'calendar']);
+    Route::get('/jobs/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'bookingDetail']);
 });
 
 /*

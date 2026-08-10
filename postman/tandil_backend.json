@@ -3791,6 +3791,12 @@
                       "description": "Optional. HH:mm (24h) time slot chosen from GET /api/visits/available-slots. Leave empty for a date-only visit (no slot/capacity/technician-overlap checks apply)."
                     },
                     {
+                      "key": "end_time",
+                      "value": "11:00",
+                      "type": "text",
+                      "description": "Optional. HH:mm (24h). When set together with scheduled_time, this becomes the job's explicit duration (duration_minutes = end_time - scheduled_time) instead of the configured slot length, and is used for the technician-overlap check. Admin only: bypasses the \"must be a configured time slot\" restriction, so admin can set a custom Start/End range (matches the Booking Detail screen's Start/End fields) - client callers must still pick a configured slot."
+                    },
+                    {
                       "key": "status",
                       "value": "pending",
                       "type": "text",
@@ -3853,6 +3859,12 @@
                       "description": "Optional. HH:mm (24h) time slot chosen from GET /api/visits/available-slots. Leave empty for a date-only visit (no slot/capacity/technician-overlap checks apply)."
                     },
                     {
+                      "key": "end_time",
+                      "value": "11:00",
+                      "type": "text",
+                      "description": "Optional. HH:mm (24h). When set together with scheduled_time, this becomes the job's explicit duration (duration_minutes = end_time - scheduled_time) instead of the configured slot length, and is used for the technician-overlap check. Admin only: bypasses the \"must be a configured time slot\" restriction, so admin can set a custom Start/End range (matches the Booking Detail screen's Start/End fields) - client callers must still pick a configured slot."
+                    },
+                    {
                       "key": "notes",
                       "value": "",
                       "type": "text",
@@ -3901,7 +3913,7 @@
                     "{{visit_id}}"
                   ]
                 },
-                "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply. Job Scheduling: optional scheduled_time (HH:mm) to reschedule. Changing scheduled_date and/or scheduled_time re-runs the same slot/capacity/blocked-date/technician-conflict checks as Create Visit, and notifies the client + assigned technician that the booking was rescheduled."
+                "description": "Update visit (job) details. Use **form-data** body. Set **visit_id** in path.\n\n**Updatable fields:** scheduled_date, notes, price, status, technician_id, supervisor_id, area_id (all optional). Admin/Client can assign technician_id, supervisor_id, area_id; role-based status rules apply. Job Scheduling: optional scheduled_time (HH:mm) to reschedule. Changing scheduled_date and/or scheduled_time re-runs the same slot/capacity/blocked-date/technician-conflict checks as Create Visit, and notifies the client + assigned technician that the booking was rescheduled. Booking Detail screen: this same request (with scheduled_date/scheduled_time/end_time/technician_id/notes) is what both \"Save changes\" and \"Reschedule & notify\" map to — there is no separate reschedule endpoint."
               }
             }
           ],
@@ -12420,6 +12432,50 @@
                       ]
                     },
                     "description": "Same as Day view, view=month - from/to span the whole month containing the anchor date."
+                  }
+                },
+                {
+                  "name": "4. Booking Detail (tap a job on the calendar)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "if (pm.response.code === 200) {",
+                          "    var d = pm.response.json().data;",
+                          "    if (d && d.id) { pm.environment.set('visit_id', d.id); }",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/jobs/{{visit_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "jobs",
+                        "{{visit_id}}"
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/jobs/{id} - Booking detail screen (tap a job card on the Jobs Calendar). Response data: id, title (first '|' segment of notes, or \"Job #id\"), client {id,name}, technician {id,name}|null, scheduled_date, scheduled_time, end_time (computed from duration_minutes or the matching time slot), duration_minutes, current_schedule_label (e.g. \"Currently Mon, Aug 10 · 10:00–11:00\"), status, notes, technician_overlap.\n\nTo edit and save (both the \"Save changes\" and \"Reschedule & notify\" buttons): use **4. Client Dashboard -> M. Visits -> Update Visit** (PUT /api/visits/{id}) with the same {{visit_id}} - it already re-validates the slot/technician conflict and sends the reschedule/update notification to the client + technician. See its scheduled_time/end_time fields."
                   }
                 }
               ]

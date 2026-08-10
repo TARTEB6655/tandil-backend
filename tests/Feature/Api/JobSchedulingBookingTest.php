@@ -404,4 +404,116 @@ class JobSchedulingBookingTest extends TestCase
             return ($n->toArray($this->technician)['meta']['type'] ?? null) === 'booking_confirmed';
         });
     }
+
+    public function test_admin_can_view_booking_detail(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+
+        $visit = Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '10:00',
+            'status' => 'scheduled',
+            'notes' => 'Palm tree pruning | some extra context',
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/jobs/'.$visit->id)
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $visit->id)
+            ->assertJsonPath('data.title', 'Palm tree pruning')
+            ->assertJsonPath('data.client.name', $this->client->name)
+            ->assertJsonPath('data.technician.name', $this->technician->name)
+            ->assertJsonPath('data.scheduled_date', self::MON)
+            ->assertJsonPath('data.scheduled_time', '10:00')
+            ->assertJsonPath('data.end_time', '11:00')
+            ->assertJsonPath('data.current_schedule_label', 'Currently Mon, Aug 10 · 10:00–11:00')
+            ->assertJsonPath('data.technician_overlap', false);
+    }
+
+    public function test_booking_detail_returns_404_for_missing_job(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/jobs/999999')
+            ->assertStatus(404);
+    }
+
+    public function test_admin_reschedule_with_custom_end_time_updates_duration_and_bypasses_slot_restriction(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+
+        $visit = Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '10:00',
+            'status' => 'pending',
+        ]);
+
+        // 10:15 is not a configured JobTimeSlot — a normal client booking would be rejected,
+        // but the admin Booking detail screen allows a free custom Start/End range.
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/visits/'.$visit->id, [
+                'scheduled_time' => '10:15',
+                'end_time' => '11:35',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.scheduled_time', '10:15');
+
+        $fresh = $visit->fresh();
+        $this->assertSame('10:15', $fresh->scheduled_time);
+        $this->assertSame(80, $fresh->duration_minutes);
+
+        $detail = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/jobs/'.$visit->id)
+            ->assertOk();
+        $this->assertSame('11:35', $detail->json('data.end_time'));
+    }
+
+    public function test_admin_custom_duration_reschedule_still_blocks_technician_overlap(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+
+        // Technician already has a long custom job 09:00-10:30.
+        Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '09:00',
+            'duration_minutes' => 90,
+            'status' => 'scheduled',
+        ]);
+
+        $visitToReschedule = Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'technician_id' => $this->technician->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '13:00',
+            'status' => 'pending',
+        ]);
+
+        // Reschedule into a custom range that overlaps the technician's 09:00-10:30 job.
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/visits/'.$visitToReschedule->id, [
+                'scheduled_time' => '10:00',
+                'end_time' => '10:45',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Selected technician is already booked for this date and time.');
+    }
 }

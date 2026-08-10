@@ -247,6 +247,7 @@ class VisitController extends Controller
                 'longitude' => 'nullable|numeric|between:-180,180',
                 'scheduled_date' => 'required|date',
                 'scheduled_time' => 'nullable|date_format:H:i',
+                'end_time' => 'nullable|date_format:H:i|after:scheduled_time',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
                 'notes' => 'nullable|string|max:5000',
                 'price' => 'nullable|numeric|min:0',
@@ -297,9 +298,14 @@ class VisitController extends Controller
                 return response()->json(['status' => false, 'message' => $schedulingError], 422);
             }
 
+            // Job Scheduling: explicit duration when a custom end_time is given (Booking detail screen); else fall back to slot lookup.
+            $durationMinutes = ($request->filled('scheduled_time') && $request->filled('end_time'))
+                ? JobSchedulingService::minutesBetween($request->input('scheduled_time'), $request->input('end_time'))
+                : null;
+
             // Job Scheduling: reject an explicitly-chosen technician who is already booked at this date/time.
             if ($request->filled('technician_id') && $request->filled('scheduled_time')) {
-                if (JobSchedulingService::hasTechnicianConflict((int) $request->input('technician_id'), $request->input('scheduled_date'), $request->input('scheduled_time'))) {
+                if (JobSchedulingService::hasTechnicianConflict((int) $request->input('technician_id'), $request->input('scheduled_date'), $request->input('scheduled_time'), null, $durationMinutes)) {
                     return response()->json(['status' => false, 'message' => 'Selected technician is already booked for this date and time.'], 422);
                 }
             }
@@ -312,6 +318,7 @@ class VisitController extends Controller
                 'area_id' => (int) $area->id,
                 'scheduled_date' => $request->scheduled_date,
                 'scheduled_time' => $request->input('scheduled_time'),
+                'duration_minutes' => $durationMinutes,
                 'status' => $request->status ?? 'pending',
                 'notes' => $request->input('notes'),
                 'price' => $request->filled('price') ? (float) $request->input('price') : null,
@@ -470,6 +477,7 @@ class VisitController extends Controller
             $validator = Validator::make($request->all(), [
                 'scheduled_date' => 'nullable|date',
                 'scheduled_time' => 'nullable|date_format:H:i',
+                'end_time' => 'nullable|date_format:H:i|after:scheduled_time',
                 'notes' => 'nullable|string|max:5000',
                 'price' => 'nullable|numeric|min:0',
                 'status' => 'nullable|string|in:pending,scheduled,in_progress,completed,approved,rejected',
@@ -482,6 +490,13 @@ class VisitController extends Controller
                 return response()->json(['status' => false, 'errors' => $validator->errors()], 422);
             }
 
+            // Job Scheduling: explicit duration when a custom end_time is given (admin Booking detail screen).
+            $effectiveTimeForEnd = $request->has('scheduled_time') ? $request->input('scheduled_time') : $visit->scheduled_time;
+            $durationMinutes = $visit->duration_minutes;
+            if ($request->filled('end_time')) {
+                $durationMinutes = $effectiveTimeForEnd ? JobSchedulingService::minutesBetween($effectiveTimeForEnd, $request->input('end_time')) : null;
+            }
+
             // Job Scheduling: re-validate the effective date/time and technician availability
             // whenever the reschedule fields (or the assigned technician) are being touched.
             if ($request->has('scheduled_date') || $request->has('scheduled_time') || $request->has('technician_id')) {
@@ -489,14 +504,16 @@ class VisitController extends Controller
                 $effectiveTime = $request->has('scheduled_time') ? $request->input('scheduled_time') : $visit->scheduled_time;
 
                 if ($request->has('scheduled_date') || $request->has('scheduled_time')) {
-                    $schedulingError = JobSchedulingService::validateSlotForBooking($effectiveDate, $effectiveTime, $visit->id);
+                    // Admin setting a custom end_time (Booking detail screen) isn't limited to preset slots.
+                    $requireConfiguredSlot = ! ($user->hasRole('admin') && $request->filled('end_time'));
+                    $schedulingError = JobSchedulingService::validateSlotForBooking($effectiveDate, $effectiveTime, $visit->id, $requireConfiguredSlot);
                     if ($schedulingError) {
                         return response()->json(['status' => false, 'message' => $schedulingError], 422);
                     }
                 }
 
                 $effectiveTechnicianId = $request->has('technician_id') ? $request->input('technician_id') : $visit->technician_id;
-                if ($effectiveTechnicianId && JobSchedulingService::hasTechnicianConflict((int) $effectiveTechnicianId, $effectiveDate, $effectiveTime, $visit->id)) {
+                if ($effectiveTechnicianId && JobSchedulingService::hasTechnicianConflict((int) $effectiveTechnicianId, $effectiveDate, $effectiveTime, $visit->id, $durationMinutes)) {
                     return response()->json(['status' => false, 'message' => 'Selected technician is already booked for this date and time.'], 422);
                 }
             }
@@ -537,6 +554,9 @@ class VisitController extends Controller
             }
             if ($request->has('scheduled_time')) {
                 $visit->scheduled_time = $request->input('scheduled_time');
+            }
+            if ($request->has('end_time')) {
+                $visit->duration_minutes = $durationMinutes;
             }
             if ($request->has('notes')) {
                 $visit->notes = $request->input('notes');
