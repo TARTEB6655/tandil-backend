@@ -11975,10 +11975,6 @@
                       {
                         "key": "Accept",
                         "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
                       }
                     ],
                     "url": {
@@ -11993,10 +11989,173 @@
                         "working-hours"
                       ]
                     },
-                    "description": "PUT /api/admin/job-scheduling/working-hours - All fields optional (partial update). working_hours[]: exactly the 7 day rows (day one of mon|tue|wed|thu|fri|sat|sun, enabled boolean, start/end HH:mm 24h, end must be after start). max_bookings_per_slot: max jobs allowed in one time slot. max_bookings_per_day: max jobs allowed on one date. buffer_minutes: minutes required between two jobs for the same technician (used by double-booking prevention). Returns the updated settings (same shape as GET).",
+                    "description": "PUT /api/admin/job-scheduling/working-hours - All fields optional (partial update). Send all 7 day rows (day one of mon|tue|wed|thu|fri|sat|sun, enabled 1/0, start/end HH:mm 24h, end must be after start) as working_hours[0..6][day|enabled|start|end]. max_bookings_per_slot: max jobs allowed in one time slot. max_bookings_per_day: max jobs allowed on one date. buffer_minutes: minutes required between two jobs for the same technician (used by double-booking prevention). Returns the updated settings (same shape as GET). Form-data body (bracket-notation array) so it's easy to fill in Postman.",
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"working_hours\": [\n    {\n      \"day\": \"mon\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"tue\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"wed\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"thu\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"fri\",\n      \"enabled\": false,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sat\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sun\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    }\n  ],\n  \"max_bookings_per_slot\": 2,\n  \"max_bookings_per_day\": 12,\n  \"buffer_minutes\": 15\n}"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "working_hours[0][day]",
+                          "value": "mon",
+                          "type": "text",
+                          "description": "mon|tue|wed|thu|fri|sat|sun"
+                        },
+                        {
+                          "key": "working_hours[0][enabled]",
+                          "value": "1",
+                          "type": "text",
+                          "description": "1 = working day, 0 = closed"
+                        },
+                        {
+                          "key": "working_hours[0][start]",
+                          "value": "09:00",
+                          "type": "text",
+                          "description": "HH:mm 24h"
+                        },
+                        {
+                          "key": "working_hours[0][end]",
+                          "value": "18:00",
+                          "type": "text",
+                          "description": "HH:mm 24h, must be after start"
+                        },
+                        {
+                          "key": "working_hours[1][day]",
+                          "value": "tue",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[1][enabled]",
+                          "value": "1",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[1][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[1][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[2][day]",
+                          "value": "wed",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[2][enabled]",
+                          "value": "1",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[2][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[2][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[3][day]",
+                          "value": "thu",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[3][enabled]",
+                          "value": "1",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[3][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[3][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[4][day]",
+                          "value": "fri",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[4][enabled]",
+                          "value": "0",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[4][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[4][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[5][day]",
+                          "value": "sat",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[5][enabled]",
+                          "value": "1",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[5][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[5][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[6][day]",
+                          "value": "sun",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[6][enabled]",
+                          "value": "1",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[6][start]",
+                          "value": "09:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "working_hours[6][end]",
+                          "value": "18:00",
+                          "type": "text"
+                        },
+                        {
+                          "key": "max_bookings_per_slot",
+                          "value": "2",
+                          "type": "text",
+                          "description": "Max jobs allowed in one time slot"
+                        },
+                        {
+                          "key": "max_bookings_per_day",
+                          "value": "12",
+                          "type": "text",
+                          "description": "Max jobs allowed on one date"
+                        },
+                        {
+                          "key": "buffer_minutes",
+                          "value": "15",
+                          "type": "text",
+                          "description": "Minutes required between two jobs for the same technician"
+                        }
+                      ]
                     }
                   }
                 }
@@ -12060,10 +12219,6 @@
                       {
                         "key": "Accept",
                         "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
                       }
                     ],
                     "url": {
@@ -12078,10 +12233,29 @@
                         "time-slots"
                       ]
                     },
-                    "description": "POST /api/admin/job-scheduling/time-slots - Add slot. Body: start_time (required, HH:mm 24h, must be unique), duration_minutes (optional, default 60), is_active (optional, default true). 422 if a slot already exists at that start_time.",
+                    "description": "POST /api/admin/job-scheduling/time-slots - Add slot. Form-data: start_time (required, HH:mm 24h, must be unique), duration_minutes (optional, default 60), is_active (optional, default 1). 422 if a slot already exists at that start_time.",
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"start_time\": \"18:00\",\n  \"duration_minutes\": 60\n}"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "start_time",
+                          "value": "18:00",
+                          "type": "text",
+                          "description": "Required, HH:mm 24h, must be unique"
+                        },
+                        {
+                          "key": "duration_minutes",
+                          "value": "60",
+                          "type": "text",
+                          "description": "Optional, default 60"
+                        },
+                        {
+                          "key": "is_active",
+                          "value": "1",
+                          "type": "text",
+                          "description": "Optional, default 1 (active)"
+                        }
+                      ]
                     }
                   }
                 },
@@ -12218,10 +12392,6 @@
                       {
                         "key": "Accept",
                         "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
                       }
                     ],
                     "url": {
@@ -12236,10 +12406,29 @@
                         "blocked-dates"
                       ]
                     },
-                    "description": "POST /api/admin/job-scheduling/blocked-dates - Full day tab. Body: date (required, Y-m-d), block_type=full_day, reason (optional). Closes the whole date - GET Available Slots for that date returns date_blocked=true and an empty slots list.",
+                    "description": "POST /api/admin/job-scheduling/blocked-dates - Full day tab. Form-data: date (required, Y-m-d), block_type=full_day, reason (optional). Closes the whole date - GET Available Slots for that date returns date_blocked=true and an empty slots list.",
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"date\": \"2026-08-15\",\n  \"block_type\": \"full_day\",\n  \"reason\": \"Public holiday / team offsite\"\n}"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "date",
+                          "value": "2026-08-15",
+                          "type": "text",
+                          "description": "Required, Y-m-d"
+                        },
+                        {
+                          "key": "block_type",
+                          "value": "full_day",
+                          "type": "text",
+                          "description": "full_day"
+                        },
+                        {
+                          "key": "reason",
+                          "value": "Public holiday / team offsite",
+                          "type": "text",
+                          "description": "Optional"
+                        }
+                      ]
                     }
                   }
                 },
@@ -12255,10 +12444,6 @@
                       {
                         "key": "Accept",
                         "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
                       }
                     ],
                     "url": {
@@ -12273,10 +12458,35 @@
                         "blocked-dates"
                       ]
                     },
-                    "description": "POST /api/admin/job-scheduling/blocked-dates - Time slot tab. Body: date (required), block_type=time_slot, time (required, HH:mm - must match one of that date's slots), reason (optional). Only that one slot becomes unavailable; other slots on the date stay open.",
+                    "description": "POST /api/admin/job-scheduling/blocked-dates - Time slot tab. Form-data: date (required), block_type=time_slot, time (required, HH:mm - must match one of that date's slots), reason (optional). Only that one slot becomes unavailable; other slots on the date stay open.",
                     "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"date\": \"2026-08-11\",\n  \"block_type\": \"time_slot\",\n  \"time\": \"11:00\",\n  \"reason\": \"Training session\"\n}"
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "date",
+                          "value": "2026-08-11",
+                          "type": "text",
+                          "description": "Required, Y-m-d"
+                        },
+                        {
+                          "key": "block_type",
+                          "value": "time_slot",
+                          "type": "text",
+                          "description": "time_slot"
+                        },
+                        {
+                          "key": "time",
+                          "value": "11:00",
+                          "type": "text",
+                          "description": "Required, HH:mm - must match one of that date's slots"
+                        },
+                        {
+                          "key": "reason",
+                          "value": "Training session",
+                          "type": "text",
+                          "description": "Optional"
+                        }
+                      ]
                     }
                   }
                 },

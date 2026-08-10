@@ -364,6 +364,68 @@ class CmsPageApiTest extends TestCase
             ->assertJsonPath('data.sections', []);
     }
 
+    public function test_admin_form_supports_lang_param_for_arabic_and_urdu_content(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        // Default (no lang) still writes/reads English, unaffected by this change.
+        $this->withToken($token)
+            ->put('/api/admin/client/privacy-policy', [
+                'page_title' => 'Privacy Policy',
+                'content_body' => '<p>English body</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.locale', 'en')
+            ->assertJsonPath('data.content_body', '<p>English body</p>');
+
+        // GET with ?lang=ar before any Arabic content exists returns blank fields,
+        // not the English fallback (so the admin knows it still needs translating).
+        $this->withToken($token)
+            ->getJson('/api/admin/client/privacy-policy?lang=ar')
+            ->assertOk()
+            ->assertJsonPath('data.locale', 'ar')
+            ->assertJsonPath('data.content_body', '');
+
+        // Saving with ?lang=ar writes Arabic content without touching English.
+        $this->withToken($token)
+            ->put('/api/admin/client/privacy-policy?lang=ar', [
+                'page_title' => 'سياسة الخصوصية',
+                'content_body' => '<p>نص عربي</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.locale', 'ar')
+            ->assertJsonPath('data.content_body', '<p>نص عربي</p>');
+
+        $this->withToken($token)
+            ->put('/api/admin/client/privacy-policy?lang=ur', [
+                'page_title' => 'رازداری کی پالیسی',
+                'content_body' => '<p>اردو متن</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.locale', 'ur');
+
+        // English content is untouched by the Arabic/Urdu saves.
+        $this->withToken($token)
+            ->getJson('/api/admin/client/privacy-policy')
+            ->assertOk()
+            ->assertJsonPath('data.content_body', '<p>English body</p>');
+
+        // Public app API now returns the right language per ?lang=.
+        $this->getJson('/api/client/privacy-policy?lang=ar')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>نص عربي</p>');
+
+        $this->getJson('/api/client/privacy-policy?lang=ur')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>اردو متن</p>');
+
+        $this->getJson('/api/client/privacy-policy?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>English body</p>');
+    }
+
     public function test_admin_vendor_privacy_update_via_put_multipart_form_data(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

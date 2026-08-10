@@ -211,7 +211,7 @@ class CmsPageService
      */
     public function toMobileAdminTab(CmsPage $page, string $audience): array
     {
-        $form = $this->toMobileAdminForm($page, $audience);
+        $form = $this->toMobileAdminForm($page, $audience, 'en');
 
         return [
             'page' => $page->slug,
@@ -224,19 +224,24 @@ class CmsPageService
 
     /**
      * Flat form fields for the mobile admin Legal & Contact Content screen.
+     * $locale (en|ar|ur, default en) selects which language's content is returned.
      *
      * @return array<string, mixed>
      */
-    public function toMobileAdminForm(CmsPage $page, string $audience): array
+    public function toMobileAdminForm(CmsPage $page, string $audience, ?string $locale = null): array
     {
         $audience = $this->resolveAudience($audience);
-        $locale = 'en';
+        $locale = $this->resolveLocale($locale);
         $translations = $this->normalizeAudienceTranslations($page->translations ?? []);
-        $content = $this->pickLocaleContent($translations[$audience] ?? [], $locale);
+        // No fallback-to-English here (unlike toAppPayload): the admin edit form must show
+        // blank fields for a locale that hasn't been translated yet, not the English text,
+        // otherwise saving would silently duplicate English content into the other language.
+        $content = is_array($translations[$audience][$locale] ?? null) ? $translations[$audience][$locale] : [];
         $contact = $this->audienceContactBlock($page, $audience);
 
         $base = [
             'audience' => $audience,
+            'locale' => $locale,
             'page' => $page->slug,
             'page_key' => $this->mobilePageKey($page->slug),
             'is_active' => $page->is_active,
@@ -275,12 +280,14 @@ class CmsPageService
     }
 
     /**
+     * $locale (en|ar|ur, default en) selects which language's content this save writes to.
+     *
      * @param  array<string, mixed>  $data
      */
-    public function updateFromMobileAdminForm(CmsPage $page, string $audience, array $data): CmsPage
+    public function updateFromMobileAdminForm(CmsPage $page, string $audience, array $data, ?string $locale = null): CmsPage
     {
         $audience = $this->resolveAudience($audience);
-        $locale = 'en';
+        $locale = $this->resolveLocale($locale);
         $existing = $this->toAdminPayload($page);
         $translations = $existing['translations'];
         $contactDetails = $existing['contact_details'];

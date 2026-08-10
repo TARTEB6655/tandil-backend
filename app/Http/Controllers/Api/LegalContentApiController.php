@@ -56,18 +56,21 @@ class LegalContentApiController extends Controller
 
     /**
      * GET /api/admin/client/{page} or /api/admin/vendor/{page}
+     * Optional ?lang=en|ar|ur (default en) selects which language's content to read.
      */
     public function adminShow(Request $request): JsonResponse
     {
         $audience = $this->legalPages->resolveAudience($request->route('audience'));
         $slug = $this->legalPages->resolvePageKey($request->route('page'));
         $page = $this->legalPages->findBySlug($slug);
+        $locale = $this->legalPages->resolveLocale($request->input('lang', $request->input('locale')));
 
-        return ApiResponse::success('Legal content retrieved.', $this->legalPages->toMobileAdminForm($page, $audience));
+        return ApiResponse::success('Legal content retrieved.', $this->legalPages->toMobileAdminForm($page, $audience, $locale));
     }
 
     /**
      * PUT|POST /api/admin/client/{page} or /api/admin/vendor/{page} — form-data or JSON body.
+     * Optional lang (query or body, en|ar|ur, default en) selects which language's content this save updates.
      */
     public function adminUpdate(Request $request): JsonResponse
     {
@@ -76,8 +79,9 @@ class LegalContentApiController extends Controller
         $audience = $this->legalPages->resolveAudience($request->route('audience'));
         $slug = $this->legalPages->resolvePageKey($request->route('page'));
         $page = $this->legalPages->findBySlug($slug);
-        $updated = $this->legalPages->updateFromMobileAdminForm($page, $audience, $request->all());
+        $locale = $this->legalPages->resolveLocale($request->input('lang', $request->input('locale')));
+        $updated = $this->legalPages->updateFromMobileAdminForm($page, $audience, $request->all(), $locale);
 
-        return ApiResponse::success('Legal content updated.', $this->legalPages->toMobileAdminForm($updated, $audience));
+        return ApiResponse::success('Legal content updated.', $this->legalPages->toMobileAdminForm($updated, $audience, $locale));
     }
 }
