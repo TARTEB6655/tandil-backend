@@ -11973,6 +11973,10 @@
                         "value": "Bearer {{token}}"
                       },
                       {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      },
+                      {
                         "key": "Accept",
                         "value": "application/json"
                       }
@@ -11989,173 +11993,15 @@
                         "working-hours"
                       ]
                     },
-                    "description": "PUT /api/admin/job-scheduling/working-hours - All fields optional (partial update). Send all 7 day rows (day one of mon|tue|wed|thu|fri|sat|sun, enabled 1/0, start/end HH:mm 24h, end must be after start) as working_hours[0..6][day|enabled|start|end]. max_bookings_per_slot: max jobs allowed in one time slot. max_bookings_per_day: max jobs allowed on one date. buffer_minutes: minutes required between two jobs for the same technician (used by double-booking prevention). Returns the updated settings (same shape as GET). Form-data body (bracket-notation array) so it's easy to fill in Postman.",
+                    "description": "PUT /api/admin/job-scheduling/working-hours - All fields optional (partial update). JSON body: working_hours (array of up to 7 rows, each { day: mon|tue|wed|thu|fri|sat|sun, enabled: true/false, start: HH:mm 24h, end: HH:mm 24h (must be after start) }), max_bookings_per_slot (max jobs allowed in one time slot), max_bookings_per_day (max jobs allowed on one date), buffer_minutes (minutes required between two jobs for the same technician - used by double-booking prevention). Returns the updated settings (same shape as GET).",
                     "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "working_hours[0][day]",
-                          "value": "mon",
-                          "type": "text",
-                          "description": "mon|tue|wed|thu|fri|sat|sun"
-                        },
-                        {
-                          "key": "working_hours[0][enabled]",
-                          "value": "1",
-                          "type": "text",
-                          "description": "1 = working day, 0 = closed"
-                        },
-                        {
-                          "key": "working_hours[0][start]",
-                          "value": "09:00",
-                          "type": "text",
-                          "description": "HH:mm 24h"
-                        },
-                        {
-                          "key": "working_hours[0][end]",
-                          "value": "18:00",
-                          "type": "text",
-                          "description": "HH:mm 24h, must be after start"
-                        },
-                        {
-                          "key": "working_hours[1][day]",
-                          "value": "tue",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[1][enabled]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[1][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[1][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[2][day]",
-                          "value": "wed",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[2][enabled]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[2][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[2][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[3][day]",
-                          "value": "thu",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[3][enabled]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[3][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[3][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[4][day]",
-                          "value": "fri",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[4][enabled]",
-                          "value": "0",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[4][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[4][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[5][day]",
-                          "value": "sat",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[5][enabled]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[5][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[5][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[6][day]",
-                          "value": "sun",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[6][enabled]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[6][start]",
-                          "value": "09:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "working_hours[6][end]",
-                          "value": "18:00",
-                          "type": "text"
-                        },
-                        {
-                          "key": "max_bookings_per_slot",
-                          "value": "2",
-                          "type": "text",
-                          "description": "Max jobs allowed in one time slot"
-                        },
-                        {
-                          "key": "max_bookings_per_day",
-                          "value": "12",
-                          "type": "text",
-                          "description": "Max jobs allowed on one date"
-                        },
-                        {
-                          "key": "buffer_minutes",
-                          "value": "15",
-                          "type": "text",
-                          "description": "Minutes required between two jobs for the same technician"
+                      "mode": "raw",
+                      "raw": "{\n  \"working_hours\": [\n    {\n      \"day\": \"mon\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"tue\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"wed\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"thu\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"fri\",\n      \"enabled\": false,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sat\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    },\n    {\n      \"day\": \"sun\",\n      \"enabled\": true,\n      \"start\": \"09:00\",\n      \"end\": \"18:00\"\n    }\n  ],\n  \"max_bookings_per_slot\": 2,\n  \"max_bookings_per_day\": 12,\n  \"buffer_minutes\": 15\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
                         }
-                      ]
+                      }
                     }
                   }
                 }
