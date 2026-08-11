@@ -204,6 +204,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/job-scheduling'
 
     Route::get('/calendar', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'calendar']);
     Route::get('/jobs/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'bookingDetail']);
+    Route::put('/jobs/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'updateBookingDetail']);
 });
 
 /*

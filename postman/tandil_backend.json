@@ -12685,7 +12685,72 @@
                         "{{visit_id}}"
                       ]
                     },
-                    "description": "GET /api/admin/job-scheduling/jobs/{id} - Booking detail screen (tap a job card on the Jobs Calendar). Response data: id, title (first '|' segment of notes, or \"Job #id\"), client {id,name}, technician {id,name}|null, scheduled_date, scheduled_time, end_time (computed from duration_minutes or the matching time slot), duration_minutes, current_schedule_label (e.g. \"Currently Mon, Aug 10 · 10:00–11:00\"), status, notes, technician_overlap.\n\nTo edit and save (both the \"Save changes\" and \"Reschedule & notify\" buttons): use **4. Client Dashboard -> M. Visits -> Update Visit** (PUT /api/visits/{id}) with the same {{visit_id}} - it already re-validates the slot/technician conflict and sends the reschedule/update notification to the client + technician. See its scheduled_time/end_time fields."
+                    "description": "GET /api/admin/job-scheduling/jobs/{id} - Booking detail screen (tap a job card on the Jobs Calendar). Response data: id, title (first '|' segment of notes, or \"Job #id\"), client {id,name}, technician {id,name}|null, scheduled_date, scheduled_time, end_time (computed from duration_minutes or the matching time slot), duration_minutes, current_schedule_label (e.g. \"Currently Mon, Aug 10 · 10:00–11:00\"), status, notes (client-facing job title/service string), internal_notes (admin-only, editable on this screen), technician_overlap.\n\nTo edit and save: PUT /api/admin/job-scheduling/jobs/{{visit_id}} (next request) - both \"Save changes\" and \"Reschedule & notify\" map to that same endpoint."
+                  }
+                },
+                {
+                  "name": "5. Update Booking Detail (Save changes / Reschedule & notify)",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "formdata",
+                      "formdata": [
+                        {
+                          "key": "date",
+                          "value": "2026-08-10",
+                          "type": "text",
+                          "description": "Optional, Y-m-d. Matches the \"Date (YYYY-MM-DD)\" field on the Booking detail screen."
+                        },
+                        {
+                          "key": "start",
+                          "value": "10:00",
+                          "type": "text",
+                          "description": "Optional, HH:mm (24h). Matches \"Start (HH:mm)\"."
+                        },
+                        {
+                          "key": "end",
+                          "value": "11:00",
+                          "type": "text",
+                          "description": "Optional, HH:mm (24h). Matches \"End (HH:mm)\". Admin custom end time bypasses the \"must be a configured slot\" restriction."
+                        },
+                        {
+                          "key": "technician_id",
+                          "value": "",
+                          "type": "text",
+                          "description": "Optional. Matches the \"Technician\" field (send the technician's user id)."
+                        },
+                        {
+                          "key": "internal_notes",
+                          "value": "Gate code, access notes...",
+                          "type": "text",
+                          "description": "Optional. Matches \"Internal notes\". Stored in a dedicated column — does not overwrite the job title (which is parsed from the notes field, separate from this)."
+                        }
+                      ]
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/jobs/{{visit_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "jobs",
+                        "{{visit_id}}"
+                      ]
+                    },
+                    "description": "PUT /api/admin/job-scheduling/jobs/{id} — Booking detail screen \"Save changes\" and \"Reschedule & notify\" buttons both call this exact endpoint (same request either way, no separate reschedule API). Only these 5 fields are accepted — matches the screen 1:1, no extra parameters. Re-validates the slot/technician conflict; when date and/or start actually change, notifies the client and the assigned technician that the job was rescheduled. internal_notes is a separate column from the job-title-bearing notes field, so saving internal notes never overwrites the title. Response: same payload shape as \"4. Booking Detail\" (GET), including internal_notes."
                   }
                 }
               ]

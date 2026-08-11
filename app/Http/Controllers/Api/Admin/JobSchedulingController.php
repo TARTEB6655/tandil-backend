@@ -8,7 +8,9 @@ use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use App\Models\JobBlockedDate;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
+use App\Models\User;
 use App\Models\Visit;
+use App\Notifications\AdminNotification;
 use App\Services\JobSchedulingService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -292,11 +294,9 @@ class JobSchedulingController extends Controller
 
     /**
      * GET /api/admin/job-scheduling/jobs/{id}
-     * Booking detail screen: tap a job on the Jobs calendar. Editing/saving
-     * uses the existing PUT /api/visits/{id} (Update Visit) — both "Save
-     * changes" and "Reschedule & notify" map to that same endpoint; it already
-     * validates the slot/technician conflict and fires the reschedule/update
-     * notification to the client + technician.
+     * Booking detail screen: tap a job on the Jobs calendar. "Save changes"
+     * and "Reschedule & notify" both call PUT /api/admin/job-scheduling/jobs/{id}
+     * (updateBookingDetail below) — same five fields shown on this screen.
      */
     public function bookingDetail(int $id)
     {
@@ -327,8 +327,116 @@ class JobSchedulingController extends Controller
             'current_schedule_label' => $currentScheduleLabel ? 'Currently '.$currentScheduleLabel : null,
             'status' => $visit->status,
             'notes' => $visit->notes,
+            'internal_notes' => $visit->internal_notes,
             'technician_overlap' => $overlap,
         ]);
+    }
+
+    /**
+     * PUT /api/admin/job-scheduling/jobs/{id}
+     * Booking detail screen: "Save changes" and "Reschedule & notify" both call
+     * this. Only the fields shown on that screen are accepted: date, start, end,
+     * technician_id, internal_notes. Re-validates the slot/technician conflict
+     * and — when the date or start time actually changes — notifies the client
+     * + assigned technician that the job was rescheduled.
+     *
+     * internal_notes is a dedicated column, separate from `notes` (which stores
+     * the client-facing pipe-delimited job title/service string parsed by
+     * jobTitleFromNotes()) — writing this screen's notes field into `notes`
+     * would silently overwrite the job title.
+     */
+    public function updateBookingDetail(Request $request, int $id)
+    {
+        $this->mergePutMultipartFormFields($request);
+
+        $visit = Visit::with('subscription.client')->find($id);
+        if (! $visit) {
+            return ApiResponse::error('Job not found.', 404);
+        }
+
+        $request->validate([
+            'date' => 'nullable|date',
+            'start' => 'nullable|date_format:H:i',
+            'end' => 'nullable|date_format:H:i|after:start',
+            'technician_id' => 'nullable|exists:users,id',
+            'internal_notes' => 'nullable|string|max:5000',
+        ]);
+
+        $effectiveDate = $request->input('date', optional($visit->scheduled_date)->toDateString());
+        $effectiveStart = $request->has('start') ? $request->input('start') : $visit->scheduled_time;
+
+        $durationMinutes = $visit->duration_minutes;
+        if ($request->filled('end')) {
+            $durationMinutes = $effectiveStart ? JobSchedulingService::minutesBetween($effectiveStart, $request->input('end')) : null;
+        }
+
+        if ($request->has('date') || $request->has('start') || $request->has('technician_id')) {
+            if ($request->has('date') || $request->has('start')) {
+                // Admin's custom end time (this screen) bypasses the "must be a configured slot" restriction.
+                $requireConfiguredSlot = ! $request->filled('end');
+                $schedulingError = JobSchedulingService::validateSlotForBooking($effectiveDate, $effectiveStart, $visit->id, $requireConfiguredSlot);
+                if ($schedulingError) {
+                    return ApiResponse::error($schedulingError, 422);
+                }
+            }
+
+            $effectiveTechnicianId = $request->has('technician_id') ? $request->input('technician_id') : $visit->technician_id;
+            if ($effectiveTechnicianId && JobSchedulingService::hasTechnicianConflict((int) $effectiveTechnicianId, $effectiveDate, $effectiveStart, $visit->id, $durationMinutes)) {
+                return ApiResponse::error('Selected technician is already booked for this date and time.', 422);
+            }
+        }
+
+        $oldScheduledDate = optional($visit->scheduled_date)->toDateString();
+        $oldScheduledTime = $visit->scheduled_time;
+
+        if ($request->has('date')) {
+            $visit->scheduled_date = $request->input('date');
+        }
+        if ($request->has('start')) {
+            $visit->scheduled_time = $request->input('start');
+        }
+        if ($request->filled('end')) {
+            $visit->duration_minutes = $durationMinutes;
+        }
+        if ($request->has('technician_id')) {
+            $visit->technician_id = $request->input('technician_id');
+        }
+        if ($request->has('internal_notes')) {
+            $visit->internal_notes = $request->input('internal_notes');
+        }
+
+        $visit->save();
+
+        try {
+            $newScheduledDate = optional($visit->scheduled_date)->toDateString();
+            $rescheduled = ($request->has('date') && $oldScheduledDate !== $newScheduledDate)
+                || ($request->has('start') && $oldScheduledTime !== $visit->scheduled_time);
+
+            if ($rescheduled) {
+                $when = $newScheduledDate.($visit->scheduled_time ? ' '.$visit->scheduled_time : '');
+                $meta = ['type' => 'booking_rescheduled', 'visit_id' => $visit->id, 'scheduled_date' => $newScheduledDate, 'scheduled_time' => $visit->scheduled_time];
+
+                if ($visit->subscription && $visit->subscription->client) {
+                    $visit->subscription->client->notify(new AdminNotification('Visit Rescheduled', "Your visit has been rescheduled to {$when}.", $meta));
+                }
+                if ($visit->technician_id) {
+                    User::find($visit->technician_id)?->notify(new AdminNotification('Visit Rescheduled', "Visit #{$visit->id} has been rescheduled to {$when}.", $meta));
+                }
+            } elseif ($request->has('internal_notes') || $request->has('technician_id')) {
+                $meta = ['type' => 'booking_updated', 'visit_id' => $visit->id];
+
+                if ($visit->subscription && $visit->subscription->client) {
+                    $visit->subscription->client->notify(new AdminNotification('Visit Updated', "Your visit #{$visit->id} details have been updated.", $meta));
+                }
+                if ($visit->technician_id) {
+                    User::find($visit->technician_id)?->notify(new AdminNotification('Visit Updated', "Visit #{$visit->id} details have been updated.", $meta));
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::error('Failed to send booking detail update notifications: '.$e->getMessage());
+        }
+
+        return $this->bookingDetail($id);
     }
 
     private function computeEndTime(Visit $v): ?string

@@ -6,8 +6,10 @@ use App\Models\Area;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\Visit;
+use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -282,5 +284,76 @@ class JobSchedulingApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.view', 'week')
             ->assertJsonPath('data.total', 1);
+    }
+
+    public function test_admin_can_update_booking_detail_via_real_multipart_put_and_notifies_on_reschedule(): void
+    {
+        Notification::fake();
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $technician = User::factory()->create(['role' => 'technician']);
+        $this->assignRoleIfAvailable($technician, 'technician');
+        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
+
+        $visit = Visit::create([
+            'subscription_id' => $subscription->id,
+            'technician_id' => $technician->id,
+            'scheduled_date' => '2026-08-10',
+            'scheduled_time' => '10:00',
+            'duration_minutes' => 60,
+            'status' => 'scheduled',
+            'notes' => 'Palm tree pruning | Mousa Al Baloushi',
+        ]);
+
+        $token = $this->admin->createToken('test', ['admin'])->plainTextToken;
+
+        $boundary = '----BookingDetailBoundary1';
+        $fields = [
+            'date' => '2026-08-11',
+            'start' => '11:00',
+            'end' => '12:00',
+            'technician_id' => (string) $technician->id,
+            'internal_notes' => 'Gate code 4521, access from the back.',
+        ];
+        $body = '';
+        foreach ($fields as $name => $value) {
+            $body .= "--{$boundary}\r\n"
+                ."Content-Disposition: form-data; name=\"{$name}\"\r\n\r\n"
+                ."{$value}\r\n";
+        }
+        $body .= "--{$boundary}--\r\n";
+
+        $this->call(
+            'PUT',
+            "/api/admin/job-scheduling/jobs/{$visit->id}",
+            [],
+            [],
+            [],
+            [
+                'HTTP_AUTHORIZATION' => 'Bearer '.$token,
+                'HTTP_ACCEPT' => 'application/json',
+                'CONTENT_TYPE' => 'multipart/form-data; boundary='.$boundary,
+            ],
+            $body
+        )
+            ->assertOk()
+            ->assertJsonPath('data.scheduled_date', '2026-08-11')
+            ->assertJsonPath('data.scheduled_time', '11:00')
+            ->assertJsonPath('data.end_time', '12:00')
+            ->assertJsonPath('data.title', 'Palm tree pruning')
+            ->assertJsonPath('data.notes', 'Palm tree pruning | Mousa Al Baloushi')
+            ->assertJsonPath('data.internal_notes', 'Gate code 4521, access from the back.');
+
+        $visit->refresh();
+        $this->assertSame('2026-08-11', $visit->scheduled_date->toDateString());
+        $this->assertSame('11:00', $visit->scheduled_time);
+        $this->assertSame(60, $visit->duration_minutes);
+        // internal_notes must never clobber the client-facing notes/title string.
+        $this->assertSame('Palm tree pruning | Mousa Al Baloushi', $visit->notes);
+        $this->assertSame('Gate code 4521, access from the back.', $visit->internal_notes);
+
+        Notification::assertSentTo($client, AdminNotification::class);
+        Notification::assertSentTo($technician, AdminNotification::class);
     }
 }

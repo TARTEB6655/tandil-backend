@@ -32,6 +32,7 @@ class Visit extends Model
         'accept_by',
         'offer_count',
         'notes',
+        'internal_notes',
         'price',
     ];
 
