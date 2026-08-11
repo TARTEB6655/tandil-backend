@@ -136,6 +136,7 @@ if (! function_exists('registerPortalSupportChatRoutes')) {
 Route::get('/privacy-policy', [LegalPageController::class, 'privacyPolicy'])->name('legal.privacy-policy');
 Route::get('/terms-and-conditions', [LegalPageController::class, 'terms'])->name('legal.terms');
 Route::get('/contact-us', [LegalPageController::class, 'contact'])->name('legal.contact');
+Route::get('/support', [LegalPageController::class, 'support'])->name('legal.support');
 Route::redirect('/privacy', '/privacy-policy', 301);
 
 // Redirect root '/' to app portal (role picker) or dashboard redirect

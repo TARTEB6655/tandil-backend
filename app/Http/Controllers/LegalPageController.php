@@ -28,6 +28,11 @@ class LegalPageController extends Controller
         return $this->renderPage(CmsPage::SLUG_CONTACT, $request);
     }
 
+    public function support(Request $request): View
+    {
+        return $this->renderPage(CmsPage::SLUG_SUPPORT, $request);
+    }
+
     private function renderPage(string $slug, Request $request): View
     {
         $locale = $this->cmsPages->resolveLocale($request->query('lang'));

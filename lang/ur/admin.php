@@ -46,6 +46,7 @@ return [
     'language_region' => 'زبان اور خطہ',
     'payment_settings' => 'ادائیگی کی ترتیبات',
     'privacy_policy' => 'رازداری کی پالیسی',
+    'support' => 'معاونت',
     'terms_of_service' => 'سروس کی شرائط',
     'logout' => 'لاگ آؤٹ',
     'profile_account_title' => 'اکاؤنٹ اور پروفائل',

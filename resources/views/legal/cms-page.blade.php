@@ -7,7 +7,7 @@
         Preview for <strong>{{ ucfirst($audience) }} App</strong> · locale <strong>{{ strtoupper($locale) }}</strong>
     </div>
 
-    @if($page->isPrivacyPage())
+    @if($page->isPrivacyPage() || $page->isSupportPage())
         <article class="legal-prose space-y-6">
             <header>
                 <h1>{{ $payload['title'] ?? '' }}</h1>

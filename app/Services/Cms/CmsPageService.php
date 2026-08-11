@@ -190,8 +190,9 @@ class CmsPageService
             'contact-us', 'contact' => CmsPage::SLUG_CONTACT,
             'terms-and-conditions', 'terms' => CmsPage::SLUG_TERMS,
             'privacy-policy', 'privacy' => CmsPage::SLUG_PRIVACY,
+            'support' => CmsPage::SLUG_SUPPORT,
             default => throw ValidationException::withMessages([
-                'page' => 'Invalid page. Use contact-us, terms-and-conditions, or privacy-policy.',
+                'page' => 'Invalid page. Use contact-us, terms-and-conditions, privacy-policy, or support.',
             ]),
         };
     }
@@ -1123,6 +1124,40 @@ HTML;
             'body' => $privacyBody,
         ];
 
+        $supportBody = <<<'HTML'
+<p>Welcome to Tandil Support. We are here to assist you with any questions or issues related to the Tandil application and our services.</p>
+<h2>How Can We Help You?</h2>
+<p>We can assist you with:</p>
+<ul>
+<li>Account registration and login issues</li>
+<li>Updating account information</li>
+<li>Orders and service requests</li>
+<li>Agricultural services</li>
+<li>Landscaping and maintenance services</li>
+<li>Products and equipment orders</li>
+<li>Payments and payment issues</li>
+<li>Refunds and cancellations</li>
+<li>Wallet and transaction issues</li>
+<li>Technical problems with the application</li>
+<li>Complaints, suggestions, and feedback</li>
+<li>Privacy and personal data requests</li>
+<li>Account deletion requests</li>
+</ul>
+<h2>Contact Tandil Support</h2>
+<p>Email: <a href="mailto:support@tandil.ae">support@tandil.ae</a></p>
+<p>When contacting our support team, please provide your registered phone number or email address and your Order ID, if applicable, along with a brief description of the issue.</p>
+<h2>Company Information</h2>
+<p>Tandil Brokerage L.L.C.<br>United Arab Emirates</p>
+<h2>Support Availability</h2>
+<p>Customers can contact us by email for questions, complaints, technical issues, or assistance related to Tandil services and orders.</p>
+HTML;
+
+        $supportLocale = fn (): array => [
+            'title' => 'Tandil Support',
+            'subtitle' => '',
+            'body' => $supportBody,
+        ];
+
         $termsLocale = fn (): array => [
             'title' => 'Terms & Conditions',
             'effective_date' => 'July 9, 2026',
@@ -1182,6 +1217,15 @@ HTML;
                     CmsPage::AUDIENCE_CLIENT => $sharedContact,
                     CmsPage::AUDIENCE_VENDOR => $sharedContact,
                 ],
+            ],
+            [
+                'slug' => CmsPage::SLUG_SUPPORT,
+                'label' => 'Support',
+                'translations' => [
+                    CmsPage::AUDIENCE_CLIENT => ['en' => $supportLocale()],
+                    CmsPage::AUDIENCE_VENDOR => ['en' => $supportLocale()],
+                ],
+                'contact_details' => null,
             ],
         ];
     }

@@ -47,6 +47,7 @@ return [
     'language_region' => 'Language & Region',
     'payment_settings' => 'Payment Settings',
     'privacy_policy' => 'Privacy Policy',
+    'support' => 'Support',
     'terms_of_service' => 'Terms of Service',
     'logout' => 'Logout',
     'profile_account_title' => 'Account & profile',

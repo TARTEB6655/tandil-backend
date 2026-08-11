@@ -8,11 +8,13 @@
     $previewRoute = match ($page->slug) {
         CmsPage::SLUG_PRIVACY => 'legal.privacy-policy',
         CmsPage::SLUG_TERMS => 'legal.terms',
+        CmsPage::SLUG_SUPPORT => 'legal.support',
         default => 'legal.contact',
     };
     $screenLabel = match (true) {
         $page->isPrivacyPage() => 'Privacy Policy screen',
         $page->isTermsPage() => 'Terms & Conditions screen',
+        $page->isSupportPage() => 'Support screen',
         default => 'Contact Us screen',
     };
 @endphp
@@ -112,7 +114,7 @@
                                                class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                                     </div>
 
-                                    @if($page->isPrivacyPage())
+                                    @if($page->isPrivacyPage() || $page->isSupportPage())
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Subtitle</label>
                                             <input type="text"
@@ -143,7 +145,7 @@
                                 </div>
                             </div>
 
-                            @if($page->isPrivacyPage())
+                            @if($page->isPrivacyPage() || $page->isSupportPage())
                                 <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4">
                                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">Policy content card</p>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Maps to API: <code>body</code></p>

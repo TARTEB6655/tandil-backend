@@ -67,14 +67,24 @@
             <footer class="flex-shrink-0 border-t border-gray-200 bg-white px-4 py-4 dark:border-gray-700 dark:bg-gray-900 sm:px-6">
                 <div class="mx-auto flex max-w-[1600px] flex-col items-center justify-between gap-2 text-center text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:text-start">
                     <p>&copy; {{ date('Y') }} Tandil</p>
-                    <a
-                        href="{{ route('legal.privacy-policy') }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
-                    >
-                        {{ __('admin.privacy_policy') }}
-                    </a>
+                    <div class="flex items-center gap-4">
+                        <a
+                            href="{{ route('legal.privacy-policy') }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        >
+                            {{ __('admin.privacy_policy') }}
+                        </a>
+                        <a
+                            href="{{ route('legal.support') }}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="font-medium text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+                        >
+                            {{ __('admin.support') }}
+                        </a>
+                    </div>
                 </div>
             </footer>
         </div>

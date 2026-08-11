@@ -20,7 +20,7 @@ Route::get('/localized-articles', [\App\Http\Controllers\Api\LocalizedArticleCon
 Route::get('/localized-articles/{slug}', [\App\Http\Controllers\Api\LocalizedArticleController::class, 'show'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*');
 
-$legalContentPages = ['contact-us', 'terms-and-conditions', 'privacy-policy'];
+$legalContentPages = ['contact-us', 'terms-and-conditions', 'privacy-policy', 'support'];
 
 foreach (['client', 'vendor'] as $audience) {
     Route::prefix($audience)->group(function () use ($audience, $legalContentPages) {

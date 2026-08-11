@@ -12,6 +12,8 @@ class CmsPage extends Model
 
     public const SLUG_CONTACT = 'contact-us';
 
+    public const SLUG_SUPPORT = 'support';
+
     public const AUDIENCE_CLIENT = 'client';
 
     public const AUDIENCE_VENDOR = 'vendor';
@@ -21,6 +23,7 @@ class CmsPage extends Model
         self::SLUG_PRIVACY,
         self::SLUG_TERMS,
         self::SLUG_CONTACT,
+        self::SLUG_SUPPORT,
     ];
 
     /** @var list<string> */
@@ -59,5 +62,10 @@ class CmsPage extends Model
     public function isPrivacyPage(): bool
     {
         return $this->slug === self::SLUG_PRIVACY;
+    }
+
+    public function isSupportPage(): bool
+    {
+        return $this->slug === self::SLUG_SUPPORT;
     }
 }

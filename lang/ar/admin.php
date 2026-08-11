@@ -46,6 +46,7 @@ return [
     'language_region' => 'اللغة والمنطقة',
     'payment_settings' => 'إعدادات الدفع',
     'privacy_policy' => 'سياسة الخصوصية',
+    'support' => 'الدعم',
     'terms_of_service' => 'شروط الخدمة',
     'logout' => 'تسجيل الخروج',
     'profile_account_title' => 'الحساب والملف الشخصي',

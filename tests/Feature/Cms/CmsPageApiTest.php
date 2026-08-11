@@ -65,7 +65,7 @@ class CmsPageApiTest extends TestCase
             ->getJson('/api/admin/client/pages')
             ->assertOk()
             ->assertJsonPath('data.audience', 'client')
-            ->assertJsonCount(3, 'data.items')
+            ->assertJsonCount(4, 'data.items')
             ->assertJsonFragment(['page_key' => 'contact_us']);
     }
 
@@ -424,6 +424,48 @@ class CmsPageApiTest extends TestCase
         $this->getJson('/api/client/privacy-policy?lang=en')
             ->assertOk()
             ->assertJsonPath('data.body', '<p>English body</p>');
+    }
+
+    public function test_support_page_public_and_admin_endpoints(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $this->getJson('/api/client/support?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.slug', 'support')
+            ->assertJsonPath('data.title', 'Tandil Support')
+            ->assertJson(fn ($json) => $json->where('data.body', fn ($body) => is_string($body) && str_contains($body, 'support@tandil.ae'))->etc());
+
+        $this->withToken($token)
+            ->getJson('/api/admin/client/support')
+            ->assertOk()
+            ->assertJsonPath('data.page', 'support')
+            ->assertJsonPath('data.page_title', 'Tandil Support');
+
+        $this->withToken($token)
+            ->put('/api/admin/client/support', [
+                'page_title' => 'Tandil Support',
+                'content_body' => '<p>Updated support content</p>',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.content_body', '<p>Updated support content</p>');
+
+        $this->getJson('/api/client/support?lang=en')
+            ->assertOk()
+            ->assertJsonPath('data.body', '<p>Updated support content</p>');
+
+        $this->get('/support')
+            ->assertOk()
+            ->assertSee('Updated support content', false);
+
+        $admin2 = User::factory()->create(['role' => 'admin']);
+        $admin2->assignRole('admin');
+        $this->actingAs($admin2)
+            ->get(route('admin.cms-pages.edit', 'support'))
+            ->assertOk()
+            ->assertSee('Support screen');
     }
 
     public function test_admin_vendor_privacy_update_via_put_multipart_form_data(): void
