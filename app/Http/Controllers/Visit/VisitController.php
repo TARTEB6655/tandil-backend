@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Visit;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use Illuminate\Http\Request;
 use App\Models\Area;
 use App\Models\Visit;
@@ -16,6 +17,8 @@ use Illuminate\Support\Facades\Validator;
 
 class VisitController extends Controller
 {
+    use ParsesPutMultipartFormFields;
+
 
     public function __construct()
     {
@@ -441,6 +444,8 @@ class VisitController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $this->mergePutMultipartFormFields($request);
+
         try {
             $visit = Visit::with('subscription')->find($id);
             if (!$visit) {

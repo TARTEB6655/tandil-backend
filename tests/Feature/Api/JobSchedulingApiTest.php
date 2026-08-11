@@ -75,6 +75,60 @@ class JobSchedulingApiTest extends TestCase
         $this->assertFalse($friday['enabled']);
     }
 
+    public function test_admin_can_update_working_hours_via_real_multipart_put(): void
+    {
+        // Regression guard: PHP does not populate $_POST for PUT + multipart/form-data,
+        // so this simulates the raw wire body a Postman "form-data" PUT actually sends
+        // (unlike putJson() above, which bypasses real body parsing entirely).
+        $token = $this->admin->createToken('test', ['admin'])->plainTextToken;
+
+        $boundary = '----JobSchedulingBoundary1';
+        $fields = [
+            'working_hours[0][day]' => 'mon',
+            'working_hours[0][enabled]' => '1',
+            'working_hours[0][start]' => '08:00',
+            'working_hours[0][end]' => '17:00',
+            'working_hours[1][day]' => 'tue',
+            'working_hours[1][enabled]' => '0',
+            'working_hours[1][start]' => '09:00',
+            'working_hours[1][end]' => '18:00',
+            'buffer_minutes' => '25',
+        ];
+        $body = '';
+        foreach ($fields as $name => $value) {
+            $body .= "--{$boundary}\r\n"
+                ."Content-Disposition: form-data; name=\"{$name}\"\r\n\r\n"
+                ."{$value}\r\n";
+        }
+        $body .= "--{$boundary}--\r\n";
+
+        $this->call(
+            'PUT',
+            '/api/admin/job-scheduling/working-hours',
+            [],
+            [],
+            [],
+            [
+                'HTTP_AUTHORIZATION' => 'Bearer '.$token,
+                'HTTP_ACCEPT' => 'application/json',
+                'CONTENT_TYPE' => 'multipart/form-data; boundary='.$boundary,
+            ],
+            $body
+        )
+            ->assertOk()
+            ->assertJsonPath('data.buffer_minutes', 25);
+
+        $this->getJson('/api/admin/job-scheduling/working-hours', ['Authorization' => 'Bearer '.$token])
+            ->assertOk()
+            ->assertJsonPath('data.buffer_minutes', 25)
+            ->assertJson(fn ($json) => $json->where('data.working_hours', function ($hours) {
+                $mon = collect($hours)->firstWhere('day', 'mon');
+                $tue = collect($hours)->firstWhere('day', 'tue');
+
+                return $mon['start'] === '08:00' && $tue['enabled'] == false;
+            })->etc());
+    }
+
     public function test_non_admin_cannot_access_job_scheduling_settings(): void
     {
         $client = User::factory()->create(['role' => 'client']);

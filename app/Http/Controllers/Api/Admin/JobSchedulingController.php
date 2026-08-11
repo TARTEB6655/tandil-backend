@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use App\Models\JobBlockedDate;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
@@ -18,6 +19,8 @@ use Illuminate\Http\Request;
  */
 class JobSchedulingController extends Controller
 {
+    use ParsesPutMultipartFormFields;
+
     private const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
     /**
@@ -32,9 +35,13 @@ class JobSchedulingController extends Controller
 
     /**
      * PUT /api/admin/job-scheduling/working-hours
+     * PHP does not populate $_POST for PUT + multipart/form-data, so Postman's
+     * form-data body for this request needs the raw body re-parsed here.
      */
     public function updateWorkingHours(Request $request)
     {
+        $this->mergePutMultipartFormFields($request);
+
         $request->validate([
             'working_hours' => 'nullable|array',
             'working_hours.*.day' => 'required_with:working_hours|string|in:'.implode(',', self::DAY_KEYS),

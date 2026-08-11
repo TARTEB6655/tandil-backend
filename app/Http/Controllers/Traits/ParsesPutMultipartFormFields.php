@@ -33,7 +33,7 @@ trait ParsesPutMultipartFormFields
             return;
         }
 
-        $params = [];
+        $pairs = [];
         $lineDelimiter = "\r\n--".$boundary;
         $parts = explode($lineDelimiter, $raw);
         $firstPrefix = '--'.$boundary;
@@ -76,17 +76,15 @@ trait ParsesPutMultipartFormFields
             }
 
             $name = $nameMatch[1];
-            if (array_key_exists($name, $params)) {
-                if (! is_array($params[$name])) {
-                    $params[$name] = [$params[$name]];
-                }
-                $params[$name][] = $value;
-            } else {
-                $params[$name] = $value;
-            }
+            // Build a real query-string pair (not a flat associative merge) so bracket
+            // notation like working_hours[0][day] expands into a nested array exactly
+            // like PHP does natively for POST — merge() on a literal "working_hours[0][day]"
+            // string key would NOT nest it, silently dropping the field.
+            $pairs[] = rawurlencode($name).'='.rawurlencode($value);
         }
 
-        if ($params !== []) {
+        if ($pairs !== []) {
+            parse_str(implode('&', $pairs), $params);
             $request->merge($params);
         }
     }

@@ -343,5 +343,59 @@ class VisitCreateApiTest extends TestCase
         $response->assertStatus(422)
             ->assertJsonPath('status', false);
     }
+
+    public function test_update_visit_via_real_multipart_put_persists_changes(): void
+    {
+        // Regression guard: PHP does not populate $_POST for PUT + multipart/form-data,
+        // so this simulates the raw wire body a Postman "form-data" PUT actually sends
+        // (unlike ->putJson() elsewhere in this file, which bypasses real body parsing).
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignRoleIfAvailable($admin, 'admin');
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
+        $visit = \App\Models\Visit::factory()->create([
+            'subscription_id' => $subscription->id,
+            'status' => 'pending',
+            'notes' => 'Original notes',
+        ]);
+
+        $token = $admin->createToken('test', ['admin'])->plainTextToken;
+
+        $boundary = '----VisitUpdateBoundary1';
+        $fields = [
+            'notes' => 'Updated via real multipart PUT',
+            'price' => '150',
+            'status' => 'rejected',
+        ];
+        $body = '';
+        foreach ($fields as $name => $value) {
+            $body .= "--{$boundary}\r\n"
+                ."Content-Disposition: form-data; name=\"{$name}\"\r\n\r\n"
+                ."{$value}\r\n";
+        }
+        $body .= "--{$boundary}--\r\n";
+
+        $this->call(
+            'PUT',
+            '/api/visits/'.$visit->id,
+            [],
+            [],
+            [],
+            [
+                'HTTP_AUTHORIZATION' => 'Bearer '.$token,
+                'HTTP_ACCEPT' => 'application/json',
+                'CONTENT_TYPE' => 'multipart/form-data; boundary='.$boundary,
+            ],
+            $body
+        )
+            ->assertOk()
+            ->assertJsonPath('data.notes', 'Updated via real multipart PUT')
+            ->assertJsonPath('data.status', 'rejected');
+
+        $this->assertEquals('Updated via real multipart PUT', $visit->fresh()->notes);
+        $this->assertEquals('rejected', $visit->fresh()->status);
+        $this->assertEquals(150.0, (float) $visit->fresh()->price);
+    }
 }
 
