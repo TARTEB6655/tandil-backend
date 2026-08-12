@@ -293,6 +293,54 @@ class JobSchedulingController extends Controller
     }
 
     /**
+     * Reusable filter for orphaned junk visits cluttering the Jobs calendar:
+     * no subscription, no order, no notes, no scheduled time, no
+     * technician/area/supervisor, and still "pending". Never matches a
+     * real booking — every real Create Visit call requires subscription_id.
+     */
+    private function orphanJobsQuery()
+    {
+        return Visit::whereNull('subscription_id')
+            ->whereNull('order_id')
+            ->whereNull('notes')
+            ->whereNull('scheduled_time')
+            ->whereNull('technician_id')
+            ->whereNull('area_id')
+            ->whereNull('supervisor_id')
+            ->where('status', 'pending');
+    }
+
+    /**
+     * GET /api/admin/job-scheduling/jobs/orphans
+     * Preview: count + up to 500 ids of blank/junk visits that would be
+     * removed by DELETE /api/admin/job-scheduling/jobs/orphans. Read-only —
+     * run this first to confirm the count before deleting.
+     */
+    public function previewOrphanJobs()
+    {
+        $query = $this->orphanJobsQuery();
+
+        return ApiResponse::success('Orphan job preview retrieved successfully.', [
+            'count' => $query->count(),
+            'ids' => $query->orderBy('id')->limit(500)->pluck('id'),
+        ]);
+    }
+
+    /**
+     * DELETE /api/admin/job-scheduling/jobs/orphans
+     * Permanently deletes every visit matching orphanJobsQuery(). Destructive —
+     * call GET .../jobs/orphans first to confirm the count/ids.
+     */
+    public function deleteOrphanJobs()
+    {
+        $deleted = $this->orphanJobsQuery()->delete();
+
+        return ApiResponse::success('Orphan jobs deleted successfully.', [
+            'deleted_count' => $deleted,
+        ]);
+    }
+
+    /**
      * GET /api/admin/job-scheduling/jobs/{id}
      * Booking detail screen: tap a job on the Jobs calendar. "Save changes"
      * and "Reschedule & notify" both call PUT /api/admin/job-scheduling/jobs/{id}

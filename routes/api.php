@@ -203,6 +203,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/job-scheduling'
     Route::delete('/blocked-dates/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteBlockedDate']);
 
     Route::get('/calendar', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'calendar']);
+    // Must be registered before /jobs/{id} so "orphans" isn't captured as {id}.
+    Route::get('/jobs/orphans', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'previewOrphanJobs']);
+    Route::delete('/jobs/orphans', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteOrphanJobs']);
     Route::get('/jobs/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'bookingDetail']);
     Route::put('/jobs/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'updateBookingDetail']);
 });

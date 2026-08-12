@@ -356,4 +356,65 @@ class JobSchedulingApiTest extends TestCase
         Notification::assertSentTo($client, AdminNotification::class);
         Notification::assertSentTo($technician, AdminNotification::class);
     }
+
+    public function test_orphan_jobs_preview_and_delete_never_touches_real_bookings(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $technician = User::factory()->create(['role' => 'technician']);
+        $this->assignRoleIfAvailable($technician, 'technician');
+        $subscription = Subscription::factory()->create(['client_id' => $client->id]);
+
+        // A real, fully-formed booking - must survive both preview and delete.
+        $realVisit = Visit::create([
+            'subscription_id' => $subscription->id,
+            'technician_id' => $technician->id,
+            'scheduled_date' => '2026-08-10',
+            'scheduled_time' => '10:00',
+            'status' => 'pending',
+            'notes' => 'Palm tree pruning | Mousa Al Baloushi',
+        ]);
+
+        // A date-only booking with a real subscription but no time/notes yet -
+        // still has subscription_id, so it must never be treated as an orphan.
+        $dateOnlyVisit = Visit::create([
+            'subscription_id' => $subscription->id,
+            'scheduled_date' => '2026-08-12',
+            'status' => 'pending',
+        ]);
+
+        // Genuine junk: no subscription, no notes, no time, no assignment - matches
+        // the exact pattern found cluttering the live Jobs calendar.
+        $orphan1 = Visit::create(['scheduled_date' => '2026-08-05', 'status' => 'pending']);
+        $orphan2 = Visit::create(['scheduled_date' => '2026-08-06', 'status' => 'pending']);
+
+        // Same blank shape but already rejected - must NOT be deleted (status filter).
+        $rejectedBlank = Visit::create(['scheduled_date' => '2026-08-07', 'status' => 'rejected']);
+
+        $preview = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/jobs/orphans')
+            ->assertOk()
+            ->assertJsonPath('data.count', 2);
+
+        $previewIds = $preview->json('data.ids');
+        sort($previewIds);
+        $this->assertSame([$orphan1->id, $orphan2->id], $previewIds);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/admin/job-scheduling/jobs/orphans')
+            ->assertOk()
+            ->assertJsonPath('data.deleted_count', 2);
+
+        $this->assertDatabaseMissing('visits', ['id' => $orphan1->id]);
+        $this->assertDatabaseMissing('visits', ['id' => $orphan2->id]);
+        $this->assertDatabaseHas('visits', ['id' => $realVisit->id]);
+        $this->assertDatabaseHas('visits', ['id' => $dateOnlyVisit->id]);
+        $this->assertDatabaseHas('visits', ['id' => $rejectedBlank->id]);
+
+        // Second run is a no-op - nothing left to delete.
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/jobs/orphans')
+            ->assertOk()
+            ->assertJsonPath('data.count', 0);
+    }
 }
