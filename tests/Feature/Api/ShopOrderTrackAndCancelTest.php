@@ -7,8 +7,11 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\User;
+use App\Models\Visit;
 use App\Models\WalletCredit;
+use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
@@ -236,6 +239,55 @@ class ShopOrderTrackAndCancelTest extends TestCase
         $order->refresh();
         $this->assertSame('cancelled', $order->order_status);
         $this->assertSame('pending', $order->payment_status);
+    }
+
+    public function test_post_orders_cancel_marks_linked_visit_rejected_and_notifies_technician(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create(['role' => 'client']);
+        $technician = User::factory()->create(['role' => 'technician']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+        $visit = Visit::create([
+            'order_id' => $order->id,
+            'technician_id' => $technician->id,
+            'scheduled_date' => now()->toDateString(),
+            'status' => 'pending_acceptance',
+            'notes' => 'Test service | Order Service Visit | [SHOP-ORDER:'.$order->id.']',
+        ]);
+
+        $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user))
+            ->assertOk();
+
+        $visit->refresh();
+        $this->assertSame('rejected', $visit->status);
+
+        Notification::assertSentTo($technician, AdminNotification::class);
+    }
+
+    public function test_post_orders_cancel_does_not_touch_already_completed_visit(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'order_status' => 'pending',
+            'payment_status' => 'pending',
+        ]);
+        $visit = Visit::create([
+            'order_id' => $order->id,
+            'scheduled_date' => now()->toDateString(),
+            'status' => 'completed',
+        ]);
+
+        $this->postJson('/api/orders/'.$order->id.'/cancel', [], $this->bearer($user))
+            ->assertOk();
+
+        $visit->refresh();
+        $this->assertSame('completed', $visit->status);
     }
 
     public function test_post_orders_cancel_applies_refund_policy_and_credits_wallet_for_paid_unassigned_order(): void

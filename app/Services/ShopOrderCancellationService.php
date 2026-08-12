@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\User;
+use App\Models\Visit;
 use App\Models\WalletCredit;
+use App\Notifications\AdminNotification;
 use App\Support\RefundPolicy;
 use Illuminate\Support\Facades\DB;
 
@@ -93,6 +95,8 @@ final class ShopOrderCancellationService
             $locked->refunded_at = $refundAmount > 0 ? now() : null;
             $locked->save();
 
+            $this->cancelLinkedVisit($locked);
+
             return [
                 'stage' => (string) ($decision['stage'] ?? 'fallback'),
                 'refund_percent' => (float) ($decision['percent'] ?? 0),
@@ -102,5 +106,38 @@ final class ShopOrderCancellationService
                 'wallet_expires_at' => $expiresAt?->toIso8601String(),
             ];
         });
+    }
+
+    /**
+     * Cancelling a shop order used to leave its dispatched service Visit
+     * (see OrderToVisitDispatcher) stuck forever at whatever status it was
+     * in - the Jobs calendar kept showing it as "Pending"/"In Progress" with
+     * no indication the underlying order was cancelled. Mirror the
+     * cancellation onto the visit (status=rejected, same convention used
+     * everywhere else in this app for "this booking will not happen") and
+     * notify the assigned technician. Visits that are already
+     * completed/rejected are left untouched.
+     */
+    private function cancelLinkedVisit(Order $order): void
+    {
+        $visit = Visit::where('order_id', $order->id)->lockForUpdate()->first();
+        if (! $visit || in_array($visit->status, ['completed', 'rejected'], true)) {
+            return;
+        }
+
+        $visit->status = 'rejected';
+        $visit->save();
+
+        if ($visit->technician_id) {
+            try {
+                User::find($visit->technician_id)?->notify(new AdminNotification(
+                    'Job Cancelled',
+                    "Job #{$visit->id} was cancelled because order #{$order->id} was cancelled.",
+                    ['type' => 'booking_cancelled', 'visit_id' => $visit->id, 'order_id' => $order->id]
+                ));
+            } catch (\Throwable $e) {
+                // ignore notify errors
+            }
+        }
     }
 }
