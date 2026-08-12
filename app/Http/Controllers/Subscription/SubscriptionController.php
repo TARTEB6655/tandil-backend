@@ -337,6 +337,32 @@ class SubscriptionController extends Controller
     }
 
     /**
+     * DELETE /api/subscriptions/{id}/purge — Admin only.
+     * Hard-delete a subscription AND every visit it generated (cascades to
+     * each visit's reports/photos/offers/complaints via existing FK
+     * constraints). Unlike destroy() above, this does not leave the visits
+     * behind with subscription_id set to null (nullOnDelete) — use this only
+     * to fully remove a mistaken/test subscription, not for a real client's
+     * cancellation (which should keep their job history).
+     */
+    public function purge(Request $request, $id)
+    {
+        $user = $request->user();
+        if (! $user->hasRole('admin')) {
+            return ApiResponse::error('Forbidden', 403);
+        }
+
+        $sub = Subscription::findOrFail($id);
+        $deletedVisits = Visit::where('subscription_id', $sub->id)->delete();
+        $sub->delete();
+
+        return ApiResponse::success('Subscription and its visits permanently deleted.', [
+            'subscription_id' => (int) $id,
+            'deleted_visits' => $deletedVisits,
+        ]);
+    }
+
+    /**
      * Mark a subscription as paid (simple endpoint / webhook stub).
      */
     public function markPaid(Request $request, $id)

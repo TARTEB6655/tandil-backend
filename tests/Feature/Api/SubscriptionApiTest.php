@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Visit;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -424,5 +425,42 @@ class SubscriptionApiTest extends TestCase
         $this->assertDatabaseMissing('subscriptions', [
             'id' => $sub->id,
         ]);
+    }
+
+    public function test_admin_can_purge_subscription_and_its_visits(): void
+    {
+        $sub = Subscription::factory()->create(['client_id' => $this->client->id]);
+        $visit1 = Visit::create(['subscription_id' => $sub->id, 'scheduled_date' => '2026-09-01', 'status' => 'pending']);
+        $visit2 = Visit::create(['subscription_id' => $sub->id, 'scheduled_date' => '2026-10-01', 'status' => 'pending']);
+
+        $otherSub = Subscription::factory()->create(['client_id' => $this->client2->id]);
+        $otherVisit = Visit::create(['subscription_id' => $otherSub->id, 'scheduled_date' => '2026-09-01', 'status' => 'pending']);
+
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->deleteJson('/api/subscriptions/'.$sub->id.'/purge');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.deleted_visits', 2);
+
+        $this->assertDatabaseMissing('subscriptions', ['id' => $sub->id]);
+        $this->assertDatabaseMissing('visits', ['id' => $visit1->id]);
+        $this->assertDatabaseMissing('visits', ['id' => $visit2->id]);
+
+        // Untouched subscription/visit must survive.
+        $this->assertDatabaseHas('subscriptions', ['id' => $otherSub->id]);
+        $this->assertDatabaseHas('visits', ['id' => $otherVisit->id]);
+    }
+
+    public function test_client_cannot_purge_subscription(): void
+    {
+        $sub = Subscription::factory()->create(['client_id' => $this->client->id]);
+        Visit::create(['subscription_id' => $sub->id, 'scheduled_date' => '2026-09-01', 'status' => 'pending']);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->deleteJson('/api/subscriptions/'.$sub->id.'/purge')
+            ->assertStatus(403);
+
+        $this->assertDatabaseHas('subscriptions', ['id' => $sub->id]);
     }
 }
