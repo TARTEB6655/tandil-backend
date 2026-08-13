@@ -116,7 +116,7 @@ class UserController extends Controller
                     'role_display' => $roleDisplay,
                     'employee_id' => $formattedId,
                     'status' => $user->status,
-                    'avatar' => strtoupper(substr($user->name, 0, 1)),
+                    'avatar' => mb_substr($user->name, 0, 1, 'UTF-8'),
                     'created_at' => $user->created_at,
                     'updated_at' => $user->updated_at,
                 ];
