@@ -1095,3 +1095,24 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('areas')->group
 });
 
 require __DIR__.'/vendor_api.php';
+
+
+
+
+
+
+Route::get('/debug/booking-slots', function () {
+    return response()->json([
+        'date' => '2026-08-13',
+
+        'settings' => \App\Models\JobSchedulingSetting::current()->toArray(),
+
+        'slots' => \App\Models\JobTimeSlot::where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('start_time')
+            ->get()
+            ->toArray(),
+
+        'available_slots' => \App\Services\JobSchedulingService::availableSlots('2026-08-13'),
+    ]);
+});
