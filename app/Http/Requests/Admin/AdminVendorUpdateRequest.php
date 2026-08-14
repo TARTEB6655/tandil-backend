@@ -6,6 +6,7 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorType as VendorTypeEnum;
 use App\Http\Requests\Vendor\VendorProfileFormRequest;
 use App\Models\Vendor;
+use App\Support\PasswordInput;
 use App\Models\VendorType as VendorTypeModel;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -28,6 +29,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
 
     protected function prepareForValidation(): void
     {
+        PasswordInput::normalize($this);
         $this->normalizeRegistrationFileAliases();
         $this->normalizeSingleFileUploads(['logo', 'trade_license', 'emirates_id']);
         $this->ensureUploadFileExtensions(['logo', 'trade_license', 'emirates_id']);

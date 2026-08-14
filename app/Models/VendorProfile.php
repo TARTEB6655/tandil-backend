@@ -47,6 +47,7 @@ class VendorProfile extends Model
 
     protected $appends = [
         'vendor_type_label',
+        'vendor_types',
         'logo_url',
         'profile_picture_url',
         'banner_url',
@@ -59,6 +60,11 @@ class VendorProfile extends Model
 
     public function getVendorTypeLabelAttribute(): ?string
     {
+        $selected = $this->getVendorTypesAttribute();
+        if ($selected !== []) {
+            return implode(', ', array_column($selected, 'name'));
+        }
+
         if (empty($this->vendor_type)) {
             return null;
         }
@@ -71,6 +77,27 @@ class VendorProfile extends Model
         }
 
         return VendorType::tryFrom($this->vendor_type)?->label() ?? ucfirst($this->vendor_type);
+    }
+
+    /**
+     * All vendor types selected on registration/edit (multi-select). Falls back to an
+     * empty list for vendors created before multi-select existed and not yet backfilled.
+     *
+     * @return list<array{id: int, name: string, slug: string}>
+     */
+    public function getVendorTypesAttribute(): array
+    {
+        if ($this->vendor_id === null || ! \Illuminate\Support\Facades\Schema::hasTable('vendor_vendor_type')) {
+            return [];
+        }
+
+        return \App\Models\VendorType::query()
+            ->join('vendor_vendor_type', 'vendor_vendor_type.vendor_type_id', '=', 'vendor_types.id')
+            ->where('vendor_vendor_type.vendor_id', $this->vendor_id)
+            ->orderBy('vendor_types.name')
+            ->get(['vendor_types.id', 'vendor_types.name', 'vendor_types.slug'])
+            ->map(fn ($row) => ['id' => $row->id, 'name' => $row->name, 'slug' => $row->slug])
+            ->all();
     }
 
     public function getLogoUrlAttribute(): ?string

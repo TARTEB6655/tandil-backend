@@ -28,7 +28,25 @@ abstract class VendorProfileFormRequest extends FormRequest
             'phone' => [$presence, 'string', 'max:32'],
             'trade_license_number' => [$presence, 'string', 'max:100'],
             'address' => [$presence, 'string', 'max:2000'],
-            'vendor_type' => [$presence, Rule::in($this->allowedVendorTypeSlugs())],
+            // Accepts a single slug (legacy) or an array of slugs (multi-select vendor type chips).
+            'vendor_type' => [$presence, function (string $attribute, mixed $value, \Closure $fail) {
+                $allowed = $this->allowedVendorTypeSlugs();
+                $values = is_array($value) ? $value : [$value];
+
+                if ($values === []) {
+                    $fail('Please select a valid vendor type.');
+
+                    return;
+                }
+
+                foreach ($values as $single) {
+                    if (! in_array($single, $allowed, true)) {
+                        $fail('Please select a valid vendor type.');
+
+                        return;
+                    }
+                }
+            }],
             'emirate' => [$presence, 'string', 'max:100', Rule::in($this->allowedEmirateNames())],
             'city' => ['nullable', 'string', 'max:100'],
             'google_maps_location' => [$presence, 'string', 'max:500'],
@@ -103,10 +121,37 @@ abstract class VendorProfileFormRequest extends FormRequest
         $merge = [];
 
         if ($this->filled('vendor_type')) {
-            $resolved = VendorTypeModel::resolveToSlug($this->input('vendor_type'))
-                ?? VendorTypeEnum::resolve($this->input('vendor_type'));
-            if ($resolved !== null) {
-                $merge['vendor_type'] = $resolved;
+            $raw = $this->input('vendor_type');
+
+            if (is_array($raw)) {
+                // Multi-select: resolve each chip to its slug, drop unknown/unresolvable entries.
+                $resolvedSlugs = [];
+                foreach ($raw as $item) {
+                    $slug = VendorTypeModel::resolveToSlug($item) ?? VendorTypeEnum::resolve($item);
+                    if ($slug !== null && ! in_array($slug, $resolvedSlugs, true)) {
+                        $resolvedSlugs[] = $slug;
+                    }
+                }
+                if ($resolvedSlugs !== []) {
+                    $merge['vendor_type'] = $resolvedSlugs;
+                }
+            } else {
+                $resolved = VendorTypeModel::resolveToSlug($raw) ?? VendorTypeEnum::resolve($raw);
+                if ($resolved !== null) {
+                    $merge['vendor_type'] = $resolved;
+                } elseif (is_string($raw) && str_contains($raw, ',')) {
+                    // Some mobile multipart clients can't send real arrays; accept "a,b,c" too.
+                    $resolvedSlugs = [];
+                    foreach (explode(',', $raw) as $item) {
+                        $slug = VendorTypeModel::resolveToSlug(trim($item)) ?? VendorTypeEnum::resolve(trim($item));
+                        if ($slug !== null && ! in_array($slug, $resolvedSlugs, true)) {
+                            $resolvedSlugs[] = $slug;
+                        }
+                    }
+                    if ($resolvedSlugs !== []) {
+                        $merge['vendor_type'] = $resolvedSlugs;
+                    }
+                }
             }
         }
 

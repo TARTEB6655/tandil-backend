@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Vendor;
 
+use App\Support\PasswordInput;
 use Illuminate\Http\UploadedFile;
 
 class VendorRegistrationRequest extends VendorProfileFormRequest
@@ -23,6 +24,7 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
      */
     protected function prepareForValidation(): void
     {
+        PasswordInput::normalize($this);
         $this->normalizeRegistrationFileAliases();
         $this->normalizeSingleFileUploads(['logo', 'trade_license', 'emirates_id']);
         $this->ensureUploadFileExtensions(['logo', 'trade_license', 'emirates_id']);
@@ -38,11 +40,17 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
         }
 
         // Unknown mobile picker values should not block signup — prefer active "other" row.
-        if ($this->filled('vendor_type') && ! in_array($this->input('vendor_type'), $this->allowedVendorTypeSlugs(), true)) {
+        $vendorType = $this->input('vendor_type');
+        $allowedVendorTypeSlugs = $this->allowedVendorTypeSlugs();
+        $hasValidVendorTypeSelection = is_array($vendorType)
+            ? array_intersect($vendorType, $allowedVendorTypeSlugs) !== []
+            : in_array($vendorType, $allowedVendorTypeSlugs, true);
+
+        if ($this->filled('vendor_type') && ! $hasValidVendorTypeSelection) {
             $fallback = \App\Models\VendorType::query()->active()->where('slug', 'other')->value('slug')
                 ?? (\App\Models\VendorType::query()->active()->orderBy('id')->value('slug'))
                 ?? 'other';
-            $this->merge(['vendor_type' => $fallback]);
+            $this->merge(['vendor_type' => is_array($vendorType) ? [$fallback] : $fallback]);
         }
     }
 

@@ -70,6 +70,11 @@ class Vendor extends Model
         return $this->belongsToMany(Category::class, 'category_vendor')->withTimestamps();
     }
 
+    public function vendorTypes(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(VendorType::class, 'vendor_vendor_type')->withTimestamps();
+    }
+
     public function partnerships(): HasMany
     {
         return $this->hasMany(VendorPartnership::class);

@@ -96,6 +96,11 @@ class VendorRegistrationService
                 $vendor->setRelation('profile', VendorProfile::create($profileData));
                 $vendor->setRelation('user', $user);
 
+                $vendorTypeSlugs = $this->vendorTypeSlugs($data);
+                if ($vendorTypeSlugs !== []) {
+                    $this->application->syncVendorTypes($vendor, $vendorTypeSlugs);
+                }
+
                 if (! empty($data['category_ids']) && is_array($data['category_ids'])) {
                     $this->application->syncCategories($vendor, $data['category_ids']);
                 }
@@ -155,7 +160,7 @@ class VendorRegistrationService
                     ]);
             }
 
-            return $vendor->fresh(['profile', 'user', 'documents', 'categories']);
+            return $vendor->fresh(['profile', 'user', 'documents', 'categories', 'vendorTypes']);
         } catch (\Throwable $e) {
             $this->cleanupPreparedPaths(array_filter([
                 $preparedLogo,
@@ -258,6 +263,13 @@ class VendorRegistrationService
                 $profile->update($updates);
             }
 
+            if (array_key_exists('vendor_type', $data)) {
+                $vendorTypeSlugs = $this->vendorTypeSlugs($data);
+                if ($vendorTypeSlugs !== []) {
+                    $this->application->syncVendorTypes($vendor, $vendorTypeSlugs);
+                }
+            }
+
             if (isset($data['category_ids']) && is_array($data['category_ids'])) {
                 $this->application->syncCategories($vendor, $data['category_ids']);
             }
@@ -285,7 +297,7 @@ class VendorRegistrationService
                 }
             }
 
-            return $vendor->fresh(['profile', 'user', 'documents', 'categories']);
+            return $vendor->fresh(['profile', 'user', 'documents', 'categories', 'vendorTypes']);
         });
     }
 
@@ -432,7 +444,6 @@ class VendorRegistrationService
         $fields = [
             'phone',
             'trade_license_number',
-            'vendor_type',
             'emirate',
             'city',
             'address',
@@ -455,12 +466,37 @@ class VendorRegistrationService
             }
         }
 
+        // vendor_type may be a single slug or an array of slugs (multi-select). The
+        // vendor_profiles column only ever stores the primary/first slug for backward
+        // compatible display; the full selection is synced to vendor_vendor_type — see
+        // syncVendorTypesFromData() below.
+        if (array_key_exists('vendor_type', $data)) {
+            $mapped['vendor_type'] = $this->vendorTypeSlugs($data)[0] ?? null;
+        }
+
         // Accept "vat_number" as alias for tax_vat_number.
         if (! array_key_exists('tax_vat_number', $mapped) && array_key_exists('vat_number', $data)) {
             $mapped['tax_vat_number'] = $data['vat_number'] === '' ? null : $data['vat_number'];
         }
 
         return $mapped;
+    }
+
+    /**
+     * Normalize the request's vendor_type input (single slug or array of slugs) to a list.
+     *
+     * @param  array<string, mixed>  $data
+     * @return list<string>
+     */
+    private function vendorTypeSlugs(array $data): array
+    {
+        $raw = $data['vendor_type'] ?? null;
+
+        if (is_array($raw)) {
+            return array_values(array_filter($raw, fn ($slug) => is_string($slug) && $slug !== ''));
+        }
+
+        return is_string($raw) && $raw !== '' ? [$raw] : [];
     }
 
     /**

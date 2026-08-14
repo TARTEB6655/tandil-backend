@@ -12,6 +12,7 @@ use App\Services\Auth\GoogleIdTokenVerifier;
 use App\Services\Auth\LoginService;
 use App\Services\Auth\SocialClientAuthService;
 use App\Support\AppLoginRoles;
+use App\Support\PasswordInput;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +26,8 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        PasswordInput::normalize($request);
+
         $validated = $request->validate([
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
@@ -92,6 +95,8 @@ class AuthController extends Controller
      */
     public function registerTechnician(Request $request)
     {
+        PasswordInput::normalize($request);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:100',
             'email' => 'required|email|unique:users,email',
@@ -192,6 +197,7 @@ class AuthController extends Controller
     public function login(Request $request, LoginService $loginService)
     {
         $this->normalizeLoginRequest($request);
+        PasswordInput::normalize($request);
 
         $validated = $request->validate([
             'email' => ['required', 'email'],

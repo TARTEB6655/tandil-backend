@@ -7,6 +7,7 @@ use App\Enums\VendorStatus;
 use App\Models\Category;
 use App\Models\Vendor;
 use App\Models\VendorApprovalLog;
+use App\Models\VendorType;
 use Illuminate\Support\Collection;
 
 class VendorApplicationService
@@ -160,6 +161,15 @@ class VendorApplicationService
     {
         $ids = Category::query()->whereIn('id', $categoryIds)->where('is_active', true)->pluck('id')->all();
         $vendor->categories()->sync($ids);
+    }
+
+    /**
+     * @param  list<string>  $slugs
+     */
+    public function syncVendorTypes(Vendor $vendor, array $slugs): void
+    {
+        $ids = VendorType::query()->whereIn('slug', $slugs)->where('is_active', true)->pluck('id')->all();
+        $vendor->vendorTypes()->sync($ids);
     }
 
     public function markOnboardingSubmitted(Vendor $vendor): Vendor

@@ -166,6 +166,42 @@ class VendorRegistrationSmokeTest extends TestCase
             ->assertJsonPath('data.profile.vendor_type', 'fruits');
     }
 
+    public function test_registration_accepts_all_numeric_password(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+
+        $email = 'smoke-numeric-pass-'.uniqid().'@test.com';
+        $payload = $this->screenshotLikePayload($email);
+        $payload['password'] = '13572468';
+        $payload['password_confirmation'] = '13572468';
+
+        $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
+
+        $user = User::where('email', $email)->first();
+        $this->assertNotNull($user);
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('13572468', $user->password));
+    }
+
+    public function test_registration_accepts_multiple_vendor_types(): void
+    {
+        Role::findOrCreate('vendor', 'web');
+
+        $email = 'smoke-multi-type-'.uniqid().'@test.com';
+        $payload = $this->screenshotLikePayload($email);
+        $payload['vendor_type'] = ['fruits', 'vegetables', 'Restaurant'];
+
+        $response = $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.profile.vendor_type', 'fruits')
+            ->assertJsonPath('data.profile.vendor_type_label', 'Fruits, Restaurant, Vegetables');
+
+        $vendorId = $response->json('data.vendor_id');
+        $this->assertDatabaseHas('vendor_vendor_type', ['vendor_id' => $vendorId]);
+        $this->assertCount(3, \App\Models\Vendor::find($vendorId)->vendorTypes);
+    }
+
     public function test_registration_responds_quickly_without_blocking_on_admin_notify(): void
     {
         Role::findOrCreate('vendor', 'web');

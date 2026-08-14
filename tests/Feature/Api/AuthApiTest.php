@@ -371,6 +371,52 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('data.slug', 'vendor');
     }
 
+    /**
+     * @dataProvider loginPortalProvider
+     */
+    public function test_login_accepts_all_numeric_password_sent_as_json_number(string $portal): void
+    {
+        if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {
+            $this->markTestSkipped('Spatie permission tables unavailable.');
+        }
+
+        Role::firstOrCreate(['name' => $portal, 'guard_name' => 'web']);
+
+        $email = $portal.'-numeric-pass@example.com';
+        $user = User::factory()->create([
+            'email' => $email,
+            'password' => '13572468',
+            'role' => $portal,
+            'status' => 'active',
+        ]);
+        $user->syncRoles([$portal]);
+
+        if ($portal === 'vendor') {
+            $vendor = Vendor::create([
+                'user_id' => $user->id,
+                'status' => VendorStatus::Approved->value,
+                'approved_at' => now(),
+            ]);
+            VendorProfile::create([
+                'vendor_id' => $vendor->id,
+                'business_name' => 'Numeric Password Vendor',
+                'owner_name' => $user->name,
+                'email' => $user->email,
+            ]);
+        }
+
+        // Sent as a bare JSON number (13572468), not a quoted string — some mobile
+        // clients serialize all-digit text fields this way by mistake. The API must
+        // still accept it instead of rejecting with "password must be a string".
+        $this->postJson('/api/auth/login', [
+            'email' => $email,
+            'password' => 13572468,
+            'roles' => $portal,
+        ])->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.slug', $portal);
+    }
+
     public function test_login_accepts_role_field_alias(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

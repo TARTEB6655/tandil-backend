@@ -358,6 +358,7 @@ class VendorManagementController extends Controller
         return [
             'vendor_type' => $profile?->vendor_type,
             'vendor_type_label' => $profile?->vendor_type_label,
+            'vendor_types' => $profile?->vendor_types ?? [],
             'trade_license_number' => $profile?->trade_license_number,
             'tax_vat_number' => $profile?->tax_vat_number,
             'emirate' => $profile?->emirate,

@@ -1164,6 +1164,12 @@
                   "    pm.expect(j.data).to.have.property('vendor_id');",
                   "    pm.expect(j.data.status).to.eql('under_review');",
                   "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
+                  "});",
+                  "pm.test('Multi-select vendor_type was saved', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.data.profile).to.have.property('vendor_types');",
+                  "    pm.expect(j.data.profile.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
+                  "    pm.expect(j.data.profile.vendor_type_label).to.contain(',');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -1254,10 +1260,16 @@
                   "description": "Emirates ID of authorized person (PDF or image). Required."
                 },
                 {
-                  "key": "vendor_type",
+                  "key": "vendor_type[]",
                   "value": "fruits",
                   "type": "text",
-                  "description": "Required. Preferred: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values map to other."
+                  "description": "Required. Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type — this is the format mobile must send for multiple selections. A single plain 'vendor_type' key (no brackets) still works for one value. Preferred slugs: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values are dropped; if none resolve, falls back to other."
+                },
+                {
+                  "key": "vendor_type[]",
+                  "value": "vegetables",
+                  "type": "text",
+                  "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
                 },
                 {
                   "key": "emirate",
@@ -1339,7 +1351,7 @@
                 "register"
               ]
             },
-            "description": "Public multipart sign-up matching the mobile Vendor Registration wizard. Creates user + vendor (`under_review`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories)."
+            "description": "Public multipart sign-up matching the mobile Vendor Registration wizard. Creates user + vendor (`under_review`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to select more than one type; a single `vendor_type` field still works for one value. Response `data.profile.vendor_types` returns the full selection ({id,name,slug}[]) and `data.profile.vendor_type_label` joins all selected names."
           }
         },
         {
