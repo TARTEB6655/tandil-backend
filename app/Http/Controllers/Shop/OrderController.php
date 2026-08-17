@@ -662,46 +662,57 @@ class OrderController extends Controller
     /**
      * One-screen order summary (date, address, payment, total, special instructions).
      */
-    private function orderSummaryForApi(Order $order): array
-    {
-        $currency = strtoupper((string) config('shop.currency', 'AED'));
-        $addr = $order->payerAddressForDisplay();
-        $deliveryLine = $addr !== '' ? preg_replace("/\s*\n\s*/", ', ', trim($addr)) : null;
-        $order->loadMissing('items.product');
-        $firstProduct = $order->items->first()?->product;
+ private function orderSummaryForApi(Order $order): array
+{
+    $currency = strtoupper((string) config('shop.currency', 'AED'));
 
-        $estimatedArrival = $order->estimated_arrival;
-        if (($estimatedArrival === null || $estimatedArrival === '') && $firstProduct) {
-            $estimatedArrival = $firstProduct->estimated_arrival;
-        }
+    $addr = $order->payerAddressForDisplay();
+    $deliveryLine = $addr !== ''
+        ? preg_replace("/\s*\n\s*/", ', ', trim($addr))
+        : null;
 
-        $jobDuration = $order->job_duration;
-        if (($jobDuration === null || $jobDuration === '') && $firstProduct) {
-            $jobDuration = $firstProduct->job_duration;
-        }
+    $order->loadMissing('items.product');
+    $firstProduct = $order->items->first()?->product;
 
-        $paymentLabel = match (strtolower((string) ($order->payment_method ?? ''))) {
-            'stripe' => 'Credit card',
-            'paypal' => 'PayPal',
-            default => $order->paymentMethodLabel(),
-        };
-
-        return [
-            'placed_at' => $order->created_at?->format('c'),
-            'delivery_address' => $deliveryLine,
-            'payment_method' => $paymentLabel,
-            'payment_method_code' => $order->payment_method,
-            'total' => (float) $order->total_amount,
-            'currency' => $currency,
-            'payment_status' => $order->payment_status,
-            'refund_amount' => (float) ($order->refund_amount ?? 0),
-            'refund_reason' => $order->refund_reason,
-            'refunded_at' => $order->refunded_at?->format('c'),
-            'special_instructions' => $order->special_instructions,
-            'estimated_arrival' => $estimatedArrival,
-            'job_duration' => $jobDuration,
-        ];
+    $estimatedArrival = $order->estimated_arrival;
+    if (($estimatedArrival === null || $estimatedArrival === '') && $firstProduct) {
+        $estimatedArrival = $firstProduct->estimated_arrival;
     }
+
+    $jobDuration = $order->job_duration;
+    if (($jobDuration === null || $jobDuration === '') && $firstProduct) {
+        $jobDuration = $firstProduct->job_duration;
+    }
+
+    $paymentLabel = match (strtolower((string) ($order->payment_method ?? ''))) {
+        'stripe' => 'Credit card',
+        'paypal' => 'PayPal',
+        default => $order->paymentMethodLabel(),
+    };
+
+    return [
+        'placed_at' => $order->created_at?->format('c'),
+
+        // Booking date & slot
+        'booking_date' => $order->booking_date ?? null,
+        'slot_id' => $order->slot_id ?? null,
+        'slot_start_time' => $order->slot_start_time ?? null,
+        'slot_end_time' => $order->slot_end_time ?? null,
+
+        'delivery_address' => $deliveryLine,
+        'payment_method' => $paymentLabel,
+        'payment_method_code' => $order->payment_method,
+        'total' => (float) $order->total_amount,
+        'currency' => $currency,
+        'payment_status' => $order->payment_status,
+        'refund_amount' => (float) ($order->refund_amount ?? 0),
+        'refund_reason' => $order->refund_reason,
+        'refunded_at' => $order->refunded_at?->format('c'),
+        'special_instructions' => $order->special_instructions,
+        'estimated_arrival' => $estimatedArrival,
+        'job_duration' => $jobDuration,
+    ];
+}
 
     private function mapOrderStatusToLabel(?string $status): string
     {
