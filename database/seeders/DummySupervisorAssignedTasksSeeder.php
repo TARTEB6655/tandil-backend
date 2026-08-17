@@ -77,7 +77,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             [
                 'name' => $technician->name,
                 'email' => $technician->email,
-                'employee_id' => 'EMP-1001',
+                'employee_id' => $this->uniqueEmployeeId('EMP-1001', $technician->id),
                 'phone' => $technician->phone,
                 'designation' => 'Field Worker',
                 'region' => 'Al Ain Oasis, Abu Dhabi, UAE',
@@ -91,7 +91,7 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
             [
                 'name' => $supervisor->name,
                 'email' => $supervisor->email,
-                'employee_id' => 'SUP-2001',
+                'employee_id' => $this->uniqueEmployeeId('SUP-2001', $supervisor->id),
                 'phone' => $supervisor->phone,
                 'designation' => 'Team Leader',
                 'region' => 'Abu Dhabi',
@@ -188,6 +188,22 @@ class DummySupervisorAssignedTasksSeeder extends Seeder
         ]));
 
         $this->command->info('Dummy tasks seeded: 5 unassigned tasks for supervisor1@test.com. Assign to technician → technician submits report → supervisor shares to client via POST /api/supervisor/visits/{visit_id}/finalize with status sent_to_client.');
+    }
+
+    /**
+     * $base if free (or already owned by $userId), otherwise $base-2, $base-3, ...
+     * Avoids colliding with employee_id values already used by real (non-dummy) employees.
+     */
+    private function uniqueEmployeeId(string $base, int $userId): string
+    {
+        $candidate = $base;
+        $suffix = 2;
+        while (Employee::where('employee_id', $candidate)->where('user_id', '!=', $userId)->exists()) {
+            $candidate = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 }
 
