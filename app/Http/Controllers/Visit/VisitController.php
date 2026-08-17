@@ -199,32 +199,115 @@ class VisitController extends Controller
      * Job Scheduling: available time slots for a date (client picks one before
      * creating the visit). Respects working hours, capacity, and blocked dates/slots.
      */
-    public function availableSlots(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'date' => 'required|date',
-        ]);
+ public function availableSlots(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'date' => 'required|date_format:Y-m-d',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => false,
+            'message' => 'Validation failed',
+            'errors' => $validator->errors(),
+        ], 422);
+    }
 
+    try {
         $date = $request->input('date');
+
+        // Get scheduling settings
+        $settings = JobSchedulingService::settings();
+
+        // Get day key
+        // Example: 2026-08-17 => mon
+        $dayKey = strtolower(
+            \Carbon\Carbon::parse($date)->format('D')
+        );
+
+        // Get working-day configuration
+        $dayCfg = $settings->forDay($dayKey);
+
+        // Check whether selected date is a working day
+        $workingDay = $dayCfg && !empty($dayCfg['enabled']);
+
+        // Check whether complete date is blocked
+        $dateBlocked = JobSchedulingService::isDateFullyBlocked($date);
+
+        // Get slots from scheduling service
+        $slots = JobSchedulingService::availableSlots($date);
+
+        // Add blocked property to each slot
+        $slots = collect($slots)
+            ->map(function (array $slot) use ($date) {
+
+                $blocked = JobSchedulingService::isSlotBlocked(
+                    $date,
+                    $slot['start_time']
+                );
+
+                return [
+                    'id' => $slot['id'],
+                    'start_time' => $slot['start_time'],
+                    'end_time' => $slot['end_time'],
+                    'duration_minutes' => $slot['duration_minutes'],
+                    'booked_count' => $slot['booked_count'],
+                    'remaining' => $slot['remaining'],
+                    'blocked' => $blocked,
+                    'available' => (bool) $slot['available'],
+                ];
+            })
+            ->values()
+            ->toArray();
 
         return response()->json([
             'status' => true,
             'message' => 'Available slots retrieved successfully.',
+
             'data' => [
                 'date' => $date,
-                'date_blocked' => JobSchedulingService::isDateFullyBlocked($date),
-                'slots' => JobSchedulingService::availableSlots($date),
+
+                'day' => $dayKey,
+
+                'working_day' => $workingDay,
+
+                'working_hours' => $workingDay
+                    ? [
+                        'start' => substr(
+                            (string) ($dayCfg['start'] ?? ''),
+                            0,
+                            5
+                        ),
+                        'end' => substr(
+                            (string) ($dayCfg['end'] ?? ''),
+                            0,
+                            5
+                        ),
+                    ]
+                    : null,
+
+                'date_blocked' => $dateBlocked,
+
+                'slots' => $slots,
             ],
         ], 200);
+
+    } catch (\Exception $e) {
+
+        \Log::error(
+            'Failed to fetch available scheduling slots: '
+            . $e->getMessage(),
+            [
+                'date' => $request->input('date'),
+            ]
+        );
+
+        return response()->json([
+            'status' => false,
+            'message' => 'Failed to fetch available slots.',
+        ], 500);
     }
+}
 
     /**
      * Create a new visit

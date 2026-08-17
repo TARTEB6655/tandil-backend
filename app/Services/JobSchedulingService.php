@@ -66,6 +66,54 @@ class JobSchedulingService
     }
 
     /**
+     * Get all blocked dates / slots for a specific date.
+     *
+     * This is used by the available-slots API so the frontend
+     * can know whether the date is fully blocked or only
+     * specific time slots are blocked.
+     *
+     * Returns examples:
+     *
+     * Full day:
+     * {
+     *     "id": 1,
+     *     "block_type": "full_day",
+     *     "date": "2026-08-18",
+     *     "time": null,
+     *     "reason": "Holiday"
+     * }
+     *
+     * Time slot:
+     * {
+     *     "id": 2,
+     *     "block_type": "time_slot",
+     *     "date": "2026-08-19",
+     *     "time": "10:00",
+     *     "reason": "Meeting"
+     * }
+     */
+    public static function blockedSlots(string $date): array
+    {
+        return JobBlockedDate::whereDate('date', $date)
+            ->orderByRaw('time IS NULL DESC')
+            ->orderBy('time')
+            ->get()
+            ->map(function (JobBlockedDate $block) {
+                return [
+                    'id' => $block->id,
+                    'block_type' => $block->block_type,
+                    'date' => Carbon::parse($block->date)->toDateString(),
+                    'time' => $block->time
+                        ? substr((string) $block->time, 0, 5)
+                        : null,
+                    'reason' => $block->reason ?? null,
+                ];
+            })
+            ->values()
+            ->toArray();
+    }
+
+    /**
      * Get duration of a configured time slot.
      *
      * Falls back to 60 minutes if the slot cannot be found.
@@ -241,6 +289,9 @@ class JobSchedulingService
                     'duration_minutes' => (int) $slot->duration_minutes,
                     'booked_count' => $booked,
                     'remaining' => $remaining,
+
+                    'blocked' => $blocked,
+
                     'available' => ! $blocked
                         && ! $dayFull
                         && $remaining > 0,
