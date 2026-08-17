@@ -11,16 +11,15 @@ use Carbon\Carbon;
 /**
  * Job Scheduling:
  * - Working days
+ * - Working hours
  * - Time slots
  * - Blocked dates / slots
  * - Daily and per-slot capacity
  * - Technician double-booking prevention
  *
  * IMPORTANT:
- * Time slots are NOT restricted by working_hours.
- * Admin can create slots at any time, e.g. 06:30, 07:00, 18:30, 22:00, etc.
- * Working hours determine whether a DATE is a working day, while the
- * configured JobTimeSlot records determine the available booking times.
+ * Time slots must fall completely within the configured
+ * working hours for the selected day.
  */
 class JobSchedulingService
 {
@@ -83,39 +82,32 @@ class JobSchedulingService
     /**
      * Get available time slots for a given date.
      *
-     * IMPORTANT:
-     * Slots are NOT filtered using working_hours.
+     * A slot is returned only when:
      *
-     * Example:
-     *
-     * Working hours:
-     * 09:00 - 18:00
-     *
-     * Configured slots:
-     * 06:30
-     * 07:00
-     * 18:30
-     * 20:00
-     *
-     * All of these can be returned as long as:
      * - The selected day is enabled
      * - The date is not fully blocked
      * - The slot is active
+     * - The complete slot falls inside the working hours
      * - The slot itself is not blocked
-     * - Slot/day capacity is available
+     * - Slot capacity is available
+     * - Daily capacity is available
      */
     public static function availableSlots(string $date): array
     {
         $settings = self::settings();
 
         /**
-         * Working hours are still used to determine whether the
-         * selected day is enabled.
+         * Get configuration for the selected day.
          *
-         * We do NOT use start/end to filter the actual slots.
+         * Example:
+         * Monday => 09:00 - 18:00
          */
         $dayCfg = $settings->forDay(self::dayKey($date));
 
+        /**
+         * If the day is disabled / not configured,
+         * there are no available slots.
+         */
         if (! $dayCfg || empty($dayCfg['enabled'])) {
             return [];
         }
@@ -137,18 +129,37 @@ class JobSchedulingService
         $dayFull = $dayBookedCount >= $settings->max_bookings_per_day;
 
         /**
-         * Get ALL active configured slots.
+         * Get active configured slots that are completely
+         * inside the working hours of the selected day.
          *
-         * No working-hours filtering here.
+         * Example:
+         *
+         * Working hours:
+         * 09:00 - 18:00
+         *
+         * Slots:
+         * 06:30 - 07:30  => excluded
+         * 07:00 - 08:00  => excluded
+         * 09:00 - 10:00  => included
+         * 10:00 - 11:00  => included
+         * 17:00 - 18:00  => included
+         * 18:30 - 19:30  => excluded
          */
         return JobTimeSlot::where('is_active', true)
+            ->whereTime('start_time', '>=', $dayCfg['start'])
+            ->whereTime('end_time', '<=', $dayCfg['end'])
             ->orderBy('sort_order')
             ->orderBy('start_time')
             ->get()
-            ->map(function (JobTimeSlot $slot) use ($date, $settings, $dayFull) {
+            ->map(function (JobTimeSlot $slot) use (
+                $date,
+                $settings,
+                $dayFull
+            ) {
 
                 /**
-                 * Check whether this exact slot is blocked for this date.
+                 * Check whether this exact slot is blocked
+                 * for this date.
                  */
                 $blocked = self::isSlotBlocked(
                     $date,
@@ -178,6 +189,14 @@ class JobSchedulingService
                     'duration_minutes' => (int) $slot->duration_minutes,
                     'booked_count' => $booked,
                     'remaining' => $remaining,
+
+                    /**
+                     * Slot is available only when:
+                     *
+                     * - It is not blocked
+                     * - The day is not full
+                     * - Slot has remaining capacity
+                     */
                     'available' => ! $blocked
                         && ! $dayFull
                         && $remaining > 0,
@@ -190,13 +209,16 @@ class JobSchedulingService
     /**
      * Validate a date/time booking request.
      *
-     * IMPORTANT:
-     * The selected time does NOT have to fall inside working_hours.
+     * The selected date must:
+     * - Be a working day
+     * - Not be fully blocked
      *
-     * The time only needs to:
+     * The selected time must:
      * - Belong to an active configured slot
+     * - Fall completely within the working hours
      * - Not be blocked
-     * - Have available capacity
+     * - Have available slot capacity
+     * - Have available daily capacity
      *
      * When $time is null, no slot validation is applied.
      *
@@ -221,10 +243,7 @@ class JobSchedulingService
         $settings = self::settings();
 
         /**
-         * The date still needs to be an enabled working day.
-         *
-         * We intentionally do NOT validate the time against
-         * dayCfg['start'] / dayCfg['end'].
+         * The selected date must be an enabled working day.
          */
         $dayCfg = $settings->forDay(self::dayKey($date));
 
@@ -247,17 +266,38 @@ class JobSchedulingService
         }
 
         /**
-         * Customer-facing bookings must use an active configured slot.
-         *
-         * There is NO working-hours restriction here.
+         * Customer-facing bookings must use an active
+         * configured slot.
          */
         if ($requireConfiguredSlot) {
+
             $slot = JobTimeSlot::where('start_time', $time)
                 ->where('is_active', true)
                 ->first();
 
             if (! $slot) {
                 return 'Selected time is not a valid active time slot.';
+            }
+
+            /**
+             * Make sure the complete slot is inside
+             * the configured working hours.
+             *
+             * Example:
+             *
+             * Working hours:
+             * 09:00 - 18:00
+             *
+             * Slot:
+             * 08:30 - 09:30 => rejected
+             * 09:00 - 10:00 => allowed
+             * 17:30 - 18:30 => rejected
+             */
+            if (
+                $slot->start_time < $dayCfg['start']
+                || $slot->end_time > $dayCfg['end']
+            ) {
+                return 'Selected time slot is outside working hours.';
             }
         }
 
