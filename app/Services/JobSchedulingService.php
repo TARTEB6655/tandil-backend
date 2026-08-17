@@ -18,8 +18,8 @@ use Carbon\Carbon;
  * - Technician double-booking prevention
  *
  * IMPORTANT:
- * Time slots must fall completely within the configured
- * working hours for the selected day.
+ * Time slots are shown to customers only when the complete
+ * slot falls within the working hours of the selected day.
  */
 class JobSchedulingService
 {
@@ -87,7 +87,7 @@ class JobSchedulingService
      * - The selected day is enabled
      * - The date is not fully blocked
      * - The slot is active
-     * - The complete slot falls inside the working hours
+     * - The complete slot falls within working hours
      * - The slot itself is not blocked
      * - Slot capacity is available
      * - Daily capacity is available
@@ -97,10 +97,14 @@ class JobSchedulingService
         $settings = self::settings();
 
         /**
-         * Get configuration for the selected day.
+         * Get working-day configuration.
          *
          * Example:
-         * Monday => 09:00 - 18:00
+         *
+         * Monday:
+         * enabled = true
+         * start   = 09:00
+         * end     = 18:00
          */
         $dayCfg = $settings->forDay(self::dayKey($date));
 
@@ -129,28 +133,76 @@ class JobSchedulingService
         $dayFull = $dayBookedCount >= $settings->max_bookings_per_day;
 
         /**
-         * Get active configured slots that are completely
-         * inside the working hours of the selected day.
+         * Get all active configured slots first.
          *
-         * Example:
+         * We cannot use:
          *
-         * Working hours:
-         * 09:00 - 18:00
+         * ->whereTime('end_time', ...)
          *
-         * Slots:
-         * 06:30 - 07:30  => excluded
-         * 07:00 - 08:00  => excluded
-         * 09:00 - 10:00  => included
-         * 10:00 - 11:00  => included
-         * 17:00 - 18:00  => included
-         * 18:30 - 19:30  => excluded
+         * because end_time is calculated by JobTimeSlot::endTime()
+         * and is not necessarily a database column.
          */
-        return JobTimeSlot::where('is_active', true)
-            ->whereTime('start_time', '>=', $dayCfg['start'])
-            ->whereTime('end_time', '<=', $dayCfg['end'])
+        $slots = JobTimeSlot::where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('start_time')
             ->get()
+            ->filter(function (JobTimeSlot $slot) use ($dayCfg) {
+
+                /**
+                 * Slot start time.
+                 */
+                $slotStart = Carbon::createFromFormat(
+                    'H:i',
+                    substr((string) $slot->start_time, 0, 5)
+                );
+
+                /**
+                 * Slot end time is calculated by the model.
+                 */
+                $slotEnd = Carbon::createFromFormat(
+                    'H:i',
+                    substr((string) $slot->endTime(), 0, 5)
+                );
+
+                /**
+                 * Working hours start.
+                 */
+                $workingStart = Carbon::createFromFormat(
+                    'H:i',
+                    substr((string) $dayCfg['start'], 0, 5)
+                );
+
+                /**
+                 * Working hours end.
+                 */
+                $workingEnd = Carbon::createFromFormat(
+                    'H:i',
+                    substr((string) $dayCfg['end'], 0, 5)
+                );
+
+                /**
+                 * The COMPLETE slot must be inside working hours.
+                 *
+                 * Example:
+                 *
+                 * Working hours: 09:00 - 18:00
+                 *
+                 * 06:30 - 07:30 => false
+                 * 08:30 - 09:30 => false
+                 * 09:00 - 10:00 => true
+                 * 17:00 - 18:00 => true
+                 * 17:30 - 18:30 => false
+                 * 18:00 - 19:00 => false
+                 */
+                return $slotStart->greaterThanOrEqualTo($workingStart)
+                    && $slotEnd->lessThanOrEqualTo($workingEnd);
+            })
+            ->values();
+
+        /**
+         * Now calculate availability for every valid slot.
+         */
+        return $slots
             ->map(function (JobTimeSlot $slot) use (
                 $date,
                 $settings,
@@ -189,14 +241,6 @@ class JobSchedulingService
                     'duration_minutes' => (int) $slot->duration_minutes,
                     'booked_count' => $booked,
                     'remaining' => $remaining,
-
-                    /**
-                     * Slot is available only when:
-                     *
-                     * - It is not blocked
-                     * - The day is not full
-                     * - Slot has remaining capacity
-                     */
                     'available' => ! $blocked
                         && ! $dayFull
                         && $remaining > 0,
@@ -213,9 +257,9 @@ class JobSchedulingService
      * - Be a working day
      * - Not be fully blocked
      *
-     * The selected time must:
+     * When a configured slot is required, the selected time must:
      * - Belong to an active configured slot
-     * - Fall completely within the working hours
+     * - Fall completely within working hours
      * - Not be blocked
      * - Have available slot capacity
      * - Have available daily capacity
@@ -280,22 +324,37 @@ class JobSchedulingService
             }
 
             /**
-             * Make sure the complete slot is inside
-             * the configured working hours.
+             * Get the calculated slot end time.
              *
-             * Example:
-             *
-             * Working hours:
-             * 09:00 - 18:00
-             *
-             * Slot:
-             * 08:30 - 09:30 => rejected
-             * 09:00 - 10:00 => allowed
-             * 17:30 - 18:30 => rejected
+             * Do NOT use $slot->end_time because end_time
+             * is calculated by JobTimeSlot::endTime().
+             */
+            $slotStart = Carbon::createFromFormat(
+                'H:i',
+                substr((string) $slot->start_time, 0, 5)
+            );
+
+            $slotEnd = Carbon::createFromFormat(
+                'H:i',
+                substr((string) $slot->endTime(), 0, 5)
+            );
+
+            $workingStart = Carbon::createFromFormat(
+                'H:i',
+                substr((string) $dayCfg['start'], 0, 5)
+            );
+
+            $workingEnd = Carbon::createFromFormat(
+                'H:i',
+                substr((string) $dayCfg['end'], 0, 5)
+            );
+
+            /**
+             * The complete slot must be inside working hours.
              */
             if (
-                $slot->start_time < $dayCfg['start']
-                || $slot->end_time > $dayCfg['end']
+                $slotStart->lt($workingStart)
+                || $slotEnd->gt($workingEnd)
             ) {
                 return 'Selected time slot is outside working hours.';
             }
