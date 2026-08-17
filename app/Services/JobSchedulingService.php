@@ -23,7 +23,13 @@ use Carbon\Carbon;
  */
 class JobSchedulingService
 {
-    private const NON_BLOCKING_STATUSES = ['rejected'];
+    /**
+     * These statuses do not consume booking capacity
+     * and do not create technician conflicts.
+     */
+    private const NON_BLOCKING_STATUSES = [
+        'rejected',
+    ];
 
     /**
      * Get current scheduling settings.
@@ -41,7 +47,9 @@ class JobSchedulingService
      */
     private static function dayKey(string $date): string
     {
-        return strtolower(Carbon::parse($date)->format('D'));
+        return strtolower(
+            Carbon::parse($date)->format('D')
+        );
     }
 
     /**
@@ -50,17 +58,25 @@ class JobSchedulingService
     public static function isDateFullyBlocked(string $date): bool
     {
         return JobBlockedDate::whereDate('date', $date)
-            ->where('block_type', JobBlockedDate::TYPE_FULL_DAY)
+            ->where(
+                'block_type',
+                JobBlockedDate::TYPE_FULL_DAY
+            )
             ->exists();
     }
 
     /**
      * Check whether a particular time slot is blocked on a date.
      */
-    public static function isSlotBlocked(string $date, string $time): bool
-    {
+    public static function isSlotBlocked(
+        string $date,
+        string $time
+    ): bool {
         return JobBlockedDate::whereDate('date', $date)
-            ->where('block_type', JobBlockedDate::TYPE_TIME_SLOT)
+            ->where(
+                'block_type',
+                JobBlockedDate::TYPE_TIME_SLOT
+            )
             ->where('time', $time)
             ->exists();
     }
@@ -68,29 +84,8 @@ class JobSchedulingService
     /**
      * Get all blocked dates / slots for a specific date.
      *
-     * This is used by the available-slots API so the frontend
-     * can know whether the date is fully blocked or only
-     * specific time slots are blocked.
-     *
-     * Returns examples:
-     *
-     * Full day:
-     * {
-     *     "id": 1,
-     *     "block_type": "full_day",
-     *     "date": "2026-08-18",
-     *     "time": null,
-     *     "reason": "Holiday"
-     * }
-     *
-     * Time slot:
-     * {
-     *     "id": 2,
-     *     "block_type": "time_slot",
-     *     "date": "2026-08-19",
-     *     "time": "10:00",
-     *     "reason": "Meeting"
-     * }
+     * This allows the API/frontend to know exactly why
+     * a date or slot is unavailable.
      */
     public static function blockedSlots(string $date): array
     {
@@ -101,11 +96,17 @@ class JobSchedulingService
             ->map(function (JobBlockedDate $block) {
                 return [
                     'id' => $block->id,
+
                     'block_type' => $block->block_type,
-                    'date' => Carbon::parse($block->date)->toDateString(),
+
+                    'date' => Carbon::parse(
+                        $block->date
+                    )->toDateString(),
+
                     'time' => $block->time
                         ? substr((string) $block->time, 0, 5)
                         : null,
+
                     'reason' => $block->reason ?? null,
                 ];
             })
@@ -120,7 +121,10 @@ class JobSchedulingService
      */
     private static function slotDurationMinutes(string $time): int
     {
-        $slot = JobTimeSlot::where('start_time', $time)->first();
+        $slot = JobTimeSlot::where(
+            'start_time',
+            $time
+        )->first();
 
         return $slot
             ? (int) $slot->duration_minutes
@@ -133,12 +137,21 @@ class JobSchedulingService
      * A slot is returned only when:
      *
      * - The selected day is enabled
-     * - The date is not fully blocked
      * - The slot is active
      * - The complete slot falls within working hours
      * - The slot itself is not blocked
      * - Slot capacity is available
      * - Daily capacity is available
+     *
+     * IMPORTANT:
+     * If the entire date is blocked, slots are still returned
+     * with:
+     *
+     *     blocked = true
+     *     available = false
+     *
+     * This allows the frontend to clearly understand that
+     * the selected date itself is blocked.
      */
     public static function availableSlots(string $date): array
     {
@@ -146,70 +159,82 @@ class JobSchedulingService
 
         /**
          * Get working-day configuration.
-         *
-         * Example:
-         *
-         * Monday:
-         * enabled = true
-         * start   = 09:00
-         * end     = 18:00
          */
-        $dayCfg = $settings->forDay(self::dayKey($date));
+        $dayCfg = $settings->forDay(
+            self::dayKey($date)
+        );
 
         /**
          * If the day is disabled / not configured,
-         * there are no available slots.
+         * there are no slots.
          */
         if (! $dayCfg || empty($dayCfg['enabled'])) {
             return [];
         }
 
         /**
-         * Entire date is blocked.
+         * Check whether the entire date is blocked.
+         *
+         * IMPORTANT:
+         * Do NOT return [] here.
+         *
+         * We still want the API to return the configured
+         * slots with blocked=true so frontend can display
+         * the selected date as blocked.
          */
-        if (self::isDateFullyBlocked($date)) {
-            return [];
-        }
+        $dateBlocked = self::isDateFullyBlocked($date);
 
         /**
-         * Check total bookings for the date.
+         * Get total bookings for the date.
          */
-        $dayBookedCount = Visit::whereDate('scheduled_date', $date)
-            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+        $dayBookedCount = Visit::whereDate(
+            'scheduled_date',
+            $date
+        )
+            ->whereNotIn(
+                'status',
+                self::NON_BLOCKING_STATUSES
+            )
             ->count();
 
-        $dayFull = $dayBookedCount >= $settings->max_bookings_per_day;
+        $dayFull =
+            $dayBookedCount >=
+            $settings->max_bookings_per_day;
 
         /**
-         * Get all active configured slots first.
-         *
-         * We cannot use:
-         *
-         * ->whereTime('end_time', ...)
-         *
-         * because end_time is calculated by JobTimeSlot::endTime()
-         * and is not necessarily a database column.
+         * Get all active configured slots.
          */
-        $slots = JobTimeSlot::where('is_active', true)
+        $slots = JobTimeSlot::where(
+            'is_active',
+            true
+        )
             ->orderBy('sort_order')
             ->orderBy('start_time')
             ->get()
             ->filter(function (JobTimeSlot $slot) use ($dayCfg) {
 
                 /**
-                 * Slot start time.
+                 * Slot start.
                  */
                 $slotStart = Carbon::createFromFormat(
                     'H:i',
-                    substr((string) $slot->start_time, 0, 5)
+                    substr(
+                        (string) $slot->start_time,
+                        0,
+                        5
+                    )
                 );
 
                 /**
-                 * Slot end time is calculated by the model.
+                 * Slot end calculated from model.
                  */
                 $slotEnd = Carbon::createFromFormat(
                     'H:i',
-                    substr((string) $slot->endTime(), 0, 5)
+                    substr(
+                        (string) $slot->endTime(),
+                        0,
+                        5
+                    )
                 );
 
                 /**
@@ -217,7 +242,11 @@ class JobSchedulingService
                  */
                 $workingStart = Carbon::createFromFormat(
                     'H:i',
-                    substr((string) $dayCfg['start'], 0, 5)
+                    substr(
+                        (string) $dayCfg['start'],
+                        0,
+                        5
+                    )
                 );
 
                 /**
@@ -225,53 +254,61 @@ class JobSchedulingService
                  */
                 $workingEnd = Carbon::createFromFormat(
                     'H:i',
-                    substr((string) $dayCfg['end'], 0, 5)
+                    substr(
+                        (string) $dayCfg['end'],
+                        0,
+                        5
+                    )
                 );
 
                 /**
-                 * The COMPLETE slot must be inside working hours.
-                 *
-                 * Example:
-                 *
-                 * Working hours: 09:00 - 18:00
-                 *
-                 * 06:30 - 07:30 => false
-                 * 08:30 - 09:30 => false
-                 * 09:00 - 10:00 => true
-                 * 17:00 - 18:00 => true
-                 * 17:30 - 18:30 => false
-                 * 18:00 - 19:00 => false
+                 * Complete slot must be inside
+                 * working hours.
                  */
-                return $slotStart->greaterThanOrEqualTo($workingStart)
-                    && $slotEnd->lessThanOrEqualTo($workingEnd);
+                return $slotStart->greaterThanOrEqualTo(
+                    $workingStart
+                )
+                    && $slotEnd->lessThanOrEqualTo(
+                        $workingEnd
+                    );
             })
             ->values();
 
         /**
-         * Now calculate availability for every valid slot.
+         * Calculate availability for every valid slot.
          */
         return $slots
             ->map(function (JobTimeSlot $slot) use (
                 $date,
                 $settings,
-                $dayFull
+                $dayFull,
+                $dateBlocked
             ) {
 
                 /**
-                 * Check whether this exact slot is blocked
-                 * for this date.
+                 * Check whether this exact time slot
+                 * is blocked for this date.
                  */
-                $blocked = self::isSlotBlocked(
+                $slotBlocked = self::isSlotBlocked(
                     $date,
                     $slot->start_time
                 );
 
                 /**
-                 * Count bookings for this exact date + time.
+                 * Count bookings for this exact date/time.
                  */
-                $booked = Visit::whereDate('scheduled_date', $date)
-                    ->where('scheduled_time', $slot->start_time)
-                    ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+                $booked = Visit::whereDate(
+                    'scheduled_date',
+                    $date
+                )
+                    ->where(
+                        'scheduled_time',
+                        $slot->start_time
+                    )
+                    ->whereNotIn(
+                        'status',
+                        self::NON_BLOCKING_STATUSES
+                    )
                     ->count();
 
                 /**
@@ -282,19 +319,57 @@ class JobSchedulingService
                     $settings->max_bookings_per_slot - $booked
                 );
 
+                /**
+                 * A slot is blocked if:
+                 *
+                 * 1. Entire date is blocked
+                 * OR
+                 * 2. Specific time slot is blocked
+                 */
+                $blocked =
+                    $dateBlocked ||
+                    $slotBlocked;
+
+                /**
+                 * Slot is available only if:
+                 *
+                 * - date is not blocked
+                 * - slot is not blocked
+                 * - day capacity is available
+                 * - slot capacity is available
+                 */
+                $available =
+                    ! $blocked
+                    && ! $dayFull
+                    && $remaining > 0;
+
                 return [
                     'id' => $slot->id,
+
                     'start_time' => $slot->start_time,
+
                     'end_time' => $slot->endTime(),
+
                     'duration_minutes' => (int) $slot->duration_minutes,
+
                     'booked_count' => $booked,
+
                     'remaining' => $remaining,
 
+                    /**
+                     * true when either the complete date
+                     * or this specific slot is blocked.
+                     */
                     'blocked' => $blocked,
 
-                    'available' => ! $blocked
-                        && ! $dayFull
-                        && $remaining > 0,
+                    /**
+                     * More specific information.
+                     */
+                    'date_blocked' => $dateBlocked,
+
+                    'slot_blocked' => $slotBlocked,
+
+                    'available' => $available,
                 ];
             })
             ->values()
@@ -338,9 +413,11 @@ class JobSchedulingService
         $settings = self::settings();
 
         /**
-         * The selected date must be an enabled working day.
+         * Selected date must be an enabled working day.
          */
-        $dayCfg = $settings->forDay(self::dayKey($date));
+        $dayCfg = $settings->forDay(
+            self::dayKey($date)
+        );
 
         if (! $dayCfg || empty($dayCfg['enabled'])) {
             return 'Selected date is not a working day.';
@@ -354,19 +431,22 @@ class JobSchedulingService
         }
 
         /**
-         * Check date-specific blocked slot.
+         * Specific time slot blocked.
          */
         if (self::isSlotBlocked($date, $time)) {
             return 'Selected time slot is blocked and not available for booking.';
         }
 
         /**
-         * Customer-facing bookings must use an active
-         * configured slot.
+         * Customer-facing bookings must use
+         * an active configured slot.
          */
         if ($requireConfiguredSlot) {
 
-            $slot = JobTimeSlot::where('start_time', $time)
+            $slot = JobTimeSlot::where(
+                'start_time',
+                $time
+            )
                 ->where('is_active', true)
                 ->first();
 
@@ -375,33 +455,55 @@ class JobSchedulingService
             }
 
             /**
-             * Get the calculated slot end time.
-             *
-             * Do NOT use $slot->end_time because end_time
-             * is calculated by JobTimeSlot::endTime().
+             * Slot start.
              */
             $slotStart = Carbon::createFromFormat(
                 'H:i',
-                substr((string) $slot->start_time, 0, 5)
-            );
-
-            $slotEnd = Carbon::createFromFormat(
-                'H:i',
-                substr((string) $slot->endTime(), 0, 5)
-            );
-
-            $workingStart = Carbon::createFromFormat(
-                'H:i',
-                substr((string) $dayCfg['start'], 0, 5)
-            );
-
-            $workingEnd = Carbon::createFromFormat(
-                'H:i',
-                substr((string) $dayCfg['end'], 0, 5)
+                substr(
+                    (string) $slot->start_time,
+                    0,
+                    5
+                )
             );
 
             /**
-             * The complete slot must be inside working hours.
+             * Slot end.
+             */
+            $slotEnd = Carbon::createFromFormat(
+                'H:i',
+                substr(
+                    (string) $slot->endTime(),
+                    0,
+                    5
+                )
+            );
+
+            /**
+             * Working hours start.
+             */
+            $workingStart = Carbon::createFromFormat(
+                'H:i',
+                substr(
+                    (string) $dayCfg['start'],
+                    0,
+                    5
+                )
+            );
+
+            /**
+             * Working hours end.
+             */
+            $workingEnd = Carbon::createFromFormat(
+                'H:i',
+                substr(
+                    (string) $dayCfg['end'],
+                    0,
+                    5
+                )
+            );
+
+            /**
+             * Complete slot must be inside working hours.
              */
             if (
                 $slotStart->lt($workingStart)
@@ -412,33 +514,62 @@ class JobSchedulingService
         }
 
         /**
-         * Check capacity for this exact date + time.
+         * Check capacity for this exact date/time.
          */
-        $bookedForSlot = Visit::whereDate('scheduled_date', $date)
-            ->where('scheduled_time', $time)
-            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+        $bookedForSlot = Visit::whereDate(
+            'scheduled_date',
+            $date
+        )
+            ->where(
+                'scheduled_time',
+                $time
+            )
+            ->whereNotIn(
+                'status',
+                self::NON_BLOCKING_STATUSES
+            )
             ->when(
                 $excludeVisitId,
-                fn ($q) => $q->where('id', '!=', $excludeVisitId)
+                fn ($q) => $q->where(
+                    'id',
+                    '!=',
+                    $excludeVisitId
+                )
             )
             ->count();
 
-        if ($bookedForSlot >= $settings->max_bookings_per_slot) {
+        if (
+            $bookedForSlot >=
+            $settings->max_bookings_per_slot
+        ) {
             return 'This time slot is fully booked. Please choose another slot.';
         }
 
         /**
          * Check total capacity for the entire day.
          */
-        $dayBooked = Visit::whereDate('scheduled_date', $date)
-            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+        $dayBooked = Visit::whereDate(
+            'scheduled_date',
+            $date
+        )
+            ->whereNotIn(
+                'status',
+                self::NON_BLOCKING_STATUSES
+            )
             ->when(
                 $excludeVisitId,
-                fn ($q) => $q->where('id', '!=', $excludeVisitId)
+                fn ($q) => $q->where(
+                    'id',
+                    '!=',
+                    $excludeVisitId
+                )
             )
             ->count();
 
-        if ($dayBooked >= $settings->max_bookings_per_day) {
+        if (
+            $dayBooked >=
+            $settings->max_bookings_per_day
+        ) {
             return 'This date is fully booked. Please choose another date.';
         }
 
@@ -446,7 +577,8 @@ class JobSchedulingService
     }
 
     /**
-     * Check whether technician already has an overlapping job.
+     * Check whether technician already has
+     * an overlapping job.
      *
      * Takes:
      * - slot duration
@@ -474,17 +606,30 @@ class JobSchedulingService
 
         /**
          * Use explicitly supplied duration when available.
-         * Otherwise use the configured slot duration.
+         * Otherwise use configured slot duration.
          */
         $duration = $durationMinutes
             ?? self::slotDurationMinutes($time);
 
-        $newStart = Carbon::parse($date . ' ' . $time);
+        /**
+         * New visit start.
+         */
+        $newStart = Carbon::parse(
+            $date . ' ' . $time
+        );
 
+        /**
+         * New visit end including buffer.
+         */
         $newEnd = $newStart
             ->copy()
-            ->addMinutes($duration + $buffer);
+            ->addMinutes(
+                $duration + $buffer
+            );
 
+        /**
+         * New visit start including buffer.
+         */
         $newStartBuffered = $newStart
             ->copy()
             ->subMinutes($buffer);
@@ -492,13 +637,26 @@ class JobSchedulingService
         /**
          * Get existing technician visits for this date.
          */
-        $existing = Visit::where('technician_id', $technicianId)
-            ->whereDate('scheduled_date', $date)
+        $existing = Visit::where(
+            'technician_id',
+            $technicianId
+        )
+            ->whereDate(
+                'scheduled_date',
+                $date
+            )
             ->whereNotNull('scheduled_time')
-            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+            ->whereNotIn(
+                'status',
+                self::NON_BLOCKING_STATUSES
+            )
             ->when(
                 $excludeVisitId,
-                fn ($q) => $q->where('id', '!=', $excludeVisitId)
+                fn ($q) => $q->where(
+                    'id',
+                    '!=',
+                    $excludeVisitId
+                )
             )
             ->get([
                 'id',
@@ -509,6 +667,9 @@ class JobSchedulingService
 
         foreach ($existing as $visit) {
 
+            /**
+             * Existing visit start.
+             */
             $exStart = Carbon::parse(
                 $visit->scheduled_date->toDateString()
                 . ' '
@@ -516,13 +677,16 @@ class JobSchedulingService
             );
 
             /**
-             * Existing visit duration:
-             * use stored duration if available,
-             * otherwise use configured slot duration.
+             * Existing visit duration.
              */
             $exDuration = $visit->duration_minutes
-                ?? self::slotDurationMinutes($visit->scheduled_time);
+                ?? self::slotDurationMinutes(
+                    $visit->scheduled_time
+                );
 
+            /**
+             * Existing visit end.
+             */
             $exEnd = $exStart
                 ->copy()
                 ->addMinutes($exDuration);
@@ -551,6 +715,8 @@ class JobSchedulingService
         string $endTime
     ): int {
         return Carbon::parse($startTime)
-            ->diffInMinutes(Carbon::parse($endTime));
+            ->diffInMinutes(
+                Carbon::parse($endTime)
+            );
     }
 }
