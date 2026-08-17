@@ -14,6 +14,7 @@ class Order extends Model
         'coupon_id',
         'coupon_code',
         'coupon_discount_amount',
+
         'guest_email',
         'guest_full_name',
         'guest_phone',
@@ -22,27 +23,41 @@ class Order extends Model
         'guest_state',
         'guest_zip_code',
         'guest_country',
+
         'package_id',
         'shipping_address_id',
+
         'total_amount',
         'wallet_amount_applied',
         'subtotal_amount',
         'tax_amount',
         'tax_percent',
         'shipping_amount',
+
         'payment_status',
         'payment_reference',
         'payment_method',
         'transaction_id',
         'paid_at',
         'wallet_redeemed_at',
+
         'order_status',
+
         'refunded_at',
         'refund_amount',
         'refund_reason',
+
         'special_instructions',
         'estimated_arrival',
         'job_duration',
+
+        /*
+         * Booking fields.
+         *
+         * These columns exist in orders table.
+         */
+        'booking_date',
+        'booking_slot',
     ];
 
     protected $casts = [
@@ -54,9 +69,15 @@ class Order extends Model
         'shipping_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'coupon_discount_amount' => 'decimal:2',
+
         'paid_at' => 'datetime',
         'wallet_redeemed_at' => 'datetime',
         'refunded_at' => 'datetime',
+
+        /*
+         * Booking date.
+         */
+        'booking_date' => 'date:Y-m-d',
     ];
 
     /**
@@ -64,7 +85,10 @@ class Order extends Model
      */
     public function shippingAddress()
     {
-        return $this->belongsTo(UserAddress::class, 'shipping_address_id');
+        return $this->belongsTo(
+            UserAddress::class,
+            'shipping_address_id'
+        );
     }
 
     /**
@@ -98,7 +122,9 @@ class Order extends Model
 
     public function vendorMappings()
     {
-        return $this->hasMany(VendorOrderMapping::class);
+        return $this->hasMany(
+            VendorOrderMapping::class
+        );
     }
 
     /**
@@ -106,11 +132,15 @@ class Order extends Model
      */
     public function transactions()
     {
-        return $this->morphMany(Transaction::class, 'transactionable');
+        return $this->morphMany(
+            Transaction::class,
+            'transactionable'
+        );
     }
 
     /**
-     * Ratings/reviews for this order (service review has null product_id).
+     * Ratings/reviews for this order
+     * (service review has null product_id).
      */
     public function reviews()
     {
@@ -118,14 +148,20 @@ class Order extends Model
     }
 
     /**
-     * Shipping address for API (logged-in: from user_addresses; guest: from guest_* columns).
+     * Shipping address for API
+     * (logged-in: from user_addresses;
+     * guest: from guest_* columns).
      */
     public function getShippingAddressForApi(): ?array
     {
         if ($this->shippingAddress) {
             return $this->shippingAddress->toApiArray();
         }
-        if ($this->guest_full_name || $this->guest_email) {
+
+        if (
+            $this->guest_full_name
+            || $this->guest_email
+        ) {
             return [
                 'full_name' => $this->guest_full_name,
                 'phone_number' => $this->guest_phone,
@@ -146,21 +182,34 @@ class Order extends Model
     }
 
     /**
-     * Zero-padded numeric segment (min 4 chars) for display and API order_number suffix.
+     * Zero-padded numeric segment (min 4 chars)
+     * for display and API order_number suffix.
      */
     public function publicOrderNumberDigits(): string
     {
-        $width = max(4, strlen((string) $this->id));
+        $width = max(
+            4,
+            strlen((string) $this->id)
+        );
 
-        return str_pad((string) $this->id, $width, '0', STR_PAD_LEFT);
+        return str_pad(
+            (string) $this->id,
+            $width,
+            '0',
+            STR_PAD_LEFT
+        );
     }
 
     /**
-     * Stable public reference (e.g. order_0006). Unique per order; guest lookup parses digits after "order_".
+     * Stable public reference.
+     *
+     * Example:
+     * order_0006
      */
     public function publicOrderNumber(): string
     {
-        return 'order_'.$this->publicOrderNumberDigits();
+        return 'order_'
+            . $this->publicOrderNumberDigits();
     }
 
     public function isShopOrder(): bool
@@ -171,13 +220,24 @@ class Order extends Model
     public function payerDisplayName(): string
     {
         if ($this->isGuestOrder()) {
-            return (string) ($this->guest_full_name ?? 'Guest');
-        }
-        if ($this->shippingAddress && $this->shippingAddress->full_name) {
-            return (string) $this->shippingAddress->full_name;
+            return (string) (
+                $this->guest_full_name
+                ?? 'Guest'
+            );
         }
 
-        return (string) ($this->user?->name ?? 'Customer');
+        if (
+            $this->shippingAddress
+            && $this->shippingAddress->full_name
+        ) {
+            return (string)
+                $this->shippingAddress->full_name;
+        }
+
+        return (string) (
+            $this->user?->name
+            ?? 'Customer'
+        );
     }
 
     public function payerEmail(): ?string
@@ -195,16 +255,27 @@ class Order extends Model
             return $this->guest_phone;
         }
 
-        return $this->shippingAddress?->phone_number ?: $this->user?->phone;
+        return $this->shippingAddress?->phone_number
+            ?: $this->user?->phone;
     }
 
     public function payerAddressForDisplay(): string
     {
         if ($this->shippingAddress) {
             $a = $this->shippingAddress;
+
             $lines = array_filter([
                 $a->street_address,
-                trim(implode(' ', array_filter([$a->city, $a->state, $a->zip_code]))),
+                trim(
+                    implode(
+                        ' ',
+                        array_filter([
+                            $a->city,
+                            $a->state,
+                            $a->zip_code,
+                        ])
+                    )
+                ),
                 $a->country,
             ]);
 
@@ -213,43 +284,92 @@ class Order extends Model
 
         $guestLines = array_filter([
             $this->guest_street_address,
-            trim(implode(' ', array_filter([$this->guest_city, $this->guest_state, $this->guest_zip_code]))),
+            trim(
+                implode(
+                    ' ',
+                    array_filter([
+                        $this->guest_city,
+                        $this->guest_state,
+                        $this->guest_zip_code,
+                    ])
+                )
+            ),
             $this->guest_country,
         ]);
+
         if ($guestLines !== []) {
-            return implode("\n", $guestLines);
+            return implode(
+                "\n",
+                $guestLines
+            );
         }
 
         return '';
     }
 
     /**
-     * Short line for tables (Stripe-style description).
+     * Short line for tables
+     * (Stripe-style description).
      */
     public function paymentActivityDescription(): string
     {
         $name = $this->payerDisplayName();
+
         if ($this->isGuestOrder()) {
-            $city = (string) ($this->guest_city ?? '');
-            $country = (string) ($this->guest_country ?? '');
-            $zip = (string) ($this->guest_zip_code ?? '');
+            $city = (string) (
+                $this->guest_city ?? ''
+            );
+
+            $country = (string) (
+                $this->guest_country ?? ''
+            );
+
+            $zip = (string) (
+                $this->guest_zip_code ?? ''
+            );
         } else {
-            $city = (string) ($this->shippingAddress?->city ?? '');
-            $country = (string) ($this->shippingAddress?->country ?? '');
-            $zip = (string) ($this->shippingAddress?->zip_code ?? '');
+            $city = (string) (
+                $this->shippingAddress?->city ?? ''
+            );
+
+            $country = (string) (
+                $this->shippingAddress?->country ?? ''
+            );
+
+            $zip = (string) (
+                $this->shippingAddress?->zip_code ?? ''
+            );
         }
 
-        return implode(' - ', array_filter(['Shop', $name, $city, $country, $zip], fn ($p) => $p !== ''));
+        return implode(
+            ' - ',
+            array_filter(
+                [
+                    'Shop',
+                    $name,
+                    $city,
+                    $country,
+                    $zip,
+                ],
+                fn ($p) => $p !== ''
+            )
+        );
     }
 
     public function paymentMethodLabel(): string
     {
-        $m = strtolower((string) ($this->payment_method ?? ''));
+        $m = strtolower(
+            (string) (
+                $this->payment_method ?? ''
+            )
+        );
 
         return match ($m) {
             'stripe' => 'Stripe',
             'paypal' => 'PayPal',
-            default => $m !== '' ? ucfirst($m) : '—',
+            default => $m !== ''
+                ? ucfirst($m)
+                : '—',
         };
     }
 }

@@ -899,7 +899,7 @@ class SupervisorDashboardApiController extends Controller
 
         $pending = $this->assignableVisitsQuery($request)
             ->select([
-                'id', 'notes', 'scheduled_date', 'status', 'price', 'technician_id',
+                'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
                 'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
             ])
             ->with('supervisor:id,name')
@@ -914,17 +914,21 @@ class SupervisorDashboardApiController extends Controller
                 (string) ($visit->notes ?? ''),
                 $visit->order_id ? (int) $visit->order_id : null
             );
+            $visit->date = $visit->scheduled_date?->toDateString();
+            $visit->time_slot = $this->formatVisitTimeSlot($visit);
             $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
             $visit->service_name = $meta['service_name'] ?? null;
             $visit->location = $meta['location'] ?? null;
-            $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+            $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
             $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
             $visit->supervisor_name = $visit->supervisor?->name ?? null;
             $visit->address = $meta['address'] ?? $visit->location;
             $visit->client_name = $meta['client_name'] ?? null;
             $visit->client_email = $meta['client_email'] ?? null;
             $visit->client_phone = $meta['client_phone'] ?? null;
-            $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
+            $visit->job_time = $visit->scheduled_date
+                ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
+                : null;
             $visit->makeHidden(['supervisor']);
 
             return $visit;
@@ -961,14 +965,18 @@ class SupervisorDashboardApiController extends Controller
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
         );
+        $visit->date = $visit->scheduled_date?->toDateString();
+        $visit->time_slot = $this->formatVisitTimeSlot($visit);
         $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
         $visit->location = $meta['location'] ?? null;
-        $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+        $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
         $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
         $visit->address = $meta['address'] ?? $visit->location;
-        $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
+        $visit->job_time = $visit->scheduled_date
+            ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
+            : null;
         $visit->makeHidden(['supervisor']);
         $visit->customer = $client ? [
             'id' => $client->id,
@@ -1019,7 +1027,7 @@ class SupervisorDashboardApiController extends Controller
 
         $pending = $this->assignableVisitsQuery($request)
                 ->select([
-                    'id', 'notes', 'scheduled_date', 'status', 'price', 'technician_id',
+                    'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
                     'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
                 ])
                 ->with('supervisor:id,name')
@@ -1033,17 +1041,21 @@ class SupervisorDashboardApiController extends Controller
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
         );
+                $visit->date = $visit->scheduled_date?->toDateString();
+                $visit->time_slot = $this->formatVisitTimeSlot($visit);
                 $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
                 $visit->service_name = $meta['service_name'] ?? null;
                 $visit->location = $meta['location'] ?? null;
-                $visit->duration_minutes = $meta['duration_minutes'] ?? null;
+                $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
                 $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
                 $visit->supervisor_name = $visit->supervisor?->name ?? null;
                 $visit->address = $meta['address'] ?? $visit->location;
                 $visit->client_name = $meta['client_name'] ?? null;
                 $visit->client_email = $meta['client_email'] ?? null;
                 $visit->client_phone = $meta['client_phone'] ?? null;
-                $visit->job_time = $visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->format('d M Y, h:i A') : null;
+                $visit->job_time = $visit->scheduled_date
+                    ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
+                    : null;
                 $visit->makeHidden(['supervisor']);
                 return $visit;
             });
@@ -1371,6 +1383,20 @@ class SupervisorDashboardApiController extends Controller
             $payload['message'] = $message;
         }
         return response()->json($payload);
+    }
+
+    /**
+     * "h:mm A - h:mm A" from scheduled_time (+ duration_minutes, default 120), or null if no time is set.
+     */
+    private function formatVisitTimeSlot($visit): ?string
+    {
+        if (empty($visit->scheduled_time) || ! $visit->scheduled_date) {
+            return null;
+        }
+        $start = Carbon::parse($visit->scheduled_date->toDateString() . ' ' . $visit->scheduled_time);
+        $end = $start->copy()->addMinutes((int) ($visit->duration_minutes ?? 120));
+
+        return $start->format('g:i A') . ' - ' . $end->format('g:i A');
     }
 
     private function parseVisitMetaFromNotes(string $notes, ?int $visitOrderId = null): array

@@ -10,252 +10,792 @@ use App\Models\UserAddress;
 use Illuminate\Http\Request;
 
 /**
- * Builds shop orders for checkout (guest or authenticated). Used by Stripe / PayPal flows.
+ * Builds shop orders for checkout (guest or authenticated).
+ * Used by Stripe / PayPal flows.
  */
 class ShopCheckoutOrderService
 {
+    /**
+     * Normalize checkout request data.
+     *
+     * Supports:
+     * - shipping_address / shipping
+     * - booking_date / date
+     * - booking_slot / slot
+     * - nested booking object
+     */
     public function normalizeCheckoutRequest(Request $request): void
     {
         $all = $request->all();
-        $shipping = $all['shipping_address'] ?? $all['shipping'] ?? null;
+
+        /*
+         * Normalize shipping address.
+         */
+        $shipping = $all['shipping_address']
+            ?? $all['shipping']
+            ?? null;
+
         if (is_array($shipping)) {
-            $all['full_name'] = $shipping['fullName'] ?? $shipping['full_name'] ?? $all['full_name'] ?? null;
-            $all['phone_number'] = $shipping['phone'] ?? $shipping['phone_number'] ?? $all['phone_number'] ?? null;
-            $all['street_address'] = $shipping['street'] ?? $shipping['street_address'] ?? $all['street_address'] ?? null;
-            $all['city'] = $shipping['city'] ?? $all['city'] ?? null;
-            $all['state'] = $shipping['state'] ?? $all['state'] ?? null;
-            $all['zip_code'] = $shipping['zipCode'] ?? $shipping['zip_code'] ?? $all['zip_code'] ?? null;
-            $all['country'] = $shipping['country'] ?? $all['country'] ?? null;
+            $all['full_name'] = $shipping['fullName']
+                ?? $shipping['full_name']
+                ?? $all['full_name']
+                ?? null;
+
+            $all['phone_number'] = $shipping['phone']
+                ?? $shipping['phone_number']
+                ?? $all['phone_number']
+                ?? null;
+
+            $all['street_address'] = $shipping['street']
+                ?? $shipping['street_address']
+                ?? $all['street_address']
+                ?? null;
+
+            $all['city'] = $shipping['city']
+                ?? $all['city']
+                ?? null;
+
+            $all['state'] = $shipping['state']
+                ?? $all['state']
+                ?? null;
+
+            $all['zip_code'] = $shipping['zipCode']
+                ?? $shipping['zip_code']
+                ?? $all['zip_code']
+                ?? null;
+
+            $all['country'] = $shipping['country']
+                ?? $all['country']
+                ?? null;
         }
+
+        /*
+         * Normalize booking date.
+         *
+         * Supported:
+         * booking_date
+         * date
+         */
+        $all['booking_date'] = $all['booking_date']
+            ?? $all['date']
+            ?? null;
+
+        /*
+         * Normalize booking slot.
+         *
+         * Supported:
+         * booking_slot
+         * slot
+         */
+        $all['booking_slot'] = $all['booking_slot']
+            ?? $all['slot']
+            ?? null;
+
+        /*
+         * Support nested booking object.
+         *
+         * Example:
+         *
+         * booking: {
+         *     booking_date: "2026-08-20",
+         *     booking_slot: "10:00 AM - 12:00 PM"
+         * }
+         */
+        if (
+            isset($all['booking'])
+            && is_array($all['booking'])
+        ) {
+            $booking = $all['booking'];
+
+            $all['booking_date'] = $all['booking_date']
+                ?? $booking['booking_date']
+                ?? $booking['date']
+                ?? null;
+
+            $all['booking_slot'] = $all['booking_slot']
+                ?? $booking['booking_slot']
+                ?? $booking['slot']
+                ?? null;
+        }
+
+        /*
+         * Clean booking date.
+         */
+        if (is_string($all['booking_date'])) {
+            $all['booking_date'] = trim(
+                $all['booking_date']
+            );
+
+            if ($all['booking_date'] === '') {
+                $all['booking_date'] = null;
+            }
+        }
+
+        /*
+         * Clean booking slot.
+         */
+        if (is_string($all['booking_slot'])) {
+            $all['booking_slot'] = trim(
+                $all['booking_slot']
+            );
+
+            if ($all['booking_slot'] === '') {
+                $all['booking_slot'] = null;
+            }
+        }
+
         $request->merge($all);
     }
 
-    public function createGuestOrder(Request $request, string $paymentMethod): ?Order
-    {
-        $items = $request->input('items');
+    /**
+     * Create guest order.
+     */
+    public function createGuestOrder(
+        Request $request,
+        string $paymentMethod
+    ): ?Order {
+        $items = $request->input('items', []);
+
+        /*
+         * Calculate subtotal.
+         */
         $subtotal = 0;
+
         foreach ($items as $item) {
-            $p = \App\Models\Product::find($item['product_id'] ?? null);
-            if ($p) {
-                $subtotal += $this->resolveItemUnitPrice($item, $p) * (int) ($item['qty'] ?? 1);
+            $product = \App\Models\Product::find(
+                $item['product_id'] ?? null
+            );
+
+            if ($product) {
+                $subtotal +=
+                    $this->resolveItemUnitPrice(
+                        $item,
+                        $product
+                    )
+                    * (int) ($item['qty'] ?? 1);
             }
         }
+
         $subtotal = round($subtotal, 2);
+
+        /*
+         * Build cart lines for order summary.
+         */
         $cartLines = [];
+
         foreach ($items as $item) {
-            $pid = $item['product_id'] ?? null;
-            if ($pid) {
-                $cartLines[] = ['product_id' => $pid];
+            $productId = $item['product_id'] ?? null;
+
+            if ($productId) {
+                $cartLines[] = [
+                    'product_id' => $productId,
+                ];
             }
         }
-        $summary = CartController::buildOrderSummary($subtotal, 0, $cartLines);
+
+        /*
+         * Calculate order totals.
+         */
+        $summary = CartController::buildOrderSummary(
+            $subtotal,
+            0,
+            $cartLines
+        );
+
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
 
-        $special = $request->input('special_instructions');
+        /*
+         * Special instructions.
+         */
+        $special = $request->input(
+            'special_instructions'
+        );
+
         if (is_string($special)) {
-            $special = mb_substr(trim($special), 0, 2000);
-            $special = $special === '' ? null : $special;
+            $special = mb_substr(
+                trim($special),
+                0,
+                2000
+            );
+
+            $special = $special === ''
+                ? null
+                : $special;
         } else {
             $special = null;
         }
 
-        $timing = $this->defaultTimingFromOrderItems($items);
+        /*
+         * Booking date.
+         *
+         * IMPORTANT:
+         * orders table has booking_date.
+         */
+        $bookingDate = $request->input(
+            'booking_date'
+        );
 
+        if (is_string($bookingDate)) {
+            $bookingDate = trim($bookingDate);
+
+            if ($bookingDate === '') {
+                $bookingDate = null;
+            }
+        }
+
+        /*
+         * Booking slot.
+         *
+         * IMPORTANT:
+         * orders table has booking_slot.
+         *
+         * It does NOT have:
+         * slot_id
+         * slot_start_time
+         * slot_end_time
+         */
+        $bookingSlot = $request->input(
+            'booking_slot'
+        );
+
+        if (is_string($bookingSlot)) {
+            $bookingSlot = trim($bookingSlot);
+
+            if ($bookingSlot === '') {
+                $bookingSlot = null;
+            }
+        }
+
+        /*
+         * Product timing fallback.
+         */
+        $timing = $this->defaultTimingFromOrderItems(
+            $items
+        );
+
+        /*
+         * Create guest order.
+         */
         $order = Order::create([
             'user_id' => null,
-            'guest_email' => $request->input('email'),
-            'guest_full_name' => $request->input('full_name'),
-            'guest_phone' => $request->input('phone_number'),
-            'guest_street_address' => $request->input('street_address'),
-            'guest_city' => $request->input('city'),
-            'guest_state' => $request->input('state'),
-            'guest_zip_code' => $request->input('zip_code'),
-            'guest_country' => $request->input('country'),
+
+            'guest_email' => $request->input(
+                'email'
+            ),
+
+            'guest_full_name' => $request->input(
+                'full_name'
+            ),
+
+            'guest_phone' => $request->input(
+                'phone_number'
+            ),
+
+            'guest_street_address' => $request->input(
+                'street_address'
+            ),
+
+            'guest_city' => $request->input(
+                'city'
+            ),
+
+            'guest_state' => $request->input(
+                'state'
+            ),
+
+            'guest_zip_code' => $request->input(
+                'zip_code'
+            ),
+
+            'guest_country' => $request->input(
+                'country'
+            ),
+
             'shipping_address_id' => null,
+
             'total_amount' => $total,
             'subtotal_amount' => $subtotal,
             'tax_amount' => $taxAmount,
             'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
+
             'order_status' => 'pending',
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
+
+            /*
+             * Booking fields that ACTUALLY exist
+             * in orders table.
+             */
+            'booking_date' => $bookingDate,
+            'booking_slot' => $bookingSlot,
+
             'special_instructions' => $special,
-            'estimated_arrival' => $timing['estimated_arrival'],
-            'job_duration' => $timing['job_duration'],
+
+            'estimated_arrival' => $timing[
+                'estimated_arrival'
+            ],
+
+            'job_duration' => $timing[
+                'job_duration'
+            ],
         ]);
 
+        /*
+         * Create order items.
+         */
         foreach ($items as $item) {
-            $product = \App\Models\Product::find($item['product_id'] ?? null);
-            if ($product) {
-                $qty = (int) ($item['qty'] ?? 1);
-                $unit = $this->resolveItemUnitPrice($item, $product);
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $qty,
-                    'price' => $unit,
-                    'subtotal' => round($unit * $qty, 2),
-                ]);
+            $product = \App\Models\Product::find(
+                $item['product_id'] ?? null
+            );
+
+            if (!$product) {
+                continue;
             }
+
+            $qty = (int) ($item['qty'] ?? 1);
+
+            $unit = $this->resolveItemUnitPrice(
+                $item,
+                $product
+            );
+
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => $qty,
+                'price' => $unit,
+                'subtotal' => round(
+                    $unit * $qty,
+                    2
+                ),
+            ]);
         }
 
-        app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product'));
+        /*
+         * Sync order with vendor.
+         */
+        app(
+            \App\Services\Vendor\VendorOrderSyncService::class
+        )->syncFromOrder(
+            $order->fresh('items.product')
+        );
 
         return $order;
     }
 
-    public function createLoggedInOrder(Request $request, string $paymentMethod): ?Order
-    {
+    /**
+     * Create authenticated / logged-in user order.
+     */
+    public function createLoggedInOrder(
+        Request $request,
+        string $paymentMethod
+    ): ?Order {
         $user = $request->user();
-        $addressId = $request->input('address_id');
-        $items = $request->input('items', []);
 
+        if (!$user) {
+            return null;
+        }
+
+        $addressId = $request->input(
+            'address_id'
+        );
+
+        $items = $request->input(
+            'items',
+            []
+        );
+
+        /*
+         * Resolve shipping address.
+         */
         if ($addressId) {
-            $address = UserAddress::where('user_id', $user->id)->find((int) $addressId);
-            if (! $address) {
+            $address = UserAddress::where(
+                'user_id',
+                $user->id
+            )->find(
+                (int) $addressId
+            );
+
+            if (!$address) {
                 return null;
             }
         } else {
             $address = new UserAddress;
+
             $address->user_id = $user->id;
-            $address->full_name = $request->input('full_name');
-            $address->phone_number = $request->input('phone_number');
-            $address->street_address = $request->input('street_address');
-            $address->city = $request->input('city');
-            $address->state = $request->input('state');
-            $address->zip_code = $request->input('zip_code');
-            $address->country = $request->input('country');
+
+            $address->full_name = $request->input(
+                'full_name'
+            );
+
+            $address->phone_number = $request->input(
+                'phone_number'
+            );
+
+            $address->street_address = $request->input(
+                'street_address'
+            );
+
+            $address->city = $request->input(
+                'city'
+            );
+
+            $address->state = $request->input(
+                'state'
+            );
+
+            $address->zip_code = $request->input(
+                'zip_code'
+            );
+
+            $address->country = $request->input(
+                'country'
+            );
+
             $address->is_default = false;
+
             $address->save();
         }
 
+        /*
+         * If items are not provided,
+         * use user's cart.
+         */
         if (empty($items)) {
-            $cartItems = Cart::where('user_id', $user->id)->with('product')->get();
-            $validCart = $cartItems->filter(fn ($c) => $c->product !== null);
+            $cartItems = Cart::where(
+                'user_id',
+                $user->id
+            )
+                ->with('product')
+                ->get();
+
+            $validCart = $cartItems->filter(
+                fn ($cart) =>
+                    $cart->product !== null
+            );
+
             if ($validCart->isEmpty()) {
                 return null;
             }
-            $subtotal = round($validCart->sum(fn ($c) => $c->quantity * $c->lineUnitPrice()), 2);
-            foreach ($validCart as $c) {
+
+            $subtotal = round(
+                $validCart->sum(
+                    fn ($cart) =>
+                        $cart->quantity
+                        * $cart->lineUnitPrice()
+                ),
+                2
+            );
+
+            foreach ($validCart as $cart) {
                 $items[] = [
-                    'product_id' => $c->product_id,
-                    'qty' => $c->quantity,
-                    'unit_price' => $c->lineUnitPrice(),
-                    'selected_options' => Cart::normalizeSelectedOptionIds($c->selected_options),
+                    'product_id' => $cart->product_id,
+                    'qty' => $cart->quantity,
+                    'unit_price' => $cart->lineUnitPrice(),
+                    'selected_options' =>
+                        Cart::normalizeSelectedOptionIds(
+                            $cart->selected_options
+                        ),
                 ];
             }
         } else {
+            /*
+             * Calculate subtotal from request items.
+             */
             $subtotal = 0;
+
             foreach ($items as $item) {
-                $p = \App\Models\Product::find($item['product_id'] ?? null);
-                if ($p) {
-                    $subtotal += $this->resolveItemUnitPrice($item, $p) * (int) ($item['qty'] ?? 1);
+                $product = \App\Models\Product::find(
+                    $item['product_id'] ?? null
+                );
+
+                if ($product) {
+                    $subtotal +=
+                        $this->resolveItemUnitPrice(
+                            $item,
+                            $product
+                        )
+                        * (int) ($item['qty'] ?? 1);
                 }
             }
+
             $subtotal = round($subtotal, 2);
         }
 
-        $summaryCartItems = empty($request->input('items'))
-            ? Cart::where('user_id', $user->id)->with('product')->get()
+        /*
+         * Build order summary.
+         */
+        $summaryCartItems = empty(
+            $request->input('items')
+        )
+            ? Cart::where(
+                'user_id',
+                $user->id
+            )
+                ->with('product')
+                ->get()
             : null;
-        $summary = $summaryCartItems !== null
-            ? CartController::buildOrderSummary($subtotal, 0, $summaryCartItems)
-            : CartController::buildOrderSummary($subtotal, 0, collect($items)->map(fn ($row) => ['product_id' => $row['product_id'] ?? null])->all());
+
+        if ($summaryCartItems !== null) {
+            $summary = CartController::buildOrderSummary(
+                $subtotal,
+                0,
+                $summaryCartItems
+            );
+        } else {
+            $summary = CartController::buildOrderSummary(
+                $subtotal,
+                0,
+                collect($items)
+                    ->map(
+                        fn ($row) => [
+                            'product_id' =>
+                                $row['product_id']
+                                ?? null,
+                        ]
+                    )
+                    ->all()
+            );
+        }
+
         $total = $summary['total'];
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
 
-        $special = $request->input('special_instructions');
+        /*
+         * Special instructions.
+         */
+        $special = $request->input(
+            'special_instructions'
+        );
+
         if (is_string($special)) {
-            $special = mb_substr(trim($special), 0, 2000);
-            $special = $special === '' ? null : $special;
+            $special = mb_substr(
+                trim($special),
+                0,
+                2000
+            );
+
+            $special = $special === ''
+                ? null
+                : $special;
         } else {
             $special = null;
         }
 
-        $timing = $this->defaultTimingFromOrderItems($items);
+        /*
+         * Booking date.
+         */
+        $bookingDate = $request->input(
+            'booking_date'
+        );
 
+        if (is_string($bookingDate)) {
+            $bookingDate = trim($bookingDate);
+
+            if ($bookingDate === '') {
+                $bookingDate = null;
+            }
+        }
+
+        /*
+         * Booking slot.
+         */
+        $bookingSlot = $request->input(
+            'booking_slot'
+        );
+
+        if (is_string($bookingSlot)) {
+            $bookingSlot = trim($bookingSlot);
+
+            if ($bookingSlot === '') {
+                $bookingSlot = null;
+            }
+        }
+
+        /*
+         * Product timing fallback.
+         */
+        $timing = $this->defaultTimingFromOrderItems(
+            $items
+        );
+
+        /*
+         * Create logged-in order.
+         */
         $order = Order::create([
             'user_id' => $user->id,
+
             'shipping_address_id' => $address->id,
+
             'total_amount' => $total,
             'subtotal_amount' => $subtotal,
             'tax_amount' => $taxAmount,
             'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
+
             'order_status' => 'pending',
             'payment_status' => 'pending',
             'payment_method' => $paymentMethod,
+
+            /*
+             * Booking fields that exist in DB.
+             */
+            'booking_date' => $bookingDate,
+            'booking_slot' => $bookingSlot,
+
             'special_instructions' => $special,
-            'estimated_arrival' => $timing['estimated_arrival'],
-            'job_duration' => $timing['job_duration'],
+
+            'estimated_arrival' => $timing[
+                'estimated_arrival'
+            ],
+
+            'job_duration' => $timing[
+                'job_duration'
+            ],
         ]);
 
+        /*
+         * Create order items.
+         */
         foreach ($items as $item) {
-            $product = \App\Models\Product::find($item['product_id'] ?? null);
-            if ($product) {
-                $qty = (int) ($item['qty'] ?? 1);
-                $unit = $this->resolveItemUnitPrice($item, $product);
-                OrderItem::create([
-                    'order_id' => $order->id,
-                    'product_id' => $product->id,
-                    'quantity' => $qty,
-                    'price' => $unit,
-                    'subtotal' => round($unit * $qty, 2),
-                ]);
+            $product = \App\Models\Product::find(
+                $item['product_id'] ?? null
+            );
+
+            if (!$product) {
+                continue;
             }
+
+            $qty = (int) ($item['qty'] ?? 1);
+
+            $unit = $this->resolveItemUnitPrice(
+                $item,
+                $product
+            );
+
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => $qty,
+                'price' => $unit,
+                'subtotal' => round(
+                    $unit * $qty,
+                    2
+                ),
+            ]);
         }
 
-        if (empty($request->input('items'))) {
-            Cart::where('user_id', $user->id)->delete();
+        /*
+         * Empty cart after order creation
+         * when checkout used the cart.
+         */
+        if (
+            empty(
+                $request->input('items')
+            )
+        ) {
+            Cart::where(
+                'user_id',
+                $user->id
+            )->delete();
         }
 
-        app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product'));
+        /*
+         * Sync order with vendor.
+         */
+        app(
+            \App\Services\Vendor\VendorOrderSyncService::class
+        )->syncFromOrder(
+            $order->fresh('items.product')
+        );
 
         return $order;
     }
 
     /**
-     * @param  array<string, mixed>  $item
+     * Resolve product item unit price.
+     *
+     * @param array<string, mixed> $item
      */
-    private function resolveItemUnitPrice(array $item, \App\Models\Product $product): float
-    {
+    private function resolveItemUnitPrice(
+        array $item,
+        \App\Models\Product $product
+    ): float {
+        /*
+         * If frontend already supplied unit_price,
+         * use it.
+         */
         if (isset($item['unit_price'])) {
-            return round((float) $item['unit_price'], 2);
+            return round(
+                (float) $item['unit_price'],
+                2
+            );
         }
 
-        $optionIds = $item['selected_options'] ?? $item['option_ids'] ?? [];
+        $optionIds =
+            $item['selected_options']
+            ?? $item['option_ids']
+            ?? [];
 
-        return Cart::calculateUnitPrice($product, $optionIds);
+        return Cart::calculateUnitPrice(
+            $product,
+            $optionIds
+        );
     }
 
     /**
-     * First line item whose product has timing set wins (for single-service orders; optional on product).
+     * Get default timing from order products.
      *
-     * @param  array<int, array<string, mixed>>  $items
-     * @return array{estimated_arrival: ?string, job_duration: ?string}
+     * First product whose timing is set wins.
+     *
+     * @param array<int, array<string, mixed>> $items
+     *
+     * @return array{
+     *     estimated_arrival: ?string,
+     *     job_duration: ?string
+     * }
      */
-    private function defaultTimingFromOrderItems(array $items): array
-    {
+    private function defaultTimingFromOrderItems(
+        array $items
+    ): array {
         $estimated = null;
         $duration = null;
+
         foreach ($items as $item) {
-            $product = \App\Models\Product::find($item['product_id'] ?? null);
-            if (! $product) {
+            $product = \App\Models\Product::find(
+                $item['product_id'] ?? null
+            );
+
+            if (!$product) {
                 continue;
             }
-            if ($estimated === null && $product->estimated_arrival) {
-                $estimated = $product->estimated_arrival;
+
+            if (
+                $estimated === null
+                && $product->estimated_arrival
+            ) {
+                $estimated =
+                    $product->estimated_arrival;
             }
-            if ($duration === null && $product->job_duration) {
-                $duration = $product->job_duration;
+
+            if (
+                $duration === null
+                && $product->job_duration
+            ) {
+                $duration =
+                    $product->job_duration;
             }
-            if ($estimated !== null && $duration !== null) {
+
+            if (
+                $estimated !== null
+                && $duration !== null
+            ) {
                 break;
             }
         }

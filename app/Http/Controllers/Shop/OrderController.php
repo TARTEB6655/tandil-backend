@@ -667,22 +667,90 @@ class OrderController extends Controller
     $currency = strtoupper((string) config('shop.currency', 'AED'));
 
     $addr = $order->payerAddressForDisplay();
+
     $deliveryLine = $addr !== ''
         ? preg_replace("/\s*\n\s*/", ', ', trim($addr))
         : null;
 
     $order->loadMissing('items.product');
+
     $firstProduct = $order->items->first()?->product;
 
+    /*
+    |--------------------------------------------------------------------------
+    | Timing
+    |--------------------------------------------------------------------------
+    */
+
     $estimatedArrival = $order->estimated_arrival;
+
     if (($estimatedArrival === null || $estimatedArrival === '') && $firstProduct) {
         $estimatedArrival = $firstProduct->estimated_arrival;
     }
 
     $jobDuration = $order->job_duration;
+
     if (($jobDuration === null || $jobDuration === '') && $firstProduct) {
         $jobDuration = $firstProduct->job_duration;
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Booking Date & Slot
+    |--------------------------------------------------------------------------
+    |
+    | orders table has:
+    | - booking_date
+    | - booking_slot
+    |
+    | It does NOT have:
+    | - slot_id
+    | - slot_start_time
+    | - slot_end_time
+    |
+    */
+
+    $bookingDate = $order->booking_date
+        ? \Carbon\Carbon::parse($order->booking_date)->format('Y-m-d')
+        : null;
+
+    $bookingSlot = $order->booking_slot;
+
+    /*
+    |--------------------------------------------------------------------------
+    | Try to extract start/end time from booking_slot
+    |--------------------------------------------------------------------------
+    |
+    | Supported examples:
+    |
+    | "10:00 AM - 12:00 PM"
+    | "10:00 - 12:00"
+    | "10:00 AM to 12:00 PM"
+    |
+    */
+
+    $slotStartTime = null;
+    $slotEndTime = null;
+
+    if (! empty($bookingSlot)) {
+        $slot = trim((string) $bookingSlot);
+
+        // Example: 10:00 AM - 12:00 PM
+        if (preg_match(
+            '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
+            $slot,
+            $matches
+        )) {
+            $slotStartTime = trim($matches[1]);
+            $slotEndTime = trim($matches[2]);
+        }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment
+    |--------------------------------------------------------------------------
+    */
 
     $paymentLabel = match (strtolower((string) ($order->payment_method ?? ''))) {
         'stripe' => 'Credit card',
@@ -690,30 +758,43 @@ class OrderController extends Controller
         default => $order->paymentMethodLabel(),
     };
 
+    /*
+    |--------------------------------------------------------------------------
+    | Response
+    |--------------------------------------------------------------------------
+    */
+
     return [
         'placed_at' => $order->created_at?->format('c'),
 
-        // Booking date & slot
-        'booking_date' => $order->booking_date ?? null,
-        'slot_id' => $order->slot_id ?? null,
-        'slot_start_time' => $order->slot_start_time ?? null,
-        'slot_end_time' => $order->slot_end_time ?? null,
+        // Booking information
+        'booking_date' => $bookingDate,
+        'booking_slot' => $bookingSlot,
+
+        // Parsed slot times
+        'slot_start_time' => $slotStartTime,
+        'slot_end_time' => $slotEndTime,
 
         'delivery_address' => $deliveryLine,
+
         'payment_method' => $paymentLabel,
         'payment_method_code' => $order->payment_method,
+
         'total' => (float) $order->total_amount,
         'currency' => $currency,
+
         'payment_status' => $order->payment_status,
+
         'refund_amount' => (float) ($order->refund_amount ?? 0),
         'refund_reason' => $order->refund_reason,
         'refunded_at' => $order->refunded_at?->format('c'),
+
         'special_instructions' => $order->special_instructions,
+
         'estimated_arrival' => $estimatedArrival,
         'job_duration' => $jobDuration,
     ];
 }
-
     private function mapOrderStatusToLabel(?string $status): string
     {
         $status = $this->normalizeOrderTrackingStatus((string) ($status ?? 'pending'));
