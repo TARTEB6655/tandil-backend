@@ -86,7 +86,24 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
             'category_ids.*' => ['prohibited'],
             'years_in_business' => ['prohibited'],
             'description' => ['prohibited'],
-            'vendor_type' => ['sometimes', Rule::in($allowedVendorTypeSlugs)],
+            // Accepts a single slug (legacy) or an array of slugs (multi-select vendor type chips).
+            'vendor_type' => ['sometimes', function (string $attribute, mixed $value, \Closure $fail) use ($allowedVendorTypeSlugs) {
+                $values = is_array($value) ? $value : [$value];
+
+                if ($values === []) {
+                    $fail('Please select a valid vendor type.');
+
+                    return;
+                }
+
+                foreach ($values as $single) {
+                    if (! in_array($single, $allowedVendorTypeSlugs, true)) {
+                        $fail('Please select a valid vendor type.');
+
+                        return;
+                    }
+                }
+            }],
             'status' => ['sometimes', 'nullable', Rule::in([VendorStatus::Approved->value, VendorStatus::UnderReview->value, VendorStatus::Pending->value])],
         ]);
     }
@@ -121,7 +138,9 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
 
     protected function normalizeAdminVendorTypeFallback(): void
     {
-        if (! $this->filled('vendor_type')) {
+        if (! $this->filled('vendor_type') || is_array($this->input('vendor_type'))) {
+            // Arrays (multi-select) are already resolved per-item by the parent
+            // normalizeVendorTypeAndEmirate() call — nothing scalar left to do here.
             return;
         }
 

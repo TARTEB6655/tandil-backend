@@ -26370,6 +26370,7 @@
                           "    pm.expect(j.success).to.eql(true);",
                           "    pm.expect(j.data).to.have.property('vendor_id');",
                           "    pm.expect(j.data).to.have.property('detail');",
+                          "    pm.expect(j.data.detail.business_details.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
                           "    if (j.data.vendor_id) {",
                           "        pm.environment.set('vendor_id', String(j.data.vendor_id));",
                           "        pm.collectionVariables.set('vendor_id', String(j.data.vendor_id));",
@@ -26467,10 +26468,16 @@
                           "description": "PDF or image. Required on create."
                         },
                         {
-                          "key": "vendor_type",
+                          "key": "vendor_type[]",
                           "value": "fruits",
                           "type": "text",
-                          "description": "Active vendor type slug from registration-options."
+                          "description": "Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type. A single plain 'vendor_type' key (no brackets) still works for one value. Active vendor type slug from registration-options."
+                        },
+                        {
+                          "key": "vendor_type[]",
+                          "value": "vegetables",
+                          "type": "text",
+                          "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
                         },
                         {
                           "key": "emirate",
@@ -26557,7 +26564,7 @@
                         "vendors"
                       ]
                     },
-                    "description": "POST /api/admin/vendors — Admin creates vendor with same fields as public registration (multipart form-data). Default status: approved. Response: data.vendor_id, data.status, data.detail (full application shape). Auth: Bearer admin {{token}}."
+                    "description": "POST /api/admin/vendors — Admin creates vendor with same fields as public registration (multipart form-data). Default status: approved. Response: data.vendor_id, data.status, data.detail (full application shape). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip); a single `vendor_type` field still works for one value. `data.detail.business_details.vendor_types` returns the full selection ({id,name,slug}[]) and `vendor_type_label` joins all selected names. Auth: Bearer admin {{token}}."
                   }
                 },
                 {
@@ -26573,6 +26580,7 @@
                           "    var j = pm.response.json();",
                           "    pm.expect(j.success).to.eql(true);",
                           "    pm.expect(j.data).to.have.property('detail');",
+                          "    pm.expect(j.data.detail.business_details.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
                           "}"
                         ]
                       }
@@ -26666,10 +26674,16 @@
                           "description": "PDF or image. Required on create."
                         },
                         {
-                          "key": "vendor_type",
+                          "key": "vendor_type[]",
                           "value": "fruits",
                           "type": "text",
-                          "description": "Active vendor type slug from registration-options."
+                          "description": "Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type. A single plain 'vendor_type' key (no brackets) still works for one value. Active vendor type slug from registration-options."
+                        },
+                        {
+                          "key": "vendor_type[]",
+                          "value": "vegetables",
+                          "type": "text",
+                          "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
                         },
                         {
                           "key": "emirate",
@@ -26757,7 +26771,7 @@
                         "{{vendor_id}}"
                       ]
                     },
-                    "description": "POST or PUT /api/admin/vendors/{vendor_id} — Admin full edit (same fields as registration). All fields optional (partial update). Upload trade_license/emirates_id to replace documents. Optional password + password_confirmation. Response: data.detail, data.vendor_id, data.status."
+                    "description": "POST or PUT /api/admin/vendors/{vendor_id} — Admin full edit (same fields as registration). All fields optional (partial update). Upload trade_license/emirates_id to replace documents. Optional password + password_confirmation. **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to replace the vendor's full type selection; a single `vendor_type` field still works for one value. Response: data.detail, data.vendor_id, data.status. `data.detail.business_details.vendor_types` returns the full selection ({id,name,slug}[])."
                   }
                 },
                 {

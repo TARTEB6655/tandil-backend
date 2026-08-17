@@ -253,6 +253,39 @@ class AdminVendorCreateUpdateSmokeTest extends TestCase
         $this->assertSame('fruits', $vendor->profile->vendor_type);
     }
 
+    public function test_admin_creates_vendor_with_multiple_vendor_types(): void
+    {
+        $email = 'admin-multi-type-'.uniqid().'@test.com';
+        $payload = $this->fullRegistrationPayload($email);
+        $payload['vendor_type'] = ['fruits', 'vegetables', 'restaurant'];
+
+        $response = $this->post('/api/admin/vendors', $payload, $this->auth())
+            ->assertCreated()
+            ->assertJsonPath('data.detail.business_details.vendor_type', 'fruits')
+            ->assertJsonPath('data.detail.business_details.vendor_type_label', 'Fruits, Restaurant, Vegetables');
+
+        $vendorId = (int) $response->json('data.vendor_id');
+        $this->assertCount(3, Vendor::find($vendorId)->vendorTypes);
+    }
+
+    public function test_admin_updates_vendor_with_multiple_vendor_types(): void
+    {
+        $email = 'admin-multi-type-update-'.uniqid().'@test.com';
+        $create = $this->post('/api/admin/vendors', $this->fullRegistrationPayload($email), $this->auth())
+            ->assertCreated();
+        $vendorId = (int) $create->json('data.vendor_id');
+
+        $update = $this->post('/api/admin/vendors/'.$vendorId, [
+            'vendor_type' => ['vegetables', 'seafood'],
+        ], $this->auth());
+
+        $update->assertOk()
+            ->assertJsonPath('data.detail.business_details.vendor_type', 'vegetables')
+            ->assertJsonPath('data.detail.business_details.vendor_type_label', 'Seafood, Vegetables');
+
+        $this->assertCount(2, Vendor::find($vendorId)->vendorTypes);
+    }
+
     public function test_non_admin_cannot_create_vendor(): void
     {
         $client = User::factory()->create(['role' => 'client']);
