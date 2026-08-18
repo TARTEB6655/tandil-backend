@@ -4628,7 +4628,7 @@
                         "track"
                       ]
                     },
-                    "description": "GET /api/orders/{id}/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST /api/supervisor/visits/{visit_id}/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos."
+                    "description": "GET /api/orders/{id}/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST /api/supervisor/visits/{visit_id}/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos.\n\n**Booking (order_summary):** `booking_date` (Y-m-d), `booking_slot` (raw string as booked, e.g. \"10:00 AM - 12:00 PM\"), plus `slot_start_time`/`slot_end_time` parsed out of `booking_slot` when it matches a recognizable range format (null if it doesn't parse). orders table has no separate slot_id/slot_start_time/slot_end_time columns — only booking_date/booking_slot are stored; the start/end times are derived at read time."
                   }
                 },
                 {
@@ -12649,7 +12649,7 @@
                     "dashboard"
                   ]
                 },
-                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks = visits scheduled for **today only** (scheduled_date = today); each task includes price, price_display. recent_visits = recently completed with price_display and rating."
+                "description": "Dashboard overview: name, profile_picture, profile_picture_url, designation, weekly KPIs, today_tasks, recent_visits. today_tasks = visits scheduled for **today only** (scheduled_date = today); each task includes price, price_display, date, time_slot (\"h:mm A - h:mm A\" from scheduled_time + duration_minutes, or null if no time is set). recent_visits = recently completed with price_display and rating."
               }
             }
           ]
@@ -12963,7 +12963,7 @@
                     }
                   ]
                 },
-                "description": "**Assigned work (tasks).** Filter: today | upcoming | all | completed | accepted | rejected. **filter=all** = all open jobs. **filter=completed** = completed only. For **history** (closed jobs in a period) use the request **Jobs – History** below (GET /api/technician/jobs)."
+                "description": "**Assigned work (tasks).** Filter: today | upcoming | all | completed | accepted | rejected. **filter=all** = all open jobs. **filter=completed** = completed only. For **history** (closed jobs in a period) use the request **Jobs – History** below (GET /api/technician/jobs). Each task includes date (scheduled_date, Y-m-d) and time_slot (\"h:mm A - h:mm A\" from scheduled_time + duration_minutes, or null if no time is set)."
               }
             },
             {
@@ -12992,7 +12992,7 @@
                     "{{visit_id}}"
                   ]
                 },
-                "description": "Get single task (visit) detail. Set visit_id."
+                "description": "Get single task (visit) detail. Set visit_id. Includes date (scheduled_date, Y-m-d) and time_slot (\"h:mm A - h:mm A\", or null if no time is set)."
               }
             },
             {
@@ -13022,7 +13022,7 @@
                     "detail"
                   ]
                 },
-                "description": "Mobile job details screen: service_information (title, time, duration_minutes, price, price_display), customer_information, service_address, before_after_photos, actions. **actions**: can_submit_field_report = true only when status is in_progress; can_complete_visit = true only when status is completed. can_call_customer is not returned."
+                "description": "Mobile job details screen: date, time_slot (\"h:mm A - h:mm A\" from scheduled_time + duration_minutes, or null if no time is set), service_information (title, time, duration_minutes, price, price_display), customer_information, service_address, before_after_photos, actions. **actions**: can_submit_field_report = true only when status is in_progress; can_complete_visit = true only when status is completed. can_call_customer is not returned."
               }
             },
             {
@@ -13097,7 +13097,7 @@
                     "accept"
                   ]
                 },
-                "description": "Accept assigned task (visit)."
+                "description": "Accept assigned task (visit). Response includes the task's date and time_slot (\"h:mm A - h:mm A\", or null if no time is set)."
               }
             },
             {
@@ -13176,7 +13176,7 @@
                     }
                   ]
                 },
-                "description": "Returns **all** jobs in period: pending, accepted, in_progress, completed, rejected, cancelled. Summary: total_earnings, jobs_completed, avg_rating. Response: data.summary + data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
+                "description": "Returns **all** jobs in period: pending, accepted, in_progress, completed, rejected, cancelled. Summary: total_earnings, jobs_completed, avg_rating. Response: data.summary + data.jobs (paginated; each job includes date and time_slot). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
               }
             },
             {
@@ -13216,7 +13216,7 @@
                     }
                   ]
                 },
-                "description": "Accepted and in-progress jobs only. Response: data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
+                "description": "Accepted and in-progress jobs only. Response: data.jobs (paginated; each job includes date and time_slot). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
               }
             },
             {
@@ -13256,7 +13256,7 @@
                     }
                   ]
                 },
-                "description": "Rejected jobs only. Response: data.jobs (paginated). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
+                "description": "Rejected jobs only. Response: data.jobs (paginated; each job includes date and time_slot). **Period**: week = last 7 days; month = last 30 days (rolling); year = year to date. Query: period, per_page."
               }
             },
             {
@@ -13799,7 +13799,7 @@
                     }
                   ]
                 },
-                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (each: id, start_date, end_date, leave_type, reason). Optional query: from, to. For leave type options use GET /api/technician/leave-types."
+                "description": "Get availability: is_online, auto_accept_jobs, working_days, working_hours_slots, admin_working_days, admin_working_hours, service_area, service_areas, breaks, vacations (each: id, start_date, end_date, leave_type, reason). working_days/working_hours_slots are clamped to admin's Job Scheduling > Working Hours & Capacity config (GET /api/admin/job-scheduling/working-hours) — if the technician hasn't set their own, they default to admin's; if they have, they're capped so they never exceed admin's enabled days / start-end window. admin_working_days = admin's enabled day codes; admin_working_hours = admin's raw per-day {day, enabled, start, end} config, for reference. Optional query: from, to. For leave type options use GET /api/technician/leave-types."
               }
             },
             {
@@ -13880,7 +13880,7 @@
                     "availability"
                   ]
                 },
-                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, leave_type?, reason?}). leave_type = type of leave; reason = optional text. Response returns vacations (each with leave_type + reason)."
+                "description": "Update availability. Use Body = form-data (not raw JSON). Keys: is_online, auto_accept_jobs, working_days, working_hours_slots, service_area, service_areas, breaks, vacations (JSON array of {start_date, end_date, leave_type?, reason?}). leave_type = type of leave; reason = optional text. Response returns vacations (each with leave_type + reason). **Admin limits (new):** working_days entries must be one of admin's enabled days (GET /api/admin/job-scheduling/working-hours) — picking a day admin has disabled returns 422. working_hours_slots[].start/end must fall within admin's overall start-end window — times outside it return 422 (e.g. \"Start time cannot be before admin's working hours (09:00).\"). Response includes admin_working_days / admin_working_hours so the app can show the allowed range before submitting."
               }
             },
             {
@@ -13918,7 +13918,7 @@
                     }
                   ]
                 },
-                "description": "Calendar: tasks + breaks + vacations for date range."
+                "description": "Calendar: tasks (each with date, time_slot) + breaks + vacations for date range."
               }
             }
           ]
@@ -15091,7 +15091,7 @@
                     }
                   ]
                 },
-                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20. Response: success, data (paginator; each item has id, title, duration_minutes, price_display, supervisor_name; no subscription_id/area_id). Use POST /assignments/{id} with body technician_id to assign (id = task id from this list)."
+                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20. Response: success, data (paginator; each item has id, title, date, time_slot, duration_minutes, price_display, supervisor_name; no subscription_id/area_id). date = scheduled_date (Y-m-d); time_slot = \"h:mm A - h:mm A\" derived from scheduled_time + duration_minutes, or null if no time is set. Use POST /assignments/{id} with body technician_id to assign (id = task id from this list)."
               }
             },
             {
@@ -15120,7 +15120,7 @@
                     "{{visit_id}}"
                   ]
                 },
-                "description": "Get one assignment detail by id. GET /api/supervisor/assignments/{id}. Response: success, data (single assignment with title, service_name, address, duration_minutes, job_time, price_display, supervisor_name, technician if assigned)."
+                "description": "Get one assignment detail by id. GET /api/supervisor/assignments/{id}. Response: success, data (single assignment with title, service_name, address, date, time_slot, duration_minutes, job_time, price_display, supervisor_name, technician if assigned). date = scheduled_date (Y-m-d); time_slot = \"h:mm A - h:mm A\" derived from scheduled_time + duration_minutes, or null if no time is set."
               }
             },
             {
@@ -15148,7 +15148,7 @@
                     "assign-tasks"
                   ]
                 },
-                "description": "One-call data for Assign Tasks screen. Returns team_members (same as /team) and available_tasks (same shape as GET /assignments). GET /api/supervisor/assign-tasks."
+                "description": "One-call data for Assign Tasks screen. Returns team_members (same as /team) and available_tasks (same shape as GET /assignments, including date + time_slot). GET /api/supervisor/assign-tasks."
               }
             },
             {
