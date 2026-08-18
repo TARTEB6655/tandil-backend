@@ -22,6 +22,7 @@ use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
 use App\Support\OrderClientReportService;
 use App\Models\Tip;
+use App\Models\JobSchedulingSetting;
 use App\Helpers\ApiResponse;
 use App\Support\CapsPagination;
 use Illuminate\Http\Request;
@@ -981,11 +982,14 @@ class TechnicianDashboardController extends Controller
         $vacations = $vacationsQuery->get();
 
         [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
+        [$workingDays, $workingHoursSlots] = $this->resolveTechnicianWorkingSchedule($av);
         $data = [
             'is_online' => $av?->is_online ?? true,
             'auto_accept_jobs' => $av?->auto_accept_jobs ?? false,
-            'working_days' => $av?->working_days ?? [],
-            'working_hours_slots' => $av?->working_hours_slots ?? [],
+            'working_days' => $workingDays,
+            'working_hours_slots' => $workingHoursSlots,
+            'admin_working_days' => $this->adminEnabledDays(),
+            'admin_working_hours' => $this->adminWorkingHours(),
             'service_area' => $serviceArea,
             'service_areas' => $serviceAreas,
             'breaks' => $breaks->map(fn ($b) => [
@@ -1016,11 +1020,14 @@ class TechnicianDashboardController extends Controller
         $user = $request->user();
         $input = $this->normalizeAvailabilityInput($request);
 
+        $adminDays = $this->adminEnabledDays();
+        $adminWindow = $this->adminWorkingWindow();
+
         $rules = [
             'is_online' => 'sometimes|boolean',
             'auto_accept_jobs' => 'sometimes|boolean',
             'working_days' => 'sometimes|array',
-            'working_days.*' => 'string|in:mon,tue,wed,thu,fri,sat,sun',
+            'working_days.*' => 'string|in:' . (empty($adminDays) ? 'mon,tue,wed,thu,fri,sat,sun' : implode(',', $adminDays)),
             'working_hours_slots' => 'sometimes|array',
             'working_hours_slots.*.slot' => 'string',
             'working_hours_slots.*.start' => 'string',
@@ -1040,6 +1047,19 @@ class TechnicianDashboardController extends Controller
             'vacations.*.reason' => 'nullable|string|max:1000',
         ];
         $validator = Validator::make($input, $rules);
+        $validator->after(function ($validator) use ($input, $adminWindow) {
+            if ($adminWindow['start'] === null || $adminWindow['end'] === null) {
+                return;
+            }
+            foreach (($input['working_hours_slots'] ?? []) as $i => $slot) {
+                if (! empty($slot['start']) && $slot['start'] < $adminWindow['start']) {
+                    $validator->errors()->add("working_hours_slots.$i.start", "Start time cannot be before admin's working hours ({$adminWindow['start']}).");
+                }
+                if (! empty($slot['end']) && $slot['end'] > $adminWindow['end']) {
+                    $validator->errors()->add("working_hours_slots.$i.end", "End time cannot be after admin's working hours ({$adminWindow['end']}).");
+                }
+            }
+        });
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
@@ -1126,11 +1146,14 @@ class TechnicianDashboardController extends Controller
         $breaks = TechnicianBreak::where('user_id', $user->id)->orderBy('date')->orderBy('start_time')->get();
         $vacations = TechnicianVacation::where('user_id', $user->id)->orderBy('start_date')->get();
         [$serviceArea, $serviceAreas] = $this->resolveServiceAreaAndAreas($user->employee);
+        [$workingDays, $workingHoursSlots] = $this->resolveTechnicianWorkingSchedule($av);
         $data = [
             'is_online' => $av->is_online ?? true,
             'auto_accept_jobs' => $av->auto_accept_jobs ?? false,
-            'working_days' => $av->working_days ?? [],
-            'working_hours_slots' => $av->working_hours_slots ?? [],
+            'working_days' => $workingDays,
+            'working_hours_slots' => $workingHoursSlots,
+            'admin_working_days' => $this->adminEnabledDays(),
+            'admin_working_hours' => $this->adminWorkingHours(),
             'service_area' => $serviceArea,
             'service_areas' => $serviceAreas,
             'breaks' => $breaks->map(fn ($b) => [
@@ -1824,6 +1847,71 @@ class TechnicianDashboardController extends Controller
             'price_display' => $priceDisplay,
             'rating' => $meta['rating'] ?? null,
         ];
+    }
+
+    /** Admin's Job Scheduling > Working Hours & Capacity config: [{day, enabled, start, end}, ...] for mon..sun. */
+    private function adminWorkingHours(): array
+    {
+        return (array) (JobSchedulingSetting::current()->working_hours ?? []);
+    }
+
+    /** Day codes (mon..sun) admin has enabled for work. */
+    private function adminEnabledDays(): array
+    {
+        return collect($this->adminWorkingHours())
+            ->filter(fn ($d) => ! empty($d['enabled']))
+            ->pluck('day')
+            ->values()
+            ->all();
+    }
+
+    /** Widest start/end window across admin's enabled days — the outer limit a technician's hours must fall within. */
+    private function adminWorkingWindow(): array
+    {
+        $enabled = collect($this->adminWorkingHours())->filter(fn ($d) => ! empty($d['enabled']) && ! empty($d['start']) && ! empty($d['end']));
+        if ($enabled->isEmpty()) {
+            return ['start' => null, 'end' => null];
+        }
+
+        return [
+            'start' => $enabled->min('start'),
+            'end' => $enabled->max('end'),
+        ];
+    }
+
+    /**
+     * Technician's working days/hours, clamped to admin's Working Hours & Capacity config: admin sets
+     * the outer limits (which days are workable, the widest start/end window), technician can narrow
+     * within them but never exceed them. If the technician hasn't set their own days/slots yet, admin's
+     * config is used as the default.
+     *
+     * @return array{0: array<int, string>, 1: array<int, array<string, mixed>>}
+     */
+    private function resolveTechnicianWorkingSchedule(?TechnicianAvailability $av): array
+    {
+        $adminDays = $this->adminEnabledDays();
+        $adminWindow = $this->adminWorkingWindow();
+
+        $workingDays = $av?->working_days ?: [];
+        $workingDays = empty($workingDays)
+            ? $adminDays
+            : array_values(array_intersect($workingDays, $adminDays));
+
+        $workingHoursSlots = $av?->working_hours_slots ?: [];
+        if (empty($workingHoursSlots)) {
+            $workingHoursSlots = ($adminWindow['start'] && $adminWindow['end'])
+                ? [['slot' => 'working_hours', 'start' => $adminWindow['start'], 'end' => $adminWindow['end']]]
+                : [];
+        } elseif ($adminWindow['start'] && $adminWindow['end']) {
+            $workingHoursSlots = array_map(function ($slot) use ($adminWindow) {
+                $slot['start'] = max((string) ($slot['start'] ?? $adminWindow['start']), $adminWindow['start']);
+                $slot['end'] = min((string) ($slot['end'] ?? $adminWindow['end']), $adminWindow['end']);
+
+                return $slot;
+            }, $workingHoursSlots);
+        }
+
+        return [$workingDays, $workingHoursSlots];
     }
 
     /**
