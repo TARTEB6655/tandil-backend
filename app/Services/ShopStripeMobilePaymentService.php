@@ -43,6 +43,7 @@ class ShopStripeMobilePaymentService
 
         $this->mergeNormalizedShipping($request);
         CartController::normalizeCheckoutCouponInput($request);
+        app(ShopCheckoutOrderService::class)->normalizeCheckoutRequest($request);
 
         $request->validate(array_merge([
             'is_buy_now' => 'sometimes|boolean',
@@ -66,6 +67,8 @@ class ShopStripeMobilePaymentService
             'shipping.company' => 'nullable|string|max:255',
             'shipping.email' => 'nullable|email|max:255',
             'special_instructions' => 'nullable|string|max:2000',
+            'booking_date' => 'nullable|date',
+            'booking_slot' => 'nullable|string|max:255',
         ], CartController::optionIdsValidationRules()));
 
         $isBuyNow = $request->boolean('is_buy_now');
@@ -127,6 +130,17 @@ class ShopStripeMobilePaymentService
             $specialInstructions = $t === '' ? null : mb_substr($t, 0, 2000);
         }
 
+        $bookingDate = $request->input('booking_date');
+        if (is_string($bookingDate)) {
+            $bookingDate = trim($bookingDate);
+            $bookingDate = $bookingDate === '' ? null : $bookingDate;
+        }
+        $bookingSlot = $request->input('booking_slot');
+        if (is_string($bookingSlot)) {
+            $bookingSlot = trim($bookingSlot);
+            $bookingSlot = $bookingSlot === '' ? null : $bookingSlot;
+        }
+
         $user->refresh();
         $walletApplied = (float) ($summary['wallet_amount_applied'] ?? 0);
         $cardTotal = (float) ($summary['amount_due'] ?? $summary['total']);
@@ -137,6 +151,8 @@ class ShopStripeMobilePaymentService
                     $user,
                     $preview,
                     $specialInstructions,
+                    $bookingDate,
+                    $bookingSlot,
                     $summary,
                     $total,
                     $walletApplied,
@@ -173,6 +189,8 @@ class ShopStripeMobilePaymentService
                         'total_amount' => $total,
                         'wallet_amount_applied' => $walletApplied,
                         'special_instructions' => $specialInstructions,
+                        'booking_date' => $bookingDate,
+                        'booking_slot' => $bookingSlot,
                     ]);
 
                     return $this->buildPaidOrder($user, $row, 'wallet:'.uniqid('', true));
@@ -402,6 +420,8 @@ class ShopStripeMobilePaymentService
             'total_amount' => $total,
             'wallet_amount_applied' => $walletApplied,
             'special_instructions' => $specialInstructions,
+            'booking_date' => $bookingDate,
+            'booking_slot' => $bookingSlot,
             'consumed_at' => null,
         ];
 
@@ -923,6 +943,8 @@ class ShopStripeMobilePaymentService
             'transaction_id' => $paymentIntentId,
             'paid_at' => now(),
             'special_instructions' => $row->special_instructions,
+            'booking_date' => $row->booking_date,
+            'booking_slot' => $row->booking_slot,
         ]);
 
         foreach ($row->lines_json as $line) {

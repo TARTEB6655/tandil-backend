@@ -214,6 +214,77 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $this->assertDatabaseCount('carts', 0);
     }
 
+    public function test_payment_intent_then_confirm_carries_booking_date_and_slot_to_order(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '10');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 65,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $amountMinor = 7825;
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) use ($amountMinor) {
+            $url = $request->url();
+            if (str_contains($url, 'payment_intents/pi_test_booking') && $request->method() === 'GET') {
+                return Http::response([
+                    'id' => 'pi_test_booking',
+                    'status' => 'succeeded',
+                    'amount' => $amountMinor,
+                ], 200);
+            }
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_booking'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_booking'], 200);
+            }
+            if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'pi_test_booking',
+                    'client_secret' => 'pi_test_booking_secret',
+                    'status' => 'requires_payment_method',
+                ], 200);
+            }
+
+            return Http::response(['error' => ['message' => 'unexpected URL '.$url]], 500);
+        });
+
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+            'booking_date' => '2026-09-01',
+            'booking_slot' => '10:00 AM - 12:00 PM',
+        ], $this->authHeaders($user));
+
+        $pi->assertStatus(200);
+        $this->assertDatabaseHas('shop_mobile_checkouts', [
+            'stripe_payment_intent_id' => 'pi_test_booking',
+            'booking_date' => '2026-09-01',
+            'booking_slot' => '10:00 AM - 12:00 PM',
+        ]);
+
+        $confirm = $this->postJson('/api/shop/checkout/confirm', [
+            'payment_intent_id' => 'pi_test_booking',
+        ], $this->authHeaders($user));
+
+        $confirm->assertStatus(201);
+        $order = \App\Models\Order::where('payment_reference', 'pi_test_booking')->firstOrFail();
+        $this->assertSame('2026-09-01', $order->booking_date?->toDateString());
+        $this->assertSame('10:00 AM - 12:00 PM', $order->booking_slot);
+    }
+
     public function test_confirm_idempotent_when_order_already_exists(): void
     {
         Config::set('services.stripe.secret', 'sk_test_dummy');

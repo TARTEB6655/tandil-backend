@@ -29,6 +29,8 @@ class ShopMobileCheckout extends Model
         'total_amount',
         'wallet_amount_applied',
         'special_instructions',
+        'booking_date',
+        'booking_slot',
         'consumed_at',
     ];
 
@@ -45,6 +47,7 @@ class ShopMobileCheckout extends Model
             'wallet_amount_applied' => 'decimal:2',
             'coupon_merchandise_discount' => 'decimal:2',
             'coupon_shipping_discount' => 'decimal:2',
+            'booking_date' => 'date:Y-m-d',
             'consumed_at' => 'datetime',
         ];
     }
