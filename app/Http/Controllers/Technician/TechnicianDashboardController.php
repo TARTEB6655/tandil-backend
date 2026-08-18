@@ -1506,8 +1506,11 @@ class TechnicianDashboardController extends Controller
             }
         }
 
-        $scheduledAt = $visit->started_at ?? ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null);
-        $duration = $meta['duration_minutes'] ?? null;
+        $scheduledAt = $visit->started_at
+            ?? ($visit->scheduled_date && $visit->scheduled_time
+                ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . $visit->scheduled_time)
+                : ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null));
+        $duration = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
         if ($duration === null && $visit->started_at && $visit->completed_at) {
             $duration = (int) $visit->started_at->diffInMinutes($visit->completed_at);
         }
@@ -1524,6 +1527,7 @@ class TechnicianDashboardController extends Controller
             'status' => $visit->status,
             'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
             'date' => $visit->scheduled_date?->toDateString(),
+            'time_slot' => $this->formatVisitTimeSlot($visit),
             'supervisor_name' => $visit->supervisor?->name ?? null,
             'service_information' => [
                 'title' => $meta['service_name'] ?? ($visit->subscription?->plan ? str_replace('_', ' ', (string) $visit->subscription->plan) : 'Service Visit'),
@@ -1755,8 +1759,11 @@ class TechnicianDashboardController extends Controller
     {
         $client = $visit->subscription?->client;
         $meta = $this->parseVisitMetaFromNotes((string) ($visit->notes ?? ''));
-        $scheduledAt = $visit->started_at ?? ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null);
-        $duration = $meta['duration_minutes'] ?? null;
+        $scheduledAt = $visit->started_at
+            ?? ($visit->scheduled_date && $visit->scheduled_time
+                ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . $visit->scheduled_time)
+                : ($visit->scheduled_date ? Carbon::parse($visit->scheduled_date)->setTime(8, 0) : null));
+        $duration = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
         if ($duration === null && $visit->started_at && $visit->completed_at) {
             $duration = (int) $visit->started_at->diffInMinutes($visit->completed_at);
         }
@@ -1765,6 +1772,8 @@ class TechnicianDashboardController extends Controller
             'id' => $visit->id,
             'scheduled_date' => $visit->scheduled_date?->toDateString(),
             'scheduled_time' => $scheduledAt?->format('g:i A'),
+            'date' => $visit->scheduled_date?->toDateString(),
+            'time_slot' => $this->formatVisitTimeSlot($visit),
             'status' => $visit->status,
             'status_display' => \Illuminate\Support\Str::title(str_replace('_', ' ', $visit->status ?? '')),
             'title' => $meta['farm_name'] ?? $client?->name ?? ('Task #' . $visit->id),
@@ -1818,6 +1827,20 @@ class TechnicianDashboardController extends Controller
     }
 
     /**
+     * "h:mm A - h:mm A" from scheduled_time (+ duration_minutes, default 120), or null if no time is set.
+     */
+    private function formatVisitTimeSlot(Visit $visit): ?string
+    {
+        if (empty($visit->scheduled_time) || ! $visit->scheduled_date) {
+            return null;
+        }
+        $start = Carbon::parse($visit->scheduled_date->toDateString() . ' ' . $visit->scheduled_time);
+        $end = $start->copy()->addMinutes((int) ($visit->duration_minutes ?? 120));
+
+        return $start->format('g:i A') . ' - ' . $end->format('g:i A');
+    }
+
+    /**
      * Parse seeded note format:
      * [DUMMY-SUP-ASSIGN] Farm | Service | Location | 120 min | AED 289.99 | 5/5
      */
@@ -1856,3 +1879,18 @@ class TechnicianDashboardController extends Controller
         return $meta;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
