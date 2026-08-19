@@ -438,6 +438,28 @@ class JobSchedulingService
         }
 
         /**
+         * Requested start time must fall within the day's working hours,
+         * regardless of $requireConfiguredSlot — admin's custom-end-time
+         * screen bypasses the "must be a pre-configured slot" rule below,
+         * not the working-hours window itself.
+         */
+        $workingStart = Carbon::createFromFormat(
+            'H:i',
+            substr((string) $dayCfg['start'], 0, 5)
+        );
+        $workingEnd = Carbon::createFromFormat(
+            'H:i',
+            substr((string) $dayCfg['end'], 0, 5)
+        );
+        $requestedStart = Carbon::createFromFormat(
+            'H:i',
+            substr($time, 0, 5)
+        );
+        if ($requestedStart->lt($workingStart) || $requestedStart->gte($workingEnd)) {
+            return 'Selected time is outside working hours.';
+        }
+
+        /**
          * Customer-facing bookings must use
          * an active configured slot.
          */
