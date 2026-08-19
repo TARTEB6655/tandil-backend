@@ -72,23 +72,29 @@ class ShopCheckoutOrderService
         /*
          * Normalize booking date.
          *
-         * Supported:
-         * booking_date
-         * date
+         * Supported (the mobile app is React Native/JS, so camelCase
+         * variants are just as likely as snake_case — same reasoning as
+         * fullName/zipCode above for shipping):
+         * booking_date / bookingDate / date / selectedDate
          */
         $all['booking_date'] = $all['booking_date']
+            ?? $all['bookingDate']
             ?? $all['date']
+            ?? $all['selectedDate']
             ?? null;
 
         /*
          * Normalize booking slot.
          *
          * Supported:
-         * booking_slot
-         * slot
+         * booking_slot / bookingSlot / slot / selectedSlot / timeSlot / time_slot
          */
         $all['booking_slot'] = $all['booking_slot']
+            ?? $all['bookingSlot']
             ?? $all['slot']
+            ?? $all['selectedSlot']
+            ?? $all['timeSlot']
+            ?? $all['time_slot']
             ?? null;
 
         /*
@@ -109,11 +115,13 @@ class ShopCheckoutOrderService
 
             $all['booking_date'] = $all['booking_date']
                 ?? $booking['booking_date']
+                ?? $booking['bookingDate']
                 ?? $booking['date']
                 ?? null;
 
             $all['booking_slot'] = $all['booking_slot']
                 ?? $booking['booking_slot']
+                ?? $booking['bookingSlot']
                 ?? $booking['slot']
                 ?? null;
         }
