@@ -3513,7 +3513,7 @@
                     "visits"
                   ]
                 },
-                "description": "✅ STEP 8: List all visits (role-based: client sees own, technician sees assigned)"
+                "description": "✅ STEP 8: List all visits (role-based: client sees own, technician sees assigned). For a client, \"own\" means visits linked either via a subscription (visit.subscription_id -> subscription.client_id) OR, for shop-order-generated visits (which have no subscription), via visit.order_id -> order.user_id — both are included."
               }
             },
             {
@@ -3698,7 +3698,7 @@
                     "{{visit_id}}"
                   ]
                 },
-                "description": "✅ STEP 9: Get visit details with photos and related data"
+                "description": "✅ STEP 9: Get visit details with photos and related data. Client ownership check accepts either a subscription match or (for shop-order-generated visits with no subscription) an order.user_id match — returns 403 Forbidden if neither matches the caller."
               }
             },
             {
