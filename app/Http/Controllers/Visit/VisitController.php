@@ -94,7 +94,14 @@ class VisitController extends Controller
                     ->where('client_id', $user->id)
                     ->pluck('id');
 
-                $query->whereIn('subscription_id', $subscriptionIds);
+                $orderIds = \App\Models\Order::query()
+                    ->where('user_id', $user->id)
+                    ->pluck('id');
+
+                $query->where(function ($q) use ($subscriptionIds, $orderIds) {
+                    $q->whereIn('subscription_id', $subscriptionIds)
+                        ->orWhereIn('order_id', $orderIds);
+                });
             }
 
             if ($request->filled('status')) {
@@ -948,6 +955,24 @@ class VisitController extends Controller
     /**
      * Show details of a visit
      */
+    /**
+     * A visit belongs to a client either via a subscription (visit.subscription_id ->
+     * subscription.client_id) or, for shop-order-generated visits, via visit.order_id ->
+     * order.user_id (subscription_id is null on those — they have no subscription at all).
+     */
+    private function visitBelongsToClient(Visit $visit, User $user): bool
+    {
+        if ($visit->subscription && (int) $visit->subscription->client_id === (int) $user->id) {
+            return true;
+        }
+
+        if ($visit->order_id) {
+            return \App\Models\Order::where('id', $visit->order_id)->where('user_id', $user->id)->exists();
+        }
+
+        return false;
+    }
+
     public function show(Request $request, $id)
     {
         $visit = Visit::with([
@@ -976,7 +1001,7 @@ class VisitController extends Controller
             )
             || (
                 $user->hasRole('client')
-                && $visit->subscription->client_id === $user->id
+                && $this->visitBelongsToClient($visit, $user)
             )
             || (
                 $user->hasRole('supervisor')
@@ -1033,8 +1058,7 @@ class VisitController extends Controller
 
             } elseif (
                 $user->hasRole('client')
-                && $visit->subscription
-                && $visit->subscription->client_id === $user->id
+                && $this->visitBelongsToClient($visit, $user)
             ) {
 
                 $isAuthorized = true;

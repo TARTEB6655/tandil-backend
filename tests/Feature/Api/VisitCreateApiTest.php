@@ -397,5 +397,51 @@ class VisitCreateApiTest extends TestCase
         $this->assertEquals('rejected', $visit->fresh()->status);
         $this->assertEquals(150.0, (float) $visit->fresh()->price);
     }
+
+    public function test_client_sees_order_based_visit_with_no_subscription_in_list_and_show(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+
+        $order = \App\Models\Order::factory()->create(['user_id' => $client->id]);
+
+        // Shop-order-generated visits have no subscription — only order_id.
+        $visit = \App\Models\Visit::factory()->create([
+            'subscription_id' => null,
+            'order_id' => $order->id,
+            'status' => 'pending',
+        ]);
+
+        $list = $this->actingAs($client, 'sanctum')->getJson('/api/visits');
+        $list->assertOk()->assertJsonPath('status', true);
+        $ids = collect($list->json('data'))->pluck('id')->all();
+        $this->assertContains($visit->id, $ids, 'Client should see their order-based visit in the list');
+
+        $show = $this->actingAs($client, 'sanctum')->getJson('/api/visits/' . $visit->id);
+        $show->assertOk()->assertJsonPath('status', true)->assertJsonPath('data.id', $visit->id);
+    }
+
+    public function test_client_does_not_see_another_clients_order_based_visit(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $otherClient = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $this->assignRoleIfAvailable($otherClient, 'client');
+
+        $otherOrder = \App\Models\Order::factory()->create(['user_id' => $otherClient->id]);
+        $otherVisit = \App\Models\Visit::factory()->create([
+            'subscription_id' => null,
+            'order_id' => $otherOrder->id,
+            'status' => 'pending',
+        ]);
+
+        $list = $this->actingAs($client, 'sanctum')->getJson('/api/visits');
+        $list->assertOk();
+        $ids = collect($list->json('data'))->pluck('id')->all();
+        $this->assertNotContains($otherVisit->id, $ids);
+
+        $show = $this->actingAs($client, 'sanctum')->getJson('/api/visits/' . $otherVisit->id);
+        $show->assertStatus(403);
+    }
 }
 
