@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Area;
 use App\Models\Order;
 use App\Models\Visit;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
 final class OrderToVisitDispatcher
@@ -40,7 +41,8 @@ final class OrderToVisitDispatcher
             $ship = $order->getShippingAddressForApi() ?? [];
             $serviceMeta = self::serviceMeta($order);
             $serviceTitle = $serviceMeta['title'];
-            $durationMinutes = $serviceMeta['duration_minutes'];
+            $bookingSlot = self::parseBookingSlot($order->booking_slot);
+            $durationMinutes = $bookingSlot['duration_minutes'] ?? $serviceMeta['duration_minutes'];
             $clientName = (string) ($ship['full_name'] ?? $order->payerDisplayName());
             $clientEmail = (string) ($ship['email'] ?? ($order->payerEmail() ?? ''));
             $clientPhone = (string) ($ship['phone_number'] ?? ($order->payerPhone() ?? ''));
@@ -71,7 +73,9 @@ final class OrderToVisitDispatcher
                 'technician_id' => null,
                 'supervisor_id' => (int) $resolved['supervisor_id'],
                 'area_id' => (int) $resolved['area']->id,
-                'scheduled_date' => now()->toDateString(),
+                'scheduled_date' => $order->booking_date?->toDateString() ?? now()->toDateString(),
+                'scheduled_time' => $bookingSlot['start'],
+                'duration_minutes' => $durationMinutes,
                 'status' => 'pending',
                 'notes' => implode(' | ', $notesParts),
                 'price' => (float) $order->total_amount,
@@ -164,6 +168,49 @@ final class OrderToVisitDispatcher
         return [
             'title' => 'Order #' . $order->id,
             'duration_minutes' => null,
+        ];
+    }
+
+    /**
+     * Parses the customer's booked slot string (order.booking_slot, e.g.
+     * "10:00 AM - 12:00 PM" / "10:00 - 12:00" / "10:00 AM to 12:00 PM") into a
+     * 24h start time + duration for the Visit's scheduled_time/duration_minutes.
+     * Returns nulls (not an error) when booking_slot is empty or unparseable —
+     * the caller falls back to the product's configured duration in that case.
+     *
+     * @return array{start: ?string, duration_minutes: ?int}
+     */
+    private static function parseBookingSlot(?string $bookingSlot): array
+    {
+        $slot = trim((string) $bookingSlot);
+        if ($slot === '') {
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        if (! preg_match(
+            '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
+            $slot,
+            $matches
+        )) {
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        try {
+            $start = Carbon::parse($matches[1]);
+            $end = Carbon::parse($matches[2]);
+        } catch (\Throwable $e) {
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        $duration = $start->diffInMinutes($end, false);
+        if ($duration <= 0) {
+            // "10:00 PM - 12:00 AM" style overnight slot; treat as next day.
+            $duration = $start->diffInMinutes($end->addDay(), false);
+        }
+
+        return [
+            'start' => $start->format('H:i'),
+            'duration_minutes' => $duration > 0 ? (int) $duration : null,
         ];
     }
 

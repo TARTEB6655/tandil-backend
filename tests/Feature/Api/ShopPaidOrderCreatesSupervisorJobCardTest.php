@@ -174,5 +174,69 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $order->refresh();
         $this->assertSame('completed', (string) $order->order_status);
     }
+
+    public function test_paid_order_with_booking_slot_carries_date_and_time_to_visit_and_supervisor_card(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Dubai Central',
+            'location' => 'Dubai',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach($supervisor->id);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 10.00,
+            'status' => 'active',
+        ]);
+
+        $bookingDate = now()->addDays(3)->toDateString();
+
+        $start = $this->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'email' => 'booking-slot-client@example.com',
+            'full_name' => 'Booking Slot Client',
+            'phone_number' => '+971501112222',
+            'street_address' => 'Marina Walk',
+            'city' => 'Dubai',
+            'country' => 'United Arab Emirates',
+            'items' => [['product_id' => $product->id, 'qty' => 1]],
+            'booking_date' => $bookingDate,
+            'booking_slot' => '10:00 AM - 12:00 PM',
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+        ], ['Accept' => 'application/json']);
+
+        $start->assertStatus(201)->assertJsonPath('success', true);
+        $orderId = (int) $start->json('data.order_id');
+        $paypalOrderId = (string) $start->json('data.paypal_order_id');
+
+        $this->postJson('/api/shop/paypal/capture', [
+            'paypal_order_id' => $paypalOrderId,
+            'order_id' => $orderId,
+        ], ['Accept' => 'application/json'])->assertOk();
+
+        $marker = '[SHOP-ORDER:' . $orderId . ']';
+        $visit = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
+        $this->assertNotNull($visit);
+        $this->assertSame($bookingDate, $visit->scheduled_date?->toDateString());
+        $this->assertSame('10:00', $visit->scheduled_time);
+        $this->assertSame(120, $visit->duration_minutes);
+
+        $response = $this->actingAs($supervisor, 'sanctum')
+            ->getJson('/api/supervisor/assignments/' . $visit->id);
+        $response->assertOk()->assertJsonPath('success', true);
+        $response->assertJsonPath('data.date', $bookingDate);
+        $response->assertJsonPath('data.time_slot', '10:00 AM - 12:00 PM');
+    }
 }
 
