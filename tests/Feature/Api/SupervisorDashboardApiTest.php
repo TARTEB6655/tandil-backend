@@ -297,6 +297,84 @@ class SupervisorDashboardApiTest extends TestCase
         $reassign->assertStatus(200)->assertJsonPath('success', true);
     }
 
+    public function test_assignments_assign_blocks_double_booking_without_override(): void
+    {
+        $busyDate = Carbon::today()->addDay()->toDateString();
+
+        // Technician already has a visit at 10:00-11:00 that day.
+        Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'pending_acceptance',
+            'scheduled_date' => $busyDate,
+            'scheduled_time' => '10:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $conflictingVisit = Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => null,
+            'status' => 'pending',
+            'scheduled_date' => $busyDate,
+            'scheduled_time' => '10:30',
+            'duration_minutes' => 60,
+        ]);
+
+        $response = $this->post('/api/supervisor/assignments/' . $conflictingVisit->id, [
+            'technician_id' => (string) $this->technician->id,
+        ], $this->authHeaders());
+
+        $response->assertStatus(422)->assertJsonPath('success', false);
+        $this->assertStringContainsString('available slots', $response->json('message'));
+
+        $conflictingVisit->refresh();
+        $this->assertNull($conflictingVisit->technician_id, 'Visit should remain unassigned after a blocked conflict');
+    }
+
+    public function test_assignments_assign_auto_reassigns_to_free_technician_with_override(): void
+    {
+        $freeTechnician = User::factory()->create(['role' => 'technician']);
+        $this->assignRoleIfAvailable($freeTechnician, 'technician');
+        $this->area->technicians()->attach($freeTechnician->id);
+
+        $busyDate = Carbon::today()->addDay()->toDateString();
+
+        Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => $this->technician->id,
+            'status' => 'pending_acceptance',
+            'scheduled_date' => $busyDate,
+            'scheduled_time' => '10:00',
+            'duration_minutes' => 60,
+        ]);
+
+        $conflictingVisit = Visit::factory()->create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'technician_id' => null,
+            'status' => 'pending',
+            'scheduled_date' => $busyDate,
+            'scheduled_time' => '10:30',
+            'duration_minutes' => 60,
+        ]);
+
+        $response = $this->post('/api/supervisor/assignments/' . $conflictingVisit->id, [
+            'technician_id' => (string) $this->technician->id,
+            'override' => 'true',
+        ], $this->authHeaders());
+
+        $response->assertStatus(200)->assertJsonPath('success', true);
+        $response->assertJsonPath('auto_reassigned', true);
+        $response->assertJsonPath('requested_technician_id', $this->technician->id);
+        $response->assertJsonPath('data.technician_id', $freeTechnician->id);
+
+        $conflictingVisit->refresh();
+        $this->assertSame($freeTechnician->id, $conflictingVisit->technician_id);
+    }
+
     public function test_assignments_pending_returns_message_when_no_zones(): void
     {
         $supervisorNoZones = User::factory()->create(['role' => 'supervisor']);

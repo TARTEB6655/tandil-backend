@@ -18,6 +18,7 @@ use App\Models\Area;
 use App\Models\Complaint;
 use App\Models\LeaveRequest;
 use App\Services\VisitOfferService;
+use App\Services\JobSchedulingService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -722,6 +723,53 @@ class SupervisorDashboardApiController extends Controller
             ->exists();
     }
 
+    /**
+     * Resolves who actually gets the visit given the supervisor's requested technician.
+     *
+     * If the requested technician has a scheduling conflict at the visit's own
+     * scheduled_time (only checked when the visit has one — date-only visits have
+     * nothing to conflict on): without override, returns an error so the supervisor
+     * sees "this technician's slot is booked" instead of silently double-booking them.
+     * With override=true, falls back to the next active, non-conflicting technician
+     * in the given zones (same candidate pool VisitOfferService's auto-dispatch uses).
+     *
+     * @param  array<int>  $areaIds
+     * @return array{technician: User, auto_reassigned: bool, requested_technician_id?: int}|array{error: string}
+     */
+    private function resolveTechnicianForAssignment(
+        User $requestedTechnician,
+        Visit $visit,
+        array $areaIds,
+        bool $override
+    ): array {
+        $date = $visit->scheduled_date?->toDateString();
+        $time = $visit->scheduled_time;
+
+        if (! $date || ! $time || ! JobSchedulingService::hasTechnicianConflict(
+            $requestedTechnician->id, $date, $time, $visit->id, $visit->duration_minutes
+        )) {
+            return ['technician' => $requestedTechnician, 'auto_reassigned' => false];
+        }
+
+        if (! $override) {
+            return ['error' => 'Selected technician has no available slots at this date and time — all their slots are booked. Choose another technician, or resend with override=true to auto-assign the next available technician.'];
+        }
+
+        $candidates = User::role('technician')->active()
+            ->where('id', '!=', $requestedTechnician->id)
+            ->when(! empty($areaIds), fn ($q) => $q->whereHas('assignedAreas', fn ($qa) => $qa->whereIn('areas.id', $areaIds)))
+            ->orderBy('name')
+            ->get();
+
+        foreach ($candidates as $candidate) {
+            if (! JobSchedulingService::hasTechnicianConflict($candidate->id, $date, $time, $visit->id, $visit->duration_minutes)) {
+                return ['technician' => $candidate, 'auto_reassigned' => true, 'requested_technician_id' => $requestedTechnician->id];
+            }
+        }
+
+        return ['error' => 'All slots are booked for this technician, and no other technician in your zones is available at this date and time either.'];
+    }
+
     private function isTimeInBreak(Carbon $now, string $startTime, string $endTime): bool
     {
         if ($startTime === '' || $endTime === '') {
@@ -1074,6 +1122,7 @@ class SupervisorDashboardApiController extends Controller
         $validator = Validator::make($request->all(), [
             'technician_id' => 'nullable|integer|exists:users,id',
             'scheduled_date' => 'nullable|date',
+            'override' => 'nullable|in:0,1,true,false',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -1088,18 +1137,23 @@ class SupervisorDashboardApiController extends Controller
                     'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
                 ], 422);
             }
-            $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
-            if (! $technician) {
+            $requestedTechnician = User::role('technician')->active()->find((int) $request->input('technician_id'));
+            if (! $requestedTechnician) {
                 return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
             }
             $areaIds = $this->areaIds($request);
-            if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+            if (! empty($areaIds) && ! $requestedTechnician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
                 return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
             }
             $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
-            if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+            if ($this->isTechnicianOnLeave($requestedTechnician->id, $scheduledDate)) {
                 return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
             }
+            $resolved = $this->resolveTechnicianForAssignment($requestedTechnician, $visit, $areaIds, $request->boolean('override'));
+            if (isset($resolved['error'])) {
+                return response()->json(['success' => false, 'message' => $resolved['error']], 422);
+            }
+            $technician = $resolved['technician'];
             $visit->supervisor_id = $request->user()->id;
             $visit->escalated_at = null;
             $visit->offer_count = 0;
@@ -1118,12 +1172,16 @@ class SupervisorDashboardApiController extends Controller
             VisitOfferService::offerToTechnician($visit, $technician->id);
             $visit->load(['technician']);
 
-            return response()->json([
+            return response()->json(array_filter([
                 'success' => true,
-                'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+                'message' => $resolved['auto_reassigned']
+                    ? 'Requested technician had no available slots, so the job was offered to ' . $technician->name . ' instead. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.'
+                    : 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+                'auto_reassigned' => $resolved['auto_reassigned'] ?: null,
+                'requested_technician_id' => $resolved['requested_technician_id'] ?? null,
                 'data' => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']),
                 'accept_by' => $visit->accept_by?->toIso8601String(),
-            ], 200);
+            ], fn ($v) => $v !== null), 200);
         }
 
         if ($request->filled('scheduled_date')) {
@@ -1145,6 +1203,7 @@ class SupervisorDashboardApiController extends Controller
             'technician_id' => 'required|integer|exists:users,id',
             'scheduled_date' => 'nullable|date',
             'note' => 'nullable|string|max:1000',
+            'override' => 'nullable|in:0,1,true,false',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -1157,18 +1216,23 @@ class SupervisorDashboardApiController extends Controller
                 'message' => 'This job is already offered to a technician. You can assign it to someone else only after they reject it or the acceptance time (accept_by) expires.',
             ], 422);
         }
-        $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
-        if (! $technician) {
+        $requestedTechnician = User::role('technician')->active()->find((int) $request->input('technician_id'));
+        if (! $requestedTechnician) {
             return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
         }
         $areaIds = $this->areaIds($request);
-        if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+        if (! empty($areaIds) && ! $requestedTechnician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
             return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
         }
         $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
-        if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+        if ($this->isTechnicianOnLeave($requestedTechnician->id, $scheduledDate)) {
             return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
         }
+        $resolved = $this->resolveTechnicianForAssignment($requestedTechnician, $visit, $areaIds, $request->boolean('override'));
+        if (isset($resolved['error'])) {
+            return response()->json(['success' => false, 'message' => $resolved['error']], 422);
+        }
+        $technician = $resolved['technician'];
 
         $visit->supervisor_id = $request->user()->id;
         $visit->escalated_at = null;
@@ -1187,12 +1251,16 @@ class SupervisorDashboardApiController extends Controller
         VisitOfferService::offerToTechnician($visit, $technician->id);
         $visit->load(['technician']);
 
-        return response()->json([
+        return response()->json(array_filter([
             'success' => true,
-            'message' => 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+            'message' => $resolved['auto_reassigned']
+                ? 'Requested technician had no available slots, so the job was offered to ' . $technician->name . ' instead. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.'
+                : 'Job offered to technician. They have ' . VisitOfferService::ACCEPT_MINUTES . ' minutes to accept.',
+            'auto_reassigned' => $resolved['auto_reassigned'] ?: null,
+            'requested_technician_id' => $resolved['requested_technician_id'] ?? null,
             'data' => $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']),
             'accept_by' => $visit->accept_by?->toIso8601String(),
-        ], 201);
+        ], fn ($v) => $v !== null), 201);
     }
 
     public function assignmentsUpdate(Request $request, int $id): JsonResponse
@@ -1201,26 +1269,38 @@ class SupervisorDashboardApiController extends Controller
             'technician_id' => 'nullable|integer|exists:users,id',
             'scheduled_date' => 'nullable|date',
             'note' => 'nullable|string|max:1000',
+            'override' => 'nullable|in:0,1,true,false',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
         $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
+        $autoReassigned = false;
+        $requestedTechnicianId = null;
+        $assignedTechnicianName = null;
 
         if ($request->filled('technician_id')) {
-            $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
-            if (! $technician) {
+            $requestedTechnician = User::role('technician')->active()->find((int) $request->input('technician_id'));
+            if (! $requestedTechnician) {
                 return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
             }
             $areaIds = $this->areaIds($request);
-            if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+            if (! empty($areaIds) && ! $requestedTechnician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
                 return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
             }
             $scheduledDate = $visit->scheduled_date?->toDateString() ?? $request->input('scheduled_date') ?? Carbon::today()->toDateString();
-            if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+            if ($this->isTechnicianOnLeave($requestedTechnician->id, $scheduledDate)) {
                 return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
             }
+            $resolved = $this->resolveTechnicianForAssignment($requestedTechnician, $visit, $areaIds, $request->boolean('override'));
+            if (isset($resolved['error'])) {
+                return response()->json(['success' => false, 'message' => $resolved['error']], 422);
+            }
+            $technician = $resolved['technician'];
+            $autoReassigned = $resolved['auto_reassigned'];
+            $requestedTechnicianId = $resolved['requested_technician_id'] ?? null;
+            $assignedTechnicianName = $technician->name;
             $visit->technician_id = $technician->id;
             $visit->supervisor_id = $request->user()->id;
             $visit->escalated_at = null;
@@ -1237,7 +1317,15 @@ class SupervisorDashboardApiController extends Controller
         }
         $visit->save();
 
-        return response()->json(['success' => true, 'message' => 'Assignment updated successfully.', 'data' => $visit]);
+        return response()->json(array_filter([
+            'success' => true,
+            'message' => $autoReassigned
+                ? 'Requested technician had no available slots, so the visit was reassigned to ' . $assignedTechnicianName . ' instead.'
+                : 'Assignment updated successfully.',
+            'auto_reassigned' => $autoReassigned ?: null,
+            'requested_technician_id' => $requestedTechnicianId,
+            'data' => $visit,
+        ], fn ($v) => $v !== null));
     }
 
     public function assignmentsReassign(Request $request, int $id): JsonResponse
@@ -1245,6 +1333,7 @@ class SupervisorDashboardApiController extends Controller
         $validator = Validator::make($request->all(), [
             'technician_id' => 'required|integer|exists:users,id',
             'reason' => 'nullable|string|max:1000',
+            'override' => 'nullable|in:0,1,true,false',
         ]);
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
@@ -1257,18 +1346,23 @@ class SupervisorDashboardApiController extends Controller
                 'message' => 'This job is already offered to a technician. You can reassign only after they reject it or the acceptance time (accept_by) expires.',
             ], 422);
         }
-        $technician = User::role('technician')->active()->find((int) $request->input('technician_id'));
-        if (! $technician) {
+        $requestedTechnician = User::role('technician')->active()->find((int) $request->input('technician_id'));
+        if (! $requestedTechnician) {
             return response()->json(['success' => false, 'message' => 'Technician not found or inactive. Only active technicians can be assigned.'], 404);
         }
         $areaIds = $this->areaIds($request);
-        if (! empty($areaIds) && ! $technician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
+        if (! empty($areaIds) && ! $requestedTechnician->assignedAreas()->whereIn('areas.id', $areaIds)->exists()) {
             return response()->json(['success' => false, 'message' => 'Technician is not in your assigned zones. Choose a team member from your zones.'], 422);
         }
         $scheduledDate = $visit->scheduled_date?->toDateString() ?? Carbon::today()->toDateString();
-        if ($this->isTechnicianOnLeave($technician->id, $scheduledDate)) {
+        if ($this->isTechnicianOnLeave($requestedTechnician->id, $scheduledDate)) {
             return response()->json(['success' => false, 'message' => 'Technician is on leave for this date. Choose someone else.'], 422);
         }
+        $resolved = $this->resolveTechnicianForAssignment($requestedTechnician, $visit, $areaIds, $request->boolean('override'));
+        if (isset($resolved['error'])) {
+            return response()->json(['success' => false, 'message' => $resolved['error']], 422);
+        }
+        $technician = $resolved['technician'];
 
         $visit->technician_id = $technician->id;
         $visit->supervisor_id = $request->user()->id;
@@ -1282,7 +1376,15 @@ class SupervisorDashboardApiController extends Controller
         }
         $visit->save();
 
-        return response()->json(['success' => true, 'message' => 'Assignment reassigned successfully.', 'data' => $visit]);
+        return response()->json(array_filter([
+            'success' => true,
+            'message' => $resolved['auto_reassigned']
+                ? 'Requested technician had no available slots, so the visit was reassigned to ' . $technician->name . ' instead.'
+                : 'Assignment reassigned successfully.',
+            'auto_reassigned' => $resolved['auto_reassigned'] ?: null,
+            'requested_technician_id' => $resolved['requested_technician_id'] ?? null,
+            'data' => $visit,
+        ], fn ($v) => $v !== null));
     }
 
     /**
