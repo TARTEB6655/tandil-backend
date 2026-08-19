@@ -887,15 +887,6 @@ class SupervisorDashboardApiController extends Controller
     public function assignmentsPending(Request $request): JsonResponse
     {
         $areaIds = $this->areaIds($request);
-        if (empty($areaIds)) {
-            $paginator = new \Illuminate\Pagination\LengthAwarePaginator([], 0, (int) $request->get('per_page', 20));
-            $paginator->setPath($request->url());
-            return response()->json([
-                'success' => true,
-                'data' => $paginator,
-                'message' => 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.',
-            ]);
-        }
 
         $pending = $this->assignableVisitsQuery($request)
             ->select([
@@ -936,7 +927,9 @@ class SupervisorDashboardApiController extends Controller
 
         $message = null;
         if ($pending->isEmpty()) {
-            $message = 'No assignable visits in your zones. Visits must have area_id set to one of your zones to appear here. Create visits with an area in your zone, or wait for new jobs.';
+            $message = empty($areaIds)
+                ? 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.'
+                : 'No assignable visits in your zones. Visits must have area_id set to one of your zones to appear here. Create visits with an area in your zone, or wait for new jobs.';
         }
 
         return response()->json(array_filter([

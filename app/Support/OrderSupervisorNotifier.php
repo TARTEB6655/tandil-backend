@@ -161,6 +161,8 @@ final class OrderSupervisorNotifier
 
         $areas = Area::with('supervisors')
             ->where('is_active', true)
+            ->orderBy('priority')
+            ->orderBy('id')
             ->get()
             ->filter(function (Area $a) {
                 if ($a->supervisors->isNotEmpty()) {
@@ -179,7 +181,7 @@ final class OrderSupervisorNotifier
         if ($areas->isEmpty()) {
             // Still allow notifying area managers when we can match an active area by location
             // even if no supervisor is linked yet.
-            $areas = Area::query()->where('is_active', true)->get();
+            $areas = Area::query()->where('is_active', true)->orderBy('priority')->orderBy('id')->get();
         }
 
         if ($areas->isEmpty()) {

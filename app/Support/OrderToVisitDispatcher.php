@@ -105,6 +105,8 @@ final class OrderToVisitDispatcher
 
         $areas = Area::with('supervisors')
             ->where('is_active', true)
+            ->orderBy('priority')
+            ->orderBy('id')
             ->get()
             ->filter(fn (Area $a) => $a->supervisors->isNotEmpty())
             ->values();

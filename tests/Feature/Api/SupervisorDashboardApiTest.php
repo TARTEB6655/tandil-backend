@@ -312,6 +312,27 @@ class SupervisorDashboardApiTest extends TestCase
         $pending->assertJsonPath('message', 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.');
     }
 
+    public function test_assignments_pending_shows_directly_assigned_visit_even_with_no_zones(): void
+    {
+        $supervisorNoZones = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisorNoZones, 'supervisor');
+        $token = $supervisorNoZones->createToken('test')->plainTextToken;
+
+        Visit::factory()->create([
+            'supervisor_id' => $supervisorNoZones->id,
+            'technician_id' => null,
+            'area_id' => null,
+            'status' => 'pending',
+        ]);
+
+        $pending = $this->getJson('/api/supervisor/assignments', [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer ' . $token,
+        ]);
+        $pending->assertStatus(200)->assertJsonPath('success', true);
+        $this->assertNotEmpty($pending->json('data.data'), 'Supervisor should see visits directly assigned to them even with no zones');
+    }
+
     public function test_reports_list_includes_technician_submitted_report_when_visit_in_progress(): void
     {
         $this->visit->update(['status' => 'in_progress']);
