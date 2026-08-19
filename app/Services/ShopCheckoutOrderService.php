@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Builds shop orders for checkout (guest or authenticated).
@@ -150,6 +151,24 @@ class ShopCheckoutOrderService
             if ($all['booking_slot'] === '') {
                 $all['booking_slot'] = null;
             }
+        }
+
+        /*
+         * Diagnostic only: neither booking_date nor booking_slot resolved from any
+         * known alias. Log the raw request's top-level keys (and any booking-shaped
+         * values under alternate names) so we can see exactly what the client sent
+         * without guessing at field names — no PII beyond what the client already
+         * submitted for this checkout, and dates/time slots aren't sensitive.
+         */
+        if ($all['booking_date'] === null && $all['booking_slot'] === null) {
+            Log::info('Checkout: no booking_date/booking_slot resolved from request', [
+                'raw_keys' => array_keys($request->all()),
+                'booking_related_raw' => collect($request->all())->only([
+                    'booking_date', 'bookingDate', 'date', 'selectedDate',
+                    'booking_slot', 'bookingSlot', 'slot', 'selectedSlot', 'timeSlot', 'time_slot',
+                    'booking',
+                ])->all(),
+            ]);
         }
 
         $request->merge($all);
