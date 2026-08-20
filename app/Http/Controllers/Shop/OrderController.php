@@ -603,7 +603,8 @@ class OrderController extends Controller
 
         $steps = [
             ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'completed' => true, 'timestamp' => $createdAt?->format('g:i A') ?? null],
-            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Order confirmed by our team', 'completed' => $rank >= $this->orderTrackingRank('confirmed'), 'timestamp' => $rank >= $this->orderTrackingRank('confirmed') ? ($paidAt ?? $updatedAt)?->format('g:i A') : null],
+            ['key' => 'processing', 'label' => 'Processing', 'description' => 'Waiting for a supervisor to accept the job', 'completed' => $rank >= $this->orderTrackingRank('processing'), 'timestamp' => $rank >= $this->orderTrackingRank('processing') ? ($paidAt ?? $updatedAt)?->format('g:i A') : null],
+            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Supervisor accepted your order', 'completed' => $rank >= $this->orderTrackingRank('confirmed'), 'timestamp' => $rank >= $this->orderTrackingRank('confirmed') ? $updatedAt?->format('g:i A') : null],
             ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => $rank >= $this->orderTrackingRank('assigned'), 'timestamp' => $rank >= $this->orderTrackingRank('assigned') ? $updatedAt?->format('g:i A') : null],
             ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => $rank >= $this->orderTrackingRank('in_progress'), 'timestamp' => $rank >= $this->orderTrackingRank('in_progress') ? $updatedAt?->format('g:i A') : null],
             ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => $rank >= $this->orderTrackingRank('completed'), 'timestamp' => $rank >= $this->orderTrackingRank('completed') ? $updatedAt?->format('g:i A') : null],
@@ -814,6 +815,7 @@ class OrderController extends Controller
         $status = $this->normalizeOrderTrackingStatus((string) ($status ?? 'pending'));
         $map = [
             'pending' => 'Pending',
+            'processing' => 'Processing',
             'confirmed' => 'Confirmed',
             'assigned' => 'Assigned',
             'in_progress' => 'In Progress',
@@ -830,10 +832,9 @@ class OrderController extends Controller
         $status = strtolower(trim($status));
 
         return match ($status) {
-            'paid' => 'confirmed',
-            'processing' => 'in_progress',
+            'paid' => 'processing',
             'shipped' => 'completed',
-            'pending', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
+            'pending', 'processing', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
             default => $status !== '' ? $status : 'pending',
         };
     }
@@ -842,11 +843,12 @@ class OrderController extends Controller
     {
         return match ($status) {
             'pending' => 0,
-            'confirmed' => 1,
-            'assigned' => 2,
-            'in_progress' => 3,
-            'completed' => 4,
-            'delivered' => 5,
+            'processing' => 1,
+            'confirmed' => 2,
+            'assigned' => 3,
+            'in_progress' => 4,
+            'completed' => 5,
+            'delivered' => 6,
             default => 0,
         };
     }

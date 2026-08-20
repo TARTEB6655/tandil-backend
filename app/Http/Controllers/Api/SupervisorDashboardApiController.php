@@ -46,11 +46,18 @@ class SupervisorDashboardApiController extends Controller
     {
         $areaIds = $this->areaIds($request);
         $supervisorId = $request->user()->id;
+
+        // Multi-supervisor areas: show (1) jobs I already claimed, and
+        // (2) still-unclaimed jobs in my zones. Once another supervisor claims,
+        // the job disappears from everyone else's list.
         return Visit::query()->where(function ($q) use ($areaIds, $supervisorId) {
+            $q->where('supervisor_id', $supervisorId);
             if (! empty($areaIds)) {
-                $q->whereIn('area_id', $areaIds);
+                $q->orWhere(function ($pool) use ($areaIds) {
+                    $pool->whereIn('area_id', $areaIds)
+                        ->whereNull('supervisor_id');
+                });
             }
-            $q->orWhere('supervisor_id', $supervisorId);
         });
     }
 
@@ -965,6 +972,8 @@ class SupervisorDashboardApiController extends Controller
             $visit->client_name = $meta['client_name'] ?? null;
             $visit->client_email = $meta['client_email'] ?? null;
             $visit->client_phone = $meta['client_phone'] ?? null;
+            $visit->is_unclaimed = $visit->supervisor_id === null;
+            $visit->can_claim = $visit->supervisor_id === null;
             $visit->makeHidden(['supervisor']);
 
             return $visit;
@@ -1012,6 +1021,8 @@ class SupervisorDashboardApiController extends Controller
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
         $visit->address = $meta['address'] ?? $visit->location;
         $visit->makeHidden(['supervisor']);
+        $visit->is_unclaimed = $visit->supervisor_id === null;
+        $visit->can_claim = $visit->supervisor_id === null;
         $visit->customer = $client ? [
             'id' => $client->id,
             'name' => $client->name,
@@ -1101,6 +1112,85 @@ class SupervisorDashboardApiController extends Controller
     }
 
     /**
+     * POST /api/supervisor/assignments/{id}/claim
+     * First supervisor in the area to claim owns the job; others lose it from their list.
+     */
+    public function assignmentsClaim(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $supervisorId = (int) $request->user()->id;
+
+        try {
+            $visit = DB::transaction(function () use ($id, $areaIds, $supervisorId) {
+                $visit = Visit::query()->whereKey($id)->lockForUpdate()->first();
+                if (! $visit) {
+                    return null;
+                }
+
+                $inMyArea = $visit->area_id && in_array((int) $visit->area_id, array_map('intval', $areaIds), true);
+                $alreadyMine = (int) ($visit->supervisor_id ?? 0) === $supervisorId;
+
+                if (! $alreadyMine && ! $inMyArea) {
+                    return 'forbidden';
+                }
+
+                if ($visit->supervisor_id !== null && (int) $visit->supervisor_id !== $supervisorId) {
+                    return 'taken';
+                }
+
+                if ($visit->supervisor_id === null) {
+                    $visit->supervisor_id = $supervisorId;
+                    $visit->save();
+                }
+
+                return $visit->fresh(['supervisor:id,name', 'technician:id,name']);
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Could not claim this job. Please try again.',
+            ], 500);
+        }
+
+        if ($visit === null) {
+            return response()->json(['success' => false, 'message' => 'Assignment not found.'], 404);
+        }
+        if ($visit === 'forbidden') {
+            return response()->json(['success' => false, 'message' => 'This job is not in your zones.'], 403);
+        }
+        if ($visit === 'taken') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This job was already accepted by another supervisor.',
+            ], 409);
+        }
+
+        VisitOrderTrackingSync::syncFromVisit($visit);
+
+        $meta = $this->parseVisitMetaFromNotes(
+            (string) ($visit->notes ?? ''),
+            $visit->order_id ? (int) $visit->order_id : null
+        );
+        $visit = $this->syncAndApplyVisitScheduleFields($visit);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Job accepted. You can now assign a technician.',
+            'data' => [
+                'id' => $visit->id,
+                'title' => $meta['farm_name'] ?? ('Task #'.$visit->id),
+                'status' => $visit->status,
+                'supervisor_id' => $visit->supervisor_id,
+                'supervisor_name' => $visit->supervisor?->name,
+                'can_claim' => false,
+                'is_unclaimed' => false,
+                'date' => $visit->date ?? $visit->scheduled_date?->toDateString(),
+                'time_slot' => $visit->time_slot ?? null,
+            ],
+        ]);
+    }
+
+    /**
      * POST /api/supervisor/assignments/{id}
      * Simple URL: id = task/visit id. Assign task to technician or update assignment.
      * Body: technician_id (required to assign), scheduled_date (optional). No visit_id or notes in body.
@@ -1117,7 +1207,25 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $visit = $this->editableAssignmentVisitsQuery($request)->findOrFail($id);
+        $visit = $this->editableAssignmentVisitsQuery($request)->find($id);
+        if (! $visit) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Assignment not found or already claimed by another supervisor.',
+            ], 404);
+        }
+
+        // Auto-claim when assigning a technician from the unclaimed pool.
+        if ($visit->supervisor_id === null) {
+            $visit->supervisor_id = $request->user()->id;
+            $visit->save();
+            VisitOrderTrackingSync::syncFromVisit($visit);
+        } elseif ((int) $visit->supervisor_id !== (int) $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This job was already accepted by another supervisor.',
+            ], 409);
+        }
 
         if ($request->filled('technician_id')) {
             if ($visit->status === 'pending_acceptance' && $visit->accept_by && Carbon::parse($visit->accept_by)->isFuture()) {

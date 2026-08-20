@@ -64,8 +64,13 @@ final class VisitOrderTrackingSync
         if ($visit->technician_id !== null || $status === 'pending_acceptance') {
             return 'assigned';
         }
-        if ($visit->supervisor_id !== null || $visit->area_id !== null) {
+        // Confirmed only after a supervisor claims the job (clicks Accept).
+        if ($visit->supervisor_id !== null) {
             return 'confirmed';
+        }
+        // Job routed to an area pool — waiting for any area supervisor to claim.
+        if ($visit->area_id !== null) {
+            return 'processing';
         }
 
         return 'pending';
@@ -75,13 +80,13 @@ final class VisitOrderTrackingSync
     {
         return match ($status) {
             'pending' => 0,
-            'confirmed' => 1,
-            'assigned' => 2,
-            'in_progress' => 3,
-            'completed' => 4,
-            'delivered' => 5,
+            'processing' => 1,
+            'confirmed' => 2,
+            'assigned' => 3,
+            'in_progress' => 4,
+            'completed' => 5,
+            'delivered' => 6,
             default => 0,
         };
     }
 }
-

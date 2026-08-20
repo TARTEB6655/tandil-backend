@@ -189,7 +189,7 @@ final class OrderToVisitDispatcher
     }
 
     /**
-     * @param  array{area: Area, supervisor_id: int}  $resolved
+     * @param  array{area: Area, supervisor_id: ?int}  $resolved
      */
     private static function createOrFindVisitForItem(Order $order, OrderItem $item, array $resolved): ?Visit
     {
@@ -257,7 +257,8 @@ final class OrderToVisitDispatcher
             'order_id' => (int) $order->id,
             'order_item_id' => (int) $item->id,
             'technician_id' => null,
-            'supervisor_id' => (int) $resolved['supervisor_id'],
+            // Unclaimed pool: all area supervisors see it until one claims.
+            'supervisor_id' => $resolved['supervisor_id'] !== null ? (int) $resolved['supervisor_id'] : null,
             'area_id' => (int) $resolved['area']->id,
             'scheduled_date' => $bookingDate ?? now()->toDateString(),
             'scheduled_time' => $bookingSlot['start'],
@@ -321,7 +322,7 @@ final class OrderToVisitDispatcher
     }
 
     /**
-     * @return array{area: Area, supervisor_id: int}|null
+     * @return array{area: Area, supervisor_id: ?int}|null
      */
     private static function resolveAreaAndSupervisor(Order $order): ?array
     {
@@ -375,9 +376,11 @@ final class OrderToVisitDispatcher
             return null;
         }
 
+        // Leave supervisor_id null so EVERY supervisor mapped to this area sees the job.
+        // First supervisor to claim (POST .../assignments/{id}/claim) owns it.
         return [
             'area' => $matched,
-            'supervisor_id' => (int) $matched->supervisors->first()->id,
+            'supervisor_id' => null,
         ];
     }
 

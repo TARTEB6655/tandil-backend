@@ -109,12 +109,12 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $this->assertGreaterThan($beforeSupervisorUnread, $supervisor->unreadNotifications()->count());
         $this->assertGreaterThan($beforeAreaManagerUnread, $areaManager->unreadNotifications()->count());
 
-        // 2) A Visit (job) should be created and assigned to that supervisor/area.
+        // 2) A Visit (job) should be created for that area, unclaimed (all area supervisors can see it).
         $marker = '[SHOP-ORDER:' . $orderId . ']';
         $visit = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
         $this->assertNotNull($visit);
         $this->assertSame((int) $area->id, (int) $visit->area_id);
-        $this->assertSame((int) $supervisor->id, (int) $visit->supervisor_id);
+        $this->assertNull($visit->supervisor_id);
         // Simulate older records where duration was persisted as "-- min" in notes.
         $visit->notes = str_replace('55 min', '-- min', (string) $visit->notes);
         $visit->save();
@@ -133,7 +133,16 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $this->assertSame($clientPhone, $customer['phone'] ?? null);
         $this->assertNotEmpty((string) ($customer['name'] ?? ''));
 
-        // 2b) Order tracking should auto-progress with visit lifecycle.
+        // 2b) Order tracking stays Processing until a supervisor claims the job.
+        $order->refresh();
+        $this->assertSame('processing', (string) $order->order_status);
+
+        $this->actingAs($supervisor, 'sanctum')
+            ->postJson('/api/supervisor/assignments/' . $visit->id . '/claim')
+            ->assertOk()
+            ->assertJsonPath('success', true);
+        $visit->refresh();
+        $this->assertSame((int) $supervisor->id, (int) $visit->supervisor_id);
         $order->refresh();
         $this->assertSame('confirmed', (string) $order->order_status);
 

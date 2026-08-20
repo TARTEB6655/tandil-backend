@@ -324,6 +324,7 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::get('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsShow']);
     Route::get('/assign-tasks', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignTasksPage']);
     Route::post('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsStore']);
+    Route::post('/assignments/{id}/claim', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsClaim']);
     Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsAssignOrUpdate']);
     Route::post('/assignments/{id}/reassign', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReassign']);
 

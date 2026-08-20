@@ -108,20 +108,19 @@ class Visit extends Model
     protected static function booted(): void
     {
         static::created(function (Visit $visit): void {
-            // Notify only zone jobs that already have a supervisor assigned.
             if ($visit->area_id && $visit->supervisor_id) {
                 self::notifyNewJobAssignedToSupervisor($visit);
+            } elseif ($visit->area_id && ! $visit->supervisor_id) {
+                self::notifyAreaSupervisorsUnclaimedJob($visit);
             }
             self::queueOrderTrackingSync($visit);
         });
 
         static::updated(function (Visit $visit): void {
-            // Notify when supervisor assignment happens later on an existing zone job.
-            if (! $visit->area_id || ! $visit->supervisor_id) {
-                return;
-            }
-            if ($visit->wasChanged('supervisor_id') || ($visit->wasChanged('area_id') && $visit->supervisor_id)) {
-                self::notifyNewJobAssignedToSupervisor($visit);
+            if ($visit->area_id && $visit->supervisor_id) {
+                if ($visit->wasChanged('supervisor_id') || ($visit->wasChanged('area_id') && $visit->supervisor_id)) {
+                    self::notifyNewJobAssignedToSupervisor($visit);
+                }
             }
             if (
                 $visit->wasChanged('status')
@@ -177,6 +176,42 @@ class Visit extends Model
             }
         } catch (\Throwable $e) {
             // Keep visit create/update non-blocking if notification channel fails.
+        }
+    }
+
+    /**
+     * Broadcast a new unclaimed zone job to every supervisor mapped to the area.
+     */
+    private static function notifyAreaSupervisorsUnclaimedJob(Visit $visit): void
+    {
+        try {
+            $visit->loadMissing('area.supervisors');
+            $supervisors = $visit->area?->supervisors ?? collect();
+            if ($supervisors->isEmpty()) {
+                return;
+            }
+
+            $jobName = self::jobTitleFromNotes((string) ($visit->notes ?? ''), (int) $visit->id);
+            $message = "New job '{$jobName}' is available in your area. Accept it to claim and assign a technician.";
+            $meta = [
+                'type' => 'supervisor_new_zone_job_unclaimed',
+                'visit_id' => $visit->id,
+                'job_name' => $jobName,
+                'area_id' => $visit->area_id,
+                'can_claim' => true,
+            ];
+
+            foreach ($supervisors as $supervisor) {
+                if ($supervisor instanceof User) {
+                    $supervisor->notify(new AdminNotification('New job available', $message, $meta));
+                }
+            }
+
+            foreach (RoleUsersNotifier::usersForRole('admin') as $admin) {
+                $admin->notify(new AdminNotification('New job available', $message, $meta));
+            }
+        } catch (\Throwable $e) {
+            // non-blocking
         }
     }
 
