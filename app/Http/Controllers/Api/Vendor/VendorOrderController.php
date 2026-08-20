@@ -59,7 +59,7 @@ class VendorOrderController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'detail');
 
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);
@@ -72,7 +72,7 @@ class VendorOrderController extends Controller
 
     public function contact(Request $request, int $id): JsonResponse
     {
-        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'contact');
 
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);
@@ -85,7 +85,7 @@ class VendorOrderController extends Controller
 
     public function invoice(Request $request, int $id): Response|JsonResponse
     {
-        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'pdf');
 
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);
@@ -105,7 +105,7 @@ class VendorOrderController extends Controller
 
     public function download(Request $request, int $id): Response|JsonResponse
     {
-        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id);
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'pdf');
 
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);

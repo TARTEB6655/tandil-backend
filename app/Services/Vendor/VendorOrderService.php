@@ -17,12 +17,27 @@ use Illuminate\Support\Facades\DB;
 
 class VendorOrderService
 {
-    public function listForVendor(Vendor $vendor, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    public function listForVendor(Vendor $vendor, array $filters = [], int $perPage = 15, bool $withProductSummaries = true): LengthAwarePaginator
     {
         $vendorId = $vendor->id;
         $perPage = max(1, min($perPage, 50));
 
         $q = VendorOrderMapping::query()
+            ->select([
+                'id',
+                'order_id',
+                'vendor_id',
+                'status',
+                'tracking_number',
+                'subtotal',
+                'tax_amount',
+                'shipping_amount',
+                'total_amount',
+                'commission_amount',
+                'cancelled_at',
+                'created_at',
+                'updated_at',
+            ])
             ->where('vendor_id', $vendorId);
 
         if (! empty($filters['status'])) {
@@ -60,7 +75,9 @@ class VendorOrderService
             ->latest('vendor_order_mappings.created_at')
             ->paginate($perPage);
 
-        $this->attachListProductSummaries(collect($paginator->items()), $vendorId);
+        if ($withProductSummaries) {
+            $this->attachListProductSummaries(collect($paginator->items()), $vendorId);
+        }
 
         return $paginator;
     }
@@ -174,12 +191,9 @@ class VendorOrderService
                 'note' => $note,
             ]);
 
-            return $mapping->fresh([
-                'order.user',
-                'order.shippingAddress',
-                'order.items.product.primaryImage',
-                'statusLogs',
-            ]);
+            // Reuse the same constrained eager-load path as GET detail (no full-table fresh).
+            return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
+                ?? $mapping->fresh(['order.user', 'order.shippingAddress', 'statusLogs']);
         });
     }
 
@@ -400,50 +414,109 @@ class VendorOrderService
         ];
     }
 
-    public function findMappingForVendor(Vendor $vendor, int $id): ?VendorOrderMapping
+    public function findMappingForVendor(Vendor $vendor, int $id, string $mode = 'detail'): ?VendorOrderMapping
     {
-        $vendorId = (int) $vendor->id;
+        return $this->findMappingForVendorById((int) $vendor->id, $id, $mode);
+    }
 
-        $mapping = VendorOrderMapping::with([
-            'order' => fn ($query) => $query->select([
-                'id',
-                'user_id',
-                'guest_email',
-                'guest_full_name',
-                'guest_phone',
-                'guest_city',
-                'guest_country',
-                'shipping_address_id',
-                'payment_method',
-                'payment_status',
-                'payment_reference',
-                'transaction_id',
-                'special_instructions',
-                'estimated_arrival',
-                'created_at',
+    /**
+     * @param  'detail'|'contact'|'pdf'  $mode
+     */
+    public function findMappingForVendorById(int $vendorId, int $id, string $mode = 'detail'): ?VendorOrderMapping
+    {
+        $with = match ($mode) {
+            'contact' => [
+                'order' => fn ($query) => $query->select($this->orderColumnsForApi()),
+                'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
+                'order.shippingAddress' => fn ($query) => $query->select([
+                    'id',
+                    'full_name',
+                    'phone_number',
+                    'street_address',
+                    'city',
+                    'state',
+                    'zip_code',
+                    'country',
+                ]),
+            ],
+            'pdf' => array_merge($this->detailRelations($vendorId), [
+                'vendor.profile' => fn ($query) => $query->select(['id', 'vendor_id', 'business_name', 'email', 'phone']),
             ]),
-            'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
-            'order.shippingAddress',
-            'order.items' => fn ($query) => $query
-                ->select(['id', 'order_id', 'product_id', 'quantity', 'price', 'subtotal'])
-                ->whereHas('product', fn ($productQuery) => $productQuery->where('vendor_id', $vendorId)),
-            'order.items.product' => fn ($query) => $query->select(['id', 'vendor_id', 'name', 'image']),
-            'order.items.product.primaryImage',
-            'statusLogs',
-            'vendor.profile',
-        ])
+            default => $this->detailRelations($vendorId),
+        };
+
+        $mapping = VendorOrderMapping::with($with)
             ->where('vendor_id', $vendorId)
             ->where('id', $id)
             ->first();
 
-        if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null) {
+        if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null
+            && $mapping->order->relationLoaded('items')) {
             $mapping->setRelation(
                 'vendorListItems',
-                $mapping->order->relationLoaded('items') ? $mapping->order->items : collect()
+                $mapping->order->items
             );
         }
 
         return $mapping;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function detailRelations(int $vendorId): array
+    {
+        return [
+            'order' => fn ($query) => $query->select($this->orderColumnsForApi()),
+            'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
+            'order.shippingAddress' => fn ($query) => $query->select([
+                'id',
+                'full_name',
+                'phone_number',
+                'street_address',
+                'city',
+                'state',
+                'zip_code',
+                'country',
+            ]),
+            'order.items' => fn ($query) => $query
+                ->select(['id', 'order_id', 'product_id', 'quantity', 'price', 'subtotal'])
+                ->whereIn('product_id', function ($sub) use ($vendorId) {
+                    $sub->select('id')->from('products')->where('vendor_id', $vendorId);
+                }),
+            'order.items.product' => fn ($query) => $query->select(['id', 'vendor_id', 'name', 'image']),
+            'order.items.product.primaryImage',
+            'statusLogs' => fn ($query) => $query
+                ->select(['id', 'vendor_order_mapping_id', 'status', 'note', 'created_at'])
+                ->orderBy('created_at'),
+        ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function orderColumnsForApi(): array
+    {
+        return [
+            'id',
+            'user_id',
+            'guest_email',
+            'guest_full_name',
+            'guest_phone',
+            'guest_street_address',
+            'guest_city',
+            'guest_state',
+            'guest_zip_code',
+            'guest_country',
+            'shipping_address_id',
+            'payment_method',
+            'payment_status',
+            'payment_reference',
+            'transaction_id',
+            'special_instructions',
+            'estimated_arrival',
+            'created_at',
+        ];
     }
 
     /**
@@ -467,12 +540,20 @@ class VendorOrderService
 
     public function buildOrderPdfBinary(VendorOrderMapping $mapping, string $type = 'invoice'): string
     {
-        $mapping->loadMissing([
-            'order.user',
-            'order.shippingAddress',
-            'order.items.product',
-            'vendor.profile',
-        ]);
+        if (! $mapping->relationLoaded('vendor') || $mapping->vendor === null
+            || ! $mapping->relationLoaded('order')) {
+            $reloaded = $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'pdf');
+            if ($reloaded !== null) {
+                $mapping = $reloaded;
+            } else {
+                $mapping->loadMissing([
+                    'order.user',
+                    'order.shippingAddress',
+                    'order.items.product',
+                    'vendor.profile',
+                ]);
+            }
+        }
 
         $order = $this->formatDetail($mapping);
         $businessName = $mapping->vendor?->profile?->business_name ?? 'Vendor';
@@ -483,7 +564,11 @@ class VendorOrderService
             'businessName' => $businessName,
             'generatedAt' => now()->format('d M Y, H:i'),
             'order' => $order,
-        ])->setPaper('a4', 'portrait')->output();
+        ])
+            ->setPaper('a4', 'portrait')
+            ->setOption('isRemoteEnabled', false)
+            ->setOption('isHtml5ParserEnabled', true)
+            ->output();
     }
 
     public function invoiceFilename(VendorOrderMapping $mapping): string

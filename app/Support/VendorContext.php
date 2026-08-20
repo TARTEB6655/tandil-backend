@@ -11,7 +11,22 @@ final class VendorContext
 {
     public static function vendorForUser(User $user): ?Vendor
     {
-        return $user->vendor()->with('profile')->first();
+        $cacheKey = 'vendor_context.user.'.$user->id;
+
+        if (app()->bound('request')) {
+            $request = request();
+            if ($request->attributes->has($cacheKey)) {
+                return $request->attributes->get($cacheKey);
+            }
+        }
+
+        $vendor = $user->vendor()->with('profile')->first();
+
+        if (app()->bound('request')) {
+            request()->attributes->set($cacheKey, $vendor);
+        }
+
+        return $vendor;
     }
 
     public static function approvedVendorForUser(User $user): ?Vendor
