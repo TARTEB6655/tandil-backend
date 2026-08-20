@@ -6,7 +6,6 @@ use App\Models\Area;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Visit;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
@@ -19,6 +18,42 @@ final class OrderToVisitDispatcher
      *
      * @return Collection<int, Visit>
      */
+    /**
+     * Backfill scheduled_date/time on an existing visit from its order item booking
+     * (fixes visits created when only start-only slots like "09:00 AM" were stored).
+     */
+    public static function syncVisitScheduleFromLinkedOrder(Visit $visit): Visit
+    {
+        $visit->loadMissing(['orderItem.product', 'order']);
+
+        $item = $visit->orderItem;
+        if ($item === null && $visit->order_id) {
+            $items = OrderItem::query()
+                ->with('product:id,name,job_duration')
+                ->where('order_id', $visit->order_id)
+                ->orderBy('id')
+                ->get();
+            if ($items->count() === 1) {
+                $item = $items->first();
+            } elseif ($visit->order_item_id) {
+                $item = $items->firstWhere('id', $visit->order_item_id);
+            }
+        }
+
+        if ($item === null) {
+            return $visit;
+        }
+
+        $order = $visit->order ?? Order::query()->find($visit->order_id);
+        $bookingDate = $item->booking_date?->toDateString()
+            ?? $order?->booking_date?->toDateString();
+        $bookingSlot = ShopBookingSlotHelper::parseSlotRange($item->booking_slot ?? $order?->booking_slot);
+        $durationMinutes = $bookingSlot['duration_minutes']
+            ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
+
+        return self::backfillVisitSchedule($visit, $bookingDate, $bookingSlot['start'], $durationMinutes);
+    }
+
     public static function createVisitsForPaidOrder(Order $order): Collection
     {
         try {
@@ -60,9 +95,14 @@ final class OrderToVisitDispatcher
      */
     private static function createOrFindVisitForItem(Order $order, OrderItem $item, array $resolved): ?Visit
     {
+        $bookingDate = $item->booking_date?->toDateString() ?? $order->booking_date?->toDateString();
+        $bookingSlot = ShopBookingSlotHelper::parseSlotRange($item->booking_slot ?? $order->booking_slot);
+        $durationMinutes = $bookingSlot['duration_minutes']
+            ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
+
         $existing = Visit::query()->where('order_item_id', $item->id)->first();
         if ($existing) {
-            return $existing;
+            return self::backfillVisitSchedule($existing, $bookingDate, $bookingSlot['start'], $durationMinutes);
         }
 
         $marker = self::itemMarker($order->id, $item->id);
@@ -84,15 +124,11 @@ final class OrderToVisitDispatcher
                 $legacy->save();
             }
 
-            return $legacy;
+            return self::backfillVisitSchedule($legacy, $bookingDate, $bookingSlot['start'], $durationMinutes);
         }
 
         $ship = $order->getShippingAddressForApi() ?? [];
         $serviceTitle = (string) ($item->product->name ?? ('Order #' . $order->id . ' item'));
-        $bookingDate = $item->booking_date?->toDateString() ?? $order->booking_date?->toDateString();
-        $bookingSlot = self::parseBookingSlot($item->booking_slot ?? $order->booking_slot);
-        $durationMinutes = $bookingSlot['duration_minutes']
-            ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
 
         $clientName = (string) ($ship['full_name'] ?? $order->payerDisplayName());
         $clientEmail = (string) ($ship['email'] ?? ($order->payerEmail() ?? ''));
@@ -132,6 +168,37 @@ final class OrderToVisitDispatcher
             'notes' => implode(' | ', $notesParts),
             'price' => (float) $item->subtotal,
         ]);
+    }
+
+    /**
+     * Fill missing schedule on an already-created visit (e.g. start-only "09:00 AM"
+     * slots that the old range-only parser skipped).
+     */
+    private static function backfillVisitSchedule(
+        Visit $visit,
+        ?string $bookingDate,
+        ?string $startTime24h,
+        ?int $durationMinutes
+    ): Visit {
+        $updates = [];
+
+        if ($visit->scheduled_date === null && $bookingDate !== null) {
+            $updates['scheduled_date'] = $bookingDate;
+        }
+
+        if (($visit->scheduled_time === null || $visit->scheduled_time === '') && $startTime24h !== null) {
+            $updates['scheduled_time'] = $startTime24h;
+        }
+
+        if (($visit->duration_minutes === null || (int) $visit->duration_minutes <= 0) && $durationMinutes !== null) {
+            $updates['duration_minutes'] = $durationMinutes;
+        }
+
+        if ($updates !== []) {
+            $visit->update($updates);
+        }
+
+        return $visit->fresh();
     }
 
     /**
@@ -212,46 +279,13 @@ final class OrderToVisitDispatcher
     }
 
     /**
-     * Parses a booked slot string (e.g. "10:00 AM - 12:00 PM" / "10:00 - 12:00" /
-     * "10:00 AM to 12:00 PM") into a 24h start time + duration for the Visit's
-     * scheduled_time/duration_minutes. Returns nulls (not an error) when the slot
-     * is empty or unparseable — the caller falls back to the product's configured
-     * duration in that case.
+     * @deprecated Prefer ShopBookingSlotHelper::parseSlotRange — kept for callers.
      *
      * @return array{start: ?string, duration_minutes: ?int}
      */
     private static function parseBookingSlot(?string $bookingSlot): array
     {
-        $slot = trim((string) $bookingSlot);
-        if ($slot === '') {
-            return ['start' => null, 'duration_minutes' => null];
-        }
-
-        if (! preg_match(
-            '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
-            $slot,
-            $matches
-        )) {
-            return ['start' => null, 'duration_minutes' => null];
-        }
-
-        try {
-            $start = Carbon::parse($matches[1]);
-            $end = Carbon::parse($matches[2]);
-        } catch (\Throwable $e) {
-            return ['start' => null, 'duration_minutes' => null];
-        }
-
-        $duration = $start->diffInMinutes($end, false);
-        if ($duration <= 0) {
-            // "10:00 PM - 12:00 AM" style overnight slot; treat as next day.
-            $duration = $start->diffInMinutes($end->addDay(), false);
-        }
-
-        return [
-            'start' => $start->format('H:i'),
-            'duration_minutes' => $duration > 0 ? (int) $duration : null,
-        ];
+        return ShopBookingSlotHelper::parseSlotRange($bookingSlot);
     }
 
     private static function extractDurationMinutes(string $raw): ?int

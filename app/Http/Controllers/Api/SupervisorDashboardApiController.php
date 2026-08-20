@@ -13,6 +13,7 @@ use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
 use App\Models\TechnicianBreak;
 use App\Models\Order;
+use App\Support\OrderToVisitDispatcher;
 use App\Support\VisitOrderTrackingSync;
 use App\Models\Area;
 use App\Models\Complaint;
@@ -939,7 +940,7 @@ class SupervisorDashboardApiController extends Controller
         $pending = $this->assignableVisitsQuery($request)
             ->select([
                 'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
-                'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
+                'supervisor_id', 'area_id', 'order_id', 'order_item_id', 'escalated_at', 'created_at', 'accept_by',
             ])
             ->with('supervisor:id,name')
             ->orderByRaw('escalated_at IS NOT NULL DESC')
@@ -953,8 +954,7 @@ class SupervisorDashboardApiController extends Controller
                 (string) ($visit->notes ?? ''),
                 $visit->order_id ? (int) $visit->order_id : null
             );
-            $visit->date = $visit->scheduled_date?->toDateString();
-            $visit->time_slot = $this->formatVisitTimeSlot($visit);
+            $visit = $this->syncAndApplyVisitScheduleFields($visit);
             $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
             $visit->service_name = $meta['service_name'] ?? null;
             $visit->location = $meta['location'] ?? null;
@@ -965,9 +965,6 @@ class SupervisorDashboardApiController extends Controller
             $visit->client_name = $meta['client_name'] ?? null;
             $visit->client_email = $meta['client_email'] ?? null;
             $visit->client_phone = $meta['client_phone'] ?? null;
-            $visit->job_time = $visit->scheduled_date
-                ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
-                : null;
             $visit->makeHidden(['supervisor']);
 
             return $visit;
@@ -1006,8 +1003,7 @@ class SupervisorDashboardApiController extends Controller
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
         );
-        $visit->date = $visit->scheduled_date?->toDateString();
-        $visit->time_slot = $this->formatVisitTimeSlot($visit);
+        $visit = $this->syncAndApplyVisitScheduleFields($visit);
         $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
         $visit->location = $meta['location'] ?? null;
@@ -1015,9 +1011,6 @@ class SupervisorDashboardApiController extends Controller
         $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
         $visit->address = $meta['address'] ?? $visit->location;
-        $visit->job_time = $visit->scheduled_date
-            ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
-            : null;
         $visit->makeHidden(['supervisor']);
         $visit->customer = $client ? [
             'id' => $client->id,
@@ -1069,7 +1062,7 @@ class SupervisorDashboardApiController extends Controller
         $pending = $this->assignableVisitsQuery($request)
                 ->select([
                     'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
-                    'supervisor_id', 'area_id', 'escalated_at', 'created_at', 'accept_by',
+                    'supervisor_id', 'area_id', 'order_id', 'order_item_id', 'escalated_at', 'created_at', 'accept_by',
                 ])
                 ->with('supervisor:id,name')
                 ->orderByRaw('escalated_at IS NOT NULL DESC')
@@ -1082,8 +1075,7 @@ class SupervisorDashboardApiController extends Controller
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
         );
-                $visit->date = $visit->scheduled_date?->toDateString();
-                $visit->time_slot = $this->formatVisitTimeSlot($visit);
+                $visit = $this->syncAndApplyVisitScheduleFields($visit);
                 $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
                 $visit->service_name = $meta['service_name'] ?? null;
                 $visit->location = $meta['location'] ?? null;
@@ -1094,9 +1086,6 @@ class SupervisorDashboardApiController extends Controller
                 $visit->client_name = $meta['client_name'] ?? null;
                 $visit->client_email = $meta['client_email'] ?? null;
                 $visit->client_phone = $meta['client_phone'] ?? null;
-                $visit->job_time = $visit->scheduled_date
-                    ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
-                    : null;
                 $visit->makeHidden(['supervisor']);
                 return $visit;
             });
@@ -1492,6 +1481,21 @@ class SupervisorDashboardApiController extends Controller
         $end = $start->copy()->addMinutes((int) ($visit->duration_minutes ?? 120));
 
         return $start->format('g:i A') . ' - ' . $end->format('g:i A');
+    }
+
+    /**
+     * Ensure shop-order visits expose booking date/slot (including start-only "09:00 AM").
+     */
+    private function syncAndApplyVisitScheduleFields(Visit $visit): Visit
+    {
+        $visit = OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($visit);
+        $visit->date = $visit->scheduled_date?->toDateString();
+        $visit->time_slot = $this->formatVisitTimeSlot($visit);
+        $visit->job_time = $visit->scheduled_date
+            ? Carbon::parse($visit->scheduled_date->toDateString() . ' ' . ($visit->scheduled_time ?? '00:00'))->format('d M Y, h:i A')
+            : null;
+
+        return $visit;
     }
 
     private function parseVisitMetaFromNotes(string $notes, ?int $visitOrderId = null): array
