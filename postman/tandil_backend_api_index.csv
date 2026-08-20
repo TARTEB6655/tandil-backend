@@ -1,410 +1,625 @@
-﻿"Sr. No.",Name,Module,Methods,Endpoint,Status
-1,"Health Check","1. Health Check - START HERE",GET,/api/health,Active
-2,"Debug Performance","1. Health Check - START HERE",GET,/api/debug/performance,Active
-3,"User Wallet Summary","1. Health Check - START HERE > Wallet APIs",GET,/api/user/wallet,Active
-4,"User Wallet Credits List","1. Health Check - START HERE > Wallet APIs",GET,/api/user/wallet/credits,Active
-5,"Admin Wallet Overview","1. Health Check - START HERE > Wallet APIs",GET,/api/admin/wallet/overview,Active
-6,"Admin Wallet Credits Ledger","1. Health Check - START HERE > Wallet APIs",GET,/api/admin/wallet/credits,Active
-7,"Delivery analytics","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/delivery-stats,Active
-8,"Broadcast send","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/broadcast,Active
-9,"Broadcasts list","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts,Active
-10,"Broadcast detail","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts/{{broadcast_id}},Active
-11,"Statics list (with filters)","Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications,Active
-12,"Mark as read","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/{{notification_id}}/mark-read,Active
-13,"Mark all as read","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/mark-all-read,Active
-14,"Delete one","Notifications – All roles (hub) > Admin – /api/admin/notifications",DELETE,/api/admin/notifications/{{notification_id}},Active
-15,"Clear all","Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/clear-all,Active
-16,Register,"2. Authentication",POST,/api/auth/register,Active
-17,Login,"2. Authentication",POST,/api/auth/login,Active
-18,"Technician signup - List areas (GET)","2. Authentication",GET,/api/auth/technician-signup-areas,Active
-19,"Register Technician","2. Authentication",POST,/api/auth/register-technician,Active
-20,"Get Profile","3. Client Dashboard – Profile",GET,/api/auth/profile,Active
-21,Logout,"3. Client Dashboard – Profile",POST,/api/auth/logout,Active
-22,"Forgot Password","3. Client Dashboard – Profile",POST,/api/auth/forgot-password,Active
-23,"Verify OTP","3. Client Dashboard – Profile",POST,/api/auth/verify-otp,Active
-24,"Reset Password","3. Client Dashboard – Profile",POST,/api/auth/reset-password,Active
-25,"Notifications - Statics list (with filters)","3. Client Dashboard – Profile > Notifications (Dedicated API)",GET,/api/client/notifications,Active
-26,"Notifications - Mark as Read","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/{{notification_id}}/mark-read,Active
-27,"Notifications - Mark All as Read","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/mark-all-read,Active
-28,"Notifications - Delete","3. Client Dashboard – Profile > Notifications (Dedicated API)",DELETE,/api/client/notifications/{{notification_id}},Active
-29,"Notifications - Clear All","3. Client Dashboard – Profile > Notifications (Dedicated API)",POST,/api/client/notifications/clear-all,Active
-30,"Dashboard settings (GET)","3a. Client Dashboard – Settings",GET,/api/client/settings/dashboard,Active
-31,"Memberships (GET)","3a. Client Dashboard – Settings",GET,/api/client/memberships,Active
-32,"2. Personal Information – Get (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/profile,Active
-33,"3. Personal Information – Update (PUT/POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/profile,Active
-34,"4. Addresses – List (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/addresses,Active
-35,"5. Addresses – Create (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/addresses,Active
-36,"6. Addresses – Update (PUT)","3b. Client Profile – All Settings (One Place) [13 requests]",PUT,/api/user/addresses/{{address_id}},Active
-37,"7. Addresses – Delete (DELETE)","3b. Client Profile – All Settings (One Place) [13 requests]",DELETE,/api/user/addresses/{{address_id}},Active
-38,"8. Payment Methods (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/payment-methods,Active
-39,"9. Notifications (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/user/notifications,Active
-40,"9b. Notifications – Clear All (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/user/notifications/clear-all,Active
-41,"10. Help and Support – Help Center (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/help-center,Active
-42,"11. Help and Support – Submit ticket (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/support/tickets,Active
-43,"12. Help and Support – List my tickets (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/tickets,Active
-44,"13. Help and Support – Get ticket by ID (GET)","3b. Client Profile – All Settings (One Place) [13 requests]",GET,/api/support/tickets/{{ticket_id}},Active
-45,"14. Help and Support – Reply to my ticket (POST)","3b. Client Profile – All Settings (One Place) [13 requests]",POST,/api/support/tickets/{{ticket_id}}/reply,Active
-46,"Get Plans (Public)","4. Client Dashboard – Subscriptions",GET,/api/subscriptions/plans,Active
-47,"Create Subscription","4. Client Dashboard – Subscriptions",POST,/api/subscriptions,Active
-48,"List Subscriptions","4. Client Dashboard – Subscriptions",GET,/api/subscriptions,Active
-49,"Get Subscription Details","4. Client Dashboard – Subscriptions",GET,/api/subscriptions/{{subscription_id}},Active
-50,"Mark Subscription Paid","4. Client Dashboard – Subscriptions",POST,/api/subscriptions/{{subscription_id}}/mark-paid,Active
-51,"Update Subscription","4. Client Dashboard – Subscriptions",PUT,/api/subscriptions/{{subscription_id}},Active
-52,"Delete Subscription","4. Client Dashboard – Subscriptions",DELETE,/api/subscriptions/{{subscription_id}},Active
-53,"Get Active Banners","5. Client Dashboard – Banners (Public)",GET,/api/banners,Active
-54,"List All Banners (Admin)","5b. Admin Dashboard – Banners",GET,/api/admin/banners,Active
-55,"Create Banner","5b. Admin Dashboard – Banners",POST,/api/admin/banners,Active
-56,"Get Banner (Admin)","5b. Admin Dashboard – Banners",GET,/api/admin/banners/{{banner_id}},Active
-57,"Update Banner","5b. Admin Dashboard – Banners",POST,/api/admin/banners/{{banner_id}},Active
-58,"Update Banner Order","5b. Admin Dashboard – Banners",POST,/api/admin/banners/update-order,Active
-59,"Toggle Banner Status","5b. Admin Dashboard – Banners",POST,/api/admin/banners/{{banner_id}}/toggle-status,Active
-60,"Delete Banner","5b. Admin Dashboard – Banners",DELETE,/api/admin/banners/{{banner_id}},Active
-61,"List Packages","5c. Client Dashboard – Packages (Customer Home)",GET,/api/packages,Active
-62,"List Packages (Admin)","5d. Admin Dashboard – Packages",GET,/api/admin/packages,Active
-63,"Create Package","5d. Admin Dashboard – Packages",POST,/api/admin/packages,Active
-64,"Update Package","5d. Admin Dashboard – Packages",PUT,/api/admin/packages/1,Active
-65,"Export Orders (CSV)","5e. Admin Dashboard – Orders Export",GET,/api/admin/orders/export,Active
-66,"Send Orders to Supplier","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/send-to-supplier,Active
-67,"Cancel Order (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/{{order_id}}/cancel,Active
-68,"Bulk Delete Orders (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/bulk-delete,Active
-69,"Refund Order (Admin)","5e. Admin Dashboard – Orders Export",POST,/api/admin/orders/{{order_id}}/refund,Active
-70,"List Visits","6. Client Dashboard – Visits",GET,/api/visits,Active
-71,"List Areas (for visit creation)","6. Client Dashboard – Visits",GET,/api/visits/areas,Active
-72,"Resolve Area from Location","6. Client Dashboard – Visits",POST,/api/visits/resolve-area,Active
-73,"Get Visit Details","6. Client Dashboard – Visits",GET,/api/visits/{{visit_id}},Active
-74,"Create Visit","6. Client Dashboard – Visits",POST,/api/visits,Active
-75,"Update Visit","6. Client Dashboard – Visits",PUT,/api/visits/{{visit_id}},Active
-76,"Upload Visit Photo","6. Client Dashboard – Visits",POST,/api/visits/{{visit_id}}/upload-photo,Active
-77,"Delete Visit Photo (Maintenance Photo)","6. Client Dashboard – Visits",DELETE,/api/visits/{{visit_id}}/photos/{{photo_id}},Active
-78,"List Reports","7. Client Dashboard – Reports",GET,/api/reports,Active
-79,"Get Report Details","7. Client Dashboard – Reports",GET,/api/reports/{{report_id}},Active
-80,"Create Report","7. Client Dashboard – Reports",POST,/api/reports,Active
-81,"Shop settings (GET)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",GET,/api/shop/settings,Active
-82,"Shop settings (PUT)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",PUT,/api/shop/settings,Active
-83,"Order summary (GET)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",GET,/api/shop/order-summary,Active
-84,"Buy now summary (POST)","8. Client Dashboard – Shop & Orders > A. Shop settings & order totals",POST,/api/shop/buy-now/summary,Active
-85,"Cart - Add Item","8. Client Dashboard – Shop & Orders > B. Shopping cart",POST,/api/shop/cart/add,Active
-86,"Cart - View","8. Client Dashboard – Shop & Orders > B. Shopping cart",GET,/api/shop/cart,Active
-87,"Cart - Update Quantity","8. Client Dashboard – Shop & Orders > B. Shopping cart",PUT,/api/shop/cart/{{cart_item_id}},Active
-88,"Cart - Remove Item","8. Client Dashboard – Shop & Orders > B. Shopping cart",DELETE,/api/shop/cart/{{cart_item_id}},Active
-89,"Checkout - Review","8. Client Dashboard – Shop & Orders > C. Checkout preview",GET,/api/shop/checkout/review,Active
-90,"Orders - List","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders,Active
-91,"Orders - Get Details","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders/{{order_id}},Active
-92,"Orders - Mark Paid","8. Client Dashboard – Shop & Orders > D. My orders (shop prefix)",POST,/api/shop/orders/{{order_id}}/mark-paid,Active
-93,"Orders - List (Alternative Route)","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders,Active
-94,"Orders - Cancelled List","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/cancelled,Active
-95,"Orders - Get Details (Alternative Route)","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}},Active
-96,"Orders - Track","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}}/track,Active
-97,"Orders - Cancel Track","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",GET,/api/orders/{{order_id}}/cancel-track,Active
-98,"Orders - Cancel","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",POST,/api/orders/{{order_id}}/cancel,Active
-99,"Orders - Update","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",PUT,/api/orders/{{order_id}},Active
-100,"Orders - Rate","8. Client Dashboard – Shop & Orders > E. My orders (app routes — track / cancel)",POST,/api/orders/{{order_id}}/rate,Active
-101,"Orders - Guest Lookup","8. Client Dashboard – Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest,Active
-102,"Orders - Guest Track","8. Client Dashboard – Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest/track,Active
-103,"Categories - List (Public)","8. Client Dashboard – Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories,Active
-104,"Categories - Get Details (Public)","8. Client Dashboard – Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories/{{category_id}},Active
-105,"Payments - List","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/payments,Active
-106,"Payments - Get Details","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/payments/{{payment_id}},Active
-107,"Transactions - List (Alias)","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions,Active
-108,"Transactions - Get Details (Alias)","8. Client Dashboard – Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions/{{payment_id}},Active
-109,"1. GET Payment gateways (public — no token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/payment-gateways,Active
-110,"2. GET Payment methods (client — Bearer token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/checkout/payment-methods,Active
-111,"2b. GET Refund policy (public — no token)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/refund-policy,Active
-112,"3. POST Start checkout — Stripe (logged-in)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/start,Active
-113,"5. POST PayPal capture","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/paypal/capture,Active
-114,"6. POST Stripe webhook (reference only)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/webhooks/stripe,Active
-115,"7. POST Stripe PaymentIntent (mobile — Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/stripe/payment-intent,Active
-116,"8. POST Checkout confirm (mobile — after Payment Sheet)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/confirm,Active
-117,"9. POST Stripe webhook (alias — /shop/stripe/webhook)","8. Client Dashboard – Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/stripe/webhook,Active
-118,"1. Validate coupon (form-data)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/validate,Active
-119,"2. Apply coupon at checkout (form-data)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/apply,Active
-120,"6. Stripe payment-intent with coupon (JSON)","8. Client Dashboard – Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/checkout/stripe/payment-intent,Active
-122,"List Maintenance Photos","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos,Active
-123,"Get Maintenance Photos by Visit","8b. Client Dashboard – Maintenance Photos",GET,/api/maintenance-photos/visit/{{visit_id}},Active
-124,"GET Technician – Dashboard","9. Technician Dashboard – All APIs > A. Dashboard",GET,/api/technician/dashboard,Active
-125,"GET Technician – Profile","9. Technician Dashboard – All APIs > B. Profile",GET,/api/technician/profile,Active
-126,"PUT Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",PUT,/api/technician/profile,Active
-127,"POST Technician – Profile update","9. Technician Dashboard – All APIs > B. Profile",POST,/api/technician/profile,Active
-128,"Technician - Get Assigned Visits","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/tech/visits,Active
-125,"Technician - Accept Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/accept,Active
-126,"Technician - Start Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/start,Active
-127,"Technician - Complete Visit","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/complete,Active
-128,"GET Technician – Tasks list","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks,Active
-129,"GET Technician – Task by ID","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}},Active
-130,"GET Technician – Task details","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}}/detail,Active
-131,"PUT Technician – Task status","9. Technician Dashboard – All APIs > C. Visits & Tasks",PUT,/api/technician/tasks/{{visit_id}}/status,Active
-132,"POST Technician – Task accept","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/accept,Active
-133,"POST Technician – Task reject","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/reject,Active
-134,"GET Technician – Jobs history","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs,Active
-135,"GET Technician – Jobs (accepted)","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/accepted,Active
-136,"GET Technician – Jobs (rejected)","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/rejected,Active
-137,"GET Technician – Jobs status counts","9. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/status-counts,Active
-138,"POST Technician – Upload job photo","9. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/photos,Active
-139,"Technician - Submit Field Report to Supervisor","9. Technician Dashboard – All APIs > D. Reports & Field Notes",POST,/api/technician/report/{{visit_id}},Active
-140,"Technician - Field notes (list)","9. Technician Dashboard – All APIs > D. Reports & Field Notes",GET,/api/technician/field-notes,Active
-141,"Leave Request Types","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-request-types,Active
-142,"Leave Requests - List","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests,Active
-143,"Leave Request - Submit","9. Technician Dashboard – All APIs > E. Leave Requests",POST,/api/technician/leave-requests,Active
-144,"Leave Request - Show","9. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests/{{leave_request_id}},Active
-145,"Alerts - List","9. Technician Dashboard – All APIs > F. Alerts",GET,/api/technician/alerts,Active
-146,"GET Technician – Service areas","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/service-areas,Active
-147,"PUT Technician – Service areas","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",PUT,/api/technician/service-areas,Active
-148,"GET Technician – Specializations","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/specializations,Active
-149,"POST Technician – Specializations (form-data)","9. Technician Dashboard – All APIs > G. Service Areas & Specializations",POST,/api/technician/specializations,Active
-150,"GET Technician – Leave types","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/leave-types,Active
-151,"GET Technician – Availability","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/availability,Active
-152,"PUT Technician – Availability update","9. Technician Dashboard – All APIs > H. Availability & Schedule",PUT,/api/technician/availability,Active
-153,"GET Technician – Schedule","9. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/schedule,Active
-154,"GET Technician – Payout summary","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payout-summary,Active
-155,"GET Technician – Payout history","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payouts,Active
-156,"GET Technician – Payout settings","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/settings/payout,Active
-157,"PUT Technician – Payout settings","9. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/settings/payout,Active
-158,"GET Technician – Bank accounts","9. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/bank-accounts,Active
-159,"POST Technician – Bank account add","9. Technician Dashboard – All APIs > I. Payout & Bank",POST,/api/technician/bank-accounts,Active
-160,"PUT Technician – Bank account update","9. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/bank-accounts/{{bank_account_id}},Active
-161,"DELETE Technician – Bank account delete","9. Technician Dashboard – All APIs > I. Payout & Bank",DELETE,/api/technician/bank-accounts/{{bank_account_id}},Active
-162,"Notifications - List","9. Technician Dashboard – All APIs > J. Notifications",GET,/api/technician/notifications,Active
-163,"Notifications - Mark as Read","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/{{notification_id}}/mark-read,Active
-164,"Notifications - Mark All as Read","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/mark-all-read,Active
-165,"Notifications - Delete","9. Technician Dashboard – All APIs > J. Notifications",DELETE,/api/technician/notifications/{{notification_id}},Active
-166,"Notifications - Clear All","9. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/clear-all,Active
-167,"GET Technician – Support help center","9. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/help-center,Active
-168,"GET Technician – Support FAQs","9. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/faqs,Active
-169,"POST Technician – Support submit ticket","9. Technician Dashboard – All APIs > K. Support",POST,/api/technician/support/tickets,Active
-170,"Dashboard - Summary","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/summary,Active
-171,"Dashboard - KPIs","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/kpis,Active
-172,"Dashboard - Alerts","10. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/alerts,Active
-173,"Areas - List (for service area)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/areas,Active
-174,"Team (My Team)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team,Active
-175,"Team Stats","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team-stats,Active
-176,"Team Member - Detail (by id)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team/{{member_id}},Active
-177,"Team Member - Update (POST form-data)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/{{member_id}},Active
-178,"Team Members - Bulk Update (POST form-data)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/update,Active
-179,"Technician Signup Requests (GET)","10. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/technician-signup-requests,Active
-180,"Technician Signup Request - Confirm (POST)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/confirm,Active
-181,"Technician Signup Request - Cancel (POST)","10. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/cancel,Active
-182,"Assignments - List","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments,Active
-183,"Assignments - One detail (GET)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments/{{visit_id}},Active
-184,"Assign tasks page (team + tasks)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assign-tasks,Active
-185,"Assignments - Assign task (POST form-data)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}},Active
-186,"Assignments - Reassign (POST form-data)","10. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}}/reassign,Active
-187,"Reports - List","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports,Active
-188,"Reports - Accept (field report)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/accept,Active
-189,"Reports - Reject (field report)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/reject,Active
-190,"Reports - Generate (POST form-data)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/generate,Active
-191,"Reports - Show","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}},Active
-192,"Reports - Download CSV","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}}/download,Active
-193,"Visit Report - Review Visit","10. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/visits/{{visit_id}},Active
-194,"Visit Report - Recommend Products (POST form-data)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/recommend,Active
-195,"Visit Report - Finalize / Share to Client (POST)","10. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/finalize,Active
-196,"Leave Request Types","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-request-types,Active
-197,"Leave Requests - List","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests,Active
-198,"Leave Request - Submit","10. Supervisor Dashboard – All APIs > E. Leave Requests",POST,/api/supervisor/leave-requests,Active
-199,"Leave Request - Show","10. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests/{{leave_request_id}},Active
-200,"Alerts - List","10. Supervisor Dashboard – All APIs > F. Alerts",GET,/api/supervisor/alerts,Active
-201,"Profile - Get","10. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile,Active
-202,"Profile - Update (form-data)","10. Supervisor Dashboard – All APIs > G. Profile",PUT,/api/supervisor/profile,Active
-203,"Profile - Preferences","10. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile/preferences,Active
-204,"Support – FAQs","10. Supervisor Dashboard – All APIs > H. Support Tickets (Chat)",GET,/api/support/faqs,Active
-205,"Notifications - List","10. Supervisor Dashboard – All APIs > I. Notifications",GET,/api/supervisor/notifications,Active
-206,"Notifications - Mark as Read","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/{{notification_id}}/mark-read,Active
-207,"Notifications - Mark All as Read","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/mark-all-read,Active
-208,"Notifications - Delete","10. Supervisor Dashboard – All APIs > I. Notifications",DELETE,/api/supervisor/notifications/{{notification_id}},Active
-209,"Notifications - Clear All","10. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/clear-all,Active
-210,"List Products","Products - All APIs > Public (no auth)",GET,/api/shop/products,Active
-211,"Featured Products","Products - All APIs > Public (no auth)",GET,/api/shop/products/featured,Active
-212,"Get Product Details","Products - All APIs > Public (no auth)",GET,/api/shop/products/{{product_id}},Active
-213,"Get Categories","Products - All APIs > Public (no auth)",GET,/api/shop/products/categories,Active
-214,"Get Products by Category","Products - All APIs > Public (no auth)",GET,/api/shop/products/category/{{category_id}},Active
-215,"List Products","Products - All APIs > Admin (Bearer token)",GET,/api/admin/products,Active
-216,"Add Product (JSON – URL-only images)","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products,Active
-217,"Get Product Details","Products - All APIs > Admin (Bearer token)",GET,/api/admin/products/{{product_id}},Active
-218,"Update Product (Multipart – same as Add Product)","Products - All APIs > Admin (Bearer token)",PUT,/api/admin/products/{{product_id}},Active
-219,"Delete Product","Products - All APIs > Admin (Bearer token)",DELETE,/api/admin/products/{{product_id}},Active
-220,"Toggle Status","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/{{product_id}}/toggle-status,Active
-221,"Bulk Delete","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-delete,Active
-222,"Bulk Update Status","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-status,Active
-223,"Bulk Update Stock","Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-stock,Active
-224,"Dashboard - Summary","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/summary,Active
-225,"Dashboard - Alerts","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/alerts,Active
-226,"Region Map","11. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/region-map,Active
-227,"Teams - List","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams,Active
-228,"Teams - Detail","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}},Active
-229,"Teams - Jobs","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/jobs,Active
-230,"Teams - Members","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/members,Active
-231,"Teams - Member Jobs","11. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/members/{{member_id}}/jobs,Active
-232,Analytics,"11. Area Manager Dashboard – All APIs > C. Analytics",GET,/api/area-manager/analytics,Active
-233,"Reports - List","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/reports,Active
-234,"Reports - Generate","11. Area Manager Dashboard – All APIs > D. Reports",POST,/api/area-manager/reports/generate,Active
-235,"Generated Reports - List","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports,Active
-236,"Generated Reports - Download","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/download,Active
-237,"Generated Reports - View","11. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/view,Active
-238,"Profile - Get","11. Area Manager Dashboard – All APIs > E. Profile",GET,/api/area-manager/profile,Active
-239,"Profile - Update","11. Area Manager Dashboard – All APIs > E. Profile",PUT,/api/area-manager/profile,Active
-240,"Notifications - List","11. Area Manager Dashboard – All APIs > F. Notifications",GET,/api/area-manager/notifications,Active
-241,"Notifications - Mark as Read","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/{{notification_id}}/mark-read,Active
-242,"Notifications - Mark All as Read","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/mark-all-read,Active
-243,"Notifications - Delete","11. Area Manager Dashboard – All APIs > F. Notifications",DELETE,/api/area-manager/notifications/{{notification_id}},Active
-244,"Notifications - Clear All","11. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/clear-all,Active
-245,"Help Center (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/help-center,Active
-246,"FAQs (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/faqs,Active
-247,"Submit ticket (POST)","11. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets,Active
-248,"List my tickets (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets,Active
-249,"Get ticket by ID (GET)","11. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets/{{ticket_id}},Active
-250,"Reply to ticket (POST)","11. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets/{{ticket_id}}/reply,Active
-251,"Team Leaders - List (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders,Active
-252,"Team Leader - Detail (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}},Active
-253,"Team Leader - Jobs (legacy)","11. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}}/jobs,Active
-254,"Dashboard - Summary","12. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/summary,Active
-255,"Dashboard - Visit Assignments","12. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/visit-assignments,Active
-256,"Positions - List","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/positions,Active
-257,"Employees - List","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees,Active
-258,"Employees - Create","12. HR Manager Dashboard – All APIs > B. Employees",POST,/api/hr/employees,Active
-259,"Employees - Show","12. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees/{{employee_id}},Active
-260,"Employees - Update","12. HR Manager Dashboard – All APIs > B. Employees",PUT,/api/hr/employees/{{employee_id}},Active
-261,"Employees - Delete","12. HR Manager Dashboard – All APIs > B. Employees",DELETE,/api/hr/employees/{{employee_id}},Active
-262,"Leave Requests - Create","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests,Active
-263,"Leave Requests - List","12. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests,Active
-264,"Leave Requests - Show","12. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests/{{leave_request_id}},Active
-265,"Leave Requests - Approve","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/approve,Active
-266,"Leave Requests - Reject","12. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/reject,Active
-267,"Profile - Get","12. HR Manager Dashboard – All APIs > D. Profile",GET,/api/hr/profile,Active
-268,"Profile - Update","12. HR Manager Dashboard – All APIs > D. Profile",PUT,/api/hr/profile,Active
-269,"Help Center (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/help-center,Active
-270,"FAQs (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/faqs,Active
-271,"Submit ticket (POST)","12. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets,Active
-272,"List my tickets (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets,Active
-273,"Get ticket by ID (GET)","12. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets/{{ticket_id}},Active
-274,"Reply to ticket (POST)","12. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets/{{ticket_id}}/reply,Active
-275,"Notifications - List","12. HR Manager Dashboard – All APIs > G. Notifications",GET,/api/hr/notifications,Active
-276,"Notifications - Mark as Read","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/{{notification_id}}/mark-read,Active
-277,"Notifications - Mark All as Read","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/mark-all-read,Active
-278,"Notifications - Delete","12. HR Manager Dashboard – All APIs > G. Notifications",DELETE,/api/hr/notifications/{{notification_id}},Active
-279,"Notifications - Clear All","12. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/clear-all,Active
-280,"Visit assignments - List","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments,Active
-281,"Visit assignments - Summary","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/summary,Active
-282,"Visit assignments - Assign screen","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/assign-screen,Active
-283,"Visit assignments - Offer to technician (POST)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/visit-assignments/{{visit_id}},Active
-284,"Reports - Technician monthly preview (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/technician-monthly,Active
-285,"Reports - List my generated (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports,Active
-286,"Reports - Generate PDF (POST)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/reports/generate,Active
-287,"Reports - Download (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download,Active
-288,"Reports - Download Public URL (GET)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download-public,Active
-289,"Reports - Delete (DELETE)","12. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",DELETE,/api/hr/reports/{{hr_report_id}},Active
-290,"Admin Dashboard Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/statistics,Active
-291,"Admin Dashboard Recent Activities","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/recent-activities,Active
-292,"Admin Dashboard Order Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/order-statistics,Active
-293,"Admin Dashboard Order Statistics - Orders Buckets","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/order-statistics/orders,Active
-294,"Admin Dashboard Quick Overview","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/quick-overview,Active
-295,"Admin Dashboard Profile","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/profile,Active
-296,"PUT/POST Admin Dashboard Profile (Update)","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/dashboard/profile,Active
-297,"Admin Dashboard Top Selling Products","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/dashboard/top-selling-products,Active
-298,"Admin Users Statistics","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users/statistics,Active
-299,"Admin Users List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users,Active
-300,"Users - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/users,Active
-301,"Users - Get","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/users/{{user_id}},Active
-302,"Users - Update","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/users/{{user_id}},Active
-303,"Users - Delete","13. Admin Dashboard – Stats, Users & HR",DELETE,/api/admin/users/{{user_id}},Active
-304,"Roles - List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/roles,Active
-305,"Roles - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/roles,Active
-306,"HR - Employees - List","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/hr/employees,Active
-307,"HR - Employees - Create","13. Admin Dashboard – Stats, Users & HR",POST,/api/admin/hr/employees,Active
-308,"HR - Employees - Get","13. Admin Dashboard – Stats, Users & HR",GET,/api/admin/hr/employees/{{employee_id}},Active
-309,"HR - Employees - Update","13. Admin Dashboard – Stats, Users & HR",PUT,/api/admin/hr/employees/{{employee_id}},Active
-310,"HR - Employees - Delete","13. Admin Dashboard – Stats, Users & HR",DELETE,/api/admin/hr/employees/{{employee_id}},Active
-311,"Get All Reports","14. Admin Dashboard – Reports Management",GET,/api/admin/reports,Active
-312,"Get Report Statistics","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/statistics,Active
-313,"Generate Report","14. Admin Dashboard – Reports Management",POST,/api/admin/reports/generate,Active
-314,"Schedule Report","14. Admin Dashboard – Reports Management",POST,/api/admin/reports/schedule,Active
-315,"Get Single Report","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/1,Active
-316,"Download Report","14. Admin Dashboard – Reports Management",GET,/api/admin/reports/1/download,Active
-317,"Cancel Scheduled Report","14. Admin Dashboard – Reports Management",DELETE,/api/admin/reports/1/cancel,Active
-318,"Delete Report","14. Admin Dashboard – Reports Management",DELETE,/api/admin/reports/1,Active
-319,"GET List Support Tickets","15. Admin – Support Tickets",GET,/api/admin/support-tickets,Active
-320,"GET Support Ticket by ID","15. Admin – Support Tickets",GET,/api/admin/support-tickets/{{ticket_id}},Active
-321,"POST Reply to Ticket","15. Admin – Support Tickets",POST,/api/admin/support-tickets/{{ticket_id}}/reply,Active
-322,"PUT Update Ticket Status","15. Admin – Support Tickets",PUT,/api/admin/support-tickets/{{ticket_id}}/status,Active
-323,"Get All Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings,Active
-324,"Get System Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/system,Active
-325,"Update System Settings","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/system,Active
-326,"Get Theme","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/theme,Active
-327,"Update Theme","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/theme,Active
-328,"Get Language","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/language,Active
-329,"Update Language","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/language,Active
-330,"Get Payment Settings","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/payment,Active
-331,"Update Payment Settings","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/payment,Active
-332,"Get Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/shop,Active
-333,"Update Shop Settings (Shipping & Tax)","16. Admin Dashboard – Settings (Mobile)",PUT,/api/admin/settings/shop,Active
-334,"Get Legal (Privacy or Terms)","16. Admin Dashboard – Settings (Mobile)",GET,/api/admin/settings/legal,Active
-335,"Export Data","16. Admin Dashboard – Settings (Mobile)",POST,/api/admin/settings/export-data,Active
-336,"List (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers,Active
-338,"Get by ID (Public)","17. Other Modules > Exclusive Offers",GET,/api/exclusive-offers/{{offer_id}},Active
-339,"Admin - List","17. Other Modules > Exclusive Offers",GET,/api/admin/exclusive-offers,Active
-340,"Admin - Create","17. Other Modules > Exclusive Offers",POST,/api/admin/exclusive-offers,Active
-341,"Admin - Get","17. Other Modules > Exclusive Offers",GET,/api/admin/exclusive-offers/{{offer_id}},Active
-342,"Admin - Update","17. Other Modules > Exclusive Offers",POST,/api/admin/exclusive-offers/{{offer_id}},Active
-343,"Admin - Delete","17. Other Modules > Exclusive Offers",DELETE,/api/admin/exclusive-offers/{{offer_id}},Active
-344,List,"17. Other Modules > Complaints",GET,/api/auth/complaints,Active
-345,"Complaints - Create","17. Other Modules > Complaints",POST,/api/auth/complaints,Active
-346,"Complaints - Get","17. Other Modules > Complaints",GET,/api/auth/complaints/{{complaint_id}},Active
-347,"Complaints - Update","17. Other Modules > Complaints",PUT,/api/auth/complaints/{{complaint_id}},Active
-348,"Complaints - Delete","17. Other Modules > Complaints",DELETE,/api/auth/complaints/{{complaint_id}},Active
-349,List,"17. Other Modules > Tips",GET,/api/tips,Active
-350,"Tips - Create/Send","17. Other Modules > Tips",POST,/api/tips,Active
-351,"Tips - Get Details","17. Other Modules > Tips",GET,/api/tips/{{tip_id}},Active
-352,"Tips - Update","17. Other Modules > Tips",PUT,/api/tips/{{tip_id}},Active
-353,"Tips - Delete","17. Other Modules > Tips",DELETE,/api/tips/{{tip_id}},Active
-354,List,"17. Other Modules > Notifications",GET,/api/notifications,Active
-355,"Notifications - Mark as Read","17. Other Modules > Notifications",POST,/api/notifications/{{notification_id}}/mark-read,Active
-356,"Notifications - Mark All as Read","17. Other Modules > Notifications",POST,/api/notifications/mark-all-read,Active
-357,"Notifications - Delete","17. Other Modules > Notifications",DELETE,/api/notifications/{{notification_id}},Active
-358,"Notifications - Clear All","17. Other Modules > Notifications",POST,/api/notifications/clear-all,Active
-359,List,"17. Other Modules > Admin - Categories",GET,/api/admin/categories,Active
-360,"Categories - Create","17. Other Modules > Admin - Categories",POST,/api/admin/categories,Active
-361,"Categories - Get","17. Other Modules > Admin - Categories",GET,/api/admin/categories/{{category_id}},Active
-362,"Categories - Update","17. Other Modules > Admin - Categories",POST,/api/admin/categories/{{category_id}},Active
-363,"Categories - Toggle Status","17. Other Modules > Admin - Categories",POST,/api/admin/categories/{{category_id}}/toggle-status,Active
-364,"Categories - Delete","17. Other Modules > Admin - Categories",DELETE,/api/admin/categories/{{category_id}},Active
-365,"Services - List","17. Other Modules > Admin - Services",GET,/api/admin/services,Active
-366,"Services - Create","17. Other Modules > Admin - Services",POST,/api/admin/services,Active
-367,"Services - Get","17. Other Modules > Admin - Services",GET,/api/admin/services/{{service_id}},Active
-368,"Services - Update","17. Other Modules > Admin - Services",POST,/api/admin/services/{{service_id}},Active
-369,"Services - Toggle Status","17. Other Modules > Admin - Services",POST,/api/admin/services/{{service_id}}/toggle-status,Active
-370,"Services - Delete","17. Other Modules > Admin - Services",DELETE,/api/admin/services/{{service_id}},Active
-371,"Areas - Get All","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/areas,Active
-372,"Operational Areas - Dashboard (App UI)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/operational-areas,Active
-373,"Operational Areas - Toggle Active","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/operational-areas/{{area_id}}/toggle-active,Active
-374,"All Technicians (Admin)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/technicians,Active
-375,"Technicians for Zones (list)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/technicians-for-zones,Active
-376,"Supervisors for Zones (list)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors-for-zones,Active
-377,"All Supervisors (Admin)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors,Active
-378,"Supervisor Team (get)","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/supervisors/{{supervisor_id}}/team,Active
-379,"Supervisor Team - Add member","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/supervisors/{{supervisor_id}}/team,Active
-380,"Supervisor Team - Remove member","17. Other Modules > Admin - Areas (Zones)",DELETE,/api/admin/supervisors/{{supervisor_id}}/team,Active
-381,"Areas - Create","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/areas,Active
-382,"Areas - Get","17. Other Modules > Admin - Areas (Zones)",GET,/api/admin/areas/{{area_id}},Active
-383,"Areas - Update","17. Other Modules > Admin - Areas (Zones)",POST,/api/admin/areas/{{area_id}},Active
-384,"Areas - Delete","17. Other Modules > Admin - Areas (Zones)",DELETE,/api/admin/areas/{{area_id}},Active
-385,"Tech - Get Assigned Visits (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",GET,/api/auth/tech/visits,Active
-386,"Tech - Accept Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/accept,Active
-387,"Tech - Start Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/start,Active
-388,"Tech - Complete Visit (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/complete,Active
-389,"Tech - Upload Photo (Auth)","17. Other Modules > Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/photos,Active
-390,"Supervisor - List Visits (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits,Active
-391,"Supervisor - Review Visit (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits/{{visit_id}},Active
-392,"Supervisor - Recommend Products (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/recommend,Active
-393,"Supervisor - Finalize Report (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/finalize,Active
-394,"Supervisor - Update Visit Status (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/status,Active
-395,"Supervisor - List Areas (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/areas,Active
-396,"Supervisor - List Complaints (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/complaints,Active
-397,"Supervisor - Escalate Complaint (Auth)","17. Other Modules > Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/complaints/{{complaint_id}}/escalate,Active
-398,"List (paginated)","17. Other Modules > Services (Public)",GET,/api/services,Active
-399,"Get single service (category)","17. Other Modules > Services (Public)",GET,/api/services/{{service_id}},Active
-400,"Get all products of services","17. Other Modules > Services (Public)",GET,/api/services/products,Active
-401,"Get products by service","17. Other Modules > Services (Public)",GET,/api/services/{{service_id}}/products,Active
-402,"Get Categories","17. Other Modules > Services (Public)",GET,/api/services/categories,Active
-403,"Get by Category (category + products)","17. Other Modules > Services (Public)",GET,/api/services/category/{{category_id}},Active
-404,"User Profile - Update","17. Other Modules > User Profile",PUT,/api/user/profile,Active
-405,Update,"17. Other Modules > User Addresses",POST,/api/user/addresses/{{address_id}},Active
-406,"Mark as Read","17. Other Modules > User Notifications",POST,/api/user/notifications/{{notification_id}}/read,Active
-407,"Mark All as Read","17. Other Modules > User Notifications",POST,/api/user/notifications/read-all,Active
+﻿"TANDIL BACKEND — API INDEX (each row = one unique API: METHOD + path; duplicates from Postman removed)",,,,,,,
+,,,,,,,
+"HOW TO USE THIS FILE",,,,,,,
+"Sort or filter by column ""Audience"" for Client, Admin, Supervisor, etc. Use ""Postman root folder"" to jump to the same top folder in Postman.",,,,,,,
+,,,,,,,
+"WHERE EACH USER TYPE STARTS IN POSTMAN (folder numbers match tandil_backend.json)",,,,,,,
+"Shared / entry","Folder ""1. Health Check - START HERE"" (health check first; wallet summaries listed here are shared across roles).",,,,,,,
+"All roles","Folder ""2. Authentication"" (register, login, password, email verification).",,,,,,,
+Client,"Folders ""3."" through ""8."" (profile, subscriptions, banners, visits, reports, shop & orders; payments under ""8."").",,,,,,,
+Technician,"Folder ""9. Technician Dashboard – All APIs"".",,,,,,,
+Supervisor,"Folder ""10. Supervisor Dashboard – All APIs"".",,,,,,,
+"Area Manager","Folder ""11. Area Manager Dashboard – All APIs"".",,,,,,,
+"HR Manager","Folder ""12. HR Manager Dashboard – All APIs"".",,,,,,,
+Admin,"Folders ""13."" through ""16."" (stats & users, reports, support tickets, settings).",,,,,,,
+"Cross-role / other","Folder ""17. Other Modules"" (e.g. notifications hub, shared utilities).",,,,,,,
+,,,,,,,
+"Sr. No.",Audience,"Postman root folder",Name,"Module (full path in Postman)",Methods,Endpoint,Status
+1,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Health Check","1. Health Check - START HERE",GET,/api/health,Active
+2,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Debug Performance","1. Health Check - START HERE",GET,/api/debug/performance,Active
+3,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Get Preferred Language","1. Health Check - START HERE > Language APIs (All Dashboards)",GET,/api/user/language,Active
+4,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Update Preferred Language","1. Health Check - START HERE > Language APIs (All Dashboards)",POST,/api/user/language,Active
+5,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","List localized articles","1. Health Check - START HERE > Localized articles (multilingual demo)",GET,/api/localized-articles,Active
+6,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Get localized article (welcome-guide)","1. Health Check - START HERE > Localized articles (multilingual demo)",GET,/api/localized-articles/welcome-guide,Active
+7,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Admin Wallet Overview","1. Health Check - START HERE > Admin Wallet APIs",GET,/api/admin/wallet/overview,Active
+8,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Admin Wallet Credits Ledger","1. Health Check - START HERE > Admin Wallet APIs",GET,/api/admin/wallet/credits,Active
+9,"Shared — start here (health, debug, wallet hub under folder 1)","1. Health Check - START HERE","Admin Wallet Client Detail","1. Health Check - START HERE > Admin Wallet APIs",GET,/api/admin/wallet/users/{{user_id}},Active
+,"--- Authentication — all roles (register, login, …) ---",,,,,,
+10,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Delivery analytics","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/delivery-stats,Active
+11,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Broadcast send","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/broadcast,Active
+12,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Broadcasts list","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts,Active
+13,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Broadcast detail","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications/broadcasts/{{broadcast_id}},Active
+14,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Statics list (with filters)","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",GET,/api/admin/notifications,Active
+15,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Mark as read","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/{{notification_id}}/mark-read,Active
+16,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Mark all as read","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/mark-all-read,Active
+17,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Delete one","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",DELETE,/api/admin/notifications/{{notification_id}},Active
+18,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Clear all","2. Notifications – All roles (hub) > Admin – /api/admin/notifications",POST,/api/admin/notifications/clear-all,Active
+19,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)",List,"2. Notifications – All roles (hub) > Vendor – /api/vendor/notifications",GET,/api/vendor/notifications,Active
+20,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Mark as read","2. Notifications – All roles (hub) > Vendor – /api/vendor/notifications",POST,/api/vendor/notifications/{{notification_id}}/mark-read,Active
+21,"Authentication — all roles (register, login, …)","2. Notifications – All roles (hub)","Clear all","2. Notifications – All roles (hub) > Vendor – /api/vendor/notifications",POST,/api/vendor/notifications/clear-all,Active
+,"--- Client — folders 3–8 in Postman (profile → shop) ---",,,,,,
+22,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication",Register,"3. Authentication",POST,/api/auth/register,Active
+23,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","App roles (login picker)","3. Authentication",GET,/api/auth/app-roles,Active
+24,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication",Login,"3. Authentication",POST,/api/auth/login,Active
+25,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Delete Account (POST)","3. Authentication",POST,/api/auth/delete-account,Active
+26,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Google sign-in (client)","3. Authentication",POST,/api/auth/google,Active
+27,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Apple sign-in (client)","3. Authentication",POST,/api/auth/apple,Active
+28,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Technician signup - List areas (GET)","3. Authentication",GET,/api/auth/technician-signup-areas,Active
+29,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Register Technician","3. Authentication",POST,/api/auth/register-technician,Active
+30,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Registration options (vendor types & emirates)","3. Authentication",GET,/api/vendor/auth/registration-options,Active
+31,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Register Vendor (form-data – full signup)","3. Authentication",POST,/api/vendor/auth/register,Active
+32,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Login Vendor","3. Authentication",POST,/api/vendor/auth/login,Active
+33,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Validate vendor token (auth/me)","3. Authentication",GET,/api/vendor/auth/me,Active
+34,"Client — folders 3–8 in Postman (profile → shop)","3. Authentication","Logout Vendor","3. Authentication",POST,/api/vendor/auth/logout,Active
+35,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Get Profile","4. Client Dashboard > A. Auth & Account",GET,/api/auth/profile,Active
+36,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Logout","4. Client Dashboard > A. Auth & Account",POST,/api/auth/logout,Active
+37,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Delete Account (DELETE alias)","4. Client Dashboard > A. Auth & Account",DELETE,/api/user/account,Active
+38,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","5. Forgot Password","4. Client Dashboard > A. Auth & Account",POST,/api/auth/forgot-password,Active
+39,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","6. Verify OTP","4. Client Dashboard > A. Auth & Account",POST,/api/auth/verify-otp,Active
+40,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","7. Reset Password","4. Client Dashboard > A. Auth & Account",POST,/api/auth/reset-password,Active
+41,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Profile sections index (GET)","4. Client Dashboard > B. Dashboard & Memberships",GET,/api/client/settings/sections,Active
+42,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Dashboard settings (GET)","4. Client Dashboard > B. Dashboard & Memberships",GET,/api/client/settings/dashboard,Active
+43,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Memberships (GET)","4. Client Dashboard > B. Dashboard & Memberships",GET,/api/client/memberships,Active
+44,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Personal Information – Get (GET)","4. Client Dashboard > C. Personal Information",GET,/api/user/profile,Active
+45,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Personal Information – Update (PUT/POST)","4. Client Dashboard > C. Personal Information",POST,/api/user/profile,Active
+46,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Update Phone Number Only (PUT/POST) – after Google/Apple signup","4. Client Dashboard > C. Personal Information",PUT,/api/user/phone,Active
+47,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Addresses – List (GET)","4. Client Dashboard > D. Addresses",GET,/api/user/addresses,Active
+48,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Addresses – Create (POST)","4. Client Dashboard > D. Addresses",POST,/api/user/addresses,Active
+49,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Addresses – Update (PUT)","4. Client Dashboard > D. Addresses",PUT,/api/user/addresses/{{address_id}},Active
+50,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Addresses – Delete (DELETE)","4. Client Dashboard > D. Addresses",DELETE,/api/user/addresses/{{address_id}},Active
+51,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Payment Methods (GET)","4. Client Dashboard > E. Payment Methods & Wallet > 1. Wallet & Payment Methods",GET,/api/user/payment-methods,Active
+52,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Wallet summary (GET)","4. Client Dashboard > E. Payment Methods & Wallet > 1. Wallet & Payment Methods",GET,/api/user/wallet,Active
+53,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Wallet credits list (GET)","4. Client Dashboard > E. Payment Methods & Wallet > 1. Wallet & Payment Methods",GET,/api/user/wallet/credits,Active
+54,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Options (GET)","4. Client Dashboard > E. Payment Methods & Wallet > 2. Add Money",GET,/api/client/wallet/add-money,Active
+55,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Payment Intent - Stripe (POST)","4. Client Dashboard > E. Payment Methods & Wallet > 2. Add Money",POST,/api/client/wallet/add-money/payment-intent,Active
+56,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Confirm (POST)","4. Client Dashboard > E. Payment Methods & Wallet > 2. Add Money",POST,/api/client/wallet/add-money/confirm,Active
+57,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Notifications (GET)","4. Client Dashboard > F. Notifications",GET,/api/user/notifications,Active
+58,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Notifications – Clear All (POST)","4. Client Dashboard > F. Notifications",POST,/api/user/notifications/clear-all,Active
+59,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Notifications - Statics list (with filters)","4. Client Dashboard > F. Notifications > Client notifications (/api/client/notifications)",GET,/api/client/notifications,Active
+60,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Notifications - Mark as Read","4. Client Dashboard > F. Notifications > Client notifications (/api/client/notifications)",POST,/api/client/notifications/{{notification_id}}/mark-read,Active
+61,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Notifications - Mark All as Read","4. Client Dashboard > F. Notifications > Client notifications (/api/client/notifications)",POST,/api/client/notifications/mark-all-read,Active
+62,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Notifications - Delete","4. Client Dashboard > F. Notifications > Client notifications (/api/client/notifications)",DELETE,/api/client/notifications/{{notification_id}},Active
+63,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","5. Notifications - Clear All","4. Client Dashboard > F. Notifications > Client notifications (/api/client/notifications)",POST,/api/client/notifications/clear-all,Active
+64,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Get Loyalty Screen (GET)","4. Client Dashboard > G. Loyalty Points",GET,/api/client/loyalty,Active
+65,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Get Loyalty Campaigns (GET)","4. Client Dashboard > G. Loyalty Points",GET,/api/client/loyalty/campaigns,Active
+66,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Get Loyalty (alias GET)","4. Client Dashboard > G. Loyalty Points",GET,/api/user/loyalty,Active
+67,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Redeem Reward (POST)","4. Client Dashboard > G. Loyalty Points",POST,/api/client/loyalty/rewards/{{reward_id}}/redeem,Active
+68,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Help and Support – Help Center (GET)","4. Client Dashboard > H. Help & Support",GET,/api/support/help-center,Active
+69,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Help and Support – Submit ticket (POST)","4. Client Dashboard > H. Help & Support",POST,/api/support/tickets,Active
+70,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Help and Support – List my tickets (GET)","4. Client Dashboard > H. Help & Support",GET,/api/support/tickets,Active
+71,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Help and Support – Get ticket by ID (GET)","4. Client Dashboard > H. Help & Support",GET,/api/support/tickets/{{ticket_id}},Active
+72,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","5. Help and Support – Reply to my ticket (POST)","4. Client Dashboard > H. Help & Support",POST,/api/support/tickets/{{ticket_id}}/reply,Active
+73,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Contact Us","4. Client Dashboard > I. Legal & Contact",GET,/api/client/contact-us,Active
+74,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Terms & Conditions","4. Client Dashboard > I. Legal & Contact",GET,/api/client/terms-and-conditions,Active
+75,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Privacy Policy","4. Client Dashboard > I. Legal & Contact",GET,/api/client/privacy-policy,Active
+76,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Membership Screen (Active + Upgrade Plans + Your Memberships)","4. Client Dashboard > J. Subscriptions",GET,/api/client/memberships/screen,Active
+77,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","List My Memberships","4. Client Dashboard > J. Subscriptions",GET,/api/subscriptions,Active
+78,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Get Membership Details","4. Client Dashboard > J. Subscriptions",GET,/api/subscriptions/{{subscription_id}},Active
+79,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Get Upgrade Options","4. Client Dashboard > J. Subscriptions",GET,/api/client/memberships/{{subscription_id}}/upgrade-options,Active
+80,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Renew – Create Payment Intent","4. Client Dashboard > J. Subscriptions",POST,/api/client/memberships/{{subscription_id}}/renew/payment-intent,Active
+81,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Upgrade – Create Payment Intent","4. Client Dashboard > J. Subscriptions",POST,/api/client/memberships/{{subscription_id}}/upgrade/payment-intent,Active
+82,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Confirm Membership Payment","4. Client Dashboard > J. Subscriptions",POST,/api/client/memberships/payment/confirm,Active
+83,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Get Active Banners","4. Client Dashboard > K. Banners (Public)",GET,/api/banners,Active
+84,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Get Active Video Banners","4. Client Dashboard > K2. Video Banner (Public)",GET,/api/video-banners,Active
+85,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. List Packages","4. Client Dashboard > L. Packages (Public)",GET,/api/packages,Active
+86,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","List Visits","4. Client Dashboard > M. Visits",GET,/api/visits,Active
+87,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Get Available Slots","4. Client Dashboard > M. Visits",GET,/api/visits/available-slots,Active
+88,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","List Areas (for visit creation)","4. Client Dashboard > M. Visits",GET,/api/visits/areas,Active
+89,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Resolve Area from Location","4. Client Dashboard > M. Visits",POST,/api/visits/resolve-area,Active
+90,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Get Visit Details","4. Client Dashboard > M. Visits",GET,/api/visits/{{visit_id}},Active
+91,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Create Visit","4. Client Dashboard > M. Visits",POST,/api/visits,Active
+92,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Update Visit","4. Client Dashboard > M. Visits",PUT,/api/visits/{{visit_id}},Active
+93,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","List Reports","4. Client Dashboard > N. Reports",GET,/api/reports,Active
+94,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Get Report Details","4. Client Dashboard > N. Reports",GET,/api/reports/{{report_id}},Active
+95,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","Create Report","4. Client Dashboard > N. Reports",POST,/api/reports,Active
+96,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Shop settings (GET)","4. Client Dashboard > O. Shop & Orders > A. Shop settings & order totals",GET,/api/shop/settings,Active
+97,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Shop settings (PUT)","4. Client Dashboard > O. Shop & Orders > A. Shop settings & order totals",PUT,/api/shop/settings,Active
+98,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Order summary (GET)","4. Client Dashboard > O. Shop & Orders > A. Shop settings & order totals",GET,/api/shop/order-summary,Active
+99,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Buy now summary (POST)","4. Client Dashboard > O. Shop & Orders > A. Shop settings & order totals",POST,/api/shop/buy-now/summary,Active
+100,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Cart - Add Item","4. Client Dashboard > O. Shop & Orders > B. Shopping cart",POST,/api/shop/cart/add,Active
+101,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Cart - View","4. Client Dashboard > O. Shop & Orders > B. Shopping cart",GET,/api/shop/cart,Active
+102,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Cart - Update Quantity","4. Client Dashboard > O. Shop & Orders > B. Shopping cart",PUT,/api/shop/cart/{{cart_item_id}},Active
+103,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Cart - Remove Item","4. Client Dashboard > O. Shop & Orders > B. Shopping cart",DELETE,/api/shop/cart/{{cart_item_id}},Active
+104,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Checkout - Review","4. Client Dashboard > O. Shop & Orders > C. Checkout preview",GET,/api/shop/checkout/review,Active
+105,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Orders - List","4. Client Dashboard > O. Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders,Active
+106,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Orders - Get Details","4. Client Dashboard > O. Shop & Orders > D. My orders (shop prefix)",GET,/api/shop/orders/{{order_id}},Active
+107,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Orders - Mark Paid","4. Client Dashboard > O. Shop & Orders > D. My orders (shop prefix)",POST,/api/shop/orders/{{order_id}}/mark-paid,Active
+108,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Orders - List (Alternative Route)","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders,Active
+109,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Orders - Cancelled List","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/cancelled,Active
+110,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Orders - Get Details (Alternative Route)","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/{{order_id}},Active
+111,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Orders - Track","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/{{order_id}}/track,Active
+112,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","5. Orders - Service Report","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/{{order_id}}/report,Active
+113,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","6. Orders - Mark as Delivered","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",POST,/api/orders/{{order_id}}/mark-delivered,Active
+114,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","6b. Orders - Rate Service","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",POST,/api/orders/{{order_id}}/rate,Active
+115,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","6c. Orders - Get Rating","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/{{order_id}}/rating,Active
+116,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","7. Orders - Cancel Track","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",GET,/api/orders/{{order_id}}/cancel-track,Active
+117,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","8. Orders - Cancel","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",POST,/api/orders/{{order_id}}/cancel,Active
+118,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","9. Orders - Update","4. Client Dashboard > O. Shop & Orders > E. My orders (app routes — track / cancel / service report)",PUT,/api/orders/{{order_id}},Active
+119,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Orders - Guest Lookup","4. Client Dashboard > O. Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest,Active
+120,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Orders - Guest Track","4. Client Dashboard > O. Shop & Orders > F. Guest orders (no token)",GET,/api/shop/orders/guest/track,Active
+121,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Categories - List (Public)","4. Client Dashboard > O. Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories,Active
+122,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Categories - Get Details (Public)","4. Client Dashboard > O. Shop & Orders > G. Shop catalog (public)",GET,/api/shop/categories/{{category_id}},Active
+123,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Payments - List","4. Client Dashboard > O. Shop & Orders > H. My payments & transactions",GET,/api/shop/payments,Active
+124,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Payments - Get Details","4. Client Dashboard > O. Shop & Orders > H. My payments & transactions",GET,/api/shop/payments/{{payment_id}},Active
+125,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Transactions - List (Alias)","4. Client Dashboard > O. Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions,Active
+126,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Transactions - Get Details (Alias)","4. Client Dashboard > O. Shop & Orders > H. My payments & transactions",GET,/api/shop/transactions/{{payment_id}},Active
+127,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. GET Payment gateways (public — no token)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/payment-gateways,Active
+128,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. GET Payment methods (client — Bearer token)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/checkout/payment-methods,Active
+129,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. GET Refund policy (public — no token)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",GET,/api/shop/refund-policy,Active
+130,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. POST Start checkout — Stripe (logged-in)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/start,Active
+131,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","6. POST PayPal capture","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/paypal/capture,Active
+132,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","7. POST Stripe webhook (reference only)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/webhooks/stripe,Active
+133,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","8. POST Stripe PaymentIntent (mobile — Payment Sheet)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/stripe/payment-intent,Active
+134,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","9. POST Checkout confirm (mobile — after Payment Sheet)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/checkout/confirm,Active
+135,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","10. POST Stripe webhook (alias — /shop/stripe/webhook)","4. Client Dashboard > O. Shop & Orders > I. Shop – Payments (Stripe & PayPal only)",POST,/api/shop/stripe/webhook,Active
+136,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. Browse coupons (GET)","4. Client Dashboard > O. Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",GET,/api/shop/coupons/browse,Active
+137,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","2. Checkout offers — choose promo (POST)","4. Client Dashboard > O. Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/checkout-offers,Active
+138,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","3. Validate coupon (form-data)","4. Client Dashboard > O. Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/validate,Active
+139,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","4. Apply coupon at checkout (code only)","4. Client Dashboard > O. Shop & Orders > K. Shop – Coupons (apply, validate & checkout)",POST,/api/shop/coupons/apply,Active
+140,"Client — folders 3–8 in Postman (profile → shop)","4. Client Dashboard","1. List Maintenance Photos (GET)","4. Client Dashboard > O. Shop & Orders > L. Client – Maintenance Photos",GET,/api/maintenance-photos,Active
+141,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Statistics","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/statistics,Active
+142,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Recent Activities","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/recent-activities,Active
+143,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Order Statistics","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/order-statistics,Active
+144,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Order Statistics - Orders Buckets","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/order-statistics/orders,Active
+145,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Quick Overview","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/quick-overview,Active
+146,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Profile","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/profile,Active
+147,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","PUT/POST Admin Dashboard Profile (Update)","5. Admin Dashboard > A. Stats, Users & HR",PUT,/api/admin/dashboard/profile,Active
+148,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Dashboard Top Selling Products","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/dashboard/top-selling-products,Active
+149,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Users Statistics","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/users/statistics,Active
+150,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Admin Users List","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/users,Active
+151,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Users - Create","5. Admin Dashboard > A. Stats, Users & HR",POST,/api/admin/users,Active
+152,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Users - Get","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/users/{{user_id}},Active
+153,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Users - Update","5. Admin Dashboard > A. Stats, Users & HR",PUT,/api/admin/users/{{user_id}},Active
+154,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Users - Delete","5. Admin Dashboard > A. Stats, Users & HR",DELETE,/api/admin/users/{{user_id}},Active
+155,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Roles - List","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/roles,Active
+156,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Roles - Create","5. Admin Dashboard > A. Stats, Users & HR",POST,/api/admin/roles,Active
+157,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","HR - Employees - List","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/hr/employees,Active
+158,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","HR - Employees - Create","5. Admin Dashboard > A. Stats, Users & HR",POST,/api/admin/hr/employees,Active
+159,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","HR - Employees - Get","5. Admin Dashboard > A. Stats, Users & HR",GET,/api/admin/hr/employees/{{employee_id}},Active
+160,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","HR - Employees - Update","5. Admin Dashboard > A. Stats, Users & HR",PUT,/api/admin/hr/employees/{{employee_id}},Active
+161,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","HR - Employees - Delete","5. Admin Dashboard > A. Stats, Users & HR",DELETE,/api/admin/hr/employees/{{employee_id}},Active
+162,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Notifications - Broadcast options (roles)","5. Admin Dashboard > A. Stats, Users & HR > Admin Notifications (Dedicated API)",GET,/api/admin/notifications/broadcast/options,Active
+163,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Notifications - Broadcast recipients by role","5. Admin Dashboard > A. Stats, Users & HR > Admin Notifications (Dedicated API)",GET,/api/admin/notifications/broadcast/recipients,Active
+164,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get All Reports","5. Admin Dashboard > B. Reports Management",GET,/api/admin/reports,Active
+165,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Report Statistics","5. Admin Dashboard > B. Reports Management",GET,/api/admin/reports/statistics,Active
+166,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Generate Report","5. Admin Dashboard > B. Reports Management",POST,/api/admin/reports/generate,Active
+167,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Schedule Report","5. Admin Dashboard > B. Reports Management",POST,/api/admin/reports/schedule,Active
+168,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Single Report","5. Admin Dashboard > B. Reports Management",GET,/api/admin/reports/1,Active
+169,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Download Report","5. Admin Dashboard > B. Reports Management",GET,/api/admin/reports/1/download,Active
+170,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Cancel Scheduled Report","5. Admin Dashboard > B. Reports Management",DELETE,/api/admin/reports/1/cancel,Active
+171,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Delete Report","5. Admin Dashboard > B. Reports Management",DELETE,/api/admin/reports/1,Active
+172,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. GET List Support Tickets","5. Admin Dashboard > C. Support > A. Support Tickets",GET,/api/admin/support-tickets,Active
+173,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. GET Support Ticket by ID","5. Admin Dashboard > C. Support > A. Support Tickets",GET,/api/admin/support-tickets/{{ticket_id}},Active
+174,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. POST Reply to Ticket","5. Admin Dashboard > C. Support > A. Support Tickets",POST,/api/admin/support-tickets/{{ticket_id}}/reply,Active
+175,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. PUT Update Ticket Status","5. Admin Dashboard > C. Support > A. Support Tickets",PUT,/api/admin/support-tickets/{{ticket_id}}/status,Active
+176,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List live chat sessions","5. Admin Dashboard > C. Support > B. Support Live Chat",GET,/api/admin/support-chat/sessions,Active
+177,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Get session with messages","5. Admin Dashboard > C. Support > B. Support Live Chat",GET,/api/admin/support-chat/sessions/{{support_chat_session_id}},Active
+178,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Poll new messages","5. Admin Dashboard > C. Support > B. Support Live Chat",GET,/api/admin/support-chat/sessions/{{support_chat_session_id}}/messages,Active
+179,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Reply to vendor","5. Admin Dashboard > C. Support > B. Support Live Chat",POST,/api/admin/support-chat/sessions/{{support_chat_session_id}}/messages,Active
+180,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Update chat status","5. Admin Dashboard > C. Support > B. Support Live Chat",PUT,/api/admin/support-chat/sessions/{{support_chat_session_id}}/status,Active
+181,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get All Settings","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings,Active
+182,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get System Settings","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings/system,Active
+183,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update System Settings","5. Admin Dashboard > D. Settings (Mobile)",PUT,/api/admin/settings/system,Active
+184,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Theme","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings/theme,Active
+185,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update Theme","5. Admin Dashboard > D. Settings (Mobile)",PUT,/api/admin/settings/theme,Active
+186,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Language","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings/language,Active
+187,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update Language","5. Admin Dashboard > D. Settings (Mobile)",PUT,/api/admin/settings/language,Active
+188,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Payment Settings","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings/payment,Active
+189,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update Payment Settings","5. Admin Dashboard > D. Settings (Mobile)",PUT,/api/admin/settings/payment,Active
+190,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Shop Settings (Shipping & Tax)","5. Admin Dashboard > D. Settings (Mobile)",GET,/api/admin/settings/shop,Active
+191,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update Shop Settings (Shipping & Tax)","5. Admin Dashboard > D. Settings (Mobile)",PUT,/api/admin/settings/shop,Active
+192,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Export Data","5. Admin Dashboard > D. Settings (Mobile)",POST,/api/admin/settings/export-data,Active
+193,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List pages","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",GET,/api/admin/client/pages,Active
+194,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Get Contact Us","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",GET,/api/admin/client/contact-us,Active
+195,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Save Contact Us - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",PUT,/api/admin/client/contact-us,Active
+196,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Get Terms & Conditions","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",GET,/api/admin/client/terms-and-conditions,Active
+197,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Save Terms and Conditions - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",PUT,/api/admin/client/terms-and-conditions,Active
+198,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5b. Save Terms and Conditions - POST form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",POST,/api/admin/client/terms-and-conditions,Active
+199,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Get Privacy Policy","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",GET,/api/admin/client/privacy-policy,Active
+200,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","7. Save Privacy Policy - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > A. Client - Legal Admin",PUT,/api/admin/client/privacy-policy,Active
+201,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List pages","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",GET,/api/admin/vendor/pages,Active
+202,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Get Contact Us","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",GET,/api/admin/vendor/contact-us,Active
+203,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Save Contact Us - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",PUT,/api/admin/vendor/contact-us,Active
+204,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Get Terms & Conditions","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",GET,/api/admin/vendor/terms-and-conditions,Active
+205,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Save Terms and Conditions - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",PUT,/api/admin/vendor/terms-and-conditions,Active
+206,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Get Privacy Policy","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",GET,/api/admin/vendor/privacy-policy,Active
+207,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","7. Save Privacy Policy - form-data","5. Admin Dashboard > D. Settings (Mobile) > Legal & Contact Content > B. Vendor - Legal Admin",PUT,/api/admin/vendor/privacy-policy,Active
+208,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List All Banners (Admin)","5. Admin Dashboard > E. Banners",GET,/api/admin/banners,Active
+209,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Create Banner","5. Admin Dashboard > E. Banners",POST,/api/admin/banners,Active
+210,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Get Banner (Admin)","5. Admin Dashboard > E. Banners",GET,/api/admin/banners/{{banner_id}},Active
+211,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Update Banner","5. Admin Dashboard > E. Banners",POST,/api/admin/banners/{{banner_id}},Active
+212,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Update Banner Order","5. Admin Dashboard > E. Banners",POST,/api/admin/banners/update-order,Active
+213,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Toggle Banner Status","5. Admin Dashboard > E. Banners",POST,/api/admin/banners/{{banner_id}}/toggle-status,Active
+214,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","7. Delete Banner","5. Admin Dashboard > E. Banners",DELETE,/api/admin/banners/{{banner_id}},Active
+215,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List All Video Banners (Admin)","5. Admin Dashboard > E2. Video Banner",GET,/api/admin/video-banners,Active
+216,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Create Video Banner","5. Admin Dashboard > E2. Video Banner",POST,/api/admin/video-banners,Active
+217,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Get Video Banner (Admin)","5. Admin Dashboard > E2. Video Banner",GET,/api/admin/video-banners/{{video_banner_id}},Active
+218,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Update Video Banner","5. Admin Dashboard > E2. Video Banner",POST,/api/admin/video-banners/{{video_banner_id}},Active
+219,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Toggle Video Banner Status","5. Admin Dashboard > E2. Video Banner",POST,/api/admin/video-banners/{{video_banner_id}}/toggle-status,Active
+220,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Delete Video Banner","5. Admin Dashboard > E2. Video Banner",DELETE,/api/admin/video-banners/{{video_banner_id}},Active
+221,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Control Center (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > A. Dashboard",GET,/api/admin/loyalty,Active
+222,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Toggle Loyalty System (PUT)","5. Admin Dashboard > E3. Loyalty Points (Admin) > A. Dashboard",PUT,/api/admin/loyalty/toggle,Active
+223,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Get Settings (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > B. Loyalty Settings",GET,/api/admin/loyalty/settings,Active
+224,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Save Settings (PUT)","5. Admin Dashboard > E3. Loyalty Points (Admin) > B. Loyalty Settings",PUT,/api/admin/loyalty/settings,Active
+225,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Rewards (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > C. Rewards",GET,/api/admin/loyalty/rewards,Active
+226,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Create Reward (POST)","5. Admin Dashboard > E3. Loyalty Points (Admin) > C. Rewards",POST,/api/admin/loyalty/rewards,Active
+227,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Update Reward (PUT)","5. Admin Dashboard > E3. Loyalty Points (Admin) > C. Rewards",PUT,/api/admin/loyalty/rewards/1,Active
+228,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Toggle Reward Enabled (POST)","5. Admin Dashboard > E3. Loyalty Points (Admin) > C. Rewards",POST,/api/admin/loyalty/rewards/1/toggle,Active
+229,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Delete Reward (DELETE)","5. Admin Dashboard > E3. Loyalty Points (Admin) > C. Rewards",DELETE,/api/admin/loyalty/rewards/1,Active
+230,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Customers (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > D. Customers & Points",GET,/api/admin/loyalty/customers,Active
+231,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Customer Points (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > D. Customers & Points",GET,/api/admin/loyalty/customers/1,Active
+232,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Manual Adjust (POST/PUT)","5. Admin Dashboard > E3. Loyalty Points (Admin) > D. Customers & Points",POST,/api/admin/loyalty/customers/1/adjust,Active
+233,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Campaigns (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > E. Campaigns",GET,/api/admin/loyalty/campaigns,Active
+234,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Create Campaign (POST)","5. Admin Dashboard > E3. Loyalty Points (Admin) > E. Campaigns",POST,/api/admin/loyalty/campaigns,Active
+235,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Update Campaign (PUT)","5. Admin Dashboard > E3. Loyalty Points (Admin) > E. Campaigns",PUT,/api/admin/loyalty/campaigns/1,Active
+236,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Toggle Campaign Enabled (POST)","5. Admin Dashboard > E3. Loyalty Points (Admin) > E. Campaigns",POST,/api/admin/loyalty/campaigns/1/toggle,Active
+237,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Delete Campaign (DELETE)","5. Admin Dashboard > E3. Loyalty Points (Admin) > E. Campaigns",DELETE,/api/admin/loyalty/campaigns/1,Active
+238,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Reports (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > F. Reports & Export",GET,/api/admin/loyalty/reports,Active
+239,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Export PDF (GET)","5. Admin Dashboard > E3. Loyalty Points (Admin) > F. Reports & Export",GET,/api/admin/loyalty/export,Active
+240,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Packages (Admin)","5. Admin Dashboard > F. Packages",GET,/api/admin/packages,Active
+241,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Create Package","5. Admin Dashboard > F. Packages",POST,/api/admin/packages,Active
+242,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Update Package","5. Admin Dashboard > F. Packages",PUT,/api/admin/packages/1,Active
+243,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Export Orders (CSV)","5. Admin Dashboard > G. Orders Export",GET,/api/admin/orders/export,Active
+244,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Send Orders to Supplier","5. Admin Dashboard > G. Orders Export",POST,/api/admin/orders/send-to-supplier,Active
+245,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Cancel Order (Admin)","5. Admin Dashboard > G. Orders Export",POST,/api/admin/orders/{{order_id}}/cancel,Active
+246,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Bulk Delete Orders (Admin)","5. Admin Dashboard > G. Orders Export",POST,/api/admin/orders/bulk-delete,Active
+247,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Refund Order (Admin)","5. Admin Dashboard > G. Orders Export",POST,/api/admin/orders/{{order_id}}/refund,Active
+248,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List coupons (GET)","5. Admin Dashboard > H. Coupons",GET,/api/admin/coupons,Active
+249,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Get coupon by id (GET)","5. Admin Dashboard > H. Coupons",GET,/api/admin/coupons/{{coupon_id}},Active
+250,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Add coupon – Percentage (form-data)","5. Admin Dashboard > H. Coupons",POST,/api/admin/coupons,Active
+251,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Edit coupon (form-data PUT)","5. Admin Dashboard > H. Coupons",PUT,/api/admin/coupons/{{coupon_id}},Active
+252,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Delete coupon (DELETE)","5. Admin Dashboard > H. Coupons",DELETE,/api/admin/coupons/{{coupon_id}},Active
+253,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List maintenance photos (GET)","5. Admin Dashboard > I. Maintenance Photos",GET,/api/admin/maintenance-photos,Active
+254,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Get maintenance photo detail (edit screen)","5. Admin Dashboard > I. Maintenance Photos",GET,/api/admin/maintenance-photos/{{maintenance_photo_id}},Active
+255,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Add maintenance photo (form-data POST)","5. Admin Dashboard > I. Maintenance Photos",POST,/api/admin/maintenance-photos,Active
+256,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Update maintenance photo (form-data PUT)","5. Admin Dashboard > I. Maintenance Photos",PUT,/api/admin/maintenance-photos/{{maintenance_photo_id}},Active
+257,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Update maintenance photo (form-data POST)","5. Admin Dashboard > I. Maintenance Photos",POST,/api/admin/maintenance-photos/{{maintenance_photo_id}},Active
+258,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","6. Delete maintenance photo (DELETE)","5. Admin Dashboard > I. Maintenance Photos",DELETE,/api/admin/maintenance-photos/{{maintenance_photo_id}},Active
+259,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Get Plans (Public)","5. Admin Dashboard > J. Subscriptions",GET,/api/subscriptions/plans,Active
+260,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Create Subscription","5. Admin Dashboard > J. Subscriptions",POST,/api/subscriptions,Active
+261,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Update Subscription","5. Admin Dashboard > J. Subscriptions",POST,/api/subscriptions/{{subscription_id}},Active
+262,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Mark Subscription Paid","5. Admin Dashboard > J. Subscriptions",POST,/api/subscriptions/{{subscription_id}}/mark-paid,Active
+263,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","Delete Subscription","5. Admin Dashboard > J. Subscriptions",DELETE,/api/subscriptions/{{subscription_id}},Active
+264,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Get Working Hours & Capacity","5. Admin Dashboard > K. Job Scheduling > A. Working Hours & Capacity",GET,/api/admin/job-scheduling/working-hours,Active
+265,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Update Working Hours & Capacity","5. Admin Dashboard > K. Job Scheduling > A. Working Hours & Capacity",PUT,/api/admin/job-scheduling/working-hours,Active
+266,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Time Slots","5. Admin Dashboard > K. Job Scheduling > B. Time Slots",GET,/api/admin/job-scheduling/time-slots,Active
+267,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Add Time Slot","5. Admin Dashboard > K. Job Scheduling > B. Time Slots",POST,/api/admin/job-scheduling/time-slots,Active
+268,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","3. Toggle Time Slot (On/Off)","5. Admin Dashboard > K. Job Scheduling > B. Time Slots",POST,/api/admin/job-scheduling/time-slots/{{job_time_slot_id}}/toggle,Active
+269,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Delete Time Slot","5. Admin Dashboard > K. Job Scheduling > B. Time Slots",DELETE,/api/admin/job-scheduling/time-slots/{{job_time_slot_id}},Active
+270,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. List Blocked Dates","5. Admin Dashboard > K. Job Scheduling > C. Blocked Dates & Slots",GET,/api/admin/job-scheduling/blocked-dates,Active
+271,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","2. Add Block - Full day","5. Admin Dashboard > K. Job Scheduling > C. Blocked Dates & Slots",POST,/api/admin/job-scheduling/blocked-dates,Active
+272,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Delete Block","5. Admin Dashboard > K. Job Scheduling > C. Blocked Dates & Slots",DELETE,/api/admin/job-scheduling/blocked-dates/{{job_blocked_date_id}},Active
+273,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","1. Jobs Calendar - Day view","5. Admin Dashboard > K. Job Scheduling > D. Jobs Calendar",GET,/api/admin/job-scheduling/calendar,Active
+274,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","4. Booking Detail (tap a job on the calendar)","5. Admin Dashboard > K. Job Scheduling > D. Jobs Calendar",GET,/api/admin/job-scheduling/jobs/{{visit_id}},Active
+275,"Client — folders 3–8 in Postman (profile → shop)","5. Admin Dashboard","5. Update Booking Detail (Save changes / Reschedule & notify)","5. Admin Dashboard > K. Job Scheduling > D. Jobs Calendar",PUT,/api/admin/job-scheduling/jobs/{{visit_id}},Active
+276,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Dashboard","6. Technician Dashboard – All APIs > A. Dashboard",GET,/api/technician/dashboard,Active
+277,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Profile","6. Technician Dashboard – All APIs > B. Profile",GET,/api/technician/profile,Active
+278,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Profile update","6. Technician Dashboard – All APIs > B. Profile",PUT,/api/technician/profile,Active
+279,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Profile update","6. Technician Dashboard – All APIs > B. Profile",POST,/api/technician/profile,Active
+280,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Get Assigned Visits","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/tech/visits,Active
+281,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Accept Visit","6. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/accept,Active
+282,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Start Visit","6. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/start,Active
+283,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Complete Visit","6. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/tech/visits/{{visit_id}}/complete,Active
+284,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Tasks list","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks,Active
+285,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Task by ID","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}},Active
+286,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Task details","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/tasks/{{visit_id}}/detail,Active
+287,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Task status","6. Technician Dashboard – All APIs > C. Visits & Tasks",PUT,/api/technician/tasks/{{visit_id}}/status,Active
+288,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Task accept","6. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/accept,Active
+289,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Task reject","6. Technician Dashboard – All APIs > C. Visits & Tasks",POST,/api/technician/tasks/{{visit_id}}/reject,Active
+290,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Jobs history","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs,Active
+291,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Jobs (accepted)","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/accepted,Active
+292,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Jobs (rejected)","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/rejected,Active
+293,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Jobs status counts","6. Technician Dashboard – All APIs > C. Visits & Tasks",GET,/api/technician/jobs/status-counts,Active
+294,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Submit Field Report to Supervisor","6. Technician Dashboard – All APIs > D. Reports & Field Notes",POST,/api/technician/report/{{visit_id}},Active
+295,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Technician - Field notes (list)","6. Technician Dashboard – All APIs > D. Reports & Field Notes",GET,/api/technician/field-notes,Active
+296,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Leave Request Types","6. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-request-types,Active
+297,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Leave Requests - List","6. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests,Active
+298,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Leave Request - Submit","6. Technician Dashboard – All APIs > E. Leave Requests",POST,/api/technician/leave-requests,Active
+299,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Leave Request - Show","6. Technician Dashboard – All APIs > E. Leave Requests",GET,/api/technician/leave-requests/{{leave_request_id}},Active
+300,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Alerts - List","6. Technician Dashboard – All APIs > F. Alerts",GET,/api/technician/alerts,Active
+301,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Service areas","6. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/service-areas,Active
+302,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Service areas","6. Technician Dashboard – All APIs > G. Service Areas & Specializations",PUT,/api/technician/service-areas,Active
+303,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Specializations","6. Technician Dashboard – All APIs > G. Service Areas & Specializations",GET,/api/technician/specializations,Active
+304,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Specializations (form-data)","6. Technician Dashboard – All APIs > G. Service Areas & Specializations",POST,/api/technician/specializations,Active
+305,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Leave types","6. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/leave-types,Active
+306,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Availability","6. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/availability,Active
+307,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Availability update","6. Technician Dashboard – All APIs > H. Availability & Schedule",PUT,/api/technician/availability,Active
+308,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Schedule","6. Technician Dashboard – All APIs > H. Availability & Schedule",GET,/api/technician/schedule,Active
+309,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Payout summary","6. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payout-summary,Active
+310,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Payout history","6. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/payouts,Active
+311,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Payout settings","6. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/settings/payout,Active
+312,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Payout settings","6. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/settings/payout,Active
+313,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Bank accounts","6. Technician Dashboard – All APIs > I. Payout & Bank",GET,/api/technician/bank-accounts,Active
+314,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Bank account add","6. Technician Dashboard – All APIs > I. Payout & Bank",POST,/api/technician/bank-accounts,Active
+315,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","PUT Technician – Bank account update","6. Technician Dashboard – All APIs > I. Payout & Bank",PUT,/api/technician/bank-accounts/{{bank_account_id}},Active
+316,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","DELETE Technician – Bank account delete","6. Technician Dashboard – All APIs > I. Payout & Bank",DELETE,/api/technician/bank-accounts/{{bank_account_id}},Active
+317,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Notifications - List","6. Technician Dashboard – All APIs > J. Notifications",GET,/api/technician/notifications,Active
+318,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Notifications - Mark as Read","6. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/{{notification_id}}/mark-read,Active
+319,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Notifications - Mark All as Read","6. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/mark-all-read,Active
+320,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Notifications - Delete","6. Technician Dashboard – All APIs > J. Notifications",DELETE,/api/technician/notifications/{{notification_id}},Active
+321,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","Notifications - Clear All","6. Technician Dashboard – All APIs > J. Notifications",POST,/api/technician/notifications/clear-all,Active
+322,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Support help center","6. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/help-center,Active
+323,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","GET Technician – Support FAQs","6. Technician Dashboard – All APIs > K. Support",GET,/api/technician/support/faqs,Active
+324,"Client — folders 3–8 in Postman (profile → shop)","6. Technician Dashboard – All APIs","POST Technician – Support submit ticket","6. Technician Dashboard – All APIs > K. Support",POST,/api/technician/support/tickets,Active
+325,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Dashboard - Summary","7. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/summary,Active
+326,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Dashboard - KPIs","7. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/kpis,Active
+327,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Dashboard - Alerts","7. Supervisor Dashboard – All APIs > A. Dashboard",GET,/api/supervisor/dashboard/alerts,Active
+328,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Areas - List (for service area)","7. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/areas,Active
+329,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Team (My Team)","7. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team,Active
+330,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Team Stats","7. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team-stats,Active
+331,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Team Member - Detail (by id)","7. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/team/{{member_id}},Active
+332,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Team Member - Update (POST form-data)","7. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/{{member_id}},Active
+333,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Team Members - Bulk Update (POST form-data)","7. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/team/update,Active
+334,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Technician Signup Requests (GET)","7. Supervisor Dashboard – All APIs > B. My Team",GET,/api/supervisor/technician-signup-requests,Active
+335,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Technician Signup Request - Confirm (POST)","7. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/confirm,Active
+336,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Technician Signup Request - Cancel (POST)","7. Supervisor Dashboard – All APIs > B. My Team",POST,/api/supervisor/technician-signup-requests/{{request_id}}/cancel,Active
+337,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Assignments - List","7. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments,Active
+338,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Assignments - One detail (GET)","7. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assignments/{{visit_id}},Active
+339,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Assign tasks page (team + tasks)","7. Supervisor Dashboard – All APIs > C. Assign Tasks",GET,/api/supervisor/assign-tasks,Active
+340,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Assignments - Assign task (POST form-data)","7. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}},Active
+341,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Assignments - Reassign (POST form-data)","7. Supervisor Dashboard – All APIs > C. Assign Tasks",POST,/api/supervisor/assignments/{{visit_id}}/reassign,Active
+342,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - List","7. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports,Active
+343,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - Accept (field report)","7. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/accept,Active
+344,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - Reject (field report)","7. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/{{report_id}}/reject,Active
+345,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - Generate (POST form-data)","7. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/reports/generate,Active
+346,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - Show","7. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}},Active
+347,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Reports - Download CSV","7. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/reports/{{report_id}}/download,Active
+348,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Visit Report - Review Visit","7. Supervisor Dashboard – All APIs > D. Reports",GET,/api/supervisor/visits/{{visit_id}},Active
+349,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Visit Report - Recommend Products (POST form-data)","7. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/recommend,Active
+350,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Visit Report - Finalize / Share to Client (POST)","7. Supervisor Dashboard – All APIs > D. Reports",POST,/api/supervisor/visits/{{visit_id}}/finalize,Active
+351,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Leave Request Types","7. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-request-types,Active
+352,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Leave Requests - List","7. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests,Active
+353,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Leave Request - Submit","7. Supervisor Dashboard – All APIs > E. Leave Requests",POST,/api/supervisor/leave-requests,Active
+354,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Leave Request - Show","7. Supervisor Dashboard – All APIs > E. Leave Requests",GET,/api/supervisor/leave-requests/{{leave_request_id}},Active
+355,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Alerts - List","7. Supervisor Dashboard – All APIs > F. Alerts",GET,/api/supervisor/alerts,Active
+356,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Profile - Get","7. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile,Active
+357,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Profile - Update (form-data)","7. Supervisor Dashboard – All APIs > G. Profile",PUT,/api/supervisor/profile,Active
+358,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Profile - Preferences","7. Supervisor Dashboard – All APIs > G. Profile",GET,/api/supervisor/profile/preferences,Active
+359,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Support – FAQs","7. Supervisor Dashboard – All APIs > H. Support Tickets (Chat)",GET,/api/support/faqs,Active
+360,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Notifications - List","7. Supervisor Dashboard – All APIs > I. Notifications",GET,/api/supervisor/notifications,Active
+361,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Notifications - Mark as Read","7. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/{{notification_id}}/mark-read,Active
+362,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Notifications - Mark All as Read","7. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/mark-all-read,Active
+363,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Notifications - Delete","7. Supervisor Dashboard – All APIs > I. Notifications",DELETE,/api/supervisor/notifications/{{notification_id}},Active
+364,"Client — folders 3–8 in Postman (profile → shop)","7. Supervisor Dashboard – All APIs","Notifications - Clear All","7. Supervisor Dashboard – All APIs > I. Notifications",POST,/api/supervisor/notifications/clear-all,Active
+365,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","List Products","8. Products - All APIs > Public (no auth)",GET,/api/shop/products,Active
+366,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Featured Products","8. Products - All APIs > Public (no auth)",GET,/api/shop/products/featured,Active
+367,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Get Product Details","8. Products - All APIs > Public (no auth)",GET,/api/shop/products/{{product_id}},Active
+368,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Get Categories","8. Products - All APIs > Public (no auth)",GET,/api/shop/products/categories,Active
+369,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Get Products by Category","8. Products - All APIs > Public (no auth)",GET,/api/shop/products/category/{{category_id}},Active
+370,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","List Products","8. Products - All APIs > Admin (Bearer token)",GET,/api/admin/products,Active
+371,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Add Product (Multipart – with image files)","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products,Active
+372,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Get Product Details","8. Products - All APIs > Admin (Bearer token)",GET,/api/admin/products/{{product_id}},Active
+373,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Update Product (POST multipart – recommended)","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/{{product_id}},Active
+374,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Update Product (PUT JSON – partial, no files)","8. Products - All APIs > Admin (Bearer token)",PUT,/api/admin/products/{{product_id}},Active
+375,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Delete Product","8. Products - All APIs > Admin (Bearer token)",DELETE,/api/admin/products/{{product_id}},Active
+376,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Toggle Status","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/{{product_id}}/toggle-status,Active
+377,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Reorder Products (drag-and-drop)","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/reorder,Active
+378,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Bulk Delete","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-delete,Active
+379,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Bulk Update Status","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-status,Active
+380,"Client — folders 3–8 in Postman (profile → shop)","8. Products - All APIs","Bulk Update Stock","8. Products - All APIs > Admin (Bearer token)",POST,/api/admin/products/bulk-update-stock,Active
+,"--- Technician — folder 9 ---",,,,,,
+381,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Dashboard - Summary","9. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/summary,Active
+382,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Dashboard - Alerts","9. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/dashboard/alerts,Active
+383,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Region Map","9. Area Manager Dashboard – All APIs > A. Dashboard",GET,/api/area-manager/region-map,Active
+384,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Teams - List","9. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams,Active
+385,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Teams - Detail","9. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}},Active
+386,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Teams - Jobs","9. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/jobs,Active
+387,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Teams - Members","9. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/{{team_id}}/members,Active
+388,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Teams - Member Jobs","9. Area Manager Dashboard – All APIs > B. Teams",GET,/api/area-manager/teams/members/{{member_id}}/jobs,Active
+389,"Technician — folder 9","9. Area Manager Dashboard – All APIs",Analytics,"9. Area Manager Dashboard – All APIs > C. Analytics",GET,/api/area-manager/analytics,Active
+390,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Reports - List","9. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/reports,Active
+391,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Reports - Generate","9. Area Manager Dashboard – All APIs > D. Reports",POST,/api/area-manager/reports/generate,Active
+392,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Generated Reports - List","9. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports,Active
+393,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Generated Reports - Download","9. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/download,Active
+394,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Generated Reports - View","9. Area Manager Dashboard – All APIs > D. Reports",GET,/api/area-manager/generated-reports/{{generated_report_id}}/view,Active
+395,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Profile - Get","9. Area Manager Dashboard – All APIs > E. Profile",GET,/api/area-manager/profile,Active
+396,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Profile - Update","9. Area Manager Dashboard – All APIs > E. Profile",PUT,/api/area-manager/profile,Active
+397,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Notifications - List","9. Area Manager Dashboard – All APIs > F. Notifications",GET,/api/area-manager/notifications,Active
+398,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Notifications - Mark as Read","9. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/{{notification_id}}/mark-read,Active
+399,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Notifications - Mark All as Read","9. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/mark-all-read,Active
+400,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Notifications - Delete","9. Area Manager Dashboard – All APIs > F. Notifications",DELETE,/api/area-manager/notifications/{{notification_id}},Active
+401,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Notifications - Clear All","9. Area Manager Dashboard – All APIs > F. Notifications",POST,/api/area-manager/notifications/clear-all,Active
+402,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Help Center (GET)","9. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/help-center,Active
+403,"Technician — folder 9","9. Area Manager Dashboard – All APIs","FAQs (GET)","9. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/faqs,Active
+404,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Submit ticket (POST)","9. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets,Active
+405,"Technician — folder 9","9. Area Manager Dashboard – All APIs","List my tickets (GET)","9. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets,Active
+406,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Get ticket by ID (GET)","9. Area Manager Dashboard – All APIs > G. Help & Support",GET,/api/area-manager/support/tickets/{{ticket_id}},Active
+407,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Reply to ticket (POST)","9. Area Manager Dashboard – All APIs > G. Help & Support",POST,/api/area-manager/support/tickets/{{ticket_id}}/reply,Active
+408,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Team Leaders - List (legacy)","9. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders,Active
+409,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Team Leader - Detail (legacy)","9. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}},Active
+410,"Technician — folder 9","9. Area Manager Dashboard – All APIs","Team Leader - Jobs (legacy)","9. Area Manager Dashboard – All APIs > Legacy – Team Leaders",GET,/api/area-manager/team-leaders/{{team_leader_id}}/jobs,Active
+,"--- Supervisor — folder 10 ---",,,,,,
+411,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Dashboard - Summary","10. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/summary,Active
+412,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Dashboard - Visit Assignments","10. HR Manager Dashboard – All APIs > A. Dashboard",GET,/api/hr/dashboard/visit-assignments,Active
+413,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Positions - List","10. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/positions,Active
+414,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Employees - List","10. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees,Active
+415,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Employees - Create","10. HR Manager Dashboard – All APIs > B. Employees",POST,/api/hr/employees,Active
+416,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Employees - Show","10. HR Manager Dashboard – All APIs > B. Employees",GET,/api/hr/employees/{{employee_id}},Active
+417,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Employees - Update","10. HR Manager Dashboard – All APIs > B. Employees",PUT,/api/hr/employees/{{employee_id}},Active
+418,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Employees - Delete","10. HR Manager Dashboard – All APIs > B. Employees",DELETE,/api/hr/employees/{{employee_id}},Active
+419,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Leave Requests - Create","10. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests,Active
+420,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Leave Requests - List","10. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests,Active
+421,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Leave Requests - Show","10. HR Manager Dashboard – All APIs > C. Leave Requests",GET,/api/hr/leave-requests/{{leave_request_id}},Active
+422,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Leave Requests - Approve","10. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/approve,Active
+423,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Leave Requests - Reject","10. HR Manager Dashboard – All APIs > C. Leave Requests",POST,/api/hr/leave-requests/{{leave_request_id}}/reject,Active
+424,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Profile - Get","10. HR Manager Dashboard – All APIs > D. Profile",GET,/api/hr/profile,Active
+425,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Profile - Update","10. HR Manager Dashboard – All APIs > D. Profile",PUT,/api/hr/profile,Active
+426,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Help Center (GET)","10. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/help-center,Active
+427,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","FAQs (GET)","10. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/faqs,Active
+428,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Submit ticket (POST)","10. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets,Active
+429,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","List my tickets (GET)","10. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets,Active
+430,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Get ticket by ID (GET)","10. HR Manager Dashboard – All APIs > E. Help & Support",GET,/api/hr/support/tickets/{{ticket_id}},Active
+431,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reply to ticket (POST)","10. HR Manager Dashboard – All APIs > E. Help & Support",POST,/api/hr/support/tickets/{{ticket_id}}/reply,Active
+432,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Visit assignments - List","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments,Active
+433,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Visit assignments - Summary","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/summary,Active
+434,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Visit assignments - Assign screen","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/visit-assignments/assign-screen,Active
+435,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Visit assignments - Offer to technician (POST)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/visit-assignments/{{visit_id}},Active
+436,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - Technician monthly preview (GET)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/technician-monthly,Active
+437,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - List my generated (GET)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports,Active
+438,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - Generate PDF (POST)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",POST,/api/hr/reports/generate,Active
+439,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - Download (GET)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download,Active
+440,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - Download Public URL (GET)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",GET,/api/hr/reports/{{hr_report_id}}/download-public,Active
+441,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Reports - Delete (DELETE)","10. HR Manager Dashboard – All APIs > F. Visit assignments & Monthly reports",DELETE,/api/hr/reports/{{hr_report_id}},Active
+442,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Notifications - List","10. HR Manager Dashboard – All APIs > G. Notifications",GET,/api/hr/notifications,Active
+443,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Notifications - Mark as Read","10. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/{{notification_id}}/mark-read,Active
+444,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Notifications - Mark All as Read","10. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/mark-all-read,Active
+445,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Notifications - Delete","10. HR Manager Dashboard – All APIs > G. Notifications",DELETE,/api/hr/notifications/{{notification_id}},Active
+446,"Supervisor — folder 10","10. HR Manager Dashboard – All APIs","Notifications - Clear All","10. HR Manager Dashboard – All APIs > G. Notifications",POST,/api/hr/notifications/clear-all,Active
+,"--- Area Manager — folder 11 ---",,,,,,
+447,"Area Manager — folder 11","11. Other Modules","List (Public)","11. Other Modules > B. Exclusive Offers",GET,/api/exclusive-offers,Active
+448,"Area Manager — folder 11","11. Other Modules","Get by ID (Public)","11. Other Modules > B. Exclusive Offers",GET,/api/exclusive-offers/{{offer_id}},Active
+449,"Area Manager — folder 11","11. Other Modules","Admin - List","11. Other Modules > B. Exclusive Offers",GET,/api/admin/exclusive-offers,Active
+450,"Area Manager — folder 11","11. Other Modules","Admin - Create","11. Other Modules > B. Exclusive Offers",POST,/api/admin/exclusive-offers,Active
+451,"Area Manager — folder 11","11. Other Modules","Admin - Get","11. Other Modules > B. Exclusive Offers",GET,/api/admin/exclusive-offers/{{offer_id}},Active
+452,"Area Manager — folder 11","11. Other Modules","Admin - Update","11. Other Modules > B. Exclusive Offers",POST,/api/admin/exclusive-offers/{{offer_id}},Active
+453,"Area Manager — folder 11","11. Other Modules","Admin - Delete","11. Other Modules > B. Exclusive Offers",DELETE,/api/admin/exclusive-offers/{{offer_id}},Active
+454,"Area Manager — folder 11","11. Other Modules",List,"11. Other Modules > C. Complaints",GET,/api/auth/complaints,Active
+455,"Area Manager — folder 11","11. Other Modules","Complaints - Create","11. Other Modules > C. Complaints",POST,/api/auth/complaints,Active
+456,"Area Manager — folder 11","11. Other Modules","Complaints - Get","11. Other Modules > C. Complaints",GET,/api/auth/complaints/{{complaint_id}},Active
+457,"Area Manager — folder 11","11. Other Modules","Complaints - Update","11. Other Modules > C. Complaints",PUT,/api/auth/complaints/{{complaint_id}},Active
+458,"Area Manager — folder 11","11. Other Modules","Complaints - Delete","11. Other Modules > C. Complaints",DELETE,/api/auth/complaints/{{complaint_id}},Active
+459,"Area Manager — folder 11","11. Other Modules",List,"11. Other Modules > D. Tips",GET,/api/tips,Active
+460,"Area Manager — folder 11","11. Other Modules","Tips - Create/Send","11. Other Modules > D. Tips",POST,/api/tips,Active
+461,"Area Manager — folder 11","11. Other Modules","Tips - Get Details","11. Other Modules > D. Tips",GET,/api/tips/{{tip_id}},Active
+462,"Area Manager — folder 11","11. Other Modules","Tips - Update","11. Other Modules > D. Tips",PUT,/api/tips/{{tip_id}},Active
+463,"Area Manager — folder 11","11. Other Modules","Tips - Delete","11. Other Modules > D. Tips",DELETE,/api/tips/{{tip_id}},Active
+464,"Area Manager — folder 11","11. Other Modules",List,"11. Other Modules > E. Notifications",GET,/api/notifications,Active
+465,"Area Manager — folder 11","11. Other Modules","Notifications - Mark as Read","11. Other Modules > E. Notifications",POST,/api/notifications/{{notification_id}}/mark-read,Active
+466,"Area Manager — folder 11","11. Other Modules","Notifications - Mark All as Read","11. Other Modules > E. Notifications",POST,/api/notifications/mark-all-read,Active
+467,"Area Manager — folder 11","11. Other Modules","Notifications - Delete","11. Other Modules > E. Notifications",DELETE,/api/notifications/{{notification_id}},Active
+468,"Area Manager — folder 11","11. Other Modules","Notifications - Clear All","11. Other Modules > E. Notifications",POST,/api/notifications/clear-all,Active
+469,"Area Manager — folder 11","11. Other Modules",List,"11. Other Modules > F. Admin - Categories",GET,/api/admin/categories,Active
+470,"Area Manager — folder 11","11. Other Modules","Categories - Create","11. Other Modules > F. Admin - Categories",POST,/api/admin/categories,Active
+471,"Area Manager — folder 11","11. Other Modules","Categories - Get","11. Other Modules > F. Admin - Categories",GET,/api/admin/categories/{{category_id}},Active
+472,"Area Manager — folder 11","11. Other Modules","Categories - Update","11. Other Modules > F. Admin - Categories",POST,/api/admin/categories/{{category_id}},Active
+473,"Area Manager — folder 11","11. Other Modules","Categories - Toggle Status","11. Other Modules > F. Admin - Categories",POST,/api/admin/categories/{{category_id}}/toggle-status,Active
+474,"Area Manager — folder 11","11. Other Modules","Categories - Delete","11. Other Modules > F. Admin - Categories",DELETE,/api/admin/categories/{{category_id}},Active
+475,"Area Manager — folder 11","11. Other Modules","List vendor type","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",GET,/api/admin/vendor-types,Active
+476,"Area Manager — folder 11","11. Other Modules","Create vendor type","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",POST,/api/admin/vendor-types,Active
+477,"Area Manager — folder 11","11. Other Modules","Get vendor type","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",GET,/api/admin/vendor-types/{{vendor_type_id}},Active
+478,"Area Manager — folder 11","11. Other Modules","Update vendor type","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",POST,/api/admin/vendor-types/{{vendor_type_id}},Active
+479,"Area Manager — folder 11","11. Other Modules","Toggle vendor type status","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",POST,/api/admin/vendor-types/{{vendor_type_id}}/toggle-status,Active
+480,"Area Manager — folder 11","11. Other Modules","Delete vendor type","11. Other Modules > F2. Admin - Vendor Types & Emirates > A. Vendor Types",DELETE,/api/admin/vendor-types/{{vendor_type_id}},Active
+481,"Area Manager — folder 11","11. Other Modules","List emirate","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",GET,/api/admin/emirates,Active
+482,"Area Manager — folder 11","11. Other Modules","Create emirate","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",POST,/api/admin/emirates,Active
+483,"Area Manager — folder 11","11. Other Modules","Get emirate","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",GET,/api/admin/emirates/{{emirate_id}},Active
+484,"Area Manager — folder 11","11. Other Modules","Update emirate","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",POST,/api/admin/emirates/{{emirate_id}},Active
+485,"Area Manager — folder 11","11. Other Modules","Toggle emirate status","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",POST,/api/admin/emirates/{{emirate_id}}/toggle-status,Active
+486,"Area Manager — folder 11","11. Other Modules","Delete emirate","11. Other Modules > F2. Admin - Vendor Types & Emirates > B. Emirates",DELETE,/api/admin/emirates/{{emirate_id}},Active
+487,"Area Manager — folder 11","11. Other Modules","Services - List","11. Other Modules > G. Admin - Services",GET,/api/admin/services,Active
+488,"Area Manager — folder 11","11. Other Modules","Services - Create","11. Other Modules > G. Admin - Services",POST,/api/admin/services,Active
+489,"Area Manager — folder 11","11. Other Modules","Services - Get","11. Other Modules > G. Admin - Services",GET,/api/admin/services/{{service_id}},Active
+490,"Area Manager — folder 11","11. Other Modules","Services - Update","11. Other Modules > G. Admin - Services",POST,/api/admin/services/{{service_id}},Active
+491,"Area Manager — folder 11","11. Other Modules","Services - Toggle Status","11. Other Modules > G. Admin - Services",POST,/api/admin/services/{{service_id}}/toggle-status,Active
+492,"Area Manager — folder 11","11. Other Modules","Services - Delete","11. Other Modules > G. Admin - Services",DELETE,/api/admin/services/{{service_id}},Active
+493,"Area Manager — folder 11","11. Other Modules","Areas - Get All","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/areas,Active
+494,"Area Manager — folder 11","11. Other Modules","Operational Areas - Dashboard (App UI)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/operational-areas,Active
+495,"Area Manager — folder 11","11. Other Modules","Operational Areas - Toggle Active","11. Other Modules > H. Admin - Areas (Zones)",POST,/api/admin/operational-areas/{{area_id}}/toggle-active,Active
+496,"Area Manager — folder 11","11. Other Modules","All Technicians (Admin)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/technicians,Active
+497,"Area Manager — folder 11","11. Other Modules","Technicians for Zones (list)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/technicians-for-zones,Active
+498,"Area Manager — folder 11","11. Other Modules","Supervisors for Zones (list)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/supervisors-for-zones,Active
+499,"Area Manager — folder 11","11. Other Modules","All Supervisors (Admin)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/supervisors,Active
+500,"Area Manager — folder 11","11. Other Modules","Supervisor Team (get)","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/supervisors/{{supervisor_id}}/team,Active
+501,"Area Manager — folder 11","11. Other Modules","Supervisor Team - Add member","11. Other Modules > H. Admin - Areas (Zones)",POST,/api/admin/supervisors/{{supervisor_id}}/team,Active
+502,"Area Manager — folder 11","11. Other Modules","Supervisor Team - Remove member","11. Other Modules > H. Admin - Areas (Zones)",DELETE,/api/admin/supervisors/{{supervisor_id}}/team,Active
+503,"Area Manager — folder 11","11. Other Modules","Areas - Create","11. Other Modules > H. Admin - Areas (Zones)",POST,/api/admin/areas,Active
+504,"Area Manager — folder 11","11. Other Modules","Areas - Get","11. Other Modules > H. Admin - Areas (Zones)",GET,/api/admin/areas/{{area_id}},Active
+505,"Area Manager — folder 11","11. Other Modules","Areas - Update","11. Other Modules > H. Admin - Areas (Zones)",POST,/api/admin/areas/{{area_id}},Active
+506,"Area Manager — folder 11","11. Other Modules","Areas - Delete","11. Other Modules > H. Admin - Areas (Zones)",DELETE,/api/admin/areas/{{area_id}},Active
+507,"Area Manager — folder 11","11. Other Modules","Tech - Get Assigned Visits (Auth)","11. Other Modules > I. Alternative Routes - Technician (under /api/auth/tech)",GET,/api/auth/tech/visits,Active
+508,"Area Manager — folder 11","11. Other Modules","Tech - Accept Visit (Auth)","11. Other Modules > I. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/accept,Active
+509,"Area Manager — folder 11","11. Other Modules","Tech - Start Visit (Auth)","11. Other Modules > I. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/start,Active
+510,"Area Manager — folder 11","11. Other Modules","Tech - Complete Visit (Auth)","11. Other Modules > I. Alternative Routes - Technician (under /api/auth/tech)",POST,/api/auth/tech/visits/{{visit_id}}/complete,Active
+511,"Area Manager — folder 11","11. Other Modules","Supervisor - List Visits (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits,Active
+512,"Area Manager — folder 11","11. Other Modules","Supervisor - Review Visit (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/visits/{{visit_id}},Active
+513,"Area Manager — folder 11","11. Other Modules","Supervisor - Recommend Products (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/recommend,Active
+514,"Area Manager — folder 11","11. Other Modules","Supervisor - Finalize Report (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/finalize,Active
+515,"Area Manager — folder 11","11. Other Modules","Supervisor - Update Visit Status (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/visits/{{visit_id}}/status,Active
+516,"Area Manager — folder 11","11. Other Modules","Supervisor - List Areas (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/areas,Active
+517,"Area Manager — folder 11","11. Other Modules","Supervisor - List Complaints (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",GET,/api/auth/supervisor/complaints,Active
+518,"Area Manager — folder 11","11. Other Modules","Supervisor - Escalate Complaint (Auth)","11. Other Modules > J. Alternative Routes - Supervisor (under /api/auth/supervisor)",POST,/api/auth/supervisor/complaints/{{complaint_id}}/escalate,Active
+519,"Area Manager — folder 11","11. Other Modules","List (paginated)","11. Other Modules > K. Services (Public)",GET,/api/services,Active
+520,"Area Manager — folder 11","11. Other Modules","Get single service (category)","11. Other Modules > K. Services (Public)",GET,/api/services/{{service_id}},Active
+521,"Area Manager — folder 11","11. Other Modules","Get all products of services","11. Other Modules > K. Services (Public)",GET,/api/services/products,Active
+522,"Area Manager — folder 11","11. Other Modules","Get products by service","11. Other Modules > K. Services (Public)",GET,/api/services/{{service_id}}/products,Active
+523,"Area Manager — folder 11","11. Other Modules","Get Categories","11. Other Modules > K. Services (Public)",GET,/api/services/categories,Active
+524,"Area Manager — folder 11","11. Other Modules","Get by Category (category + products)","11. Other Modules > K. Services (Public)",GET,/api/services/category/{{category_id}},Active
+525,"Area Manager — folder 11","11. Other Modules","User Profile - Update","11. Other Modules > L. User Profile",PUT,/api/user/profile,Active
+526,"Area Manager — folder 11","11. Other Modules",Update,"11. Other Modules > M. User Addresses",POST,/api/user/addresses/{{address_id}},Active
+527,"Area Manager — folder 11","11. Other Modules","Mark as Read","11. Other Modules > O. User Notifications",POST,/api/user/notifications/{{notification_id}}/read,Active
+528,"Area Manager — folder 11","11. Other Modules","Mark All as Read","11. Other Modules > O. User Notifications",POST,/api/user/notifications/read-all,Active
+,"--- HR Manager — folder 12 ---",,,,,,
+529,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get profile","12. Vendor Dashboard – All APIs > A. Business Profile",GET,/api/vendor/profile,Active
+530,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Update profile","12. Vendor Dashboard – All APIs > A. Business Profile",POST,/api/vendor/profile,Active
+531,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get application status","12. Vendor Dashboard – All APIs > B. Application & Onboarding",GET,/api/vendor/application,Active
+532,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Submit for approval","12. Vendor Dashboard – All APIs > B. Application & Onboarding",POST,/api/vendor/application/submit,Active
+533,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Resubmit (after rejection)","12. Vendor Dashboard – All APIs > B. Application & Onboarding",POST,/api/vendor/application/resubmit,Active
+534,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. List documents","12. Vendor Dashboard – All APIs > C. Documents",GET,/api/vendor/documents,Active
+535,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Upload document (multipart)","12. Vendor Dashboard – All APIs > C. Documents",POST,/api/vendor/documents,Active
+536,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Delete document","12. Vendor Dashboard – All APIs > C. Documents",DELETE,/api/vendor/documents/{{vendor_document_id}},Active
+537,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Dashboard stats","12. Vendor Dashboard – All APIs > D. Dashboard (approved only)",GET,/api/vendor/dashboard/stats,Active
+538,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Dashboard summary (mobile cards)","12. Vendor Dashboard – All APIs > D. Dashboard (approved only)",GET,/api/vendor/dashboard/summary,Active
+539,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get performance analytics","12. Vendor Dashboard – All APIs > E. Performance Analytics (approved only)",GET,/api/vendor/analytics/performance,Active
+540,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Export performance report (PDF)","12. Vendor Dashboard – All APIs > E. Performance Analytics (approved only)",GET,/api/vendor/analytics/performance/export,Active
+541,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Share performance analytics (public link)","12. Vendor Dashboard – All APIs > E. Performance Analytics (approved only)",POST,/api/vendor/analytics/performance/share,Active
+542,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Open live chat","12. Vendor Dashboard – All APIs > F. Support & Live Chat",GET,/api/vendor/support/chat,Active
+543,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Poll new messages","12. Vendor Dashboard – All APIs > F. Support & Live Chat",GET,/api/vendor/support/chat/messages,Active
+544,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Send message","12. Vendor Dashboard – All APIs > F. Support & Live Chat",POST,/api/vendor/support/chat/messages,Active
+545,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get categories (id + name)","12. Vendor Dashboard – All APIs > G. Add Product – Dropdown options",GET,/api/vendor/product-options/categories,Active
+546,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Get all services (id + name)","12. Vendor Dashboard – All APIs > G. Add Product – Dropdown options",GET,/api/vendor/product-options/services,Active
+547,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. List my products by category","12. Vendor Dashboard – All APIs > G. Add Product – Dropdown options",GET,/api/vendor/products,Active
+548,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. List platform categories","12. Vendor Dashboard – All APIs > H. Categories (approved only – read-only)",GET,/api/vendor/categories,Active
+549,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Get platform category","12. Vendor Dashboard – All APIs > H. Categories (approved only – read-only)",GET,/api/vendor/categories/{{category_id}},Active
+550,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Create category (blocked)","12. Vendor Dashboard – All APIs > H. Categories (approved only – read-only)",POST,/api/vendor/categories,Active
+551,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. List platform services","12. Vendor Dashboard – All APIs > I. Services (approved only – read-only)",GET,/api/vendor/services,Active
+552,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Get platform service","12. Vendor Dashboard – All APIs > I. Services (approved only – read-only)",GET,/api/vendor/services/{{service_id}},Active
+553,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Create service (blocked)","12. Vendor Dashboard – All APIs > I. Services (approved only – read-only)",POST,/api/vendor/services,Active
+554,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Create product (multipart – same as Admin)","12. Vendor Dashboard – All APIs > J. Products (approved only)",POST,/api/vendor/products,Active
+555,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Get product","12. Vendor Dashboard – All APIs > J. Products (approved only)",GET,/api/vendor/products/{{vendor_product_id}},Active
+556,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. Update product (multipart – same as Admin)","12. Vendor Dashboard – All APIs > J. Products (approved only)",POST,/api/vendor/products/{{vendor_product_id}},Active
+557,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Delete product","12. Vendor Dashboard – All APIs > J. Products (approved only)",DELETE,/api/vendor/products/{{vendor_product_id}},Active
+558,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get inventory","12. Vendor Dashboard – All APIs > K. Inventory (approved only)",GET,/api/vendor/inventory/{{vendor_product_id}},Active
+559,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Update inventory","12. Vendor Dashboard – All APIs > K. Inventory (approved only)",POST,/api/vendor/inventory/{{vendor_product_id}},Active
+560,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. List orders","12. Vendor Dashboard – All APIs > L. Orders (approved only)",GET,/api/vendor/orders,Active
+561,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Order details","12. Vendor Dashboard – All APIs > L. Orders (approved only)",GET,/api/vendor/orders/{{vendor_order_mapping_id}},Active
+562,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Contact customer","12. Vendor Dashboard – All APIs > L. Orders (approved only)",GET,/api/vendor/orders/{{vendor_order_mapping_id}}/contact,Active
+563,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. Print invoice (PDF)","12. Vendor Dashboard – All APIs > L. Orders (approved only)",GET,/api/vendor/orders/{{vendor_order_mapping_id}}/invoice,Active
+564,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Download order (PDF)","12. Vendor Dashboard – All APIs > L. Orders (approved only)",GET,/api/vendor/orders/{{vendor_order_mapping_id}}/download,Active
+565,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","6. Confirm order (pending → confirmed)","12. Vendor Dashboard – All APIs > L. Orders (approved only)",POST,/api/vendor/orders/{{vendor_order_mapping_id}}/status,Active
+566,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Compare vendors – lowest price","12. Vendor Dashboard – All APIs > M. Compare vendors & prices (public)",GET,/api/shop/products/{{product_id}}/compare-vendors,Active
+567,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Compare by product id (vendor route alias)","12. Vendor Dashboard – All APIs > M. Compare vendors & prices (public)",GET,/api/vendor/compare/products/{{product_id}},Active
+568,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","6. Compare multiple product ids (vendor route)","12. Vendor Dashboard – All APIs > M. Compare vendors & prices (public)",POST,/api/vendor/compare/products,Active
+569,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Vendor management (mobile dashboard)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > A. Vendor Management (Mobile)",GET,/api/admin/vendors/management,Active
+570,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Vendor management detail (mobile)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > A. Vendor Management (Mobile)",GET,/api/admin/vendors/{{vendor_id}}/management,Active
+571,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Toggle vendor product (enable/disable)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > A. Vendor Management (Mobile)",POST,/api/admin/vendors/{{vendor_id}}/products/{{vendor_product_id}}/toggle,Active
+572,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. Delete vendor product","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > A. Vendor Management (Mobile)",DELETE,/api/admin/vendors/{{vendor_id}}/products/{{vendor_product_id}},Active
+573,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Update vendor account status (suspend / reactivate)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > A. Vendor Management (Mobile)",POST,/api/admin/vendors/{{vendor_id}}/account-status,Active
+574,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Vendor stats","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/stats,Active
+575,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Recent vendor requests (mobile home)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/recent-requests,Active
+576,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. List vendors (View All)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors,Active
+577,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. Vendor application detail (tap card)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/{{vendor_id}}/application-detail,Active
+578,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Vendor details (full + stats)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/{{vendor_id}},Active
+579,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","6. Vendor analytics","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/{{vendor_id}}/analytics,Active
+580,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","7. Vendor products","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/{{vendor_id}}/products,Active
+581,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","8. Vendor orders","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",GET,/api/admin/vendors/{{vendor_id}}/orders,Active
+582,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","9. Create vendor (admin form-data)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors,Active
+583,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","10. Update vendor (full form-data)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors/{{vendor_id}},Active
+584,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","11. Approve vendor","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors/{{vendor_id}}/approve,Active
+585,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","12. Reject vendor (Cancel button)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors/{{vendor_id}}/reject,Active
+586,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","13. Mark under review","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors/{{vendor_id}}/under-review,Active
+587,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","14. Disable vendor","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",POST,/api/admin/vendors/{{vendor_id}}/disable,Active
+588,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","15. Delete vendor (permanent)","12. Vendor Dashboard – All APIs > N. Admin – Vendor Management > B. Vendor Approval & Actions",DELETE,/api/admin/vendors/{{vendor_id}},Active
+589,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Analytics overview","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",GET,/api/admin/marketplace/analytics,Active
+590,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Settings (GET)","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",GET,/api/admin/marketplace/settings,Active
+591,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Settings (PUT)","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",PUT,/api/admin/marketplace/settings,Active
+592,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. List vendor products","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",GET,/api/admin/marketplace/products,Active
+593,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","5. Approve product","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",POST,/api/admin/marketplace/products/{{vendor_product_id}}/approve,Active
+594,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","6. Reject product","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",POST,/api/admin/marketplace/products/{{vendor_product_id}}/reject,Active
+595,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","7. List vendor orders","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",GET,/api/admin/marketplace/orders,Active
+596,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","8. Verify vendor document","12. Vendor Dashboard – All APIs > O. Admin – Marketplace",POST,/api/admin/marketplace/documents/{{vendor_document_id}}/verify,Active
+597,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Get vendor store (vendor + products)","12. Vendor Dashboard – All APIs > P. Vendor Store (client public)",GET,/api/shop/vendors/{{vendor_id}},Active
+598,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","1. Contact Us","12. Vendor Dashboard – All APIs > Q. Legal & Contact",GET,/api/vendor/contact-us,Active
+599,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","2. Terms & Conditions","12. Vendor Dashboard – All APIs > Q. Legal & Contact",GET,/api/vendor/terms-and-conditions,Active
+600,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Privacy Policy","12. Vendor Dashboard – All APIs > Q. Legal & Contact",GET,/api/vendor/privacy-policy,Active
+601,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","3. Notifications - Mark All as Read","12. Vendor Dashboard – All APIs > R. Notifications",POST,/api/vendor/notifications/mark-all-read,Active
+602,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","4. Notifications - Delete","12. Vendor Dashboard – All APIs > R. Notifications",DELETE,/api/vendor/notifications/{{notification_id}},Active

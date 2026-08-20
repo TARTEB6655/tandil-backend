@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Cart;
+use App\Services\JobSchedulingService;
+use Carbon\Carbon;
+
+/**
+ * Shared booking-date/slot helpers for shop cart, checkout and orders.
+ */
+final class ShopBookingSlotHelper
+{
+    public static function normalizedDate(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    public static function normalizedSlot(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @return array{start: ?string, duration_minutes: ?int}
+     */
+    public static function parseSlotRange(?string $bookingSlot): array
+    {
+        $slot = trim((string) $bookingSlot);
+        if ($slot === '') {
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        if (! preg_match(
+            '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
+            $slot,
+            $matches
+        )) {
+            // Single time like "09:00 AM" from product picker.
+            if (preg_match('/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*$/i', $slot, $single)) {
+                try {
+                    return [
+                        'start' => Carbon::parse(trim($single[1]))->format('H:i'),
+                        'duration_minutes' => null,
+                    ];
+                } catch (\Throwable $e) {
+                    return ['start' => null, 'duration_minutes' => null];
+                }
+            }
+
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        try {
+            $start = Carbon::parse($matches[1]);
+            $end = Carbon::parse($matches[2]);
+        } catch (\Throwable $e) {
+            return ['start' => null, 'duration_minutes' => null];
+        }
+
+        $duration = $start->diffInMinutes($end, false);
+        if ($duration <= 0) {
+            $duration = $start->diffInMinutes($end->copy()->addDay(), false);
+        }
+
+        return [
+            'start' => $start->format('H:i'),
+            'duration_minutes' => $duration > 0 ? (int) $duration : null,
+        ];
+    }
+
+    public static function slotStartTime24h(?string $bookingSlot): ?string
+    {
+        return self::parseSlotRange($bookingSlot)['start'];
+    }
+
+    /**
+     * Validate a customer-selected date/time slot against scheduling rules.
+     * Returns an error message, or null when valid / no slot supplied.
+     */
+    public static function validate(?string $bookingDate, ?string $bookingSlot): ?string
+    {
+        $bookingDate = self::normalizedDate($bookingDate);
+        $bookingSlot = self::normalizedSlot($bookingSlot);
+
+        if ($bookingDate === null && $bookingSlot === null) {
+            return null;
+        }
+
+        if ($bookingDate === null) {
+            return 'Please select a booking date.';
+        }
+
+        if ($bookingSlot === null) {
+            return 'Please select a time slot for the selected date.';
+        }
+
+        $start = self::slotStartTime24h($bookingSlot);
+        if ($start === null) {
+            return 'Selected time slot format is invalid.';
+        }
+
+        return JobSchedulingService::validateSlotForBooking($bookingDate, $start);
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array{booking_date: ?string, booking_slot: ?string}
+     */
+    public static function resolveFromItemArray(
+        array $item,
+        ?string $fallbackDate = null,
+        ?string $fallbackSlot = null
+    ): array {
+        $booking = is_array($item['booking'] ?? null) ? $item['booking'] : [];
+
+        $date = self::normalizedDate(
+            $item['booking_date']
+            ?? $item['bookingDate']
+            ?? $item['date']
+            ?? $item['selectedDate']
+            ?? $booking['booking_date']
+            ?? $booking['date']
+            ?? null
+        ) ?? $fallbackDate;
+
+        $slot = self::normalizedSlot(
+            $item['booking_slot']
+            ?? $item['bookingSlot']
+            ?? $item['slot']
+            ?? $item['timeSlot']
+            ?? $item['selectedSlot']
+            ?? $booking['booking_slot']
+            ?? $booking['slot']
+            ?? null
+        ) ?? $fallbackSlot;
+
+        return [
+            'booking_date' => $date,
+            'booking_slot' => $slot,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function checkoutLinePayloadWithFallback(
+        Cart $cart,
+        ?string $fallbackDate = null,
+        ?string $fallbackSlot = null
+    ): array {
+        $payload = $cart->checkoutLinePayload();
+
+        if (empty($payload['booking_date']) && $fallbackDate !== null) {
+            $payload['booking_date'] = $fallbackDate;
+        }
+        if (empty($payload['booking_slot']) && $fallbackSlot !== null) {
+            $payload['booking_slot'] = $fallbackSlot;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  iterable<int, Cart>  $cartItems
+     * @return array<int, array<string, mixed>>
+     */
+    public static function summaryItemsFromCart(
+        iterable $cartItems,
+        ?string $fallbackDate = null,
+        ?string $fallbackSlot = null
+    ): array {
+        $lines = [];
+
+        foreach ($cartItems as $cart) {
+            if ($cart->product === null) {
+                continue;
+            }
+
+            $payload = self::checkoutLinePayloadWithFallback($cart, $fallbackDate, $fallbackSlot);
+            $qty = (int) ($payload['quantity'] ?? 1);
+            $unit = (float) ($payload['unit_price'] ?? 0);
+
+            $lines[] = [
+                'product_id' => (int) $payload['product_id'],
+                'name' => (string) $cart->product->name,
+                'quantity' => $qty,
+                'unit_price' => $unit,
+                'line_total' => round($unit * $qty, 2),
+                'booking_date' => $payload['booking_date'] ?? null,
+                'booking_slot' => $payload['booking_slot'] ?? null,
+                'selected_option_ids' => $payload['selected_options'] ?? [],
+            ];
+        }
+
+        return $lines;
+    }
+}

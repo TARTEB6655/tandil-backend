@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\CategoryShippingService;
 use App\Services\CategoryTaxService;
 use App\Services\ShopCouponService;
+use App\Support\ShopBookingSlotHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -183,6 +184,101 @@ class CartController extends Controller
         $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
 
         return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+    }
+
+    /**
+     * Attach per-product checkout lines (with booking_date/booking_slot) to order_summary.
+     *
+     * @param  array<string, mixed>  $summary
+     * @param  iterable<int, Cart>|null  $cartItems
+     * @return array<string, mixed>
+     */
+    public static function attachLineItemsToOrderSummary(
+        array $summary,
+        ?iterable $cartItems,
+        ?string $fallbackDate = null,
+        ?string $fallbackSlot = null
+    ): array {
+        if ($cartItems === null) {
+            return $summary;
+        }
+
+        $items = ShopBookingSlotHelper::summaryItemsFromCart(
+            $cartItems,
+            $fallbackDate,
+            $fallbackSlot
+        );
+        $summary['items'] = $items;
+
+        if (count($items) === 1) {
+            $summary['booking_date'] = $items[0]['booking_date'] ?? null;
+            $summary['booking_slot'] = $items[0]['booking_slot'] ?? null;
+        } elseif ($items !== []) {
+            $dates = array_values(array_unique(array_filter(array_column($items, 'booking_date'))));
+            $slots = array_values(array_unique(array_filter(array_column($items, 'booking_slot'))));
+            if (count($dates) === 1) {
+                $summary['booking_date'] = $dates[0];
+            }
+            if (count($slots) === 1) {
+                $summary['booking_slot'] = $slots[0];
+            }
+        }
+
+        return $summary;
+    }
+
+    public static function resolveTopLevelBookingDate(Request $request): ?string
+    {
+        return ShopBookingSlotHelper::normalizedDate(
+            $request->input('booking_date')
+            ?? $request->input('bookingDate')
+            ?? $request->input('date')
+            ?? $request->input('selectedDate')
+        );
+    }
+
+    public static function resolveTopLevelBookingSlot(Request $request): ?string
+    {
+        return ShopBookingSlotHelper::normalizedSlot(
+            $request->input('booking_slot')
+            ?? $request->input('bookingSlot')
+            ?? $request->input('slot')
+            ?? $request->input('timeSlot')
+            ?? $request->input('selectedSlot')
+        );
+    }
+
+    /**
+     * @param  iterable<int, Cart>  $cartItems
+     */
+    public static function validateCheckoutBookings(
+        iterable $cartItems,
+        ?string $fallbackDate = null,
+        ?string $fallbackSlot = null
+    ): ?string {
+        foreach ($cartItems as $cart) {
+            if ($cart->product === null) {
+                continue;
+            }
+
+            $payload = ShopBookingSlotHelper::checkoutLinePayloadWithFallback(
+                $cart,
+                $fallbackDate,
+                $fallbackSlot
+            );
+
+            $error = ShopBookingSlotHelper::validate(
+                $payload['booking_date'] ?? null,
+                $payload['booking_slot'] ?? null
+            );
+            if ($error !== null) {
+                $name = (string) ($cart->product->name ?? 'Product');
+
+                return $name.': '.$error;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -478,6 +574,11 @@ class CartController extends Controller
         $bookingDate = self::normalizedBookingValue($request->input('booking_date') ?? $request->input('bookingDate'));
         $bookingSlot = self::normalizedBookingValue($request->input('booking_slot') ?? $request->input('bookingSlot') ?? $request->input('slot'));
 
+        $bookingError = ShopBookingSlotHelper::validate($bookingDate, $bookingSlot);
+        if ($bookingError !== null) {
+            return ApiResponse::error($bookingError, 422);
+        }
+
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
             ->get()
@@ -520,6 +621,13 @@ class CartController extends Controller
      */
     public static function checkoutPreview(Request $request, int $userId): array
     {
+        if ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
+            return self::checkoutPreviewFromItemsArray($request, $userId);
+        }
+
+        $fallbackDate = self::resolveTopLevelBookingDate($request);
+        $fallbackSlot = self::resolveTopLevelBookingSlot($request);
+
         if ($request->filled('product_id')) {
             $request->validate(array_merge([
                 'product_id' => 'required|exists:products,id',
@@ -531,12 +639,19 @@ class CartController extends Controller
                 ->findOrFail((int) $request->input('product_id'));
             $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
+            $itemBooking = ShopBookingSlotHelper::resolveFromItemArray(
+                $request->all(),
+                $fallbackDate,
+                $fallbackSlot
+            );
             $cart = new Cart([
                 'user_id' => $userId,
                 'product_id' => $product->id,
                 'quantity' => $qty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
+                'booking_date' => $itemBooking['booking_date'],
+                'booking_slot' => $itemBooking['booking_slot'],
             ]);
             $cart->setRelation('product', $product);
             $cart->id = 0;
@@ -559,11 +674,120 @@ class CartController extends Controller
             ->with(['product.category', 'product.primaryImage', 'product.services'])
             ->get();
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null)->values();
+
+        // Apply order-level booking fallback to in-memory cart lines (not persisted).
+        if ($fallbackDate !== null || $fallbackSlot !== null) {
+            $validItems = $validItems->map(function (Cart $item) use ($fallbackDate, $fallbackSlot) {
+                if ($item->booking_date === null && $fallbackDate !== null) {
+                    $item->booking_date = $fallbackDate;
+                }
+                if (($item->booking_slot === null || $item->booking_slot === '') && $fallbackSlot !== null) {
+                    $item->booking_slot = $fallbackSlot;
+                }
+
+                return $item;
+            })->values();
+        }
+
         $subtotal = round($validItems->sum(fn ($item) => $item->quantity * $item->lineUnitPrice()), 2);
         $ctx = self::cartContextFromItems($validItems);
 
         return [
             'items' => $validItems,
+            'subtotal' => $subtotal,
+            'catalog_discount' => $ctx['catalog_discount'],
+            'cart_category_ids' => $ctx['cart_category_ids'],
+            'cart_service_ids' => $ctx['cart_service_ids'],
+            'cart_catalog' => $ctx['cart_catalog'],
+        ];
+    }
+
+    /**
+     * Build checkout preview from explicit items[] (payment-intent / buy-now multi-product).
+     *
+     * @return array{
+     *   items: \Illuminate\Support\Collection<int, Cart>,
+     *   subtotal: float,
+     *   catalog_discount: float,
+     *   cart_category_ids: array<int>,
+     *   cart_service_ids: array<int>,
+     *   cart_catalog: string
+     * }
+     */
+    public static function checkoutPreviewFromItemsArray(Request $request, int $userId): array
+    {
+        $request->validate(array_merge([
+            'items' => 'required|array|min:1',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'sometimes|integer|min:1',
+            'items.*.qty' => 'sometimes|integer|min:1',
+            'items.*.booking_date' => 'nullable|date',
+            'items.*.booking_slot' => 'nullable|string|max:255',
+        ], self::optionIdsValidationRules()));
+
+        $fallbackDate = self::resolveTopLevelBookingDate($request);
+        $fallbackSlot = self::resolveTopLevelBookingSlot($request);
+
+        $items = collect();
+        $subtotal = 0.0;
+
+        foreach ($request->input('items') as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $optionIds = [];
+            foreach (['option_ids', 'optionIds', 'selected_option_ids', 'selectedOptionIds'] as $key) {
+                if (isset($row[$key]) && is_array($row[$key])) {
+                    $optionIds = Cart::normalizeSelectedOptionIds($row[$key]);
+                    break;
+                }
+            }
+
+            $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
+                ->findOrFail((int) $row['product_id']);
+            $qty = max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1));
+
+            $optionError = Cart::validateSelectedOptionsMessage($product, $optionIds);
+            if ($optionError !== null) {
+                throw new \InvalidArgumentException($optionError);
+            }
+
+            $booking = ShopBookingSlotHelper::resolveFromItemArray($row, $fallbackDate, $fallbackSlot);
+            $bookingError = ShopBookingSlotHelper::validate(
+                $booking['booking_date'],
+                $booking['booking_slot']
+            );
+            if ($bookingError !== null) {
+                throw new \InvalidArgumentException(
+                    ((string) $product->name).': '.$bookingError
+                );
+            }
+
+            $unitPrice = isset($row['unit_price'])
+                ? round((float) $row['unit_price'], 2)
+                : Cart::calculateUnitPrice($product, $optionIds);
+
+            $cart = new Cart([
+                'user_id' => $userId,
+                'product_id' => $product->id,
+                'quantity' => $qty,
+                'selected_options' => $optionIds,
+                'unit_price' => $unitPrice,
+                'booking_date' => $booking['booking_date'],
+                'booking_slot' => $booking['booking_slot'],
+            ]);
+            $cart->setRelation('product', $product);
+            $cart->id = 0;
+            $items->push($cart);
+            $subtotal += round($qty * $unitPrice, 2);
+        }
+
+        $subtotal = round($subtotal, 2);
+        $ctx = self::cartContextFromItems($items);
+
+        return [
+            'items' => $items,
             'subtotal' => $subtotal,
             'catalog_discount' => $ctx['catalog_discount'],
             'cart_category_ids' => $ctx['cart_category_ids'],
@@ -651,7 +875,7 @@ class CartController extends Controller
             ? $items->isNotEmpty()
             : (is_countable($items) && count($items) > 0);
 
-        if ($hasServerCart && ! $request->filled('product_id')) {
+        if ($hasServerCart && (! $request->filled('product_id') || $request->filled('items'))) {
             return [
                 'subtotal' => round((float) ($cartPreview['subtotal'] ?? 0), 2),
                 'catalog_discount' => round((float) ($cartPreview['catalog_discount'] ?? 0), 2),
@@ -725,7 +949,11 @@ class CartController extends Controller
     {
         self::normalizeCheckoutCouponInput($request);
 
-        $cartPreview = self::checkoutPreview($request, $user->id);
+        try {
+            $cartPreview = self::checkoutPreview($request, $user->id);
+        } catch (\InvalidArgumentException $e) {
+            return self::emptyCheckoutPackError($e->getMessage());
+        }
 
         foreach ($cartPreview['items'] as $cart) {
             if ($cart->product === null) {
@@ -733,17 +961,13 @@ class CartController extends Controller
             }
             $optionError = Cart::validateSelectedOptionsMessage($cart->product, $cart->selected_options ?? []);
             if ($optionError !== null) {
-                return [
-                    'cart_preview' => $cartPreview,
-                    'order_summary' => [],
-                    'coupon_id' => null,
-                    'coupon_code' => null,
-                    'coupon_merchandise_discount' => 0.0,
-                    'coupon_shipping_discount' => 0.0,
-                    'error' => $optionError,
-                    'error_details' => [],
-                ];
+                return self::emptyCheckoutPackError($optionError, $cartPreview);
             }
+        }
+
+        $bookingError = self::validateCheckoutBookings($cartPreview['items'], null, null);
+        if ($bookingError !== null) {
+            return self::emptyCheckoutPackError($bookingError, $cartPreview);
         }
 
         $amounts = self::resolveCheckoutAmountsFromRequest($request, $cartPreview);
@@ -765,6 +989,7 @@ class CartController extends Controller
             $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
             self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
+            $summary = self::attachLineItemsToOrderSummary($summary, $cartItems);
 
             return [
                 'cart_preview' => $cartPreview,
@@ -778,7 +1003,7 @@ class CartController extends Controller
             ];
         }
 
-        if ($subtotal < 0.01 && ! $request->filled('product_id')) {
+        if ($subtotal < 0.01 && ! $request->filled('product_id') && ! $request->filled('items')) {
             return [
                 'cart_preview' => $cartPreview,
                 'order_summary' => [],
@@ -805,9 +1030,42 @@ class CartController extends Controller
         );
         if ($pack['error'] === null) {
             self::rememberAppliedCheckoutCouponFromPack($request, $user, $cartPreview, $pack);
+            if (($pack['order_summary'] ?? []) !== []) {
+                $pack['order_summary'] = self::attachLineItemsToOrderSummary(
+                    $pack['order_summary'],
+                    $cartItems
+                );
+            }
         }
 
         return $pack;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $cartPreview
+     * @return array{
+     *   cart_preview: array<string, mixed>,
+     *   order_summary: array<string, mixed>,
+     *   coupon_id: null,
+     *   coupon_code: null,
+     *   coupon_merchandise_discount: float,
+     *   coupon_shipping_discount: float,
+     *   error: string,
+     *   error_details: array<string, mixed>
+     * }
+     */
+    private static function emptyCheckoutPackError(string $message, ?array $cartPreview = null): array
+    {
+        return [
+            'cart_preview' => $cartPreview ?? ['items' => collect(), 'subtotal' => 0.0],
+            'order_summary' => [],
+            'coupon_id' => null,
+            'coupon_code' => null,
+            'coupon_merchandise_discount' => 0.0,
+            'coupon_shipping_discount' => 0.0,
+            'error' => $message,
+            'error_details' => [],
+        ];
     }
 
     /**
@@ -1070,6 +1328,7 @@ class CartController extends Controller
             $summary = self::buildOrderSummaryWithCouponForCart($subtotal, $catalogDiscount, 0, false, null, null, $cartItems);
             self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
+            $summary = self::attachLineItemsToOrderSummary($summary, $cartItems);
 
             return [
                 'cart_preview' => $cartPreview,
@@ -1087,6 +1346,7 @@ class CartController extends Controller
         self::finalizeOrderSummaryCouponState($summary, $r['code'] ?? null);
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['coupon'] = $r['coupon'];
+        $summary = self::attachLineItemsToOrderSummary($summary, $cartItems);
 
         $couponDiscount = (float) ($r['coupon_discount'] ?? 0);
         $freeShipping = (bool) ($r['free_shipping'] ?? false);
@@ -1246,6 +1506,15 @@ class CartController extends Controller
         if ($request->has('booking_slot') || $request->has('bookingSlot') || $request->has('slot')) {
             $cartItem->booking_slot = self::normalizedBookingValue($request->input('booking_slot') ?? $request->input('bookingSlot') ?? $request->input('slot'));
         }
+
+        $bookingError = ShopBookingSlotHelper::validate(
+            $cartItem->booking_date?->toDateString(),
+            $cartItem->booking_slot
+        );
+        if ($bookingError !== null) {
+            return ApiResponse::error($bookingError, 422);
+        }
+
         $cartItem->save();
 
         $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);

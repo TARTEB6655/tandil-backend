@@ -6,6 +6,7 @@ use App\Http\Controllers\Shop\CartController;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Coupon;
+use App\Models\JobTimeSlot;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\ShopMobileCheckout;
@@ -48,6 +49,21 @@ class ShopStripeMobileCheckoutTest extends TestCase
             'zip_code' => '00000',
             'country' => $country,
         ];
+    }
+
+    /**
+     * @param  array<int, array{start_time: string, duration_minutes: int}>  $slots
+     */
+    private function seedJobTimeSlots(array $slots): void
+    {
+        foreach ($slots as $i => $slot) {
+            JobTimeSlot::create([
+                'start_time' => $slot['start_time'],
+                'duration_minutes' => $slot['duration_minutes'],
+                'is_active' => true,
+                'sort_order' => $i + 1,
+            ]);
+        }
     }
 
     public function test_payment_intent_proceeds_when_admin_keys_override_env(): void
@@ -152,6 +168,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
 
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
+
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -219,6 +237,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
@@ -291,6 +311,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
 
+        $this->seedJobTimeSlots([['start_time' => '14:00', 'duration_minutes' => 120]]);
+
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -362,6 +384,11 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.secret', 'sk_test_dummy_multi');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '0');
+
+        $this->seedJobTimeSlots([
+            ['start_time' => '09:00', 'duration_minutes' => 60],
+            ['start_time' => '15:00', 'duration_minutes' => 120],
+        ]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
@@ -532,6 +559,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
 
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
+
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -588,6 +617,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
@@ -646,6 +677,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
 
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
+
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -702,6 +735,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
@@ -784,6 +819,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
 
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
+
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
         $product = Product::factory()->create([
@@ -839,6 +876,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.secret', 'sk_test_dummy');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create();
@@ -904,6 +943,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Config::set('services.stripe.key', 'pk_test_dummy');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create(['shipping_cost' => null]);
@@ -987,6 +1028,8 @@ class ShopStripeMobileCheckoutTest extends TestCase
         Setting::set('stripe_live_public_key', 'pk_live_dummy', 'text', 'payment');
         Setting::set('shop_tax_percent', '5');
         Setting::set('shop_shipping_amount', '10');
+
+        $this->seedJobTimeSlots([['start_time' => '10:00', 'duration_minutes' => 120]]);
 
         $user = User::factory()->create(['role' => 'client']);
         $category = Category::factory()->create(['shipping_cost' => null]);

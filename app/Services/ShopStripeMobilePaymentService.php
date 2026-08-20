@@ -15,6 +15,7 @@ use App\Notifications\AdminNotification;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\OrderSupervisorNotifier;
 use App\Support\RefundPolicy;
+use App\Support\ShopBookingSlotHelper;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +70,12 @@ class ShopStripeMobilePaymentService
             'special_instructions' => 'nullable|string|max:2000',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
+            'items' => 'sometimes|array|min:1',
+            'items.*.product_id' => 'required_with:items|exists:products,id',
+            'items.*.quantity' => 'sometimes|integer|min:1',
+            'items.*.qty' => 'sometimes|integer|min:1',
+            'items.*.booking_date' => 'nullable|date',
+            'items.*.booking_slot' => 'nullable|string|max:255',
         ], CartController::optionIdsValidationRules()));
 
         $isBuyNow = $request->boolean('is_buy_now');
@@ -99,14 +106,33 @@ class ShopStripeMobilePaymentService
         $currency = strtolower((string) config('shop.currency', CartController::CURRENCY));
 
         $lines = [];
+        $fallbackDate = CartController::resolveTopLevelBookingDate($request);
+        $fallbackSlot = CartController::resolveTopLevelBookingSlot($request);
         foreach ($preview['items'] as $cart) {
             if ($cart->product === null) {
                 continue;
             }
-            $lines[] = $cart->checkoutLinePayload();
+            $lines[] = ShopBookingSlotHelper::checkoutLinePayloadWithFallback(
+                $cart,
+                $fallbackDate,
+                $fallbackSlot
+            );
         }
         if ($lines === []) {
             return $this->err('No valid line items for checkout.', 422);
+        }
+
+        foreach ($lines as $line) {
+            $bookingError = ShopBookingSlotHelper::validate(
+                $line['booking_date'] ?? null,
+                $line['booking_slot'] ?? null
+            );
+            if ($bookingError !== null) {
+                $product = Product::find($line['product_id'] ?? null);
+                $prefix = $product ? ((string) $product->name).': ' : '';
+
+                return $this->err($prefix.$bookingError, 422);
+            }
         }
 
         $ship = $request->input('shipping');
@@ -169,7 +195,11 @@ class ShopStripeMobilePaymentService
                         if ($cart->product === null) {
                             continue;
                         }
-                        $linesW[] = $cart->checkoutLinePayload();
+                        $linesW[] = ShopBookingSlotHelper::checkoutLinePayloadWithFallback(
+                            $cart,
+                            $bookingDate,
+                            $bookingSlot
+                        );
                     }
                     $row = new ShopMobileCheckout([
                         'user_id' => $user->id,
