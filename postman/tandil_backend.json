@@ -4,7 +4,7 @@
     "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.15"
+    "version": "3.6.16"
   },
   "item": [
     {
@@ -4048,7 +4048,7 @@
           "item": [
             {
               "name": "A. Shop settings & order totals",
-              "description": "GET/PUT shop tax & shipping defaults; **GET order-summary** and **POST buy-now/summary** for checkout totals. **Order summary `data.items[]`:** each cart line includes `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`**, **`booking_slot`** (different products can have different slots). **Coupons:** folder **K** — tap **Apply** → `POST /api/shop/coupons/apply`; optional `coupon_code` on order-summary, cart, checkout/review. **Wallet:** when `wallet_available` is **true**, `order_summary` includes wallet keys; when **false**, omit wallet UI. **Payment:** folder **I** — payment-intent supports cart / buy-now / `items[]` with per-product booking; full slot → **422**.",
+              "description": "GET/PUT shop tax & shipping defaults; **GET order-summary** and **POST buy-now/summary** for checkout totals. **Order summary `data.items[]`:** each cart line includes `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`**, **`booking_slot`**. **Coupons:** folder **K**. **Wallet:** when `wallet_available` is **true**, show wallet UI. **Payment (folder I):** Cart = `is_buy_now: false` + shipping only; Buy Now = `is_buy_now: true` + product + booking. **Do not send `items[]` on payment-intent.** Full slot → **422**.",
               "item": [
                 {
                   "name": "1. Shop settings (GET)",
@@ -4394,7 +4394,7 @@
                         }
                       ]
                     },
-                    "description": "GET /api/shop/checkout/review – Cart + `order_summary` (includes **`items[]`** with per-product booking) + `refund_policy` + addresses + payment_methods. Optional query **`coupon_code`**. **Wallet:** if `wallet_available` is true, `wallet_balance` is present — show wallet UI; if false, omit wallet row and pay full **`order_summary.total`**. Pass **`wallet_amount`** on POST checkout/start when using wallet. **React Native:** payment-intent + confirm; same **`coupon_code`** on payment-intent body when using a coupon. Use cart/add booking or payment-intent `items[]` for multi-product slots."
+                    "description": "GET /api/shop/checkout/review – Cart + `order_summary` (includes **`items[]`** with per-product booking in the **response**) + `refund_policy` + addresses + payment_methods. Optional query **`coupon_code`**. **React Native payment-intent:** Cart = shipping only (`is_buy_now: false`); Buy Now = product + booking (`is_buy_now: true`). **Never send `items[]` on payment-intent request body.**"
                   }
                 }
               ]
@@ -5193,7 +5193,7 @@
             },
             {
               "name": "I. Shop – Payments (Stripe & PayPal only)",
-              "description": "**Shop payment APIs.** (1–2) Gateways + payment-methods. (3–6) Hosted checkout. **8** = Cart payment-intent (`is_buy_now: false`, shipping only). **8b** = Buy Now (`is_buy_now: true` + product + booking). **9** confirm. Do not send `items[]` for normal app flows.",
+              "description": "**Shop payment APIs.** (1–2) Gateways + payment-methods. (3–6) Hosted checkout/start (different API). **8** Cart payment-intent — body has NO `items[]`. **8b** Buy Now payment-intent — body has NO `items[]`. **9** confirm.",
               "item": [
                 {
                   "name": "1. GET Payment gateways (public — no token)",
@@ -5374,7 +5374,7 @@
                         "start"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/start — Guest PayPal. No Authorization header. Example has **2 products**. Prefer per-item booking on each `items[]` row (`booking_date`/`booking_slot`); top-level booking is only a fallback when a line omits its own slot. Same as logged-in cart: different products can have different dates/times."
+                    "description": "POST /api/shop/checkout/start — Guest PayPal (**hosted checkout/start**, NOT mobile payment-intent). Guest multi-product example may use `items[]` here only. Mobile app Payment Sheet → use **I → 8 / 8b** instead (no `items[]`)."
                   }
                 },
                 {
