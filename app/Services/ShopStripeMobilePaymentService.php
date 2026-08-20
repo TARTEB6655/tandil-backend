@@ -12,6 +12,7 @@ use App\Models\ShopMobileCheckout;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Notifications\AdminNotification;
+use App\Services\Vendor\VendorOrderSyncService;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\OrderSupervisorNotifier;
 use App\Support\RefundPolicy;
@@ -1011,6 +1012,10 @@ class ShopStripeMobilePaymentService
             $order->wallet_redeemed_at = now();
             $order->save();
         }
+
+        // Same as ShopCheckoutOrderService: create vendor_order_mappings so the
+        // vendor app sees this purchase under GET /api/vendor/orders.
+        app(VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product'));
 
         return $order;
     }

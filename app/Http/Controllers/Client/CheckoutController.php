@@ -225,6 +225,10 @@ class CheckoutController extends Controller
                 $cartItem->product->decrement('stock', $cartItem->quantity);
             }
 
+            app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder(
+                $order->fresh('items.product')
+            );
+
             if ($method === 'paypal') {
                 $paypalResponse = $this->paypal->createOrder(
                     (float) $total,
