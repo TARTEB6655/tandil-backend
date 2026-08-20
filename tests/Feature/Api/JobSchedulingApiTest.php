@@ -344,6 +344,82 @@ class JobSchedulingApiTest extends TestCase
         $this->assertNotNull($job['time_slot']);
     }
 
+    public function test_jobs_calendar_backfills_slot_from_recreated_order_notes(): void
+    {
+        $admin = $this->admin;
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+        $area = Area::factory()->create(['is_active' => true]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \App\Models\JobTimeSlot::query()->delete();
+        \App\Models\JobTimeSlot::create([
+            'start_time' => '15:00',
+            'duration_minutes' => 120,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $category = \App\Models\Category::factory()->create();
+        $product = \App\Models\Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'price' => 100,
+        ]);
+
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'confirmed',
+            'booking_date' => '2026-08-15',
+            'booking_slot' => '03:00 PM',
+        ]);
+
+        \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+            'booking_date' => '2026-08-15',
+            'booking_slot' => '03:00 PM',
+        ]);
+
+        // Production-style orphan: only "Recreated from Order #N" in notes, no FKs.
+        $visit = Visit::create([
+            'supervisor_id' => $supervisor->id,
+            'area_id' => $area->id,
+            'scheduled_date' => '2026-08-15',
+            'scheduled_time' => null,
+            'duration_minutes' => null,
+            'status' => 'pending',
+            'notes' => 'Recreated from Order #'.$order->id,
+        ]);
+
+        $res = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-08-10')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))->firstWhere('id', $visit->id);
+        $this->assertNotNull($job);
+        $this->assertSame('2026-08-15', $job['scheduled_date']);
+        $this->assertSame('15:00', $job['scheduled_time']);
+        $this->assertSame('17:00', $job['end_time']);
+        $this->assertNotNull($job['time_slot']);
+
+        $visit->refresh();
+        $this->assertSame($order->id, (int) $visit->order_id);
+        $this->assertSame('15:00', $visit->scheduled_time);
+    }
+
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void
     {
         $client = User::factory()->create(['role' => 'client']);

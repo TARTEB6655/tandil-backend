@@ -20,7 +20,8 @@ final class OrderToVisitDispatcher
      */
     /**
      * Backfill scheduled_date/time on an existing visit from its order item booking
-     * (fixes visits created when only start-only slots like "09:00 AM" were stored).
+     * (fixes visits created when only start-only slots like "09:00 AM" were stored,
+     * and visits whose notes only say "Recreated from Order #N" with no order_id).
      */
     public static function syncVisitScheduleFromLinkedOrder(Visit $visit): Visit
     {
@@ -29,14 +30,14 @@ final class OrderToVisitDispatcher
         $item = $visit->orderItem;
         $order = $visit->order;
 
-        // Older shop visits sometimes only have the marker in notes.
-        if (($visit->order_id === null || $item === null) && is_string($visit->notes)) {
-            if (preg_match('/\[SHOP-ORDER:(\d+)\]/', $visit->notes, $orderMatch)) {
-                $orderId = (int) $orderMatch[1];
+        // Recover order/item from notes when FKs were never set.
+        if (($visit->order_id === null || $item === null) && is_string($visit->notes) && $visit->notes !== '') {
+            $orderIdFromNotes = self::orderIdFromVisitNotes($visit->notes);
+            if ($orderIdFromNotes !== null) {
                 if ($visit->order_id === null) {
-                    $visit->order_id = $orderId;
+                    $visit->order_id = $orderIdFromNotes;
                 }
-                $order = $order ?? Order::query()->find($orderId);
+                $order = $order ?? Order::query()->find($orderIdFromNotes);
             }
             if (preg_match('/\[ITEM:(\d+)\]/', $visit->notes, $itemMatch)) {
                 $itemId = (int) $itemMatch[1];
@@ -48,36 +49,29 @@ final class OrderToVisitDispatcher
         }
 
         if ($item === null && ($visit->order_id || $order)) {
-            $orderId = (int) ($visit->order_id ?? $order?->id);
-            $items = OrderItem::query()
-                ->with('product:id,name,job_duration')
-                ->where('order_id', $orderId)
-                ->orderBy('id')
-                ->get();
-            if ($items->count() === 1) {
-                $item = $items->first();
-            } elseif ($visit->order_item_id) {
-                $item = $items->firstWhere('id', $visit->order_item_id);
-            }
+            $item = self::resolveOrderItemForVisit($visit, (int) ($visit->order_id ?? $order?->id));
         }
 
-        if ($item === null) {
+        $order = $order
+            ?? ($item ? Order::query()->find($visit->order_id ?? $item->order_id) : null)
+            ?? ($visit->order_id ? Order::query()->find($visit->order_id) : null);
+
+        if ($item === null && $order === null) {
             return $visit;
         }
 
-        $order = $order ?? Order::query()->find($visit->order_id ?? $item->order_id);
-        $bookingDate = $item->booking_date?->toDateString()
+        $bookingDate = $item?->booking_date?->toDateString()
             ?? $order?->booking_date?->toDateString();
-        $bookingSlot = ShopBookingSlotHelper::parseSlotRange($item->booking_slot ?? $order?->booking_slot);
+        $bookingSlot = ShopBookingSlotHelper::parseSlotRange($item?->booking_slot ?? $order?->booking_slot);
         $durationMinutes = $bookingSlot['duration_minutes']
-            ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
+            ?? self::extractDurationMinutes((string) ($item?->product?->job_duration ?? ''));
 
         // Persist order/item link if we recovered it from notes.
         $linkUpdates = [];
-        if ($visit->order_id === null && ($order?->id || $item->order_id)) {
+        if ($visit->order_id === null && ($order?->id || $item?->order_id)) {
             $linkUpdates['order_id'] = (int) ($order?->id ?? $item->order_id);
         }
-        if ($visit->order_item_id === null && $item->id) {
+        if ($visit->order_item_id === null && $item?->id) {
             $linkUpdates['order_item_id'] = (int) $item->id;
         }
         if ($linkUpdates !== []) {
@@ -86,6 +80,76 @@ final class OrderToVisitDispatcher
         }
 
         return self::backfillVisitSchedule($visit, $bookingDate, $bookingSlot['start'], $durationMinutes);
+    }
+
+    /**
+     * Pull shop order id from notes: [SHOP-ORDER:49] or "Recreated from Order #49".
+     */
+    public static function orderIdFromVisitNotes(?string $notes): ?int
+    {
+        if (! is_string($notes) || $notes === '') {
+            return null;
+        }
+        if (preg_match('/\[SHOP-ORDER:(\d+)\]/', $notes, $m)) {
+            return (int) $m[1];
+        }
+        if (preg_match('/\bOrder\s*#\s*(\d+)\b/i', $notes, $m)) {
+            return (int) $m[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * Prefer the linked item, then date-matching booked item, then any booked item, then sole item.
+     */
+    private static function resolveOrderItemForVisit(Visit $visit, int $orderId): ?OrderItem
+    {
+        if ($orderId <= 0) {
+            return null;
+        }
+
+        $items = OrderItem::query()
+            ->with('product:id,name,job_duration')
+            ->where('order_id', $orderId)
+            ->orderBy('id')
+            ->get();
+
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        if ($visit->order_item_id) {
+            $exact = $items->firstWhere('id', (int) $visit->order_item_id);
+            if ($exact) {
+                return $exact;
+            }
+        }
+
+        $visitDate = $visit->scheduled_date?->toDateString();
+        $withBooking = $items->filter(function (OrderItem $i) {
+            return ($i->booking_slot !== null && trim((string) $i->booking_slot) !== '')
+                || $i->booking_date !== null;
+        })->values();
+
+        if ($visitDate !== null && $withBooking->isNotEmpty()) {
+            $sameDate = $withBooking->first(function (OrderItem $i) use ($visitDate) {
+                return $i->booking_date?->toDateString() === $visitDate;
+            });
+            if ($sameDate) {
+                return $sameDate;
+            }
+        }
+
+        if ($withBooking->count() === 1) {
+            return $withBooking->first();
+        }
+
+        if ($withBooking->isNotEmpty()) {
+            return $withBooking->first();
+        }
+
+        return $items->count() === 1 ? $items->first() : null;
     }
 
     public static function createVisitsForPaidOrder(Order $order): Collection
@@ -234,9 +298,10 @@ final class OrderToVisitDispatcher
 
         if ($updates !== []) {
             $visit->update($updates);
+            $visit->refresh();
         }
 
-        return $visit->fresh();
+        return $visit;
     }
 
     /**

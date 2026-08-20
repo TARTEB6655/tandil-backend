@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Notifications\AdminNotification;
 use App\Services\VisitOfferService;
 use App\Support\OrderClientReportService;
+use App\Support\OrderToVisitDispatcher;
 use App\Models\Tip;
 use App\Models\JobSchedulingSetting;
 use App\Helpers\ApiResponse;
@@ -1919,6 +1920,7 @@ class TechnicianDashboardController extends Controller
      */
     private function formatVisitTimeSlot(Visit $visit): ?string
     {
+        $visit = OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($visit);
         if (empty($visit->scheduled_time) || ! $visit->scheduled_date) {
             return null;
         }

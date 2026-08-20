@@ -46,10 +46,24 @@ final class ShopBookingSlotHelper
             $slot,
             $matches
         )) {
-            // Single time like "09:00 AM" from product picker (`slots[].time`).
+            // Single time like "09:00 AM" from product picker (`slots[].time`),
+            // or 24h "09:00" / "09:00:00" if that was stored on the order item.
             if (preg_match('/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*$/i', $slot, $single)) {
                 try {
                     $start24 = Carbon::parse(trim($single[1]))->format('H:i');
+
+                    return [
+                        'start' => $start24,
+                        'duration_minutes' => self::configuredDurationMinutesForStart($start24),
+                    ];
+                } catch (\Throwable $e) {
+                    return ['start' => null, 'duration_minutes' => null];
+                }
+            }
+
+            if (preg_match('/^\s*(\d{1,2}:\d{2})(?::\d{2})?\s*$/', $slot, $h24)) {
+                try {
+                    $start24 = Carbon::createFromFormat('H:i', substr($h24[1], 0, 5))->format('H:i');
 
                     return [
                         'start' => $start24,
