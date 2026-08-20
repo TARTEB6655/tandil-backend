@@ -4,7 +4,7 @@
     "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.14"
+    "version": "3.6.15"
   },
   "item": [
     {
@@ -4235,7 +4235,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
+                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/cart/add",
@@ -4249,7 +4249,7 @@
                         "add"
                       ]
                     },
-                    "description": "✅ STEP 14: Add product to cart.\n\n**Body:**\n- `product_id` (required)\n- `quantity` (required)\n- **`selected_option_ids`** (optional array) — Product Details options, e.g. Design Type 2D/3D. Aliases: `option_ids`, `selectedOptionIds`, `optionIds`. Required groups must be selected or API returns **422**.\n- **`booking_date`** (Y-m-d) + **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\") — this cart line only.\n\n**Slot capacity:** fully booked → **422**. Same product + different slot/options = separate cart line."
+                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.** Slot + options yahin set karo (payment-intent pe nahi).\n\n**Body:**\n- `product_id` (required)\n- `quantity` (required)\n- `selected_option_ids` (optional) — Product Details options\n- `booking_date` (Y-m-d) + `booking_slot` (e.g. \"9:00 AM - 10:00 AM\") — is cart line ke liye\n\nFully booked → **422**. Phir GET cart check, phir **I → 8 Cart** payment-intent (`is_buy_now: false`, bina product/booking/items)."
                   }
                 },
                 {
@@ -4285,7 +4285,7 @@
                         }
                       ]
                     },
-                    "description": "GET /api/shop/cart – Optional **`coupon_code`**. `order_summary` includes `coupon_discount`, `coupon_code` when valid."
+                    "description": "GET /api/shop/cart — **Cart flow Step 2 (optional).** Har item me `booking_date` + `booking_slot` aana chahiye (Step 1 se). Null = add incomplete. Optional query `coupon_code`."
                   }
                 },
                 {
@@ -4308,7 +4308,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"quantity\": 2,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
+                      "raw": "{\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/cart/{{cart_item_id}}",
@@ -4322,7 +4322,7 @@
                         "{{cart_item_id}}"
                       ]
                     },
-                    "description": "PUT /api/shop/cart/:id – Update quantity and/or options/booking. Body: `quantity`, optional **`selected_option_ids`**, optional **`booking_date`** + **`booking_slot`**. Changing date/slot re-validates capacity — fully booked → **422**. Set `{{cart_item_id}}`."
+                    "description": "PUT /api/shop/cart/:id — Update quantity / options / booking on a cart line. Body: `quantity`, optional `selected_option_ids`, optional `booking_date` + `booking_slot`. Fully booked → **422**. Set `{{cart_item_id}}`."
                   }
                 },
                 {
@@ -5193,7 +5193,7 @@
             },
             {
               "name": "I. Shop – Payments (Stripe & PayPal only)",
-              "description": "**Shop payment APIs.** (1–2) Gateways + payment-methods. (3–6) Hosted checkout. **8** = single PaymentIntent body with all fields (cart / buy-now / items[] — use what you need). **9** confirm. Stripe webhook alias after.",
+              "description": "**Shop payment APIs.** (1–2) Gateways + payment-methods. (3–6) Hosted checkout. **8** = Cart payment-intent (`is_buy_now: false`, shipping only). **8b** = Buy Now (`is_buy_now: true` + product + booking). **9** confirm. Do not send `items[]` for normal app flows.",
               "item": [
                 {
                   "name": "1. GET Payment gateways (public — no token)",
@@ -5445,7 +5445,7 @@
                   }
                 },
                 {
-                  "name": "8. POST Stripe PaymentIntent (mobile — Payment Sheet)",
+                  "name": "8. POST Stripe PaymentIntent — Cart (is_buy_now false)",
                   "event": [
                     {
                       "listen": "test",
@@ -5482,7 +5482,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"is_buy_now\": false,\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"coupon_code\": \"\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  },\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 1,\n      \"selected_option_ids\": [1],\n      \"booking_date\": \"2026-09-10\",\n      \"booking_slot\": \"9:00 AM - 10:00 AM\"\n    },\n    {\n      \"product_id\": 2,\n      \"quantity\": 1,\n      \"selected_option_ids\": [2],\n      \"booking_date\": \"2026-09-05\",\n      \"booking_slot\": \"3:00 PM - 5:00 PM\"\n    }\n  ]\n}"
+                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  }\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
@@ -5497,7 +5497,63 @@
                         "payment-intent"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/stripe/payment-intent — **one request, all fields** (use what you need).\n\n**Always:** `shipping`, optional `coupon_code`, `use_wallet`, `wallet_amount`.\n\n**Slot date/time = per product only:**\n- **Cart:** set `booking_date`/`booking_slot` on `POST /api/shop/cart/add` (not on payment-intent top-level).\n- **`items[]`:** each row has its own `booking_date`/`booking_slot`.\n- **Buy Now (single):** `is_buy_now: true` + `product_id` + `quantity` + `selected_option_ids` + that product’s `booking_date`/`booking_slot` on the **same level as product_id** (no `items`).\n\nDo **not** send a top-level booking unless Buy Now single-product (no `items`).\n\nPriority: non-empty `items[]` → buy-now `product_id` → server cart.\n\nThen POST checkout/confirm."
+                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Cart checkout.**\n\nPehle `POST /api/shop/cart/add` (options + booking). Phir yeh body — **sirf** `is_buy_now: false` + coupon/wallet + `shipping`.\n\n**Mat bhejo:** `product_id`, `quantity`, `selected_option_ids`, `booking_date`, `booking_slot`, `items[]`.\n\nSlots server cart se aate hain. Response: `client_secret` → Payment Sheet → **9 confirm**."
+                  }
+                },
+                {
+                  "name": "8b. POST Stripe PaymentIntent — Buy Now (is_buy_now true)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "exec": [
+                          "if (pm.response.code === 200) {",
+                          "    var j = pm.response.json();",
+                          "    if (j.data && j.data.client_secret) {",
+                          "        var s = j.data.client_secret;",
+                          "        var m = s.match(/^(pi_[^_]+)/);",
+                          "        if (m) { pm.environment.set('stripe_payment_intent_id', m[1]); }",
+                          "    }",
+                          "}"
+                        ],
+                        "type": "text/javascript"
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"is_buy_now\": true,\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"coupon_code\": \"\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  }\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "shop",
+                        "checkout",
+                        "stripe",
+                        "payment-intent"
+                      ]
+                    },
+                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Buy Now button** (cart add nahi).\n\nBody: `is_buy_now: true` + `product_id` + `quantity` + `selected_option_ids` + `booking_date` + `booking_slot` + coupon/wallet + `shipping`.\n\n**Mat bhejo:** `items[]`.\n\nPhir Payment Sheet → **9 confirm**."
                   }
                 },
                 {
@@ -6029,7 +6085,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"is_buy_now\": false,\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"coupon_code\": \"SAVE10\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  },\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 1,\n      \"selected_option_ids\": [1],\n      \"booking_date\": \"2026-09-10\",\n      \"booking_slot\": \"9:00 AM - 10:00 AM\"\n    }\n  ]\n}"
+                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  }\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
@@ -6044,7 +6100,7 @@
                         "payment-intent"
                       ]
                     },
-                    "description": "Same **I → 8** payment-intent body (all fields in one). Set `coupon_code` to the applied code. For cart-only test: `is_buy_now: false` and remove `items` (or `[]`)."
+                    "description": "Same as **I → 8 Cart** — `is_buy_now: false` + shipping + **`coupon_code`**. No product/booking/`items[]`. For Buy Now + coupon use **8b** body and set `coupon_code`."
                   }
                 },
                 {
