@@ -7,11 +7,12 @@ use Illuminate\Support\Collection;
 
 class Cart extends Model
 {
-    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price'];
+    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price', 'booking_date', 'booking_slot'];
 
     protected $casts = [
         'selected_options' => 'array',
         'unit_price' => 'float',
+        'booking_date' => 'date:Y-m-d',
     ];
 
     public function user()
@@ -206,6 +207,8 @@ class Cart extends Model
             'quantity' => (int) $this->quantity,
             'unit_price' => $this->lineUnitPrice(),
             'selected_options' => self::normalizeSelectedOptionIds($this->selected_options),
+            'booking_date' => $this->booking_date?->toDateString(),
+            'booking_slot' => $this->booking_slot,
         ];
     }
 }

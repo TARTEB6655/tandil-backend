@@ -540,7 +540,7 @@ class ShopPaymentController extends Controller
             }
 
             OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
-            OrderToVisitDispatcher::createVisitForPaidOrder($order);
+            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

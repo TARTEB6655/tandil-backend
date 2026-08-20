@@ -954,12 +954,20 @@ class ShopStripeMobilePaymentService
             }
             $qty = (int) ($line['quantity'] ?? 1);
             $unit = isset($line['unit_price']) ? (float) $line['unit_price'] : (float) $product->price;
+            $lineBookingDate = is_string($line['booking_date'] ?? null) && trim($line['booking_date']) !== ''
+                ? trim($line['booking_date'])
+                : ($row->booking_date?->toDateString());
+            $lineBookingSlot = is_string($line['booking_slot'] ?? null) && trim($line['booking_slot']) !== ''
+                ? trim($line['booking_slot'])
+                : $row->booking_slot;
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => $qty,
                 'price' => $unit,
                 'subtotal' => round($unit * $qty, 2),
+                'booking_date' => $lineBookingDate,
+                'booking_slot' => $lineBookingSlot,
             ]);
         }
 
@@ -1002,7 +1010,7 @@ class ShopStripeMobilePaymentService
             }
 
             OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
-            OrderToVisitDispatcher::createVisitForPaidOrder($order);
+            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

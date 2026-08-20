@@ -364,7 +364,7 @@ class CheckoutController extends Controller
 
             // Same wave-1 alerts + job card as API/mobile pay (supervisor + area manager).
             OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $via);
-            OrderToVisitDispatcher::createVisitForPaidOrder($order);
+            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

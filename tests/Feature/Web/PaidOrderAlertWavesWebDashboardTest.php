@@ -74,6 +74,15 @@ class PaidOrderAlertWavesWebDashboardTest extends TestCase
             'guest_country' => 'United Arab Emirates',
         ]);
 
+        $product = \App\Models\Product::factory()->create(['category_id' => \App\Models\Category::factory(), 'status' => 'active']);
+        \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 99.50,
+            'subtotal' => 99.50,
+        ]);
+
         // Simulate Laravel web checkout success notify path
         $method = new ReflectionMethod(CheckoutController::class, 'notifyAdminsShopOrder');
         $method->setAccessible(true);

@@ -399,6 +399,8 @@ class ShopCheckoutOrderService
                     $unit * $qty,
                     2
                 ),
+                'booking_date' => self::itemBookingDate($item),
+                'booking_slot' => self::itemBookingSlot($item),
             ]);
         }
 
@@ -715,6 +717,8 @@ class ShopCheckoutOrderService
                     $unit * $qty,
                     2
                 ),
+                'booking_date' => self::itemBookingDate($item),
+                'booking_slot' => self::itemBookingSlot($item),
             ]);
         }
 
@@ -774,6 +778,38 @@ class ShopCheckoutOrderService
             $product,
             $optionIds
         );
+    }
+
+    /**
+     * Each product in an order can be booked for its own date/time slot (different
+     * products, different jobs, possibly on different days) — read the per-item
+     * value from the raw items[] array, same alias set as the order-level fields.
+     *
+     * @param  array<string, mixed>  $item
+     */
+    private static function itemBookingDate(array $item): ?string
+    {
+        $value = $item['booking_date'] ?? $item['bookingDate'] ?? $item['date'] ?? null;
+        if (! is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private static function itemBookingSlot(array $item): ?string
+    {
+        $value = $item['booking_slot'] ?? $item['bookingSlot'] ?? $item['slot'] ?? $item['timeSlot'] ?? null;
+        if (! is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
     }
 
     /**

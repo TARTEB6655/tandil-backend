@@ -4235,7 +4235,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2\n}"
+                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 2,\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/cart/add",
@@ -4249,7 +4249,7 @@
                         "add"
                       ]
                     },
-                    "description": "✅ STEP 14: Add product to cart"
+                    "description": "✅ STEP 14: Add product to cart. **`booking_date`** (Y-m-d) + **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\") are optional and belong to THIS cart line only — **different products in the cart can each have their own date/time slot**, in any order relative to each other. At checkout, each cart line becomes its own order item and its own job (Visit) scheduled for its own date/time; an order is no longer limited to one slot for everything in it. Aliases: `bookingDate`, `bookingSlot`/`slot`. Adding the same product again with a *different* slot creates a separate cart line rather than merging quantities."
                   }
                 },
                 {
@@ -4628,7 +4628,7 @@
                         "track"
                       ]
                     },
-                    "description": "GET /api/orders/{id}/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST /api/supervisor/visits/{visit_id}/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos.\n\n**Booking (order_summary):** `booking_date` (Y-m-d), `booking_slot` (raw string as booked, e.g. \"10:00 AM - 12:00 PM\"), plus `slot_start_time`/`slot_end_time` parsed out of `booking_slot` when it matches a recognizable range format (null if it doesn't parse). orders table has no separate slot_id/slot_start_time/slot_end_time columns — only booking_date/booking_slot are stored; the start/end times are derived at read time.\n\n**Carries through to the job (Visit):** when the order is paid, the auto-created Visit's `scheduled_date`/`scheduled_time`/`duration_minutes` are populated from this same `booking_date`/`booking_slot` (parsed the same way) — so the supervisor/technician assignment endpoints' `date`/`time_slot` fields reflect what the customer actually booked. If `booking_slot` is empty or doesn't match a parseable range, the Visit's `scheduled_time` stays null and `time_slot` shows null downstream (not a bug — nothing was booked to show)."
+                    "description": "GET /api/orders/{id}/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST /api/supervisor/visits/{visit_id}/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos.\n\n**Booking — per product, not per order:** each row in `data.order.items[]` now has its own `booking_date` (Y-m-d) + `booking_slot` (e.g. \"10:00 AM - 12:00 PM\") — different products in the same order can be booked for different, out-of-order dates/times. `order_summary.booking_date`/`booking_slot` (+ derived `slot_start_time`/`slot_end_time`) still exist as an order-level value (set when the whole cart used one slot, or a Buy Now single-product order), but for a multi-slot order treat `data.order.items[].booking_date`/`booking_slot` as the source of truth per product.\n\n**Carries through to the job (Visit):** when the order is paid, one Visit is auto-created **per order item** (not one per order) — each Visit's `scheduled_date`/`scheduled_time`/`duration_minutes` come from that specific item's own `booking_date`/`booking_slot`, so the supervisor/technician assignment endpoints' `date`/`time_slot` fields reflect each product's own booked slot. If an item's `booking_slot` is empty or doesn't match a parseable range, that Visit's `scheduled_time` stays null (not a bug — nothing was booked for that product)."
                   }
                 },
                 {
@@ -5497,7 +5497,7 @@
                         "payment-intent"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Bearer {{token}}** (client). Body: `shipping`, optional **`coupon_code`** (use same code as **K → 2. Apply coupon**), optional `wallet_amount`. **`booking_date`** (Y-m-d) + **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\") — optional but required if you want the job's date/time slot to populate; these are **order-level**, not per product — send them once even when `items`/cart has multiple products, one order = one visit = one slot for all items in it. Aliases also accepted: `bookingDate`/`date`/`selectedDate` and `bookingSlot`/`slot`/`selectedSlot`/`timeSlot`/`time_slot`, or nested `\"booking\": {\"booking_date\":..., \"booking_slot\":...}`. Response: `data.client_secret`, `data.order_total`, `data.amount_due`. Must match totals from `POST /api/shop/coupons/apply`. Then POST checkout/confirm with `payment_intent_id` (auto-saved to `stripe_payment_intent_id`)."
+                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Bearer {{token}}** (client). Body: `shipping`, optional **`coupon_code`** (use same code as **K → 2. Apply coupon**), optional `wallet_amount`. **Cart items are read from the server-side cart** (folder B → 1. Cart - Add Item), NOT from this request body — so per-product scheduling is set **on each cart line when adding it** (`booking_date`/`booking_slot` on `POST /api/shop/cart/add`), not here. Different products can have different, out-of-order dates/slots; at checkout each becomes its own order item and its own job (Visit). This request's top-level **`booking_date`**/**`booking_slot`** are only a **fallback default** — used for a cart line (or Buy Now single product) that didn't set its own slot when added; they do NOT override a slot a cart line already has. Aliases: `bookingDate`/`date`/`selectedDate` and `bookingSlot`/`slot`/`selectedSlot`/`timeSlot`/`time_slot`, or nested `\"booking\": {\"booking_date\":..., \"booking_slot\":...}`. Response: `data.client_secret`, `data.order_total`, `data.amount_due`. Must match totals from `POST /api/shop/coupons/apply`. Then POST checkout/confirm with `payment_intent_id` (auto-saved to `stripe_payment_intent_id`)."
                   }
                 },
                 {

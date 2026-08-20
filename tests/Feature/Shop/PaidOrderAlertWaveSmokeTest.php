@@ -177,6 +177,15 @@ class PaidOrderAlertWaveSmokeTest extends TestCase
             'guest_street_address' => 'Marina Walk',
         ]);
 
+        $product = Product::factory()->create(['category_id' => Category::factory(), 'status' => 'active']);
+        \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 99.5,
+            'subtotal' => 99.5,
+        ]);
+
         OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, 99.5, 'Wallet');
         $visit = OrderToVisitDispatcher::createVisitForPaidOrder($order);
 

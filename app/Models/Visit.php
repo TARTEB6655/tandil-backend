@@ -15,6 +15,7 @@ class Visit extends Model
     protected $fillable = [
         'subscription_id',
         'order_id',
+        'order_item_id',
         'technician_id',
         'supervisor_id',
         'area_id',
@@ -62,6 +63,11 @@ class Visit extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function orderItem()
+    {
+        return $this->belongsTo(OrderItem::class);
     }
 
     public function technician()

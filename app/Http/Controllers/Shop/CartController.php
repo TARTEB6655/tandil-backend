@@ -366,6 +366,8 @@ class CartController extends Controller
             'selected_option_ids' => $selectedOptionIds,
             'selected_options' => $optionLabels,
             'selected_options_detail' => $optionsDetail,
+            'booking_date' => $item->booking_date?->toDateString(),
+            'booking_slot' => $item->booking_slot,
             'currency' => self::CURRENCY,
         ];
     }
@@ -421,6 +423,16 @@ class CartController extends Controller
         return [];
     }
 
+    private static function normalizedBookingValue(mixed $value): ?string
+    {
+        if (! is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
     /**
      * Resolve Buy Now quantity from request (quantity preferred, then qty, default 1).
      */
@@ -444,6 +456,8 @@ class CartController extends Controller
         $request->validate(array_merge([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|integer|min:1',
+            'booking_date' => 'nullable|date',
+            'booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
 
         $user = $request->user();
@@ -457,13 +471,22 @@ class CartController extends Controller
 
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
+        // Each cart line can carry its own service date/time slot (different
+        // products in the same order can be scheduled on different days), so a
+        // second add of the same product with a different slot must not merge
+        // into the first line — only merge when the slot also matches.
+        $bookingDate = self::normalizedBookingValue($request->input('booking_date') ?? $request->input('bookingDate'));
+        $bookingSlot = self::normalizedBookingValue($request->input('booking_slot') ?? $request->input('bookingSlot') ?? $request->input('slot'));
+
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
             ->get()
-            ->first(function (Cart $row) use ($selectedOptionsNormalized) {
+            ->first(function (Cart $row) use ($selectedOptionsNormalized, $bookingDate, $bookingSlot) {
                 $current = Cart::normalizeSelectedOptionIds($row->selected_options);
 
-                return $current === $selectedOptionsNormalized;
+                return $current === $selectedOptionsNormalized
+                    && $row->booking_date?->toDateString() === $bookingDate
+                    && $row->booking_slot === $bookingSlot;
             });
 
         if ($cartItem) {
@@ -478,6 +501,8 @@ class CartController extends Controller
                 'quantity' => $request->quantity,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
+                'booking_date' => $bookingDate,
+                'booking_slot' => $bookingSlot,
             ]);
         }
 
@@ -1205,6 +1230,8 @@ class CartController extends Controller
     {
         $request->validate([
             'quantity' => 'required|integer|min:1',
+            'booking_date' => 'nullable|date',
+            'booking_slot' => 'nullable|string|max:255',
         ]);
 
         $user = $request->user();
@@ -1213,6 +1240,12 @@ class CartController extends Controller
             ->firstOrFail();
 
         $cartItem->quantity = $request->quantity;
+        if ($request->has('booking_date') || $request->has('bookingDate')) {
+            $cartItem->booking_date = self::normalizedBookingValue($request->input('booking_date') ?? $request->input('bookingDate'));
+        }
+        if ($request->has('booking_slot') || $request->has('bookingSlot') || $request->has('slot')) {
+            $cartItem->booking_slot = self::normalizedBookingValue($request->input('booking_slot') ?? $request->input('bookingSlot') ?? $request->input('slot'));
+        }
         $cartItem->save();
 
         $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);

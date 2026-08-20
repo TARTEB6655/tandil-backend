@@ -1172,6 +1172,8 @@ class OrderController extends Controller
                 'quantity' => $item->quantity,
                 'price' => (float) $item->price,
                 'subtotal' => (float) $item->subtotal,
+                'booking_date' => $item->booking_date?->toDateString(),
+                'booking_slot' => $item->booking_slot,
                 'product' => $this->mapOrderItemProductForApi($item),
             ])->values()->all(),
         ];
@@ -1203,6 +1205,8 @@ class OrderController extends Controller
                 'quantity' => $item->quantity,
                 'price' => (float) $item->price,
                 'subtotal' => (float) $item->subtotal,
+                'booking_date' => $item->booking_date?->toDateString(),
+                'booking_slot' => $item->booking_slot,
                 'product' => $this->mapOrderItemProductForApi($item),
             ])->values()->all(),
         ];

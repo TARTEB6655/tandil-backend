@@ -357,6 +357,115 @@ class ShopStripeMobileCheckoutTest extends TestCase
         $this->assertSame('2:00 PM - 4:00 PM', $order->booking_slot);
     }
 
+    public function test_multiple_products_each_get_their_own_booking_date_and_slot_and_visit(): void
+    {
+        Config::set('services.stripe.secret', 'sk_test_dummy_multi');
+        Setting::set('shop_tax_percent', '5');
+        Setting::set('shop_shipping_amount', '0');
+
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $productA = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Tree Watering',
+            'price' => 50,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+        $productB = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Pool Cleaning',
+            'price' => 80,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+
+        // Two different products, added to cart with two different booking slots —
+        // this is the scenario: different products, different dates, out of order.
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $productA->id,
+            'quantity' => 1,
+            'unit_price' => 50,
+            'booking_date' => '2026-09-10',
+            'booking_slot' => '9:00 AM - 10:00 AM',
+        ]);
+        Cart::create([
+            'user_id' => $user->id,
+            'product_id' => $productB->id,
+            'quantity' => 1,
+            'unit_price' => 80,
+            'booking_date' => '2026-09-05',
+            'booking_slot' => '3:00 PM - 5:00 PM',
+        ]);
+
+        $area = \App\Models\Area::firstOrCreate(['name' => 'Multi Item Test Zone'], ['location' => 'Dubai', 'country' => 'UAE', 'is_active' => true]);
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        \Illuminate\Support\Facades\DB::table('area_supervisor')->updateOrInsert(
+            ['area_id' => $area->id, 'user_id' => $supervisor->id],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        $amountMinor = 13650; // (50 + 80) * 1.05 * 100
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) use ($amountMinor) {
+            $url = $request->url();
+            if (str_contains($url, 'payment_intents/pi_test_multi') && $request->method() === 'GET') {
+                return Http::response(['id' => 'pi_test_multi', 'status' => 'succeeded', 'amount' => $amountMinor], 200);
+            }
+            if ($request->method() === 'POST' && preg_match('#/v1/customers/cus_[a-zA-Z0-9_]+$#', $url)) {
+                return Http::response(['id' => 'cus_test_multi'], 200);
+            }
+            if ($request->method() === 'POST' && str_contains($url, '/v1/customers')) {
+                return Http::response(['id' => 'cus_test_multi'], 200);
+            }
+            if (str_contains($url, 'payment_intents') && $request->method() === 'POST') {
+                return Http::response(['id' => 'pi_test_multi', 'client_secret' => 'pi_test_multi_secret', 'status' => 'requires_payment_method'], 200);
+            }
+
+            return Http::response(['error' => 'unexpected URL '.$url], 500);
+        });
+
+        $pi = $this->postJson('/api/shop/checkout/stripe/payment-intent', [
+            'shipping' => $this->shippingPayload(),
+        ], $this->authHeaders($user));
+        $pi->assertStatus(200);
+
+        $confirm = $this->postJson('/api/shop/checkout/confirm', [
+            'payment_intent_id' => 'pi_test_multi',
+        ], $this->authHeaders($user));
+        $confirm->assertStatus(201);
+
+        $order = \App\Models\Order::where('payment_reference', 'pi_test_multi')->firstOrFail();
+        $items = $order->items()->orderBy('id')->get();
+        $this->assertCount(2, $items, 'Both cart lines should become separate order items');
+
+        $itemA = $items->firstWhere('product_id', $productA->id);
+        $itemB = $items->firstWhere('product_id', $productB->id);
+        $this->assertSame('2026-09-10', $itemA->booking_date?->toDateString());
+        $this->assertSame('9:00 AM - 10:00 AM', $itemA->booking_slot);
+        $this->assertSame('2026-09-05', $itemB->booking_date?->toDateString());
+        $this->assertSame('3:00 PM - 5:00 PM', $itemB->booking_slot);
+
+        // confirmOrder() already dispatches visits automatically (inside its
+        // notify step) — assert against what that real flow actually created.
+        $visits = \App\Models\Visit::where('order_id', $order->id)->get();
+        $this->assertCount(2, $visits, 'One Visit per order item, not one per order');
+
+        $visitA = $visits->firstWhere('order_item_id', $itemA->id);
+        $visitB = $visits->firstWhere('order_item_id', $itemB->id);
+        $this->assertNotNull($visitA);
+        $this->assertNotNull($visitB);
+        $this->assertSame('2026-09-10', $visitA->scheduled_date?->toDateString());
+        $this->assertSame('09:00', $visitA->scheduled_time);
+        $this->assertSame(60, $visitA->duration_minutes);
+        $this->assertSame('2026-09-05', $visitB->scheduled_date?->toDateString());
+        $this->assertSame('15:00', $visitB->scheduled_time);
+        $this->assertSame(120, $visitB->duration_minutes);
+        $this->assertStringContainsString('Tree Watering', (string) $visitA->notes);
+        $this->assertStringContainsString('Pool Cleaning', (string) $visitB->notes);
+    }
+
     public function test_confirm_idempotent_when_order_already_exists(): void
     {
         Config::set('services.stripe.secret', 'sk_test_dummy');

@@ -15,11 +15,14 @@ class OrderItem extends Model
         'quantity',
         'price',
         'subtotal',
+        'booking_date',
+        'booking_slot',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'booking_date' => 'date:Y-m-d',
     ];
 
     /**
@@ -36,5 +39,13 @@ class OrderItem extends Model
     public function product()
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * The Visit (job) dispatched for this specific order item, if any.
+     */
+    public function visit()
+    {
+        return $this->hasOne(Visit::class);
     }
 }

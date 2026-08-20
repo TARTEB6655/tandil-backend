@@ -4,6 +4,8 @@ namespace Tests\Feature\Shop;
 
 use App\Models\Area;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Visit;
 use App\Support\OrderToVisitDispatcher;
@@ -60,6 +62,15 @@ class OrderSupervisorNotificationTest extends TestCase
             'guest_state' => '',
             'guest_zip_code' => '',
             'guest_country' => 'United Arab Emirates',
+        ]);
+
+        $product = Product::factory()->create(['category_id' => \App\Models\Category::factory(), 'status' => 'active']);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 78.25,
+            'subtotal' => 78.25,
         ]);
 
         OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, 78.25, 'Stripe (webhook)');

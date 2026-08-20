@@ -4,86 +4,145 @@ namespace App\Support;
 
 use App\Models\Area;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Visit;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 
 final class OrderToVisitDispatcher
 {
-    public static function createVisitForPaidOrder(Order $order): ?Visit
+    /**
+     * One order can bundle several different products, each booked for its own
+     * date/time slot — so this dispatches one Visit per order item (not one per
+     * order), each carrying that item's own scheduled_date/scheduled_time.
+     *
+     * @return Collection<int, Visit>
+     */
+    public static function createVisitsForPaidOrder(Order $order): Collection
     {
         try {
             if (($order->payment_status ?? null) !== 'paid') {
-                return null;
+                return collect();
             }
 
-            $existing = Visit::query()->where('order_id', $order->id)->first();
-            if ($existing) {
-                return $existing;
-            }
-
-            $marker = self::orderMarker($order->id);
-            $legacy = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
-            if ($legacy) {
-                if ($legacy->order_id === null) {
-                    $legacy->order_id = $order->id;
-                    $legacy->save();
-                }
-
-                return $legacy;
+            $items = $order->items()->with('product:id,name,job_duration')->get();
+            if ($items->isEmpty()) {
+                return collect();
             }
 
             $resolved = self::resolveAreaAndSupervisor($order);
             if (! $resolved) {
-                return null;
+                return collect();
             }
 
-            $ship = $order->getShippingAddressForApi() ?? [];
-            $serviceMeta = self::serviceMeta($order);
-            $serviceTitle = $serviceMeta['title'];
-            $bookingSlot = self::parseBookingSlot($order->booking_slot);
-            $durationMinutes = $bookingSlot['duration_minutes'] ?? $serviceMeta['duration_minutes'];
-            $clientName = (string) ($ship['full_name'] ?? $order->payerDisplayName());
-            $clientEmail = (string) ($ship['email'] ?? ($order->payerEmail() ?? ''));
-            $clientPhone = (string) ($ship['phone_number'] ?? ($order->payerPhone() ?? ''));
-            $street = trim((string) ($ship['street_address'] ?? ''));
-            $city = trim((string) ($ship['city'] ?? ''));
-            $state = trim((string) ($ship['state'] ?? ''));
-            $zip = trim((string) ($ship['zip_code'] ?? ''));
-            $country = trim((string) ($ship['country'] ?? ''));
-            $addressLabel = trim(implode(', ', array_filter([$street, $city, $state, $zip, $country], fn ($v) => $v !== '')));
-            $locationLabel = $resolved['area']->location ?: ($city !== '' ? $city : $resolved['area']->name);
-
-            $notesParts = [
-                $serviceTitle,
-                'Order Service Visit',
-                $locationLabel,
-                $durationMinutes !== null ? ($durationMinutes . ' min') : '-- min',
-                'AED ' . number_format((float) $order->total_amount, 2),
-                'Client: ' . ($clientName !== '' ? $clientName : 'Customer'),
-                'Email: ' . ($clientEmail !== '' ? $clientEmail : '-'),
-                'Phone: ' . ($clientPhone !== '' ? $clientPhone : '-'),
-                'Address: ' . ($addressLabel !== '' ? $addressLabel : '-'),
-                $marker,
-            ];
-
-            return Visit::create([
-                'subscription_id' => null,
-                'order_id' => (int) $order->id,
-                'technician_id' => null,
-                'supervisor_id' => (int) $resolved['supervisor_id'],
-                'area_id' => (int) $resolved['area']->id,
-                'scheduled_date' => $order->booking_date?->toDateString() ?? now()->toDateString(),
-                'scheduled_time' => $bookingSlot['start'],
-                'duration_minutes' => $durationMinutes,
-                'status' => 'pending',
-                'notes' => implode(' | ', $notesParts),
-                'price' => (float) $order->total_amount,
-            ]);
+            return $items->map(fn (OrderItem $item) => self::createOrFindVisitForItem($order, $item, $resolved))
+                ->filter()
+                ->values();
         } catch (\Throwable $e) {
             Log::warning('Order-to-visit dispatch failed: ' . $e->getMessage(), ['order_id' => $order->id]);
-            return null;
+
+            return collect();
         }
+    }
+
+    /**
+     * @deprecated Use createVisitsForPaidOrder() — kept only so any stray external
+     * caller doesn't hard-fail; returns the first visit created/found, if any.
+     */
+    public static function createVisitForPaidOrder(Order $order): ?Visit
+    {
+        return self::createVisitsForPaidOrder($order)->first();
+    }
+
+    /**
+     * @param  array{area: Area, supervisor_id: int}  $resolved
+     */
+    private static function createOrFindVisitForItem(Order $order, OrderItem $item, array $resolved): ?Visit
+    {
+        $existing = Visit::query()->where('order_item_id', $item->id)->first();
+        if ($existing) {
+            return $existing;
+        }
+
+        $marker = self::itemMarker($order->id, $item->id);
+        $legacy = Visit::query()->where('notes', 'like', '%' . $marker . '%')->first();
+
+        // Orders created before per-item scheduling only ever got one Visit, tagged
+        // with the order-only marker (no item id). Adopt that legacy visit for the
+        // first item of a single-item order instead of creating a duplicate.
+        if (! $legacy && $order->items()->count() === 1) {
+            $legacy = Visit::query()->where('notes', 'like', '%' . self::orderMarker($order->id) . '%')->first();
+        }
+
+        if ($legacy) {
+            if ($legacy->order_item_id === null) {
+                $legacy->order_item_id = $item->id;
+                if ($legacy->order_id === null) {
+                    $legacy->order_id = $order->id;
+                }
+                $legacy->save();
+            }
+
+            return $legacy;
+        }
+
+        $ship = $order->getShippingAddressForApi() ?? [];
+        $serviceTitle = (string) ($item->product->name ?? ('Order #' . $order->id . ' item'));
+        $bookingDate = $item->booking_date?->toDateString() ?? $order->booking_date?->toDateString();
+        $bookingSlot = self::parseBookingSlot($item->booking_slot ?? $order->booking_slot);
+        $durationMinutes = $bookingSlot['duration_minutes']
+            ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
+
+        $clientName = (string) ($ship['full_name'] ?? $order->payerDisplayName());
+        $clientEmail = (string) ($ship['email'] ?? ($order->payerEmail() ?? ''));
+        $clientPhone = (string) ($ship['phone_number'] ?? ($order->payerPhone() ?? ''));
+        $street = trim((string) ($ship['street_address'] ?? ''));
+        $city = trim((string) ($ship['city'] ?? ''));
+        $state = trim((string) ($ship['state'] ?? ''));
+        $zip = trim((string) ($ship['zip_code'] ?? ''));
+        $country = trim((string) ($ship['country'] ?? ''));
+        $addressLabel = trim(implode(', ', array_filter([$street, $city, $state, $zip, $country], fn ($v) => $v !== '')));
+        $locationLabel = $resolved['area']->location ?: ($city !== '' ? $city : $resolved['area']->name);
+
+        $notesParts = [
+            $serviceTitle,
+            'Order Service Visit',
+            $locationLabel,
+            $durationMinutes !== null ? ($durationMinutes . ' min') : '-- min',
+            'AED ' . number_format((float) $item->subtotal, 2),
+            'Client: ' . ($clientName !== '' ? $clientName : 'Customer'),
+            'Email: ' . ($clientEmail !== '' ? $clientEmail : '-'),
+            'Phone: ' . ($clientPhone !== '' ? $clientPhone : '-'),
+            'Address: ' . ($addressLabel !== '' ? $addressLabel : '-'),
+            $marker,
+        ];
+
+        return Visit::create([
+            'subscription_id' => null,
+            'order_id' => (int) $order->id,
+            'order_item_id' => (int) $item->id,
+            'technician_id' => null,
+            'supervisor_id' => (int) $resolved['supervisor_id'],
+            'area_id' => (int) $resolved['area']->id,
+            'scheduled_date' => $bookingDate ?? now()->toDateString(),
+            'scheduled_time' => $bookingSlot['start'],
+            'duration_minutes' => $durationMinutes,
+            'status' => 'pending',
+            'notes' => implode(' | ', $notesParts),
+            'price' => (float) $item->subtotal,
+        ]);
+    }
+
+    /**
+     * Two adjacent bracket groups (not one combined marker) so the order-id portion
+     * stays byte-identical to the pre-multi-item marker format — anything still
+     * searching for '[SHOP-ORDER:{id}]' as a substring (or via the equivalent
+     * \[SHOP-ORDER:(\d+)\] regex) keeps matching visits created by this dispatcher.
+     */
+    private static function itemMarker(int $orderId, int $orderItemId): string
+    {
+        return self::orderMarker($orderId) . '[ITEM:' . $orderItemId . ']';
     }
 
     private static function orderMarker(int $orderId): string
@@ -153,30 +212,11 @@ final class OrderToVisitDispatcher
     }
 
     /**
-     * @return array{title:string,duration_minutes:int|null}
-     */
-    private static function serviceMeta(Order $order): array
-    {
-        $item = $order->items()->with('product:id,name,job_duration')->first();
-        if ($item && $item->product && ! empty($item->product->name)) {
-            return [
-                'title' => (string) $item->product->name,
-                'duration_minutes' => self::extractDurationMinutes((string) ($item->product->job_duration ?? '')),
-            ];
-        }
-
-        return [
-            'title' => 'Order #' . $order->id,
-            'duration_minutes' => null,
-        ];
-    }
-
-    /**
-     * Parses the customer's booked slot string (order.booking_slot, e.g.
-     * "10:00 AM - 12:00 PM" / "10:00 - 12:00" / "10:00 AM to 12:00 PM") into a
-     * 24h start time + duration for the Visit's scheduled_time/duration_minutes.
-     * Returns nulls (not an error) when booking_slot is empty or unparseable —
-     * the caller falls back to the product's configured duration in that case.
+     * Parses a booked slot string (e.g. "10:00 AM - 12:00 PM" / "10:00 - 12:00" /
+     * "10:00 AM to 12:00 PM") into a 24h start time + duration for the Visit's
+     * scheduled_time/duration_minutes. Returns nulls (not an error) when the slot
+     * is empty or unparseable — the caller falls back to the product's configured
+     * duration in that case.
      *
      * @return array{start: ?string, duration_minutes: ?int}
      */
@@ -244,4 +284,3 @@ final class OrderToVisitDispatcher
         };
     }
 }
-
