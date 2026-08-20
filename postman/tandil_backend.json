@@ -5308,7 +5308,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"payment_method\": \"stripe\",\n  \"address_id\": 1,\n  \"success_url\": \"https://example.com/ok\",\n  \"cancel_url\": \"https://example.com/cancel\",\n  \"accepted_refund_policy\": true,\n  \"wallet_amount\": 0\n}"
+                      "raw": "{\n  \"payment_method\": \"stripe\",\n  \"address_id\": 1,\n  \"success_url\": \"https://example.com/ok\",\n  \"cancel_url\": \"https://example.com/cancel\",\n  \"accepted_refund_policy\": true,\n  \"wallet_amount\": 0,\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/start",
@@ -5322,7 +5322,7 @@
                         "start"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/start — Stripe Checkout (logged-in). **Required:** `payment_method`, `success_url`, `cancel_url` (valid https URLs), and either `address_id` **or** inline address fields (`full_name`, `phone_number`, `street_address`, `city`, `country`). **Cart:** omit `items` to use DB cart, or send `items: [{product_id, qty}]`. Empty cart + no items → **422** with a clear message. **Mobile:** nested `shipping` or `shipping_address` (camelCase keys) is merged into those fields. **`accepted_refund_policy`:** optional boolean (was strict; `false` no longer blocks). **`wallet_amount`:** optional. Stripe must be enabled + secret configured or you get **422**."
+                    "description": "POST /api/shop/checkout/start — Stripe Checkout (logged-in). **Required:** `payment_method`, `success_url`, `cancel_url` (valid https URLs), and either `address_id` **or** inline address fields (`full_name`, `phone_number`, `street_address`, `city`, `country`). **Cart:** omit `items` to use DB cart, or send `items: [{product_id, qty}]` (multiple products → still ONE order → send `booking_date`/`booking_slot` once, not per item). Empty cart + no items → **422** with a clear message. **Mobile:** nested `shipping` or `shipping_address` (camelCase keys) is merged into those fields. **`accepted_refund_policy`:** optional boolean (was strict; `false` no longer blocks). **`wallet_amount`:** optional. **`booking_date`** (Y-m-d) + **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\") — optional, populates the job's scheduled date/time; aliases `bookingDate`/`date` and `bookingSlot`/`slot`/`timeSlot` also accepted. Stripe must be enabled + secret configured or you get **422**."
                   }
                 },
                 {
@@ -5360,7 +5360,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"payment_method\": \"paypal\",\n  \"email\": \"guest@example.com\",\n  \"full_name\": \"Guest User\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"country\": \"UAE\",\n  \"items\": [{\"product_id\": 1, \"qty\": 2}],\n  \"success_url\": \"https://example.com/ok\",\n  \"cancel_url\": \"https://example.com/cancel\",\n  \"accepted_refund_policy\": true\n}"
+                      "raw": "{\n  \"payment_method\": \"paypal\",\n  \"email\": \"guest@example.com\",\n  \"full_name\": \"Guest User\",\n  \"phone_number\": \"+971501234567\",\n  \"street_address\": \"Sheikh Zayed Road\",\n  \"city\": \"Dubai\",\n  \"country\": \"UAE\",\n  \"items\": [{\"product_id\": 1, \"qty\": 2}, {\"product_id\": 2, \"qty\": 1}],\n  \"success_url\": \"https://example.com/ok\",\n  \"cancel_url\": \"https://example.com/cancel\",\n  \"accepted_refund_policy\": true,\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/start",
@@ -5374,7 +5374,7 @@
                         "start"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/start — Guest PayPal. No Authorization header."
+                    "description": "POST /api/shop/checkout/start — Guest PayPal. No Authorization header. Example here has **2 products in one order** — note `booking_date`/`booking_slot` are still sent only ONCE (order-level), not per item — the whole order gets one scheduled slot regardless of how many products it contains."
                   }
                 },
                 {
@@ -5482,7 +5482,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  }\n}"
+                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  },\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
@@ -5497,7 +5497,7 @@
                         "payment-intent"
                       ]
                     },
-                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Bearer {{token}}** (client). Body: `shipping`, optional **`coupon_code`** (use same code as **K → 2. Apply coupon**), optional `wallet_amount`. Response: `data.client_secret`, `data.order_total`, `data.amount_due`. Must match totals from `POST /api/shop/coupons/apply`. Then POST checkout/confirm with `payment_intent_id` (auto-saved to `stripe_payment_intent_id`)."
+                    "description": "POST /api/shop/checkout/stripe/payment-intent — **Bearer {{token}}** (client). Body: `shipping`, optional **`coupon_code`** (use same code as **K → 2. Apply coupon**), optional `wallet_amount`. **`booking_date`** (Y-m-d) + **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\") — optional but required if you want the job's date/time slot to populate; these are **order-level**, not per product — send them once even when `items`/cart has multiple products, one order = one visit = one slot for all items in it. Aliases also accepted: `bookingDate`/`date`/`selectedDate` and `bookingSlot`/`slot`/`selectedSlot`/`timeSlot`/`time_slot`, or nested `\"booking\": {\"booking_date\":..., \"booking_slot\":...}`. Response: `data.client_secret`, `data.order_total`, `data.amount_due`. Must match totals from `POST /api/shop/coupons/apply`. Then POST checkout/confirm with `payment_intent_id` (auto-saved to `stripe_payment_intent_id`)."
                   }
                 },
                 {
@@ -6029,7 +6029,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  }\n}"
+                      "raw": "{\n  \"is_buy_now\": false,\n  \"coupon_code\": \"SAVE10\",\n  \"shipping\": {\n    \"full_name\": \"Test User\",\n    \"phone\": \"+971501234567\",\n    \"street\": \"Sheikh Zayed Road\",\n    \"city\": \"Dubai\",\n    \"state\": \"DXB\",\n    \"zip_code\": \"00000\",\n    \"country\": \"UAE\"\n  },\n  \"booking_date\": \"2026-08-24\",\n  \"booking_slot\": \"10:00 AM - 12:00 PM\"\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
@@ -6044,7 +6044,7 @@
                         "payment-intent"
                       ]
                     },
-                    "description": "POST payment-intent with **coupon_code** (must match item 2 Apply). `data.order_total` should equal `coupon_order_total` from Apply test script. Order stores coupon_id on confirm."
+                    "description": "POST payment-intent with **coupon_code** (must match item 2 Apply). `data.order_total` should equal `coupon_order_total` from Apply test script. Order stores coupon_id on confirm. Also demonstrates `booking_date`/`booking_slot` — order-level, sent once regardless of coupon or number of products in cart."
                   }
                 },
                 {
