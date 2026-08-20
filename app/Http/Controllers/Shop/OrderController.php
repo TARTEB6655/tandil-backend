@@ -745,33 +745,14 @@ class OrderController extends Controller
         | Try to extract start/end time from booking_slot
         |--------------------------------------------------------------------------
         |
-        | Supported examples:
-        |
-        | "10:00 AM - 12:00 PM"
-        | "10:00 - 12:00"
-        | "10:00 AM to 12:00 PM"
-        | "09:00 AM" (start only)
+        | Product picker usually stores start-only ("09:00 AM"). End is resolved
+        | from admin JobTimeSlot duration when needed.
         |
         */
 
-        $slotStartTime = null;
-        $slotEndTime = null;
-
-        if (! empty($bookingSlot)) {
-            $slot = trim((string) $bookingSlot);
-
-            // Example: 10:00 AM - 12:00 PM
-            if (preg_match(
-                '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
-                $slot,
-                $matches
-            )) {
-                $slotStartTime = trim($matches[1]);
-                $slotEndTime = trim($matches[2]);
-            } elseif (preg_match('/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i', $slot, $matches)) {
-                $slotStartTime = trim($matches[1]);
-            }
-        }
+        $bounds = \App\Support\ShopBookingSlotHelper::resolveDisplayBounds($bookingSlot);
+        $slotStartTime = $bounds['start'];
+        $slotEndTime = $bounds['end'];
 
         /*
         |--------------------------------------------------------------------------

@@ -46,12 +46,14 @@ final class ShopBookingSlotHelper
             $slot,
             $matches
         )) {
-            // Single time like "09:00 AM" from product picker.
+            // Single time like "09:00 AM" from product picker (`slots[].time`).
             if (preg_match('/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM))\s*$/i', $slot, $single)) {
                 try {
+                    $start24 = Carbon::parse(trim($single[1]))->format('H:i');
+
                     return [
-                        'start' => Carbon::parse(trim($single[1]))->format('H:i'),
-                        'duration_minutes' => null,
+                        'start' => $start24,
+                        'duration_minutes' => self::configuredDurationMinutesForStart($start24),
                     ];
                 } catch (\Throwable $e) {
                     return ['start' => null, 'duration_minutes' => null];
@@ -77,6 +79,85 @@ final class ShopBookingSlotHelper
             'start' => $start->format('H:i'),
             'duration_minutes' => $duration > 0 ? (int) $duration : null,
         ];
+    }
+
+    /**
+     * Display bounds for track/order summary.
+     *
+     * Product API exposes `slots[].time` as start-only (e.g. "09:00 AM").
+     * End comes from admin JobTimeSlot duration when the stored string has no range.
+     *
+     * @return array{start: ?string, end: ?string, duration_minutes: ?int}
+     */
+    public static function resolveDisplayBounds(?string $bookingSlot): array
+    {
+        $slot = trim((string) $bookingSlot);
+        if ($slot === '') {
+            return ['start' => null, 'end' => null, 'duration_minutes' => null];
+        }
+
+        if (preg_match(
+            '/^\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*(?:-|–|—|to)\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*$/i',
+            $slot,
+            $matches
+        )) {
+            return [
+                'start' => trim($matches[1]),
+                'end' => trim($matches[2]),
+                'duration_minutes' => self::parseSlotRange($slot)['duration_minutes'],
+            ];
+        }
+
+        $parsed = self::parseSlotRange($slot);
+        $start24 = $parsed['start'];
+        $duration = $parsed['duration_minutes'];
+
+        if ($start24 === null) {
+            return ['start' => null, 'end' => null, 'duration_minutes' => null];
+        }
+
+        try {
+            $startCarbon = Carbon::createFromFormat('H:i', $start24);
+            $startDisplay = $startCarbon->format('h:i A');
+            $endDisplay = null;
+            if ($duration !== null && $duration > 0) {
+                $endDisplay = $startCarbon->copy()->addMinutes($duration)->format('h:i A');
+            }
+
+            return [
+                'start' => $startDisplay,
+                'end' => $endDisplay,
+                'duration_minutes' => $duration,
+            ];
+        } catch (\Throwable $e) {
+            return ['start' => $slot, 'end' => null, 'duration_minutes' => $duration];
+        }
+    }
+
+    public static function configuredDurationMinutesForStart(string $startTime24h): ?int
+    {
+        $start = substr(trim($startTime24h), 0, 5);
+        if ($start === '') {
+            return null;
+        }
+
+        $slot = \App\Models\JobTimeSlot::query()
+            ->where('is_active', true)
+            ->where(function ($q) use ($start) {
+                $q->where('start_time', $start)
+                    ->orWhere('start_time', 'like', $start.':%')
+                    ->orWhere('start_time', 'like', $start.'%');
+            })
+            ->orderBy('sort_order')
+            ->first();
+
+        if ($slot === null) {
+            return null;
+        }
+
+        $minutes = (int) $slot->duration_minutes;
+
+        return $minutes > 0 ? $minutes : null;
     }
 
     public static function slotStartTime24h(?string $bookingSlot): ?string

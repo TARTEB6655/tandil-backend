@@ -36,6 +36,14 @@ class ShopOrderTrackAndCancelTest extends TestCase
             'status' => 'active',
         ]);
 
+        \App\Models\JobTimeSlot::query()->delete();
+        \App\Models\JobTimeSlot::create([
+            'start_time' => '09:00',
+            'duration_minutes' => 120,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
         $order = Order::factory()->create([
             'user_id' => $user->id,
             'package_id' => null,
@@ -62,7 +70,8 @@ class ShopOrderTrackAndCancelTest extends TestCase
             ->assertJsonPath('data.order.items.0.booking_slot', '09:00 AM')
             ->assertJsonPath('data.order_summary.booking_date', '2026-08-21')
             ->assertJsonPath('data.order_summary.booking_slot', '09:00 AM')
-            ->assertJsonPath('data.order_summary.slot_start_time', '09:00 AM');
+            ->assertJsonPath('data.order_summary.slot_start_time', '09:00 AM')
+            ->assertJsonPath('data.order_summary.slot_end_time', '11:00 AM');
     }
 
     public function test_get_orders_track_requires_authentication(): void
