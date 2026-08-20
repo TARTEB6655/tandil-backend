@@ -228,7 +228,7 @@ class JobSchedulingController extends Controller
 
     /**
      * GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD
-     * Jobs calendar with technician-overlap flag per job.
+     * Jobs calendar with technician-overlap flag per job (red "Technician overlap" warning).
      */
     public function calendar(Request $request)
     {
@@ -248,38 +248,24 @@ class JobSchedulingController extends Controller
 
         $visits = Visit::whereDate('scheduled_date', '>=', $from->toDateString())
             ->whereDate('scheduled_date', '<=', $to->toDateString())
-            ->with(['technician:id,name', 'subscription.client:id,name'])
+            ->with([
+                'technician:id,name',
+                'supervisor:id,name',
+                'subscription.client:id,name',
+                'order.user:id,name',
+            ])
             ->orderBy('scheduled_date')
             ->orderBy('scheduled_time')
             ->get();
 
-        // Technician overlap: same technician + same date + overlapping time windows.
-        $overlappingIds = [];
-        $byTechnicianDate = $visits->filter(fn (Visit $v) => $v->technician_id && $v->scheduled_time)
-            ->groupBy(fn (Visit $v) => $v->technician_id.'|'.$v->scheduled_date->toDateString());
-        foreach ($byTechnicianDate as $group) {
-            if ($group->count() < 2) {
-                continue;
-            }
-            foreach ($group as $v) {
-                if (JobSchedulingService::hasTechnicianConflict((int) $v->technician_id, $v->scheduled_date->toDateString(), $v->scheduled_time, (int) $v->id, $v->duration_minutes)) {
-                    $overlappingIds[$v->id] = true;
-                }
-            }
-        }
+        // Pairwise overlap within this calendar window (same technician + overlapping times).
+        $overlapWith = $this->buildTechnicianOverlapMap($visits);
 
-        $jobs = $visits->map(function (Visit $v) use ($overlappingIds) {
-            return [
-                'id' => $v->id,
-                'scheduled_date' => $v->scheduled_date?->toDateString(),
-                'scheduled_time' => $v->scheduled_time,
-                'end_time' => $this->computeEndTime($v),
-                'status' => $v->status,
-                'notes' => $v->notes,
-                'technician' => $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null,
-                'client' => $v->subscription?->client ? ['id' => $v->subscription->client->id, 'name' => $v->subscription->client->name] : null,
-                'technician_overlap' => isset($overlappingIds[$v->id]),
-            ];
+        $jobs = $visits->map(function (Visit $v) use ($overlapWith) {
+            $conflictingIds = $overlapWith[$v->id] ?? [];
+            $hasOverlap = $conflictingIds !== [];
+
+            return $this->calendarJobPayload($v, $hasOverlap, $conflictingIds);
         })->values();
 
         return ApiResponse::success('Jobs calendar retrieved successfully.', [
@@ -287,9 +273,166 @@ class JobSchedulingController extends Controller
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'total' => $jobs->count(),
-            'overlap_count' => count($overlappingIds),
+            'overlap_count' => $jobs->where('technician_overlap', true)->count(),
             'jobs' => $jobs,
         ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Visit>  $visits
+     * @return array<int, list<int>> visit_id => conflicting visit ids
+     */
+    private function buildTechnicianOverlapMap($visits): array
+    {
+        $map = [];
+        $candidates = $visits
+            ->filter(fn (Visit $v) => $v->technician_id && $v->scheduled_time && $v->scheduled_date)
+            ->values();
+
+        for ($i = 0; $i < $candidates->count(); $i++) {
+            /** @var Visit $a */
+            $a = $candidates[$i];
+            for ($j = $i + 1; $j < $candidates->count(); $j++) {
+                /** @var Visit $b */
+                $b = $candidates[$j];
+                if ((int) $a->technician_id !== (int) $b->technician_id) {
+                    continue;
+                }
+                if ($a->scheduled_date->toDateString() !== $b->scheduled_date->toDateString()) {
+                    continue;
+                }
+                if (! $this->visitsTimeWindowsOverlap($a, $b)) {
+                    continue;
+                }
+                $map[$a->id][] = (int) $b->id;
+                $map[$b->id][] = (int) $a->id;
+            }
+        }
+
+        foreach ($map as $id => $ids) {
+            $map[$id] = array_values(array_unique($ids));
+        }
+
+        return $map;
+    }
+
+    private function visitsTimeWindowsOverlap(Visit $a, Visit $b): bool
+    {
+        $aStart = Carbon::parse($a->scheduled_date->toDateString().' '.$a->scheduled_time);
+        $bStart = Carbon::parse($b->scheduled_date->toDateString().' '.$b->scheduled_time);
+        $aEnd = $aStart->copy()->addMinutes($this->resolvedDurationMinutes($a));
+        $bEnd = $bStart->copy()->addMinutes($this->resolvedDurationMinutes($b));
+
+        return $aStart->lt($bEnd) && $bStart->lt($aEnd);
+    }
+
+    private function resolvedDurationMinutes(Visit $v): int
+    {
+        if ($v->duration_minutes !== null && (int) $v->duration_minutes > 0) {
+            return (int) $v->duration_minutes;
+        }
+
+        $end = $this->computeEndTime($v);
+        if ($end && $v->scheduled_time) {
+            $mins = JobSchedulingService::minutesBetween(
+                substr((string) $v->scheduled_time, 0, 5),
+                $end
+            );
+            if ($mins > 0) {
+                return $mins;
+            }
+        }
+
+        return 60;
+    }
+
+    /**
+     * @param  list<int>  $conflictingIds
+     * @return array<string, mixed>
+     */
+    private function calendarJobPayload(Visit $v, bool $hasOverlap, array $conflictingIds = []): array
+    {
+        $endTime = $this->computeEndTime($v);
+        $title = $this->jobTitleFromNotes((string) $v->notes, $v->id);
+        $client = $this->resolveJobClient($v);
+        $technician = $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null;
+        $supervisor = $v->supervisor ? ['id' => $v->supervisor->id, 'name' => $v->supervisor->name] : null;
+
+        return [
+            'id' => $v->id,
+            'title' => $title,
+            'scheduled_date' => $v->scheduled_date?->toDateString(),
+            'scheduled_time' => $v->scheduled_time,
+            'end_time' => $endTime,
+            'time_slot' => $this->formatCalendarTimeSlot($v->scheduled_time, $endTime),
+            'status' => $v->status,
+            'status_label' => $this->jobStatusLabel($v->status),
+            'notes' => $v->notes,
+            'technician' => $technician,
+            'supervisor' => $supervisor,
+            'client' => $client,
+            'assignees_label' => $this->assigneesLabel($client, $supervisor, $technician),
+            'technician_overlap' => $hasOverlap,
+            'overlap_warning' => $hasOverlap ? 'Technician overlap' : null,
+            'overlap_with_job_ids' => $conflictingIds,
+        ];
+    }
+
+    private function resolveJobClient(Visit $v): ?array
+    {
+        if ($v->subscription?->client) {
+            return ['id' => $v->subscription->client->id, 'name' => $v->subscription->client->name];
+        }
+        if ($v->order?->user) {
+            return ['id' => $v->order->user->id, 'name' => $v->order->user->name];
+        }
+        $guest = trim((string) ($v->order?->guest_full_name ?? ''));
+        if ($guest !== '') {
+            return ['id' => null, 'name' => $guest];
+        }
+
+        return null;
+    }
+
+    private function assigneesLabel(?array $client, ?array $supervisor, ?array $technician): ?string
+    {
+        $left = $client['name'] ?? $supervisor['name'] ?? null;
+        $right = $technician['name'] ?? null;
+        if ($left && $right) {
+            return $left.' · '.$right;
+        }
+
+        return $right ?? $left;
+    }
+
+    private function formatCalendarTimeSlot(?string $start, ?string $end): ?string
+    {
+        if (! $start) {
+            return null;
+        }
+        try {
+            $startLabel = Carbon::parse($start)->format('g:i A');
+            if (! $end) {
+                return $startLabel;
+            }
+            $endLabel = Carbon::parse($end)->format('g:i A');
+
+            return $startLabel.' – '.$endLabel;
+        } catch (\Throwable $e) {
+            return $end ? $start.' – '.$end : $start;
+        }
+    }
+
+    private function jobStatusLabel(?string $status): string
+    {
+        return match (strtolower((string) $status)) {
+            'pending' => 'Pending',
+            'scheduled', 'confirmed', 'accepted' => 'Confirmed',
+            'in_progress', 'started' => 'In Progress',
+            'completed', 'done' => 'Completed',
+            'cancelled', 'canceled', 'rejected' => 'Cancelled',
+            default => $status ? ucfirst(str_replace('_', ' ', $status)) : 'Pending',
+        };
     }
 
     /**
@@ -348,7 +491,12 @@ class JobSchedulingController extends Controller
      */
     public function bookingDetail(int $id)
     {
-        $visit = Visit::with(['technician:id,name', 'subscription.client:id,name'])->find($id);
+        $visit = Visit::with([
+            'technician:id,name',
+            'supervisor:id,name',
+            'subscription.client:id,name',
+            'order.user:id,name',
+        ])->find($id);
         if (! $visit) {
             return ApiResponse::error('Job not found.', 404);
         }
@@ -359,24 +507,39 @@ class JobSchedulingController extends Controller
             ? Carbon::parse($scheduledDate)->format('D, M j').($visit->scheduled_time ? ' · '.$visit->scheduled_time.($endTime ? '–'.$endTime : '') : '')
             : null;
 
-        $overlap = ($visit->technician_id && $visit->scheduled_time)
-            ? JobSchedulingService::hasTechnicianConflict((int) $visit->technician_id, $scheduledDate, $visit->scheduled_time, $visit->id, $visit->duration_minutes)
+        $overlap = ($visit->technician_id && $visit->scheduled_time && $scheduledDate)
+            ? JobSchedulingService::hasTechnicianConflict(
+                (int) $visit->technician_id,
+                $scheduledDate,
+                $visit->scheduled_time,
+                $visit->id,
+                $this->resolvedDurationMinutes($visit)
+            )
             : false;
+
+        $client = $this->resolveJobClient($visit);
+        $technician = $visit->technician ? ['id' => $visit->technician->id, 'name' => $visit->technician->name] : null;
+        $supervisor = $visit->supervisor ? ['id' => $visit->supervisor->id, 'name' => $visit->supervisor->name] : null;
 
         return ApiResponse::success('Booking detail retrieved successfully.', [
             'id' => $visit->id,
             'title' => $this->jobTitleFromNotes((string) $visit->notes, $visit->id),
-            'client' => $visit->subscription?->client ? ['id' => $visit->subscription->client->id, 'name' => $visit->subscription->client->name] : null,
-            'technician' => $visit->technician ? ['id' => $visit->technician->id, 'name' => $visit->technician->name] : null,
+            'client' => $client,
+            'technician' => $technician,
+            'supervisor' => $supervisor,
+            'assignees_label' => $this->assigneesLabel($client, $supervisor, $technician),
             'scheduled_date' => $scheduledDate,
             'scheduled_time' => $visit->scheduled_time,
             'end_time' => $endTime,
-            'duration_minutes' => $visit->duration_minutes,
+            'time_slot' => $this->formatCalendarTimeSlot($visit->scheduled_time, $endTime),
+            'duration_minutes' => $visit->duration_minutes ?? $this->resolvedDurationMinutes($visit),
             'current_schedule_label' => $currentScheduleLabel ? 'Currently '.$currentScheduleLabel : null,
             'status' => $visit->status,
+            'status_label' => $this->jobStatusLabel($visit->status),
             'notes' => $visit->notes,
             'internal_notes' => $visit->internal_notes,
             'technician_overlap' => $overlap,
+            'overlap_warning' => $overlap ? 'Technician overlap' : null,
         ]);
     }
 

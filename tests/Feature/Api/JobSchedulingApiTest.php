@@ -263,8 +263,11 @@ class JobSchedulingApiTest extends TestCase
             ->assertJsonPath('data.total', 2)
             ->assertJsonPath('data.overlap_count', 2);
 
-        $flags = collect($res->json('data.jobs'))->pluck('technician_overlap')->all();
-        $this->assertSame([true, true], $flags);
+        $jobs = collect($res->json('data.jobs'));
+        $this->assertTrue($jobs->every(fn ($j) => ($j['technician_overlap'] ?? false) === true));
+        $this->assertTrue($jobs->every(fn ($j) => ($j['overlap_warning'] ?? null) === 'Technician overlap'));
+        $this->assertNotEmpty($jobs->first()['time_slot'] ?? null);
+        $this->assertNotEmpty($jobs->first()['overlap_with_job_ids'] ?? []);
     }
 
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void

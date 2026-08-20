@@ -4,7 +4,7 @@
     "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.16"
+    "version": "3.6.17"
   },
   "item": [
     {
@@ -11997,7 +11997,7 @@
         },
         {
           "name": "K. Job Scheduling",
-          "description": "Admin Job Scheduling: Working hours & capacity, Time slots, Blocked dates & slots, Jobs calendar. Auth: Bearer admin {{token}}. Client-facing 'available slots' lookup used when creating a service request lives in 4. Client Dashboard -> M. Visits -> Get Available Slots.",
+          "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, **Jobs calendar** with technician overlap warning. Auth: Bearer admin. Calendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD` — overlapping jobs return `technician_overlap: true` + `overlap_warning: \"Technician overlap\"`.",
           "item": [
             {
               "name": "A. Working Hours & Capacity",
@@ -12477,7 +12477,7 @@
                         }
                       ]
                     },
-                    "description": "GET /api/admin/job-scheduling/calendar?view=day - Jobs calendar screen. Response data: view, from, to, total, overlap_count, jobs[] (id, scheduled_date, scheduled_time, status, notes, technician {id,name}|null, client {id,name}|null, technician_overlap true when this job's technician has another overlapping job the same day - shown as the red \"Technician overlap\" warning on the mockup)."
+                    "description": "GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD — **Jobs calendar** (screenshot).\n\n**Overlap rule:** same technician + same date + overlapping time windows → both jobs get:\n- `technician_overlap: true`\n- `overlap_warning: \"Technician overlap\"` (red banner text)\n- `overlap_with_job_ids: [...]`\n\n**Each job:** `id`, `title`, `time_slot` (e.g. \"10:00 AM – 11:00 AM\"), `scheduled_date`, `scheduled_time`, `end_time`, `status`, `status_label` (Confirmed), `assignees_label` (\"Client · Technician\"), `technician`, `supervisor`, `client`, `technician_overlap`, `overlap_warning`.\n\nAdmin can reassign via PUT `/api/admin/job-scheduling/jobs/{id}` (`technician_id`). Assigning an already-busy technician for that slot → **422**."
                   }
                 },
                 {
@@ -12516,7 +12516,7 @@
                         }
                       ]
                     },
-                    "description": "Same as Day view, view=week - from/to span the whole week containing the anchor date."
+                    "description": "Same as Day view with `view=week`. Overlap fields identical (`technician_overlap`, `overlap_warning`)."
                   }
                 },
                 {
@@ -12555,7 +12555,7 @@
                         }
                       ]
                     },
-                    "description": "Same as Day view, view=month - from/to span the whole month containing the anchor date."
+                    "description": "Same as Day view with `view=month`. Overlap fields identical (`technician_overlap`, `overlap_warning`)."
                   }
                 },
                 {
@@ -12599,7 +12599,7 @@
                         "{{visit_id}}"
                       ]
                     },
-                    "description": "GET /api/admin/job-scheduling/jobs/{id} - Booking detail screen (tap a job card on the Jobs Calendar). Response data: id, title (first '|' segment of notes, or \"Job #id\"), client {id,name}, technician {id,name}|null, scheduled_date, scheduled_time, end_time (computed from duration_minutes or the matching time slot), duration_minutes, current_schedule_label (e.g. \"Currently Mon, Aug 10 · 10:00–11:00\"), status, notes (client-facing job title/service string), internal_notes (admin-only, editable on this screen), technician_overlap.\n\nTo edit and save: PUT /api/admin/job-scheduling/jobs/{{visit_id}} (next request) - both \"Save changes\" and \"Reschedule & notify\" map to that same endpoint."
+                    "description": "GET /api/admin/job-scheduling/jobs/{id} — Booking detail (tap calendar card).\n\nIncludes `technician_overlap` + `overlap_warning: \"Technician overlap\"` when this job’s technician has another overlapping job. Also: `title`, `time_slot`, `assignees_label`, `status_label`, `client`/`supervisor`/`technician`.\n\nReassign: PUT `/api/admin/job-scheduling/jobs/{{visit_id}}` with `technician_id` (busy tech → **422**)."
                   }
                 },
                 {
