@@ -17,7 +17,11 @@ class EnsureApprovedVendor
             abort(403, 'Vendor access required.');
         }
 
-        $vendor = VendorContext::vendorForUser($user);
+        /** @var \App\Models\Vendor|null $vendor */
+        $vendor = $request->attributes->get('vendor');
+        if ($vendor === null) {
+            $vendor = VendorContext::vendorForUser($user);
+        }
         if ($vendor === null) {
             abort(403, 'Vendor profile not found.');
         }

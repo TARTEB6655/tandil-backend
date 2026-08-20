@@ -20,6 +20,7 @@ class VendorOrderService
     public function listForVendor(Vendor $vendor, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
         $vendorId = $vendor->id;
+        $perPage = max(1, min($perPage, 50));
 
         $q = VendorOrderMapping::query()
             ->where('vendor_id', $vendorId);
@@ -31,20 +32,27 @@ class VendorOrderService
         if (! empty($filters['search'])) {
             $search = trim((string) $filters['search']);
             $q->where(function ($query) use ($search) {
-                $query->where('vendor_order_mappings.id', 'like', "%{$search}%")
-                    ->orWhere('vendor_order_mappings.tracking_number', 'like', "%{$search}%");
+                if (ctype_digit($search)) {
+                    $query->where('vendor_order_mappings.id', (int) $search)
+                        ->orWhere('vendor_order_mappings.order_id', (int) $search);
 
-                if (preg_match('/VND-(\d{4})-(\d+)/i', $search, $matches)) {
-                    $query->orWhere('vendor_order_mappings.id', (int) $matches[2]);
+                    return;
                 }
 
-                $query->orWhereIn('vendor_order_mappings.order_id', function ($sub) use ($search) {
-                    $sub->select('id')
-                        ->from('orders')
-                        ->where('id', 'like', "%{$search}%")
-                        ->orWhere('guest_email', 'like', "%{$search}%")
-                        ->orWhere('guest_full_name', 'like', "%{$search}%");
-                });
+                if (preg_match('/VND-(\d{4})-(\d+)/i', $search, $matches)) {
+                    $query->where('vendor_order_mappings.id', (int) $matches[2]);
+
+                    return;
+                }
+
+                $like = '%'.$search.'%';
+                $query->where('vendor_order_mappings.tracking_number', 'like', $like)
+                    ->orWhereIn('vendor_order_mappings.order_id', function ($sub) use ($like) {
+                        $sub->select('id')
+                            ->from('orders')
+                            ->where('guest_email', 'like', $like)
+                            ->orWhere('guest_full_name', 'like', $like);
+                    });
             });
         }
 
@@ -68,11 +76,12 @@ class VendorOrderService
         }
 
         $itemsByOrder = OrderItem::query()
-            ->select(['id', 'order_id', 'product_id', 'quantity', 'price', 'subtotal'])
+            ->select(['order_items.id', 'order_items.order_id', 'order_items.product_id', 'order_items.quantity', 'order_items.price', 'order_items.subtotal'])
+            ->join('products', 'products.id', '=', 'order_items.product_id')
+            ->where('products.vendor_id', $vendorId)
+            ->whereIn('order_items.order_id', $orderIds)
             ->with(['product' => fn ($query) => $query->select(['id', 'vendor_id', 'name', 'image'])])
-            ->whereIn('order_id', $orderIds)
-            ->whereHas('product', fn ($query) => $query->where('vendor_id', $vendorId))
-            ->orderBy('id')
+            ->orderBy('order_items.id')
             ->get()
             ->groupBy('order_id');
 
@@ -391,16 +400,48 @@ class VendorOrderService
 
     public function findMappingForVendor(Vendor $vendor, int $id): ?VendorOrderMapping
     {
-        return VendorOrderMapping::with([
-            'order.user',
+        $vendorId = (int) $vendor->id;
+
+        $mapping = VendorOrderMapping::with([
+            'order' => fn ($query) => $query->select([
+                'id',
+                'user_id',
+                'guest_email',
+                'guest_full_name',
+                'guest_phone',
+                'guest_city',
+                'guest_country',
+                'shipping_address_id',
+                'payment_method',
+                'payment_status',
+                'payment_reference',
+                'transaction_id',
+                'special_instructions',
+                'estimated_arrival',
+                'created_at',
+            ]),
+            'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
             'order.shippingAddress',
+            'order.items' => fn ($query) => $query
+                ->select(['id', 'order_id', 'product_id', 'quantity', 'price', 'subtotal'])
+                ->whereHas('product', fn ($productQuery) => $productQuery->where('vendor_id', $vendorId)),
+            'order.items.product' => fn ($query) => $query->select(['id', 'vendor_id', 'name', 'image']),
             'order.items.product.primaryImage',
             'statusLogs',
             'vendor.profile',
         ])
-            ->where('vendor_id', $vendor->id)
+            ->where('vendor_id', $vendorId)
             ->where('id', $id)
             ->first();
+
+        if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null) {
+            $mapping->setRelation(
+                'vendorListItems',
+                $mapping->order->relationLoaded('items') ? $mapping->order->items : collect()
+            );
+        }
+
+        return $mapping;
     }
 
     /**

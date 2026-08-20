@@ -22,7 +22,8 @@ class VendorOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $paginator = $this->orders->listForVendor($vendor, $request->only(['status', 'search']), (int) $request->query('per_page', 15));
+        $perPage = (int) $request->query('per_page', 15);
+        $paginator = $this->orders->listForVendor($vendor, $request->only(['status', 'search']), $perPage);
 
         $items = collect($paginator->items())
             ->map(fn (VendorOrderMapping $mapping) => $this->orders->formatListItem($mapping))
