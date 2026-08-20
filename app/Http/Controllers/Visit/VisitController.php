@@ -486,6 +486,7 @@ class VisitController extends Controller
                         'duration_minutes' => $slot['duration_minutes'],
                         'booked_count' => $slot['booked_count'],
                         'remaining' => $slot['remaining'],
+                        'max_bookings' => $slot['max_bookings'] ?? null,
                         'blocked' => $blocked,
                         'available' => (bool) $slot['available'],
                     ];

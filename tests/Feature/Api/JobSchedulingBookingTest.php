@@ -229,6 +229,102 @@ class JobSchedulingBookingTest extends TestCase
             ->assertJsonPath('message', 'This time slot is fully booked. Please choose another slot.');
     }
 
+    public function test_available_slots_respects_max_bookings_with_hhmmss_visit_times(): void
+    {
+        DB::table('job_scheduling_settings')->insert([
+            'working_hours' => json_encode(\App\Models\JobSchedulingSetting::defaultWorkingHours()),
+            'max_bookings_per_slot' => 2,
+            'max_bookings_per_day' => 50,
+            'buffer_minutes' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Stored as HH:mm:ss (common MySQL TIME column) — must still count toward "09:00".
+        Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '09:00:00',
+            'status' => 'scheduled',
+        ]);
+        Visit::create([
+            'subscription_id' => $this->subscription->id,
+            'area_id' => $this->area->id,
+            'supervisor_id' => $this->supervisor->id,
+            'scheduled_date' => self::MON,
+            'scheduled_time' => '09:00',
+            'status' => 'pending',
+        ]);
+
+        JobTimeSlot::create(['start_time' => '09:00', 'duration_minutes' => 60, 'is_active' => true, 'sort_order' => 0]);
+
+        $res = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/visits/available-slots?date='.self::MON)
+            ->assertOk();
+
+        $slotNine = collect($res->json('data.slots'))->firstWhere('start_time', '09:00');
+        $this->assertNotNull($slotNine);
+        $this->assertSame(2, $slotNine['booked_count']);
+        $this->assertSame(0, $slotNine['remaining']);
+        $this->assertSame(2, $slotNine['max_bookings']);
+        $this->assertFalse($slotNine['available']);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/visits', [
+                'subscription_id' => $this->subscription->id,
+                'area_id' => $this->area->id,
+                'scheduled_date' => self::MON,
+                'scheduled_time' => '09:00',
+                'status' => 'pending',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This time slot is fully booked. Please choose another slot.');
+    }
+
+    public function test_paid_order_item_booking_consumes_slot_capacity_even_without_visit_time(): void
+    {
+        DB::table('job_scheduling_settings')->insert([
+            'working_hours' => json_encode(\App\Models\JobSchedulingSetting::defaultWorkingHours()),
+            'max_bookings_per_slot' => 1,
+            'max_bookings_per_day' => 50,
+            'buffer_minutes' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        JobTimeSlot::create(['start_time' => '09:00', 'duration_minutes' => 60, 'is_active' => true, 'sort_order' => 0]);
+
+        $category = \App\Models\Category::factory()->create();
+        $product = \App\Models\Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'price' => 50,
+        ]);
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => $this->client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'total_amount' => 50,
+        ]);
+        \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 50,
+            'subtotal' => 50,
+            'booking_date' => self::MON,
+            'booking_slot' => '09:00 AM',
+        ]);
+
+        $slots = \App\Services\JobSchedulingService::availableSlots(self::MON);
+        $nine = collect($slots)->firstWhere('start_time', '09:00');
+        $this->assertNotNull($nine);
+        $this->assertSame(1, $nine['booked_count']);
+        $this->assertFalse($nine['available']);
+    }
+
     public function test_create_visit_rejects_explicit_technician_conflict(): void
     {
         DB::table('area_technician')->insert([

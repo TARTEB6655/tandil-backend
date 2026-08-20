@@ -354,13 +354,17 @@ class ProductController extends Controller
             $dateString = $date->format('Y-m-d');
 
             $slots = JobSchedulingService::availableSlots($dateString);
+            $hasBookableSlot = collect($slots)->contains(
+                fn ($slot) => ! empty($slot['available'])
+            );
 
             $dates[] = [
                 'date' => $dateString,
                 'day' => $date->format('D'),
                 'day_number' => (int) $date->format('d'),
                 'month' => $date->format('M'),
-                'available' => !empty($slots),
+                // Red / disabled on FE when no bookable slot remains (capacity, blocked, etc.).
+                'available' => $hasBookableSlot,
             ];
         }
 
@@ -409,9 +413,16 @@ class ProductController extends Controller
 
                 'remaining' => $slot['remaining'],
 
+                'max_bookings' => $slot['max_bookings'] ?? null,
+
+                'blocked' => (bool) ($slot['blocked'] ?? false),
+
+                // FE: disable / hide when false (capacity full, blocked, or day full).
                 'available' => (bool) $slot['available'],
             ];
         }, $slots);
+
+        $settings = JobSchedulingService::settings();
 
         return [
             'enabled' => true,
@@ -419,6 +430,10 @@ class ProductController extends Controller
             'date_selection_required' => true,
 
             'time_selection_required' => true,
+
+            'max_bookings_per_slot' => (int) $settings->max_bookings_per_slot,
+
+            'max_bookings_per_day' => (int) $settings->max_bookings_per_day,
 
             'dates' => $dates,
 

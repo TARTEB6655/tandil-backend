@@ -29,8 +29,186 @@ class JobSchedulingService
      */
     private const NON_BLOCKING_STATUSES = [
         'rejected',
+        'cancelled',
+        'canceled',
     ];
 
+    /**
+     * Normalize any time string to HH:mm (24h) for capacity matching.
+     * Handles "09:00", "09:00:00", "9:00 AM", etc.
+     */
+    public static function normalizeTimeHi(?string $time): ?string
+    {
+        if ($time === null) {
+            return null;
+        }
+        $time = trim($time);
+        if ($time === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($time)->format('H:i');
+        } catch (\Throwable $e) {
+            if (preg_match('/^(\d{1,2}):(\d{2})/', $time, $m)) {
+                return sprintf('%02d:%02d', (int) $m[1], (int) $m[2]);
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * How many active bookings currently occupy this date + start time.
+     * Counts visits (any HH:mm / HH:mm:ss storage) plus paid shop order-items
+     * whose booking_slot maps to this start when the visit time is still missing.
+     */
+    public static function countBookingsForSlot(
+        string $date,
+        string $time,
+        ?int $excludeVisitId = null
+    ): int {
+        $slotHi = self::normalizeTimeHi($time);
+        if ($slotHi === null) {
+            return 0;
+        }
+
+        $visits = Visit::query()
+            ->whereDate('scheduled_date', $date)
+            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+            ->when(
+                $excludeVisitId,
+                fn ($q) => $q->where('id', '!=', $excludeVisitId)
+            )
+            ->get(['id', 'scheduled_time', 'order_item_id']);
+
+        $countedOrderItemIds = [];
+        $count = 0;
+
+        foreach ($visits as $visit) {
+            $visitHi = self::normalizeTimeHi(
+                is_string($visit->scheduled_time) ? $visit->scheduled_time : null
+            );
+            if ($visitHi === $slotHi) {
+                $count++;
+                if ($visit->order_item_id) {
+                    $countedOrderItemIds[(int) $visit->order_item_id] = true;
+                }
+            }
+        }
+
+        // Paid shop line bookings that never got scheduled_time on the visit
+        // (or have no visit yet) still consume slot capacity.
+        $orderItems = \App\Models\OrderItem::query()
+            ->whereDate('booking_date', $date)
+            ->whereNotNull('booking_slot')
+            ->where('booking_slot', '!=', '')
+            ->whereHas('order', function ($q) {
+                $q->whereNull('package_id')
+                    ->where('payment_status', 'paid');
+            })
+            ->with(['visit:id,order_item_id,scheduled_time,status'])
+            ->get(['id', 'booking_slot', 'booking_date']);
+
+        foreach ($orderItems as $item) {
+            if (isset($countedOrderItemIds[(int) $item->id])) {
+                continue;
+            }
+
+            $itemHi = \App\Support\ShopBookingSlotHelper::slotStartTime24h($item->booking_slot);
+            if ($itemHi !== $slotHi) {
+                continue;
+            }
+
+            $visit = $item->relationLoaded('visit') ? $item->visit : null;
+            if ($visit) {
+                $status = strtolower((string) ($visit->status ?? ''));
+                if (in_array($status, self::NON_BLOCKING_STATUSES, true)) {
+                    continue;
+                }
+                $visitHi = self::normalizeTimeHi(
+                    is_string($visit->scheduled_time) ? $visit->scheduled_time : null
+                );
+                if ($visitHi === $slotHi) {
+                    continue; // already counted above
+                }
+                if ($visitHi !== null) {
+                    // Visit booked a different clock time — don't double-count this item.
+                    continue;
+                }
+            }
+
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * Precompute booked counts for every HH:mm on a date (one visit query + order items).
+     *
+     * @return array<string, int> map of "H:i" => count
+     */
+    public static function bookedCountsBySlotForDate(string $date): array
+    {
+        $counts = [];
+
+        $visits = Visit::query()
+            ->whereDate('scheduled_date', $date)
+            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+            ->get(['id', 'scheduled_time', 'order_item_id']);
+
+        $countedOrderItemIds = [];
+        foreach ($visits as $visit) {
+            $hi = self::normalizeTimeHi(
+                is_string($visit->scheduled_time) ? $visit->scheduled_time : null
+            );
+            if ($hi === null) {
+                continue;
+            }
+            $counts[$hi] = ($counts[$hi] ?? 0) + 1;
+            if ($visit->order_item_id) {
+                $countedOrderItemIds[(int) $visit->order_item_id] = true;
+            }
+        }
+
+        $orderItems = \App\Models\OrderItem::query()
+            ->whereDate('booking_date', $date)
+            ->whereNotNull('booking_slot')
+            ->where('booking_slot', '!=', '')
+            ->whereHas('order', function ($q) {
+                $q->whereNull('package_id')
+                    ->where('payment_status', 'paid');
+            })
+            ->with(['visit:id,order_item_id,scheduled_time,status'])
+            ->get(['id', 'booking_slot']);
+
+        foreach ($orderItems as $item) {
+            if (isset($countedOrderItemIds[(int) $item->id])) {
+                continue;
+            }
+            $hi = \App\Support\ShopBookingSlotHelper::slotStartTime24h($item->booking_slot);
+            if ($hi === null) {
+                continue;
+            }
+            $visit = $item->relationLoaded('visit') ? $item->visit : null;
+            if ($visit) {
+                $status = strtolower((string) ($visit->status ?? ''));
+                if (in_array($status, self::NON_BLOCKING_STATUSES, true)) {
+                    continue;
+                }
+                $visitHi = self::normalizeTimeHi(
+                    is_string($visit->scheduled_time) ? $visit->scheduled_time : null
+                );
+                if ($visitHi !== null) {
+                    continue;
+                }
+            }
+            $counts[$hi] = ($counts[$hi] ?? 0) + 1;
+        }
+
+        return $counts;
+    }
     /**
      * Get current scheduling settings.
      */
@@ -201,6 +379,8 @@ class JobSchedulingService
             $dayBookedCount >=
             $settings->max_bookings_per_day;
 
+        $bookedBySlot = self::bookedCountsBySlotForDate($date);
+
         /**
          * Get all active configured slots.
          */
@@ -282,7 +462,8 @@ class JobSchedulingService
                 $date,
                 $settings,
                 $dayFull,
-                $dateBlocked
+                $dateBlocked,
+                $bookedBySlot
             ) {
 
                 /**
@@ -294,22 +475,8 @@ class JobSchedulingService
                     $slot->start_time
                 );
 
-                /**
-                 * Count bookings for this exact date/time.
-                 */
-                $booked = Visit::whereDate(
-                    'scheduled_date',
-                    $date
-                )
-                    ->where(
-                        'scheduled_time',
-                        $slot->start_time
-                    )
-                    ->whereNotIn(
-                        'status',
-                        self::NON_BLOCKING_STATUSES
-                    )
-                    ->count();
+                $slotHi = self::normalizeTimeHi((string) $slot->start_time) ?? substr((string) $slot->start_time, 0, 5);
+                $booked = (int) ($bookedBySlot[$slotHi] ?? 0);
 
                 /**
                  * Calculate remaining capacity.
@@ -346,7 +513,7 @@ class JobSchedulingService
                 return [
                     'id' => $slot->id,
 
-                    'start_time' => $slot->start_time,
+                    'start_time' => $slotHi,
 
                     'end_time' => $slot->endTime(),
 
@@ -355,6 +522,8 @@ class JobSchedulingService
                     'booked_count' => $booked,
 
                     'remaining' => $remaining,
+
+                    'max_bookings' => (int) $settings->max_bookings_per_slot,
 
                     /**
                      * true when either the complete date
@@ -538,27 +707,7 @@ class JobSchedulingService
         /**
          * Check capacity for this exact date/time.
          */
-        $bookedForSlot = Visit::whereDate(
-            'scheduled_date',
-            $date
-        )
-            ->where(
-                'scheduled_time',
-                $time
-            )
-            ->whereNotIn(
-                'status',
-                self::NON_BLOCKING_STATUSES
-            )
-            ->when(
-                $excludeVisitId,
-                fn ($q) => $q->where(
-                    'id',
-                    '!=',
-                    $excludeVisitId
-                )
-            )
-            ->count();
+        $bookedForSlot = self::countBookingsForSlot($date, $time, $excludeVisitId);
 
         if (
             $bookedForSlot >=

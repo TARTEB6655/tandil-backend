@@ -268,6 +268,10 @@ class JobSchedulingApiTest extends TestCase
         $this->assertTrue($jobs->every(fn ($j) => ($j['overlap_warning'] ?? null) === 'Technician overlap'));
         $this->assertNotEmpty($jobs->first()['time_slot'] ?? null);
         $this->assertNotEmpty($jobs->first()['overlap_with_job_ids'] ?? []);
+        $this->assertSame($technician->name, $jobs->first()['technician_name'] ?? null);
+        $this->assertSame($supervisor->name, $jobs->first()['supervisor_name'] ?? null);
+        $this->assertStringContainsString($technician->name, (string) ($jobs->first()['assignees_label'] ?? ''));
+        $this->assertStringContainsString($supervisor->name, (string) ($jobs->first()['assignees_label'] ?? ''));
     }
 
     public function test_jobs_calendar_backfills_slot_from_shop_order_item(): void

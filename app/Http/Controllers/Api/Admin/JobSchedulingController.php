@@ -373,8 +373,11 @@ class JobSchedulingController extends Controller
             'status_label' => $this->jobStatusLabel($v->status),
             'notes' => $v->notes,
             'technician' => $technician,
+            'technician_name' => $technician['name'] ?? null,
             'supervisor' => $supervisor,
+            'supervisor_name' => $supervisor['name'] ?? null,
             'client' => $client,
+            'client_name' => $client['name'] ?? null,
             'assignees_label' => $this->assigneesLabel($client, $supervisor, $technician),
             'technician_overlap' => $hasOverlap,
             'overlap_warning' => $hasOverlap ? 'Technician overlap' : null,
@@ -400,13 +403,13 @@ class JobSchedulingController extends Controller
 
     private function assigneesLabel(?array $client, ?array $supervisor, ?array $technician): ?string
     {
-        $left = $client['name'] ?? $supervisor['name'] ?? null;
-        $right = $technician['name'] ?? null;
-        if ($left && $right) {
-            return $left.' · '.$right;
-        }
+        $parts = array_values(array_filter([
+            $client['name'] ?? null,
+            $supervisor['name'] ?? null,
+            $technician['name'] ?? null,
+        ], static fn ($name) => is_string($name) && trim($name) !== ''));
 
-        return $right ?? $left;
+        return $parts !== [] ? implode(' · ', $parts) : null;
     }
 
     private function formatCalendarTimeSlot(?string $start, ?string $end): ?string
@@ -533,7 +536,9 @@ class JobSchedulingController extends Controller
             'title' => $this->jobTitleFromNotes((string) $visit->notes, $visit->id),
             'client' => $client,
             'technician' => $technician,
+            'technician_name' => $technician['name'] ?? null,
             'supervisor' => $supervisor,
+            'supervisor_name' => $supervisor['name'] ?? null,
             'assignees_label' => $this->assigneesLabel($client, $supervisor, $technician),
             'scheduled_date' => $scheduledDate,
             'scheduled_time' => $visit->scheduled_time,
