@@ -1002,6 +1002,34 @@ class ShopStripeMobilePaymentService
             ]);
         }
 
+        // Cart checkout often has per-line booking only — mirror onto the order for track summary.
+        if (($order->booking_date === null || $order->booking_slot === null || $order->booking_slot === '')
+            && is_array($row->lines_json)
+        ) {
+            $dates = [];
+            $slots = [];
+            foreach ($row->lines_json as $line) {
+                if (is_string($line['booking_date'] ?? null) && trim($line['booking_date']) !== '') {
+                    $dates[] = trim($line['booking_date']);
+                }
+                if (is_string($line['booking_slot'] ?? null) && trim($line['booking_slot']) !== '') {
+                    $slots[] = trim($line['booking_slot']);
+                }
+            }
+            $updates = [];
+            if ($order->booking_date === null && $dates !== []) {
+                $unique = array_values(array_unique($dates));
+                $updates['booking_date'] = count($unique) === 1 ? $unique[0] : $dates[0];
+            }
+            if (($order->booking_slot === null || $order->booking_slot === '') && $slots !== []) {
+                $unique = array_values(array_unique($slots));
+                $updates['booking_slot'] = count($unique) === 1 ? $unique[0] : $slots[0];
+            }
+            if ($updates !== []) {
+                $order->update($updates);
+            }
+        }
+
         if ($row->source === 'cart') {
             Cart::where('user_id', $user->id)->delete();
         }

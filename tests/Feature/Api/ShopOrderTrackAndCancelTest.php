@@ -27,6 +27,44 @@ class ShopOrderTrackAndCancelTest extends TestCase
         ];
     }
 
+    public function test_track_order_summary_booking_falls_back_to_order_items(): void
+    {
+        $user = User::factory()->create(['role' => 'client']);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $user->id,
+            'package_id' => null,
+            'order_status' => 'confirmed',
+            'payment_status' => 'paid',
+            'booking_date' => null,
+            'booking_slot' => null,
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+            'booking_date' => '2026-08-21',
+            'booking_slot' => '09:00 AM',
+        ]);
+
+        $response = $this->getJson('/api/orders/'.$order->id.'/track', $this->bearer($user));
+
+        $response->assertOk()
+            ->assertJsonPath('data.order.items.0.booking_date', '2026-08-21')
+            ->assertJsonPath('data.order.items.0.booking_slot', '09:00 AM')
+            ->assertJsonPath('data.order_summary.booking_date', '2026-08-21')
+            ->assertJsonPath('data.order_summary.booking_slot', '09:00 AM')
+            ->assertJsonPath('data.order_summary.slot_start_time', '09:00 AM');
+    }
+
     public function test_get_orders_track_requires_authentication(): void
     {
         $order = Order::factory()->create(['order_status' => 'pending', 'payment_status' => 'pending']);
