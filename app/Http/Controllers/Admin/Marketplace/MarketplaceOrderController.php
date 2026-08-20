@@ -20,10 +20,20 @@ class MarketplaceOrderController extends Controller
 
     public function index(Request $request)
     {
+        $demoMarker = \Database\Seeders\VendorDemoOrdersSeeder::DEMO_MARKER;
+
         $orders = VendorOrderMapping::with(['order.user', 'vendor.profile'])
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
             ->when($request->filled('vendor_id'), fn ($q) => $q->where('vendor_id', $request->query('vendor_id')))
             ->when($request->filled('dispute'), fn ($q) => $q->whereNotNull('dispute_status'))
+            ->when($request->boolean('exclude_demo'), function ($q) use ($demoMarker) {
+                $q->whereHas('order', function ($oq) use ($demoMarker) {
+                    $oq->where(function ($inner) use ($demoMarker) {
+                        $inner->whereNull('special_instructions')
+                            ->orWhere('special_instructions', 'not like', $demoMarker.'%');
+                    });
+                });
+            })
             ->when($request->filled('search'), function ($q) use ($request) {
                 $s = $request->query('search');
                 $q->where('order_id', 'like', "%{$s}%");

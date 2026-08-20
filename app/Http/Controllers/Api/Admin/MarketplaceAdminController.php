@@ -88,9 +88,23 @@ class MarketplaceAdminController extends Controller
 
     public function vendorOrders(Request $request): JsonResponse
     {
-        $items = VendorOrderMapping::with(['order.user', 'vendor.profile'])
+        $excludeDemo = $request->boolean('exclude_demo');
+        $demoMarker = \Database\Seeders\VendorDemoOrdersSeeder::DEMO_MARKER;
+
+        $paginator = VendorOrderMapping::with(['order.user', 'vendor.profile', 'order.items.product'])
             ->when($request->query('vendor_id'), fn ($q, $vendorId) => $q->where('vendor_id', $vendorId))
             ->when($request->query('status'), fn ($q, $s) => $q->where('status', $s))
+            ->when($request->query('payment_status'), function ($q, $status) {
+                $q->whereHas('order', fn ($oq) => $oq->where('payment_status', $status));
+            })
+            ->when($excludeDemo, function ($q) use ($demoMarker) {
+                $q->whereHas('order', function ($oq) use ($demoMarker) {
+                    $oq->where(function ($inner) use ($demoMarker) {
+                        $inner->whereNull('special_instructions')
+                            ->orWhere('special_instructions', 'not like', $demoMarker.'%');
+                    });
+                });
+            })
             ->when($request->query('search'), function ($q, $search) {
                 $q->where(function ($query) use ($search) {
                     $query->where('id', 'like', "%{$search}%")
@@ -101,7 +115,51 @@ class MarketplaceAdminController extends Controller
             ->latest()
             ->paginate(min((int) $request->query('per_page', 15), 100));
 
-        return ApiResponse::success('Vendor orders.', ['items' => $items]);
+        $items = collect($paginator->items())->map(function (VendorOrderMapping $mapping) use ($demoMarker) {
+            $order = $mapping->order;
+            $instructions = (string) ($order?->special_instructions ?? '');
+            $isDemo = str_starts_with($instructions, $demoMarker);
+            $vendorProducts = $order?->items
+                ?->filter(fn ($item) => (int) ($item->product?->vendor_id ?? 0) === (int) $mapping->vendor_id)
+                ->values() ?? collect();
+
+            return [
+                'id' => $mapping->id,
+                'order_id' => $mapping->order_id,
+                'vendor_id' => $mapping->vendor_id,
+                'vendor_name' => $mapping->vendor?->profile?->business_name,
+                'status' => $mapping->status,
+                'is_demo' => $isDemo,
+                'subtotal' => (float) $mapping->subtotal,
+                'tax_amount' => (float) $mapping->tax_amount,
+                'shipping_amount' => (float) $mapping->shipping_amount,
+                'total_amount' => (float) $mapping->total_amount,
+                'commission_amount' => (float) ($mapping->commission_amount ?? 0),
+                'tracking_number' => $mapping->tracking_number,
+                'payment_status' => $order?->payment_status,
+                'payment_method' => $order?->payment_method,
+                'customer_name' => $order?->user?->name ?? $order?->guest_full_name,
+                'customer_email' => $order?->user?->email ?? $order?->guest_email,
+                'products' => $vendorProducts->map(fn ($item) => [
+                    'product_id' => $item->product_id,
+                    'name' => $item->product?->name,
+                    'quantity' => (int) $item->quantity,
+                    'unit_price' => (float) $item->price,
+                    'subtotal' => (float) $item->subtotal,
+                ])->values()->all(),
+                'created_at' => $mapping->created_at?->toIso8601String(),
+            ];
+        })->values()->all();
+
+        return ApiResponse::success('Vendor orders.', [
+            'items' => $items,
+            'pagination' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
     }
 
     public function verifyDocument(Request $request, int $id): JsonResponse

@@ -2,7 +2,7 @@
     <div class="space-y-6">
         <h1 class="text-xl font-semibold">Vendor orders</h1>
         <x-admin.marketplace-nav />
-        <form method="GET" class="flex flex-wrap gap-2">
+        <form method="GET" class="flex flex-wrap gap-2 items-center">
             <input name="search" value="{{ request('search') }}" placeholder="Order ID" class="rounded-lg border-gray-300 text-sm dark:bg-gray-800" />
             <select name="status" class="rounded-lg border-gray-300 text-sm dark:bg-gray-800">
                 <option value="">All statuses</option>
@@ -11,6 +11,7 @@
                 @endforeach
             </select>
             <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="dispute" value="1" @checked(request('dispute')) /> Disputes only</label>
+            <label class="inline-flex items-center gap-2 text-sm"><input type="checkbox" name="exclude_demo" value="1" @checked(request('exclude_demo')) /> Hide demo orders</label>
             <button class="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg">Filter</button>
         </form>
         <div class="bg-white dark:bg-gray-800 rounded-xl border overflow-x-auto">
@@ -20,8 +21,16 @@
                 </tr></thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                     @forelse($orders as $o)
+                        @php
+                            $isDemo = str_starts_with((string) ($o->order?->special_instructions ?? ''), \Database\Seeders\VendorDemoOrdersSeeder::DEMO_MARKER);
+                        @endphp
                         <tr>
-                            <td class="px-4 py-3">#{{ $o->order_id }}</td>
+                            <td class="px-4 py-3">
+                                #{{ $o->order_id }}
+                                @if($isDemo)
+                                    <span class="ml-1 inline-flex rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-800">Demo</span>
+                                @endif
+                            </td>
                             <td class="px-4 py-3">{{ $o->vendor?->profile?->business_name }}</td>
                             <td class="px-4 py-3">{{ $o->order?->user?->name ?? $o->order?->guest_full_name ?? 'Guest' }}</td>
                             <td class="px-4 py-3">{{ ucfirst($o->status) }} @if($o->dispute_status)<span class="text-amber-600 text-xs">· dispute</span>@endif</td>

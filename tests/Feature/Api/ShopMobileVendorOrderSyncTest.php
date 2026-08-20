@@ -126,5 +126,16 @@ class ShopMobileVendorOrderSyncTest extends TestCase
             ->pluck('id')
             ->all();
         $this->assertContains($mapping->id, $ids);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $admin->assignRole('admin');
+        Sanctum::actingAs($admin);
+        $adminList = $this->getJson('/api/admin/marketplace/orders?exclude_demo=1');
+        $adminList->assertOk();
+        $adminIds = collect($adminList->json('data.items') ?? [])->pluck('id')->all();
+        $this->assertContains($mapping->id, $adminIds);
+        $adminRow = collect($adminList->json('data.items'))->firstWhere('id', $mapping->id);
+        $this->assertFalse((bool) ($adminRow['is_demo'] ?? true));
+        $this->assertSame('Vendor Sync Shop', $adminRow['vendor_name'] ?? null);
     }
 }
