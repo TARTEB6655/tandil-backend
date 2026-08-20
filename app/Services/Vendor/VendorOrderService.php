@@ -110,6 +110,7 @@ class VendorOrderService
                 'guest_city',
                 'guest_country',
                 'shipping_address_id',
+                'special_instructions',
                 'created_at',
             ]),
             'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
@@ -198,6 +199,7 @@ class VendorOrderService
             'order_date_label' => $this->formatDate($order?->created_at),
             'status' => $status->value,
             'status_label' => $status->label(),
+            'is_demo' => $this->isDemoOrder($order),
             'customer' => $this->formatCustomer($order),
             'product' => $primaryProduct,
             'product_count' => $vendorItems->count(),
@@ -710,6 +712,18 @@ class VendorOrderService
     private function currency(): string
     {
         return strtoupper((string) config('shop.currency', 'AED'));
+    }
+
+    private function isDemoOrder(?Order $order): bool
+    {
+        if ($order === null) {
+            return false;
+        }
+
+        $marker = \Database\Seeders\VendorDemoOrdersSeeder::DEMO_MARKER;
+        $instructions = (string) ($order->special_instructions ?? '');
+
+        return str_starts_with($instructions, $marker);
     }
 
     private function paddedId(int $id): string

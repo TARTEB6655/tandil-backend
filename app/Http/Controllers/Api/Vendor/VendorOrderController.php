@@ -23,7 +23,22 @@ class VendorOrderController extends Controller
     {
         $vendor = $request->attributes->get('vendor');
         $perPage = (int) $request->query('per_page', 15);
-        $paginator = $this->orders->listForVendor($vendor, $request->only(['status', 'search']), $perPage);
+
+        // Postman/FE often send `?status=` (empty) — treat as "all statuses".
+        $status = trim((string) $request->query('status', ''));
+        $search = trim((string) $request->query('search', ''));
+        if ($status !== '' && ! in_array($status, VendorOrderStatus::values(), true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Invalid status. Allowed: '.implode(', ', VendorOrderStatus::values()).'.'],
+            ]);
+        }
+
+        $filters = array_filter([
+            'status' => $status !== '' ? $status : null,
+            'search' => $search !== '' ? $search : null,
+        ], static fn ($value) => $value !== null && $value !== '');
+
+        $paginator = $this->orders->listForVendor($vendor, $filters, $perPage);
 
         $items = collect($paginator->items())
             ->map(fn (VendorOrderMapping $mapping) => $this->orders->formatListItem($mapping))

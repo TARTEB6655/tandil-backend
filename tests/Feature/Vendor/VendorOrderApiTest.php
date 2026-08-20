@@ -42,6 +42,7 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.items.0.id', $mapping->id)
             ->assertJsonPath('data.items.0.order_number', 'VND-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT))
             ->assertJsonPath('data.items.0.status', 'pending')
+            ->assertJsonPath('data.items.0.is_demo', false)
             ->assertJsonPath('data.items.0.customer.name', 'Ahmed Ali')
             ->assertJsonPath('data.items.0.product.name', 'Fresh Tomatoes')
             ->assertJsonPath('data.items.0.actions.can_confirm', true)
@@ -55,6 +56,7 @@ class VendorOrderApiTest extends TestCase
                         'order_date',
                         'status',
                         'status_label',
+                        'is_demo',
                         'customer' => ['name', 'phone', 'location'],
                         'product' => ['name', 'qty', 'price', 'currency'],
                         'actions',
@@ -62,6 +64,27 @@ class VendorOrderApiTest extends TestCase
                     'pagination',
                 ],
             ]);
+    }
+
+    public function test_vendor_orders_list_accepts_empty_status_query(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Pending);
+
+        $this->withToken($token)
+            ->getJson('/api/vendor/orders?status=&per_page=15')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.id', $mapping->id)
+            ->assertJsonPath('data.pagination.per_page', 15);
+    }
+
+    public function test_vendor_orders_list_rejects_invalid_status(): void
+    {
+        ['token' => $token] = $this->makeVendorUser();
+
+        $this->withToken($token)
+            ->getJson('/api/vendor/orders?status=foo')
+            ->assertStatus(422);
     }
 
     public function test_vendor_order_detail_returns_timeline_and_products(): void

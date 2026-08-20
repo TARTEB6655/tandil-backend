@@ -53,9 +53,8 @@ class VendorApprovalService
             if ($newStatus === VendorStatus::Disabled && $vendor->user) {
                 $vendor->user->update(['status' => 'inactive']);
             }
-            if ($newStatus === VendorStatus::Suspended && $vendor->user) {
-                $vendor->user->tokens()->delete();
-            }
+            // Do not wipe Sanctum tokens on suspend — EnsureVendorAccount already returns 403
+            // with a clear message. Deleting tokens caused "old token dead, login again" loops.
             if ($newStatus === VendorStatus::Approved && $vendor->user) {
                 $vendor->user->update(['status' => 'active']);
             }
