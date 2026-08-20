@@ -270,6 +270,80 @@ class JobSchedulingApiTest extends TestCase
         $this->assertNotEmpty($jobs->first()['overlap_with_job_ids'] ?? []);
     }
 
+    public function test_jobs_calendar_backfills_slot_from_shop_order_item(): void
+    {
+        $admin = $this->admin;
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+        $area = Area::factory()->create(['is_active' => true]);
+        DB::table('area_supervisor')->insert([
+            'area_id' => $area->id,
+            'user_id' => $supervisor->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        \App\Models\JobTimeSlot::query()->delete();
+        \App\Models\JobTimeSlot::create([
+            'start_time' => '09:00',
+            'duration_minutes' => 60,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $category = \App\Models\Category::factory()->create();
+        $product = \App\Models\Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'price' => 100,
+        ]);
+
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'confirmed',
+            'booking_date' => null,
+            'booking_slot' => null,
+        ]);
+
+        $item = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+            'booking_date' => '2026-08-21',
+            'booking_slot' => '09:00 AM',
+        ]);
+
+        // Simulate old visit created before start-only slot parsing worked.
+        Visit::create([
+            'order_id' => $order->id,
+            'order_item_id' => $item->id,
+            'supervisor_id' => $supervisor->id,
+            'area_id' => $area->id,
+            'scheduled_date' => '2026-08-20',
+            'scheduled_time' => null,
+            'duration_minutes' => null,
+            'status' => 'pending',
+            'notes' => $product->name.' | Order Service Visit | Abu Dhabi | -- min | AED 100.00 | [SHOP-ORDER:'.$order->id.'][ITEM:'.$item->id.']',
+        ]);
+
+        $res = $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-08-10')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))->firstWhere('id', Visit::query()->where('order_id', $order->id)->value('id'));
+        $this->assertNotNull($job);
+        $this->assertSame('2026-08-21', $job['scheduled_date']);
+        $this->assertSame('09:00', $job['scheduled_time']);
+        $this->assertSame('10:00', $job['end_time']);
+        $this->assertNotNull($job['time_slot']);
+    }
+
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void
     {
         $client = User::factory()->create(['role' => 'client']);

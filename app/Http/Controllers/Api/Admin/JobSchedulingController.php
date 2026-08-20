@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Models\Visit;
 use App\Notifications\AdminNotification;
 use App\Services\JobSchedulingService;
+use App\Support\OrderToVisitDispatcher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -253,10 +254,13 @@ class JobSchedulingController extends Controller
                 'supervisor:id,name',
                 'subscription.client:id,name',
                 'order.user:id,name',
+                'orderItem.product:id,name,job_duration',
             ])
             ->orderBy('scheduled_date')
             ->orderBy('scheduled_time')
-            ->get();
+            ->get()
+            ->map(fn (Visit $v) => OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($v))
+            ->values();
 
         // Pairwise overlap within this calendar window (same technician + overlapping times).
         $overlapWith = $this->buildTechnicianOverlapMap($visits);
@@ -496,10 +500,13 @@ class JobSchedulingController extends Controller
             'supervisor:id,name',
             'subscription.client:id,name',
             'order.user:id,name',
+            'orderItem.product:id,name,job_duration',
         ])->find($id);
         if (! $visit) {
             return ApiResponse::error('Job not found.', 404);
         }
+
+        $visit = OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($visit);
 
         $endTime = $this->computeEndTime($visit);
         $scheduledDate = $visit->scheduled_date?->toDateString();

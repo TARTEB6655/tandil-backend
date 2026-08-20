@@ -27,10 +27,31 @@ final class OrderToVisitDispatcher
         $visit->loadMissing(['orderItem.product', 'order']);
 
         $item = $visit->orderItem;
-        if ($item === null && $visit->order_id) {
+        $order = $visit->order;
+
+        // Older shop visits sometimes only have the marker in notes.
+        if (($visit->order_id === null || $item === null) && is_string($visit->notes)) {
+            if (preg_match('/\[SHOP-ORDER:(\d+)\]/', $visit->notes, $orderMatch)) {
+                $orderId = (int) $orderMatch[1];
+                if ($visit->order_id === null) {
+                    $visit->order_id = $orderId;
+                }
+                $order = $order ?? Order::query()->find($orderId);
+            }
+            if (preg_match('/\[ITEM:(\d+)\]/', $visit->notes, $itemMatch)) {
+                $itemId = (int) $itemMatch[1];
+                if ($visit->order_item_id === null) {
+                    $visit->order_item_id = $itemId;
+                }
+                $item = $item ?? OrderItem::query()->with('product:id,name,job_duration')->find($itemId);
+            }
+        }
+
+        if ($item === null && ($visit->order_id || $order)) {
+            $orderId = (int) ($visit->order_id ?? $order?->id);
             $items = OrderItem::query()
                 ->with('product:id,name,job_duration')
-                ->where('order_id', $visit->order_id)
+                ->where('order_id', $orderId)
                 ->orderBy('id')
                 ->get();
             if ($items->count() === 1) {
@@ -44,12 +65,25 @@ final class OrderToVisitDispatcher
             return $visit;
         }
 
-        $order = $visit->order ?? Order::query()->find($visit->order_id);
+        $order = $order ?? Order::query()->find($visit->order_id ?? $item->order_id);
         $bookingDate = $item->booking_date?->toDateString()
             ?? $order?->booking_date?->toDateString();
         $bookingSlot = ShopBookingSlotHelper::parseSlotRange($item->booking_slot ?? $order?->booking_slot);
         $durationMinutes = $bookingSlot['duration_minutes']
             ?? self::extractDurationMinutes((string) ($item->product->job_duration ?? ''));
+
+        // Persist order/item link if we recovered it from notes.
+        $linkUpdates = [];
+        if ($visit->order_id === null && ($order?->id || $item->order_id)) {
+            $linkUpdates['order_id'] = (int) ($order?->id ?? $item->order_id);
+        }
+        if ($visit->order_item_id === null && $item->id) {
+            $linkUpdates['order_item_id'] = (int) $item->id;
+        }
+        if ($linkUpdates !== []) {
+            $visit->fill($linkUpdates);
+            $visit->save();
+        }
 
         return self::backfillVisitSchedule($visit, $bookingDate, $bookingSlot['start'], $durationMinutes);
     }
@@ -188,6 +222,10 @@ final class OrderToVisitDispatcher
 
         if (($visit->scheduled_time === null || $visit->scheduled_time === '') && $startTime24h !== null) {
             $updates['scheduled_time'] = $startTime24h;
+            // When recovering a missing time, prefer the order-item booking date.
+            if ($bookingDate !== null) {
+                $updates['scheduled_date'] = $bookingDate;
+            }
         }
 
         if (($visit->duration_minutes === null || (int) $visit->duration_minutes <= 0) && $durationMinutes !== null) {
