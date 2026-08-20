@@ -399,8 +399,10 @@ class ShopCheckoutOrderService
                     $unit * $qty,
                     2
                 ),
-                'booking_date' => self::itemBookingDate($item),
-                'booking_slot' => self::itemBookingSlot($item),
+                // Per-item booking wins; if missing, fall back to the
+                // order-level booking payload.
+                'booking_date' => self::itemBookingDate($item) ?? $bookingDate,
+                'booking_slot' => self::itemBookingSlot($item) ?? $bookingSlot,
             ]);
         }
 
@@ -529,6 +531,10 @@ class ShopCheckoutOrderService
                         Cart::normalizeSelectedOptionIds(
                             $cart->selected_options
                         ),
+                    // Critical: copy per-cart-line scheduling so
+                    // OrderItem booking_date/booking_slot won't end up null.
+                    'booking_date' => $cart->booking_date?->toDateString(),
+                    'booking_slot' => $cart->booking_slot,
                 ];
             }
         } else {
@@ -717,8 +723,10 @@ class ShopCheckoutOrderService
                     $unit * $qty,
                     2
                 ),
-                'booking_date' => self::itemBookingDate($item),
-                'booking_slot' => self::itemBookingSlot($item),
+                // Per-item booking wins; if missing, fall back to
+                // order-level booking values.
+                'booking_date' => self::itemBookingDate($item) ?? $bookingDate,
+                'booking_slot' => self::itemBookingSlot($item) ?? $bookingSlot,
             ]);
         }
 
@@ -789,7 +797,17 @@ class ShopCheckoutOrderService
      */
     private static function itemBookingDate(array $item): ?string
     {
-        $value = $item['booking_date'] ?? $item['bookingDate'] ?? $item['date'] ?? null;
+        $booking = is_array($item['booking'] ?? null) ? $item['booking'] : [];
+
+        $value = $item['booking_date']
+            ?? $item['bookingDate']
+            ?? $item['date']
+            ?? $item['selectedDate']
+            ?? $item['selected_date']
+            ?? ($booking['booking_date']
+                ?? $booking['bookingDate']
+                ?? $booking['date']
+                ?? null);
         if (! is_string($value)) {
             return null;
         }
@@ -803,7 +821,21 @@ class ShopCheckoutOrderService
      */
     private static function itemBookingSlot(array $item): ?string
     {
-        $value = $item['booking_slot'] ?? $item['bookingSlot'] ?? $item['slot'] ?? $item['timeSlot'] ?? null;
+        $booking = is_array($item['booking'] ?? null) ? $item['booking'] : [];
+
+        $value = $item['booking_slot']
+            ?? $item['bookingSlot']
+            ?? $item['slot']
+            ?? $item['timeSlot']
+            ?? $item['time_slot']
+            ?? $item['selectedSlot']
+            ?? $item['selected_slot']
+            ?? ($booking['booking_slot']
+                ?? $booking['bookingSlot']
+                ?? $booking['slot']
+                ?? $booking['timeSlot']
+                ?? $booking['time_slot']
+                ?? null);
         if (! is_string($value)) {
             return null;
         }

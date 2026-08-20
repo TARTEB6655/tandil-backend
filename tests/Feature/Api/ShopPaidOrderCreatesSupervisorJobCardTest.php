@@ -4,6 +4,7 @@ namespace Tests\Feature\Api;
 
 use App\Models\Area;
 use App\Models\Category;
+use App\Models\Cart;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Report;
@@ -237,6 +238,116 @@ class ShopPaidOrderCreatesSupervisorJobCardTest extends TestCase
         $response->assertOk()->assertJsonPath('success', true);
         $response->assertJsonPath('data.date', $bookingDate);
         $response->assertJsonPath('data.time_slot', '10:00 AM - 12:00 PM');
+    }
+
+    public function test_logged_in_cart_per_product_booking_slot_is_preserved_for_visits_and_assignments(): void
+    {
+        Setting::set('paypal_enabled', '1');
+        Config::set('payments.paypal.client_id', '');
+        Config::set('payments.paypal.secret', '');
+
+        $supervisor = User::factory()->create(['role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supervisor, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Dubai Central',
+            'location' => 'Dubai',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach($supervisor->id);
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+
+        $category = Category::factory()->create();
+        $productA = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 10.00,
+            'status' => 'active',
+            'job_duration' => '55 minutes',
+        ]);
+        $productB = Product::factory()->create([
+            'category_id' => $category->id,
+            'price' => 20.00,
+            'status' => 'active',
+            'job_duration' => '60 minutes',
+        ]);
+
+        $bookingDateA = now()->addDays(3)->toDateString();
+        $bookingSlotA = '10:00 AM - 12:00 PM';
+
+        $bookingDateB = now()->addDays(5)->toDateString();
+        $bookingSlotB = '2:00 PM - 4:00 PM';
+
+        Cart::create([
+            'user_id' => $client->id,
+            'product_id' => $productA->id,
+            'quantity' => 1,
+            'booking_date' => $bookingDateA,
+            'booking_slot' => $bookingSlotA,
+        ]);
+        Cart::create([
+            'user_id' => $client->id,
+            'product_id' => $productB->id,
+            'quantity' => 1,
+            'booking_date' => $bookingDateB,
+            'booking_slot' => $bookingSlotB,
+        ]);
+
+        $start = $this->actingAs($client, 'sanctum')->postJson('/api/shop/checkout/start', [
+            'payment_method' => 'paypal',
+            'full_name' => 'Cart Booking Client',
+            'phone_number' => '+971501112222',
+            'street_address' => 'Marina Walk',
+            'city' => 'Dubai',
+            'country' => 'United Arab Emirates',
+            // Intentionally omit `items` so backend uses cart lines (with
+            // booking_date/booking_slot per cart row).
+            'success_url' => 'https://example.com/ok',
+            'cancel_url' => 'https://example.com/cancel',
+        ], ['Accept' => 'application/json']);
+
+        $start->assertStatus(201)->assertJsonPath('success', true);
+        $orderId = (int) $start->json('data.order_id');
+        $paypalOrderId = (string) $start->json('data.paypal_order_id');
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/paypal/capture', [
+            'paypal_order_id' => $paypalOrderId,
+            'order_id' => $orderId,
+        ], ['Accept' => 'application/json'])->assertOk()->assertJsonPath('success', true);
+
+        // 1) Track response should include booking info for each product line.
+        $track = $this->actingAs($client, 'sanctum')->getJson('/api/orders/' . $orderId . '/track', ['Accept' => 'application/json']);
+        $track->assertOk()->assertJsonPath('success', true);
+        $this->assertCount(2, $track->json('data.order.items'));
+        $itemDates = collect($track->json('data.order.items'))->pluck('booking_date')->all();
+        $itemSlots = collect($track->json('data.order.items'))->pluck('booking_slot')->all();
+        $this->assertContains($bookingDateA, $itemDates);
+        $this->assertContains($bookingDateB, $itemDates);
+        $this->assertContains($bookingSlotA, $itemSlots);
+        $this->assertContains($bookingSlotB, $itemSlots);
+
+        // 2) Visits should have per-item scheduled date/time, and supervisor card
+        // should return the exact time_slot strings.
+        $visits = Visit::query()->where('order_id', $orderId)->get();
+        $this->assertCount(2, $visits);
+
+        $expected = [
+            $bookingDateA => $bookingSlotA,
+            $bookingDateB => $bookingSlotB,
+        ];
+
+        foreach ($visits as $visit) {
+            $response = $this->actingAs($supervisor, 'sanctum')
+                ->getJson('/api/supervisor/assignments/' . $visit->id, ['Accept' => 'application/json']);
+            $response->assertOk()->assertJsonPath('success', true);
+
+            $this->assertArrayHasKey((string) ($response->json('data.date') ?? ''), $expected);
+            $date = (string) $response->json('data.date');
+            $timeSlot = (string) $response->json('data.time_slot');
+            $this->assertSame($expected[$date], $timeSlot);
+        }
     }
 }
 
