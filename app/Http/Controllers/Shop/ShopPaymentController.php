@@ -18,6 +18,7 @@ use App\Services\StripeCheckoutSessionService;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\RefundPolicy;
 use App\Support\OrderSupervisorNotifier;
+use App\Support\OrderVendorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -540,6 +541,7 @@ class ShopPaymentController extends Controller
             }
 
             OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            OrderVendorNotifier::notifyVendorsForPaidOrder($order);
             OrderToVisitDispatcher::createVisitsForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());

@@ -25,6 +25,7 @@ class VendorOrderMapping extends Model
         'cancellation_reason',
         'cancelled_at',
         'cancelled_by',
+        'vendor_notified_at',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class VendorOrderMapping extends Model
         'total_amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
         'cancelled_at' => 'datetime',
+        'vendor_notified_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

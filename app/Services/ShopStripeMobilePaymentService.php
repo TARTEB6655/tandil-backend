@@ -15,6 +15,7 @@ use App\Notifications\AdminNotification;
 use App\Services\Vendor\VendorOrderSyncService;
 use App\Support\OrderToVisitDispatcher;
 use App\Support\OrderSupervisorNotifier;
+use App\Support\OrderVendorNotifier;
 use App\Support\RefundPolicy;
 use App\Support\ShopBookingSlotHelper;
 use App\Support\StripeCredentials;
@@ -1073,6 +1074,7 @@ class ShopStripeMobilePaymentService
             }
 
             OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            OrderVendorNotifier::notifyVendorsForPaidOrder($order);
             OrderToVisitDispatcher::createVisitsForPaidOrder($order);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());

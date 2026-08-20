@@ -12,6 +12,7 @@ use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
 use App\Services\ShopOrderCancellationService;
 use App\Support\OrderClientReportService;
+use App\Support\OrderVendorNotifier;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -122,6 +123,10 @@ class OrderController extends Controller
             }
         } catch (\Exception $e) {
             \Log::error('Failed to send payment confirmation notification: '.$e->getMessage());
+        }
+
+        if ($oldPaymentStatus !== 'paid') {
+            OrderVendorNotifier::notifyVendorsForPaidOrder($order->fresh());
         }
 
         return response()->json(['status' => true, 'data' => $order], 200);

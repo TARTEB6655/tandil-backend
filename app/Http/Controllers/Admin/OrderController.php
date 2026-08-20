@@ -9,6 +9,7 @@ use App\Models\Package;
 use App\Services\OrderExportService;
 use App\Services\ShopOrderCancellationService;
 use App\Services\SimpleXlsxWriter;
+use App\Support\OrderVendorNotifier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -190,10 +191,15 @@ class OrderController extends Controller
     public function markPaid($id)
     {
         $order = Order::findOrFail($id);
+        $wasPaid = strtolower((string) $order->payment_status) === 'paid';
         $order->update([
             'payment_status' => 'paid',
             'paid_at' => now(),
         ]);
+
+        if (! $wasPaid) {
+            OrderVendorNotifier::notifyVendorsForPaidOrder($order->fresh());
+        }
 
         return redirect()->back()->with('success', 'Order marked as paid');
     }

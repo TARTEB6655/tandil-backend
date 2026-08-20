@@ -118,6 +118,23 @@ class ShopMobileVendorOrderSyncTest extends TestCase
 
         $mapping = VendorOrderMapping::where('vendor_id', $vendor->id)->first();
         $this->assertNotNull($mapping);
+        $this->assertNotNull($mapping->vendor_notified_at);
+
+        $vendorUser->refresh();
+        $this->assertSame(1, $vendorUser->notifications()->count());
+        $notification = $vendorUser->notifications()->first();
+        $this->assertSame(
+            \App\Notifications\VendorNewPaidOrderNotification::class,
+            $notification->type
+        );
+        $this->assertSame('New paid order', $notification->data['title'] ?? null);
+        $this->assertSame($mapping->id, $notification->data['meta']['vendor_order_mapping_id'] ?? null);
+
+        // Confirm again / re-notify must not duplicate.
+        \App\Support\OrderVendorNotifier::notifyVendorsForPaidOrder(
+            \App\Models\Order::where('payment_reference', 'pi_vendor_sync')->firstOrFail()
+        );
+        $this->assertSame(1, $vendorUser->fresh()->notifications()->count());
 
         Sanctum::actingAs($vendorUser);
         $list = $this->getJson('/api/vendor/orders');
