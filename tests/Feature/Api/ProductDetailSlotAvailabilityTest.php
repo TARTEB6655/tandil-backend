@@ -148,4 +148,56 @@ class ProductDetailSlotAvailabilityTest extends TestCase
         $this->assertSame(2, $slotB['remaining']);
         $this->assertTrue($slotB['available']);
     }
+
+    public function test_admin_working_hours_capacity_changes_appear_on_product_detail(): void
+    {
+        $product = $this->makeProduct();
+
+        $before = $this->getJson('/api/shop/products/'.$product->id.'?date='.$this->date)
+            ->assertOk()
+            ->json('data.booking');
+
+        $this->assertSame(2, $before['max_bookings_per_slot']);
+        $this->assertSame(12, $before['max_bookings_per_day']);
+        $this->assertSame(15, $before['buffer_minutes']);
+        $slotBefore = $this->nineAmSlot($before);
+        $this->assertSame(2, $slotBefore['max_bookings']);
+        $this->assertSame(2, $slotBefore['remaining']);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        try {
+            if (class_exists(\Spatie\Permission\Models\Role::class) && \Illuminate\Support\Facades\Schema::hasTable('roles')) {
+                \Spatie\Permission\Models\Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+                if (method_exists($admin, 'assignRole')) {
+                    $admin->assignRole('admin');
+                }
+            }
+        } catch (\Throwable $e) {
+            //
+        }
+
+        $this->actingAs($admin, 'sanctum')
+            ->putJson('/api/admin/job-scheduling/working-hours', [
+                'max_bookings_per_slot' => 3,
+                'max_bookings_per_day' => 20,
+                'buffer_minutes' => 30,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.max_bookings_per_slot', 3)
+            ->assertJsonPath('data.max_bookings_per_day', 20)
+            ->assertJsonPath('data.buffer_minutes', 30);
+
+        $after = $this->getJson('/api/shop/products/'.$product->id.'?date='.$this->date)
+            ->assertOk()
+            ->json('data.booking');
+
+        $this->assertSame(3, $after['max_bookings_per_slot']);
+        $this->assertSame(20, $after['max_bookings_per_day']);
+        $this->assertSame(30, $after['buffer_minutes']);
+
+        $slotAfter = $this->nineAmSlot($after);
+        $this->assertSame(3, $slotAfter['max_bookings']);
+        $this->assertSame(3, $slotAfter['remaining']);
+        $this->assertTrue($slotAfter['available']);
+    }
 }

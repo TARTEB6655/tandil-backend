@@ -404,8 +404,10 @@ class ProductController extends Controller
             'capacity_scope' => 'product',
             'date_selection_required' => true,
             'time_selection_required' => true,
+            // Live from admin GET/PUT /api/admin/job-scheduling/working-hours
             'max_bookings_per_slot' => (int) $settings->max_bookings_per_slot,
             'max_bookings_per_day' => (int) $settings->max_bookings_per_day,
+            'buffer_minutes' => (int) $settings->buffer_minutes,
             'dates' => $dates,
             'selected_date' => $dateToUse,
             'slots' => $formattedSlots,
