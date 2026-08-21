@@ -158,7 +158,7 @@ class ProductDetailSlotAvailabilityTest extends TestCase
             ->json('data.booking');
 
         $this->assertSame(2, $before['max_bookings_per_slot']);
-        $this->assertSame(12, $before['max_bookings_per_day']);
+        $this->assertSame(50, $before['max_bookings_per_day']);
         $this->assertSame(15, $before['buffer_minutes']);
         $slotBefore = $this->nineAmSlot($before);
         $this->assertSame(2, $slotBefore['max_bookings']);
