@@ -503,6 +503,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);
     Route::put('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);
     Route::post('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);
+    Route::delete('/areas/{id}/supervisors/{supervisorId}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'removeSupervisor']);
     Route::delete('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'destroy']);
 
     // Products Management

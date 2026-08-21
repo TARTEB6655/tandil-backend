@@ -22726,6 +22726,37 @@
               }
             },
             {
+              "name": "Areas - Remove One Supervisor",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/areas/{{area_id}}/supervisors/{{supervisor_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "areas",
+                    "{{area_id}}",
+                    "supervisors",
+                    "{{supervisor_id}}"
+                  ]
+                },
+                "description": "Remove **one** supervisor from a zone. DELETE /api/admin/areas/:area_id/supervisors/:supervisor_id.\n\nOthers stay on the zone. Does **not** delete the zone or the user account.\n\nResponse `data.supervisors` = remaining list `[{id,name}, …]` (not a joined string — FE only displays commas)."
+              }
+            },
+            {
               "name": "Areas - Get",
               "request": {
                 "method": "GET",

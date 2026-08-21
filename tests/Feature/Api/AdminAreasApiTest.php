@@ -336,6 +336,38 @@ class AdminAreasApiTest extends TestCase
         $this->assertDatabaseHas('areas', ['id' => $canonicalId, 'name' => 'Abu Dhabi']);
     }
 
+    public function test_remove_one_supervisor_from_zone_keeps_others(): void
+    {
+        $supB = User::factory()->create(['name' => 'hamood', 'role' => 'supervisor']);
+        $supC = User::factory()->create(['name' => 'john', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+        $this->assignRoleIfAvailable($supC, 'supervisor');
+
+        $area = Area::factory()->create(['name' => 'Abu Dhabi', 'location' => 'Abu Dhabi']);
+        $area->supervisors()->attach([$this->supervisor->id, $supB->id, $supC->id]);
+
+        $res = $this->deleteJson(
+            '/api/admin/areas/'.$area->id.'/supervisors/'.$supB->id,
+            [],
+            $this->authHeaders()
+        );
+        $res->assertOk();
+        $res->assertJsonPath('success', true);
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supC->id],
+            $res->json('data.supervisor_ids')
+        );
+        $this->assertDatabaseMissing('area_supervisor', [
+            'area_id' => $area->id,
+            'user_id' => $supB->id,
+        ]);
+        $this->assertDatabaseHas('area_supervisor', [
+            'area_id' => $area->id,
+            'user_id' => $this->supervisor->id,
+        ]);
+        $this->assertDatabaseHas('areas', ['id' => $area->id]);
+    }
+
     public function test_area_show_returns_id_location_supervisor_id(): void
     {
         $area = Area::factory()->create(['location' => 'Show Test']);

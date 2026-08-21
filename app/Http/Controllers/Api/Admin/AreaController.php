@@ -639,6 +639,31 @@ class AreaController extends Controller
     }
 
     /**
+     * DELETE /api/admin/areas/{id}/supervisors/{supervisorId}
+     * Remove ONE supervisor from this zone. Others stay. Zone itself is not deleted.
+     */
+    public function removeSupervisor(int $id, int $supervisorId): JsonResponse
+    {
+        $area = Area::with('supervisors')->findOrFail($id);
+
+        if (! $area->supervisors()->where('users.id', $supervisorId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'That supervisor is not assigned to this zone.',
+            ], 404);
+        }
+
+        $area->supervisors()->detach($supervisorId);
+        $area->load('supervisors');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Supervisor removed from zone.',
+            'data' => $this->areaToArray($area),
+        ]);
+    }
+
+    /**
      * DELETE /api/admin/areas/{id}
      */
     public function destroy(int $id): JsonResponse
