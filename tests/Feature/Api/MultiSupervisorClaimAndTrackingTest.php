@@ -388,4 +388,94 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $orderProcessing->refresh();
         $this->assertSame('confirmed', $orderProcessing->order_status);
     }
+
+    public function test_recreated_order_visit_detail_fills_client_and_address_from_order(): void
+    {
+        $sup = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup']);
+        $this->assignRoleIfAvailable($sup, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'Abu Dhabi',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach([$sup->id]);
+
+        $client = User::factory()->create([
+            'role' => 'client',
+            'name' => 'Client One',
+            'email' => 'client1@test.com',
+            'phone' => '2212122121',
+        ]);
+        $this->assignRoleIfAvailable($client, 'client');
+
+        $address = \App\Models\UserAddress::create([
+            'user_id' => $client->id,
+            'full_name' => 'Client One',
+            'phone_number' => '2212122121',
+            'street_address' => 'Villa 12, Al Reem Island',
+            'city' => 'Abu Dhabi',
+            'state' => 'Abu Dhabi',
+            'zip_code' => '00000',
+            'country' => 'UAE',
+            'is_default' => true,
+        ]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'Palm Tree Care',
+            'status' => 'active',
+            'price' => 95,
+            'job_duration' => '60 min',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'processing',
+            'shipping_address_id' => $address->id,
+            'total_amount' => 104.75,
+            'subtotal_amount' => 95,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 95,
+            'subtotal' => 95,
+            'booking_date' => '2026-07-21',
+            'booking_slot' => '09:00 AM',
+        ]);
+
+        $visit = Visit::create([
+            'area_id' => $area->id,
+            'order_id' => null,
+            'supervisor_id' => $sup->id,
+            'technician_id' => null,
+            'scheduled_date' => '2026-07-21',
+            'scheduled_time' => null,
+            'duration_minutes' => null,
+            'status' => 'pending',
+            'notes' => 'Recreated from Order #'.$order->id,
+            'price' => 104.75,
+        ]);
+
+        $detail = $this->actingAs($sup, 'sanctum')
+            ->getJson('/api/supervisor/assignments/'.$visit->id);
+        $detail->assertOk();
+        $detail->assertJsonPath('data.customer.name', 'Client One');
+        $detail->assertJsonPath('data.customer.email', 'client1@test.com');
+        $detail->assertJsonPath('data.customer.phone', '2212122121');
+        $detail->assertJsonPath('data.client_name', 'Client One');
+        $detail->assertJsonPath('data.client_email', 'client1@test.com');
+        $detail->assertJsonPath('data.client_phone', '2212122121');
+        $detail->assertJsonPath('data.title', 'Palm Tree Care');
+        $detail->assertJsonPath('data.location', 'Abu Dhabi');
+        $this->assertStringContainsString('Al Reem Island', (string) $detail->json('data.address'));
+        $this->assertSame(60, (int) $detail->json('data.duration_minutes'));
+        $this->assertNotEmpty((string) $detail->json('data.price_display'));
+    }
 }

@@ -1067,12 +1067,12 @@ class SupervisorDashboardApiController extends Controller
 
     private function formatAssignmentListItem($visit)
     {
-        $visit->loadMissing('area:id,name,location');
+        $visit->loadMissing(['area:id,name,location', 'order.shippingAddress', 'order.user', 'orderItem.product']);
+        $visit = OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($visit);
+        $visit->loadMissing(['area:id,name,location', 'order.shippingAddress', 'order.user', 'orderItem.product']);
+
         $visit->makeHidden(['subscription_id', 'subscription']);
-        $meta = $this->parseVisitMetaFromNotes(
-            (string) ($visit->notes ?? ''),
-            $visit->order_id ? (int) $visit->order_id : null
-        );
+        $meta = $this->resolveAssignmentDisplayMeta($visit);
         $visit = $this->syncAndApplyVisitScheduleFields($visit);
         $visit->title = $meta['farm_name'] ?? ('Task #'.$visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
@@ -1080,7 +1080,9 @@ class SupervisorDashboardApiController extends Controller
         $visit->area_id = $visit->area_id !== null ? (int) $visit->area_id : null;
         $visit->area_name = $visit->area?->name;
         $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
-        $visit->price_display = $visit->price !== null ? 'AED '.number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+        $visit->price_display = $visit->price !== null
+            ? 'AED '.number_format((float) $visit->price, 2)
+            : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
         $visit->address = $meta['address'] ?? $visit->location;
         $visit->client_name = $meta['client_name'] ?? null;
@@ -1100,29 +1102,47 @@ class SupervisorDashboardApiController extends Controller
     public function assignmentsShow(Request $request, int $id): JsonResponse
     {
         $visit = $this->editableAssignmentVisitsQuery($request)
-            ->with('supervisor', 'technician', 'subscription.client')
+            ->with([
+                'supervisor',
+                'technician',
+                'subscription.client',
+                'area:id,name,location',
+                'order.user',
+                'order.shippingAddress',
+                'orderItem.product:id,name,job_duration',
+            ])
             ->find($id);
         if (! $visit) {
             return response()->json(['success' => false, 'message' => 'Assignment not found.'], 404);
         }
+
+        $visit = OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($visit);
+        $visit->loadMissing(['order.user', 'order.shippingAddress', 'orderItem.product', 'area']);
+
         $sub = $visit->subscription;
         $client = $sub?->client;
-        $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-        $meta = $this->parseVisitMetaFromNotes(
-            (string) ($visit->notes ?? ''),
-            $visit->order_id ? (int) $visit->order_id : null
-        );
+        $meta = $this->resolveAssignmentDisplayMeta($visit);
         $visit = $this->syncAndApplyVisitScheduleFields($visit);
-        $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
+
+        $visit->title = $meta['farm_name'] ?? ('Task #'.$visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
-        $visit->location = $meta['location'] ?? null;
+        $visit->location = $meta['location'] ?? ($visit->area?->location ?: $visit->area?->name);
+        $visit->area_id = $visit->area_id !== null ? (int) $visit->area_id : null;
+        $visit->area_name = $visit->area?->name;
         $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
-        $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+        $visit->price_display = $visit->price !== null
+            ? 'AED '.number_format((float) $visit->price, 2)
+            : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
         $visit->address = $meta['address'] ?? $visit->location;
-        $visit->makeHidden(['supervisor']);
+        $visit->client_name = $meta['client_name'] ?? null;
+        $visit->client_email = $meta['client_email'] ?? null;
+        $visit->client_phone = $meta['client_phone'] ?? null;
         $visit->is_unclaimed = $visit->supervisor_id === null;
         $visit->can_claim = $visit->supervisor_id === null;
+        $visit->can_reject = $visit->supervisor_id === null;
+
+        $orderUser = $visit->order?->user;
         $visit->customer = $client ? [
             'id' => $client->id,
             'name' => $client->name,
@@ -1130,12 +1150,13 @@ class SupervisorDashboardApiController extends Controller
             'phone' => $client->phone ?? null,
             'profile_picture_url' => $client->profile_picture_url ?? null,
         ] : [
-            'id' => null,
-            'name' => $meta['client_name'] ?? null,
-            'email' => $meta['client_email'] ?? null,
-            'phone' => $meta['client_phone'] ?? null,
-            'profile_picture_url' => null,
+            'id' => $orderUser?->id,
+            'name' => $meta['client_name'] ?? $orderUser?->name,
+            'email' => $meta['client_email'] ?? $orderUser?->email,
+            'phone' => $meta['client_phone'] ?? ($orderUser?->phone ?? null),
+            'profile_picture_url' => $orderUser?->profile_picture_url ?? null,
         ];
+
         $visit->subscription = $sub ? [
             'id' => $sub->id,
             'plan' => $sub->plan,
@@ -1153,6 +1174,8 @@ class SupervisorDashboardApiController extends Controller
                 'profile_picture_url' => $client->profile_picture_url ?? null,
             ] : null,
         ] : null;
+
+        $visit->makeHidden(['supervisor', 'technician', 'area', 'order', 'orderItem', 'subscription_id']);
 
         return response()->json([
             'success' => true,
@@ -1181,24 +1204,7 @@ class SupervisorDashboardApiController extends Controller
                 ->orderByDesc('id')
                 ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
             $pending->getCollection()->transform(function ($visit) {
-                $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-                $meta = $this->parseVisitMetaFromNotes(
-            (string) ($visit->notes ?? ''),
-            $visit->order_id ? (int) $visit->order_id : null
-        );
-                $visit = $this->syncAndApplyVisitScheduleFields($visit);
-                $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
-                $visit->service_name = $meta['service_name'] ?? null;
-                $visit->location = $meta['location'] ?? null;
-                $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
-                $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
-                $visit->supervisor_name = $visit->supervisor?->name ?? null;
-                $visit->address = $meta['address'] ?? $visit->location;
-                $visit->client_name = $meta['client_name'] ?? null;
-                $visit->client_email = $meta['client_email'] ?? null;
-                $visit->client_phone = $meta['client_phone'] ?? null;
-                $visit->makeHidden(['supervisor']);
-                return $visit;
+                return $this->formatAssignmentListItem($visit);
             });
         $available_tasks = $pending->getCollection()->values()->all();
 
@@ -1789,6 +1795,123 @@ class SupervisorDashboardApiController extends Controller
             : null;
 
         return $visit;
+    }
+
+    /**
+     * Build display meta for supervisor job cards.
+     * Prefer rich notes (shop dispatcher format); for "Recreated from Order #N"
+     * orphans, fill client/location/duration from the linked order.
+     *
+     * @return array{
+     *   farm_name: ?string,
+     *   service_name: ?string,
+     *   location: ?string,
+     *   duration_minutes: ?int,
+     *   price_display: ?string,
+     *   client_name: ?string,
+     *   client_email: ?string,
+     *   client_phone: ?string,
+     *   address: ?string
+     * }
+     */
+    private function resolveAssignmentDisplayMeta(Visit $visit): array
+    {
+        $notes = (string) ($visit->notes ?? '');
+        $meta = $this->parseVisitMetaFromNotes(
+            $notes,
+            $visit->order_id ? (int) $visit->order_id : null
+        );
+
+        // Notes that are only "Recreated from Order #N" are not a real product title.
+        if ($meta['farm_name'] !== null && preg_match('/^Recreated from Order\s*#\s*\d+$/i', (string) $meta['farm_name'])) {
+            $meta['farm_name'] = null;
+            $meta['service_name'] = $meta['service_name'] ?: null;
+        }
+
+        $order = $visit->order;
+        if (! $order) {
+            $orderId = $visit->order_id
+                ? (int) $visit->order_id
+                : OrderToVisitDispatcher::orderIdFromVisitNotes($notes);
+            if ($orderId) {
+                $order = Order::query()
+                    ->with(['user', 'shippingAddress', 'items.product:id,name,job_duration'])
+                    ->find($orderId);
+            }
+        }
+
+        if (! $order) {
+            if (($meta['location'] === null || $meta['location'] === '') && $visit->area) {
+                $meta['location'] = $visit->area->location ?: $visit->area->name;
+            }
+
+            return $meta;
+        }
+
+        $order->loadMissing(['user', 'shippingAddress', 'items.product:id,name,job_duration']);
+        $ship = $order->getShippingAddressForApi() ?? [];
+        $item = $visit->orderItem;
+        if (! $item && $order->relationLoaded('items')) {
+            $item = $order->items->first();
+        }
+        if (! $item) {
+            $item = $order->items()->with('product:id,name,job_duration')->orderBy('id')->first();
+        }
+
+        $productName = trim((string) ($item?->product?->name ?? ''));
+        if (($meta['farm_name'] === null || $meta['farm_name'] === '') && $productName !== '') {
+            $meta['farm_name'] = $productName;
+        }
+        if (($meta['service_name'] === null || $meta['service_name'] === '') && $productName !== '') {
+            $meta['service_name'] = 'Order Service';
+        }
+
+        $city = trim((string) ($ship['city'] ?? $order->guest_city ?? ''));
+        if (($meta['location'] === null || $meta['location'] === '') && $city !== '') {
+            $meta['location'] = $city;
+        }
+        if (($meta['location'] === null || $meta['location'] === '') && $visit->area) {
+            $meta['location'] = $visit->area->location ?: $visit->area->name;
+        }
+
+        $street = trim((string) ($ship['street_address'] ?? $order->guest_street_address ?? ''));
+        $state = trim((string) ($ship['state'] ?? $order->guest_state ?? ''));
+        $zip = trim((string) ($ship['zip_code'] ?? $order->guest_zip_code ?? ''));
+        $country = trim((string) ($ship['country'] ?? $order->guest_country ?? ''));
+        $addressLabel = trim(implode(', ', array_filter([$street, $city, $state, $zip, $country], fn ($v) => $v !== '')));
+        if (($meta['address'] === null || $meta['address'] === '') && $addressLabel !== '') {
+            $meta['address'] = $addressLabel;
+        }
+
+        $clientName = trim((string) ($ship['full_name'] ?? $order->payerDisplayName() ?? $order->user?->name ?? ''));
+        if (($meta['client_name'] === null || $meta['client_name'] === '') && $clientName !== '' && strcasecmp($clientName, 'Guest') !== 0) {
+            $meta['client_name'] = $clientName;
+        } elseif (($meta['client_name'] === null || $meta['client_name'] === '') && $order->user?->name) {
+            $meta['client_name'] = (string) $order->user->name;
+        }
+
+        $clientEmail = trim((string) ($ship['email'] ?? $order->guest_email ?? $order->user?->email ?? ''));
+        if (($meta['client_email'] === null || $meta['client_email'] === '') && $clientEmail !== '') {
+            $meta['client_email'] = $clientEmail;
+        }
+
+        $clientPhone = trim((string) ($ship['phone_number'] ?? $order->guest_phone ?? $order->user?->phone ?? ''));
+        if (($meta['client_phone'] === null || $meta['client_phone'] === '') && $clientPhone !== '') {
+            $meta['client_phone'] = $clientPhone;
+        }
+
+        if ($meta['duration_minutes'] === null) {
+            $meta['duration_minutes'] = $visit->duration_minutes
+                ?? $this->durationMinutesFromShopOrderMarker($notes, (int) $order->id);
+        }
+
+        if (($meta['price_display'] === null || $meta['price_display'] === '') && $visit->price !== null) {
+            $meta['price_display'] = 'AED '.number_format((float) $visit->price, 2);
+        } elseif (($meta['price_display'] === null || $meta['price_display'] === '') && $order->total_amount !== null) {
+            $meta['price_display'] = 'AED '.number_format((float) $order->total_amount, 2);
+        }
+
+        return $meta;
     }
 
     private function parseVisitMetaFromNotes(string $notes, ?int $visitOrderId = null): array
