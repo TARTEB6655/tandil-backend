@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\JobBlockedDate;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
+use App\Models\ProductBlockedDate;
+use App\Models\ProductTimeSlot;
 use App\Models\Visit;
 use Carbon\Carbon;
 
@@ -282,13 +284,22 @@ class JobSchedulingService
     /**
      * Check whether the complete date is blocked.
      */
-    public static function isDateFullyBlocked(string $date): bool
+    public static function isDateFullyBlocked(string $date, ?int $productId = null): bool
     {
-        return JobBlockedDate::whereDate('date', $date)
-            ->where(
-                'block_type',
-                JobBlockedDate::TYPE_FULL_DAY
-            )
+        if (JobBlockedDate::whereDate('date', $date)
+            ->where('block_type', JobBlockedDate::TYPE_FULL_DAY)
+            ->exists()) {
+            return true;
+        }
+
+        if ($productId === null) {
+            return false;
+        }
+
+        return ProductBlockedDate::query()
+            ->where('product_id', $productId)
+            ->whereDate('date', $date)
+            ->where('block_type', ProductBlockedDate::TYPE_FULL_DAY)
             ->exists();
     }
 
@@ -297,15 +308,112 @@ class JobSchedulingService
      */
     public static function isSlotBlocked(
         string $date,
-        string $time
+        string $time,
+        ?int $productId = null
     ): bool {
-        return JobBlockedDate::whereDate('date', $date)
-            ->where(
-                'block_type',
-                JobBlockedDate::TYPE_TIME_SLOT
-            )
-            ->where('time', $time)
+        $timeHi = self::normalizeTimeHi($time) ?? substr($time, 0, 5);
+
+        $global = JobBlockedDate::whereDate('date', $date)
+            ->where('block_type', JobBlockedDate::TYPE_TIME_SLOT)
+            ->get(['time'])
+            ->contains(function (JobBlockedDate $block) use ($timeHi) {
+                $blockHi = self::normalizeTimeHi((string) $block->time) ?? substr((string) $block->time, 0, 5);
+
+                return $blockHi === $timeHi;
+            });
+
+        if ($global) {
+            return true;
+        }
+
+        if ($productId === null) {
+            return false;
+        }
+
+        return ProductBlockedDate::query()
+            ->where('product_id', $productId)
+            ->whereDate('date', $date)
+            ->where('block_type', ProductBlockedDate::TYPE_TIME_SLOT)
+            ->get(['time'])
+            ->contains(function (ProductBlockedDate $block) use ($timeHi) {
+                $blockHi = self::normalizeTimeHi((string) $block->time) ?? substr((string) $block->time, 0, 5);
+
+                return $blockHi === $timeHi;
+            });
+    }
+
+    /**
+     * Whether this product has any custom time slots configured.
+     */
+    public static function productUsesCustomSlots(?int $productId): bool
+    {
+        if ($productId === null) {
+            return false;
+        }
+
+        return ProductTimeSlot::query()
+            ->where('product_id', $productId)
             ->exists();
+    }
+
+    /**
+     * Active product slots that apply on a given date.
+     *
+     * @return \Illuminate\Support\Collection<int, ProductTimeSlot>
+     */
+    public static function productSlotsForDate(int $productId, string $date)
+    {
+        return ProductTimeSlot::query()
+            ->where('product_id', $productId)
+            ->where('is_active', true)
+            ->where(function ($q) use ($date) {
+                $q->whereNull('date')
+                    ->orWhereDate('date', $date);
+            })
+            ->orderBy('sort_order')
+            ->orderBy('start_time')
+            ->get();
+    }
+
+    /**
+     * Upcoming bookable dates for product detail calendar.
+     * Custom date-only slots → those dates; otherwise next N days.
+     *
+     * @return list<string> Y-m-d
+     */
+    public static function candidateDatesForProduct(?int $productId, int $daysToShow = 7): array
+    {
+        $today = Carbon::today();
+
+        if ($productId !== null && self::productUsesCustomSlots($productId)) {
+            $hasRecurring = ProductTimeSlot::query()
+                ->where('product_id', $productId)
+                ->where('is_active', true)
+                ->whereNull('date')
+                ->exists();
+
+            if (! $hasRecurring) {
+                return ProductTimeSlot::query()
+                    ->where('product_id', $productId)
+                    ->where('is_active', true)
+                    ->whereNotNull('date')
+                    ->whereDate('date', '>=', $today->toDateString())
+                    ->orderBy('date')
+                    ->limit(60)
+                    ->pluck('date')
+                    ->map(fn ($d) => Carbon::parse($d)->toDateString())
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        }
+
+        $dates = [];
+        for ($i = 0; $i < $daysToShow; $i++) {
+            $dates[] = $today->copy()->addDays($i)->format('Y-m-d');
+        }
+
+        return $dates;
     }
 
     /**
@@ -409,7 +517,7 @@ class JobSchedulingService
          * slots with blocked=true so frontend can display
          * the selected date as blocked.
          */
-        $dateBlocked = self::isDateFullyBlocked($date);
+        $dateBlocked = self::isDateFullyBlocked($date, $productId);
 
         /**
          * Get total bookings for the date (product-scoped when set).
@@ -423,129 +531,95 @@ class JobSchedulingService
         $bookedBySlot = self::bookedCountsBySlotForDate($date, $productId);
 
         /**
-         * Get all active configured slots.
+         * Slot source: product custom slots when configured, else global.
+         *
+         * @var \Illuminate\Support\Collection<int, object>
          */
-        $slots = JobTimeSlot::where(
-            'is_active',
-            true
-        )
-            ->orderBy('sort_order')
-            ->orderBy('start_time')
-            ->get()
-            ->filter(function (JobTimeSlot $slot) use ($dayCfg) {
-
-                /**
-                 * Slot start.
-                 */
-                $slotStart = Carbon::createFromFormat(
-                    'H:i',
-                    substr(
-                        (string) $slot->start_time,
-                        0,
-                        5
-                    )
-                );
-
-                /**
-                 * Slot end calculated from model.
-                 */
-                $slotEnd = Carbon::createFromFormat(
-                    'H:i',
-                    substr(
-                        (string) $slot->endTime(),
-                        0,
-                        5
-                    )
-                );
-
-                /**
-                 * Working hours start.
-                 */
-                $workingStart = Carbon::createFromFormat(
-                    'H:i',
-                    substr(
-                        (string) $dayCfg['start'],
-                        0,
-                        5
-                    )
-                );
-
-                /**
-                 * Working hours end.
-                 */
-                $workingEnd = Carbon::createFromFormat(
-                    'H:i',
-                    substr(
-                        (string) $dayCfg['end'],
-                        0,
-                        5
-                    )
-                );
-
-                /**
-                 * Complete slot must be inside
-                 * working hours.
-                 */
-                return $slotStart->greaterThanOrEqualTo(
-                    $workingStart
-                )
-                    && $slotEnd->lessThanOrEqualTo(
-                        $workingEnd
+        if ($productId !== null && self::productUsesCustomSlots($productId)) {
+            $slots = self::productSlotsForDate($productId, $date)
+                ->filter(function (ProductTimeSlot $slot) use ($dayCfg) {
+                    $slotStart = Carbon::createFromFormat(
+                        'H:i',
+                        $slot->startTimeHi()
                     );
-            })
-            ->values();
+                    $slotEnd = Carbon::createFromFormat(
+                        'H:i',
+                        $slot->endTime()
+                    );
+                    $workingStart = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $dayCfg['start'], 0, 5)
+                    );
+                    $workingEnd = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $dayCfg['end'], 0, 5)
+                    );
+
+                    return $slotStart->greaterThanOrEqualTo($workingStart)
+                        && $slotEnd->lessThanOrEqualTo($workingEnd);
+                })
+                ->values();
+        } else {
+            $slots = JobTimeSlot::where('is_active', true)
+                ->orderBy('sort_order')
+                ->orderBy('start_time')
+                ->get()
+                ->filter(function (JobTimeSlot $slot) use ($dayCfg) {
+                    $slotStart = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $slot->start_time, 0, 5)
+                    );
+                    $slotEnd = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $slot->endTime(), 0, 5)
+                    );
+                    $workingStart = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $dayCfg['start'], 0, 5)
+                    );
+                    $workingEnd = Carbon::createFromFormat(
+                        'H:i',
+                        substr((string) $dayCfg['end'], 0, 5)
+                    );
+
+                    return $slotStart->greaterThanOrEqualTo($workingStart)
+                        && $slotEnd->lessThanOrEqualTo($workingEnd);
+                })
+                ->values();
+        }
 
         /**
          * Calculate availability for every valid slot.
          */
         return $slots
-            ->map(function (JobTimeSlot $slot) use (
+            ->map(function ($slot) use (
                 $date,
                 $settings,
                 $dayFull,
                 $dateBlocked,
-                $bookedBySlot
+                $bookedBySlot,
+                $productId
             ) {
+                $startRaw = $slot instanceof ProductTimeSlot
+                    ? $slot->startTimeHi()
+                    : (string) $slot->start_time;
 
-                /**
-                 * Check whether this exact time slot
-                 * is blocked for this date.
-                 */
                 $slotBlocked = self::isSlotBlocked(
                     $date,
-                    $slot->start_time
+                    $startRaw,
+                    $productId
                 );
 
-                $slotHi = self::normalizeTimeHi((string) $slot->start_time) ?? substr((string) $slot->start_time, 0, 5);
+                $slotHi = self::normalizeTimeHi($startRaw) ?? substr($startRaw, 0, 5);
                 $booked = (int) ($bookedBySlot[$slotHi] ?? 0);
 
-                /**
-                 * Calculate remaining capacity.
-                 */
                 $remaining = max(
                     0,
                     $settings->max_bookings_per_slot - $booked
                 );
 
-                /**
-                 * A slot is blocked if:
-                 *
-                 * 1. Entire date is blocked
-                 * OR
-                 * 2. Specific time slot is blocked
-                 */
-                $blocked =
-                    $dateBlocked ||
-                    $slotBlocked;
+                $blocked = $dateBlocked || $slotBlocked;
 
-                /**
-                 * Slot is available only if:
-                 *
-                 * - date is not blocked
-                 * - slot is not blocked
-                 * - day capacity is available
-                 * - slot capacity is available
-                 */
                 $available =
                     ! $blocked
                     && ! $dayFull
@@ -566,20 +640,15 @@ class JobSchedulingService
 
                     'max_bookings' => (int) $settings->max_bookings_per_slot,
 
-                    /**
-                     * true when either the complete date
-                     * or this specific slot is blocked.
-                     */
                     'blocked' => $blocked,
 
-                    /**
-                     * More specific information.
-                     */
                     'date_blocked' => $dateBlocked,
 
                     'slot_blocked' => $slotBlocked,
 
                     'available' => $available,
+
+                    'source' => $slot instanceof ProductTimeSlot ? 'product' : 'global',
                 ];
             })
             ->values()
@@ -635,16 +704,16 @@ class JobSchedulingService
         }
 
         /**
-         * Entire date blocked.
+         * Entire date blocked (global + product).
          */
-        if (self::isDateFullyBlocked($date)) {
+        if (self::isDateFullyBlocked($date, $productId)) {
             return 'Selected date is blocked and not available for booking.';
         }
 
         /**
-         * Specific time slot blocked.
+         * Specific time slot blocked (global + product).
          */
-        if (self::isSlotBlocked($date, $time)) {
+        if (self::isSlotBlocked($date, $time, $productId)) {
             return 'Selected time slot is blocked and not available for booking.';
         }
 
@@ -672,72 +741,47 @@ class JobSchedulingService
 
         /**
          * Customer-facing bookings must use
-         * an active configured slot.
+         * an active configured slot (product custom or global).
          */
         if ($requireConfiguredSlot) {
+            $timeHi = self::normalizeTimeHi($time) ?? substr($time, 0, 5);
+            $slot = null;
 
-            $slot = JobTimeSlot::where(
-                'start_time',
-                $time
-            )
-                ->where('is_active', true)
-                ->first();
+            if ($productId !== null && self::productUsesCustomSlots($productId)) {
+                $slot = self::productSlotsForDate($productId, $date)
+                    ->first(function (ProductTimeSlot $s) use ($timeHi) {
+                        return $s->startTimeHi() === $timeHi;
+                    });
+            } else {
+                $slot = JobTimeSlot::where('is_active', true)
+                    ->get()
+                    ->first(function (JobTimeSlot $s) use ($timeHi) {
+                        $hi = self::normalizeTimeHi((string) $s->start_time) ?? substr((string) $s->start_time, 0, 5);
+
+                        return $hi === $timeHi;
+                    });
+            }
 
             if (! $slot) {
                 return 'Selected time is not a valid active time slot.';
             }
 
-            /**
-             * Slot start.
-             */
-            $slotStart = Carbon::createFromFormat(
-                'H:i',
-                substr(
-                    (string) $slot->start_time,
-                    0,
-                    5
-                )
-            );
+            $slotStartHi = $slot instanceof ProductTimeSlot
+                ? $slot->startTimeHi()
+                : (self::normalizeTimeHi((string) $slot->start_time) ?? substr((string) $slot->start_time, 0, 5));
 
-            /**
-             * Slot end.
-             */
-            $slotEnd = Carbon::createFromFormat(
-                'H:i',
-                substr(
-                    (string) $slot->endTime(),
-                    0,
-                    5
-                )
-            );
+            $slotStart = Carbon::createFromFormat('H:i', $slotStartHi);
+            $slotEnd = Carbon::createFromFormat('H:i', $slot->endTime());
 
-            /**
-             * Working hours start.
-             */
             $workingStart = Carbon::createFromFormat(
                 'H:i',
-                substr(
-                    (string) $dayCfg['start'],
-                    0,
-                    5
-                )
+                substr((string) $dayCfg['start'], 0, 5)
             );
-
-            /**
-             * Working hours end.
-             */
             $workingEnd = Carbon::createFromFormat(
                 'H:i',
-                substr(
-                    (string) $dayCfg['end'],
-                    0,
-                    5
-                )
+                substr((string) $dayCfg['end'], 0, 5)
             );
 
-            /**
-             * Complete slot must be inside working hours.
-             */
             if (
                 $slotStart->lt($workingStart)
                 || $slotEnd->gt($workingEnd)

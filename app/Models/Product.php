@@ -118,6 +118,16 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('sort_order');
     }
 
+    public function timeSlots()
+    {
+        return $this->hasMany(ProductTimeSlot::class)->orderBy('sort_order')->orderBy('start_time');
+    }
+
+    public function blockedDates()
+    {
+        return $this->hasMany(ProductBlockedDate::class)->orderBy('date');
+    }
+
     public function reviews()
     {
         return $this->hasMany(Review::class);

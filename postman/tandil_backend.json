@@ -12002,7 +12002,7 @@
         },
         {
           "name": "K. Job Scheduling",
-          "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, **Jobs calendar** with technician overlap warning. Auth: Bearer admin. Calendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD` — overlapping jobs return `technician_overlap: true` + `overlap_warning: \"Technician overlap\"`.",
+          "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, **per-product time slots (C2)**, **Jobs calendar** with technician overlap warning. Auth: Bearer admin.\n\n**Per product:** `GET/POST /api/admin/job-scheduling/products/{productId}/time-slots` — set different dates/times per product. Shop `GET /api/shop/products/{id}?date=` then shows those slots in `data.booking`.\n\nCalendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD` — overlapping jobs return `technician_overlap: true` + `overlap_warning: \"Technician overlap\"`.",
           "item": [
             {
               "name": "A. Working Hours & Capacity",
@@ -12437,6 +12437,249 @@
                       ]
                     },
                     "description": "DELETE /api/admin/job-scheduling/blocked-dates/{id} - Remove a block (trash icon on \"Current blocks\" row)."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "C2. Product Time Slots (per product)",
+              "description": "Admin configures **different date/time slots per product**. When a product has any custom slots, `GET /api/shop/products/{id}` booking uses those only (not global time slots). `date` null = recurring every working day; set `date` for a specific calendar day only.",
+              "item": [
+                {
+                  "name": "1. List product time slots",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/time-slots",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "time-slots"
+                      ]
+                    },
+                    "description": "GET /api/admin/job-scheduling/products/{productId}/time-slots — List this product's custom slots. `uses_custom_slots` true when any rows exist. Each slot: id, date (null=recurring), start_time, end_time, duration_minutes, is_active, recurring."
+                  }
+                },
+                {
+                  "name": "2. Add product time slot",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"start_time\": \"14:00\",\n  \"duration_minutes\": 60,\n  \"date\": \"2026-08-12\",\n  \"is_active\": true\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/time-slots",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "time-slots"
+                      ]
+                    },
+                    "description": "POST /api/admin/job-scheduling/products/{productId}/time-slots\n\n**Body:** `start_time` (HH:mm required), `duration_minutes` (optional, default 60), `date` (optional Y-m-d — omit for recurring), `is_active` (optional).\n\nAfter adding any slot, product detail booking stops using global slots and uses this product's list only."
+                  }
+                },
+                {
+                  "name": "3. Toggle product time slot",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/time-slots/{{product_time_slot_id}}/toggle",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "time-slots",
+                        "{{product_time_slot_id}}",
+                        "toggle"
+                      ]
+                    },
+                    "description": "POST .../time-slots/{id}/toggle — Flip is_active."
+                  }
+                },
+                {
+                  "name": "4. Delete product time slot",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/time-slots/{{product_time_slot_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "time-slots",
+                        "{{product_time_slot_id}}"
+                      ]
+                    },
+                    "description": "DELETE .../time-slots/{id}. When all custom slots are deleted, product booking falls back to global time slots."
+                  }
+                },
+                {
+                  "name": "5. List product blocked dates",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/blocked-dates",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "blocked-dates"
+                      ]
+                    },
+                    "description": "GET .../blocked-dates — Per-product blocks (plus global blocks still apply)."
+                  }
+                },
+                {
+                  "name": "6. Add product blocked date (full day)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"date\": \"2026-08-15\",\n  \"block_type\": \"full_day\",\n  \"reason\": \"Product unavailable\"\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/blocked-dates",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "blocked-dates"
+                      ]
+                    },
+                    "description": "POST .../blocked-dates — full_day or time_slot (with time HH:mm)."
+                  }
+                },
+                {
+                  "name": "7. Delete product blocked date",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/job-scheduling/products/{{product_id}}/blocked-dates/{{product_blocked_date_id}}",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "job-scheduling",
+                        "products",
+                        "{{product_id}}",
+                        "blocked-dates",
+                        "{{product_blocked_date_id}}"
+                      ]
+                    },
+                    "description": "DELETE .../blocked-dates/{id}."
                   }
                 }
               ]
@@ -16514,7 +16757,7 @@
                     }
                   ]
                 },
-                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] for **this product only**. Capacity is per product (`booking.product_id`). Same clock time on Product A and Product B are independent. Max per slot = `booking.max_bookings_per_slot` (default 2). FE: enable only slots where `available === true`. Date change → recall with `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
+                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] for **this product**.\n- If admin set product slots (folder **K → C2**): `uses_custom_slots=true`, `slot_source=product` — only those times.\n- Else: global job-scheduling slots (`slot_source=global`).\n- Capacity still per product. Enable only `available===true`. Date change → `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
               }
             },
             {

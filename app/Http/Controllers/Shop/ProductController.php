@@ -337,21 +337,14 @@ class ProductController extends Controller
      */
     private function getBookingAvailability(?string $selectedDate = null, ?int $productId = null): array
     {
-        $today = Carbon::today();
-
-        /*
-         * Number of dates shown in the client date selector.
-         *
-         * Change this value if the frontend needs more/less dates.
-         */
         $daysToShow = 7;
+        $candidateDates = JobSchedulingService::candidateDatesForProduct($productId, $daysToShow);
+        $usesCustomSlots = JobSchedulingService::productUsesCustomSlots($productId);
 
         $dates = [];
 
-        for ($i = 0; $i < $daysToShow; $i++) {
-            $date = $today->copy()->addDays($i);
-
-            $dateString = $date->format('Y-m-d');
+        foreach ($candidateDates as $dateString) {
+            $date = Carbon::parse($dateString);
 
             $slots = JobSchedulingService::availableSlots($dateString, $productId);
             $hasBookableSlot = collect($slots)->contains(
@@ -363,16 +356,10 @@ class ProductController extends Controller
                 'day' => $date->format('D'),
                 'day_number' => (int) $date->format('d'),
                 'month' => $date->format('M'),
-                // Red / disabled on FE when no bookable slot remains (capacity, blocked, etc.).
                 'available' => $hasBookableSlot,
             ];
         }
 
-        /*
-         * If frontend selected a date, use that date.
-         *
-         * Otherwise automatically select the first available date.
-         */
         if ($selectedDate) {
             $dateToUse = Carbon::parse($selectedDate)->format('Y-m-d');
         } else {
@@ -381,44 +368,28 @@ class ProductController extends Controller
                     fn ($date) => $date['available'] === true
                 );
 
-            $dateToUse = $firstAvailable['date'] ?? null;
+            $dateToUse = $firstAvailable['date'] ?? ($dates[0]['date'] ?? null);
         }
 
-        /*
-         * Get actual slots for selected date.
-         */
         $slots = $dateToUse
             ? JobSchedulingService::availableSlots($dateToUse, $productId)
             : [];
 
-        /*
-         * Format slots for client API.
-         */
-        $formattedSlots = array_map(function ($slot) {
+        $formattedSlots = array_map(function ($slot) use ($usesCustomSlots) {
             return [
                 'id' => $slot['id'],
-
-                // Display format for frontend
                 'time' => Carbon::parse(
                     $slot['start_time']
                 )->format('h:i A'),
-
-                // Original backend values
                 'start_time' => $slot['start_time'],
                 'end_time' => $slot['end_time'],
-
                 'duration_minutes' => $slot['duration_minutes'],
-
                 'booked_count' => $slot['booked_count'],
-
                 'remaining' => $slot['remaining'],
-
                 'max_bookings' => $slot['max_bookings'] ?? null,
-
                 'blocked' => (bool) ($slot['blocked'] ?? false),
-
-                // FE: disable / hide when false (capacity full, blocked, or day full).
                 'available' => (bool) $slot['available'],
+                'source' => $slot['source'] ?? ($usesCustomSlots ? 'product' : 'global'),
             ];
         }, $slots);
 
@@ -426,21 +397,15 @@ class ProductController extends Controller
 
         return [
             'enabled' => true,
-
             'product_id' => $productId,
-
+            'uses_custom_slots' => $usesCustomSlots,
+            'slot_source' => $usesCustomSlots ? 'product' : 'global',
             'date_selection_required' => true,
-
             'time_selection_required' => true,
-
             'max_bookings_per_slot' => (int) $settings->max_bookings_per_slot,
-
             'max_bookings_per_day' => (int) $settings->max_bookings_per_day,
-
             'dates' => $dates,
-
             'selected_date' => $dateToUse,
-
             'slots' => $formattedSlots,
         ];
     }

@@ -203,6 +203,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/job-scheduling'
     Route::post('/blocked-dates', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'addBlockedDate']);
     Route::delete('/blocked-dates/{id}', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'deleteBlockedDate']);
 
+    // Per-product slots / blocks (admin configures different times per product)
+    Route::get('/products/{productId}/time-slots', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'listTimeSlots']);
+    Route::post('/products/{productId}/time-slots', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'addTimeSlot']);
+    Route::post('/products/{productId}/time-slots/{id}/toggle', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'toggleTimeSlot']);
+    Route::delete('/products/{productId}/time-slots/{id}', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'deleteTimeSlot']);
+    Route::get('/products/{productId}/blocked-dates', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'listBlockedDates']);
+    Route::post('/products/{productId}/blocked-dates', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'addBlockedDate']);
+    Route::delete('/products/{productId}/blocked-dates/{id}', [\App\Http\Controllers\Api\Admin\ProductJobSchedulingController::class, 'deleteBlockedDate']);
+
     Route::get('/calendar', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'calendar']);
     // Must be registered before /jobs/{id} so "orphans" isn't captured as {id}.
     Route::get('/jobs/orphans', [\App\Http\Controllers\Api\Admin\JobSchedulingController::class, 'previewOrphanJobs']);
