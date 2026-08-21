@@ -163,10 +163,10 @@ class AreaController extends Controller
 
         // Sync supervisors and technicians
         if ($request->has('supervisors')) {
-            $area->supervisors()->sync($request->input('supervisors'));
+            $area->supervisors()->syncWithoutDetaching($request->input('supervisors') ?: []);
         }
         if ($request->has('technicians')) {
-            $area->technicians()->sync($request->input('technicians'));
+            $area->technicians()->syncWithoutDetaching($request->input('technicians') ?: []);
         }
 
         $this->logAction("Assigned users to area: {$area->name}");

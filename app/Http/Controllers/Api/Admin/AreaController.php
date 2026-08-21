@@ -500,7 +500,7 @@ class AreaController extends Controller
             'service_radius_km' => $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30,
         ]);
 
-        $this->ensureSupervisorsAndSync($area, $supervisorIds);
+        $this->ensureSupervisorsAttached($area, $supervisorIds);
 
         $area->load('supervisors');
         return response()->json([
@@ -525,8 +525,8 @@ class AreaController extends Controller
 
     /**
      * PUT/POST /api/admin/areas/{id} – Update zone.
-     * Optional: location, supervisor_ids[] (full replace — send ALL supervisors for the zone),
-     * or legacy supervisor_id (also replaces the full list with that single id).
+     * Optional: location, supervisor_id / supervisor_ids — ADDS supervisors to the zone.
+     * Existing supervisors are never removed by this endpoint (no overwrite / wipe).
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -579,8 +579,8 @@ class AreaController extends Controller
                         'message' => 'Every selected user must have the supervisor role. Use supervisor_ids[] or supervisor_id.',
                     ], 422);
                 }
+                $this->ensureSupervisorsAttached($area, $supervisorIds);
             }
-            $this->ensureSupervisorsAndSync($area, $supervisorIds);
         }
 
         $area->load('supervisors');
@@ -606,10 +606,17 @@ class AreaController extends Controller
         ]);
     }
 
-    private function ensureSupervisorsAndSync(Area $area, array $ids): void
+    /**
+     * Attach supervisors to a zone without removing anyone already mapped.
+     * Day-1: assign one supervisor. Later: assign more — previous stay.
+     */
+    private function ensureSupervisorsAttached(Area $area, array $ids): void
     {
-        $valid = User::role('supervisor')->whereIn('id', $ids)->pluck('id')->toArray();
-        $area->supervisors()->sync($valid);
+        $valid = User::role('supervisor')->whereIn('id', $ids)->pluck('id')->all();
+        if ($valid === []) {
+            return;
+        }
+        $area->supervisors()->syncWithoutDetaching($valid);
     }
 
     private function ensureTechniciansAndSync(Area $area, array $ids): void

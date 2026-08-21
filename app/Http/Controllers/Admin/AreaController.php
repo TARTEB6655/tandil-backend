@@ -151,11 +151,11 @@ class AreaController extends Controller
         ]);
 
         if ($request->has('supervisors')) {
-            $area->supervisors()->sync($request->supervisors);
+            $area->supervisors()->syncWithoutDetaching($request->supervisors ?: []);
         }
 
         if ($request->has('technicians')) {
-            $area->technicians()->sync($request->technicians);
+            $area->technicians()->syncWithoutDetaching($request->technicians ?: []);
         }
 
         return redirect()->route('admin.areas.index')
@@ -216,15 +216,11 @@ class AreaController extends Controller
         ]);
 
         if ($request->has('supervisors')) {
-            $area->supervisors()->sync($request->supervisors);
-        } else {
-            $area->supervisors()->detach();
+            $area->supervisors()->syncWithoutDetaching($request->supervisors ?: []);
         }
 
         if ($request->has('technicians')) {
-            $area->technicians()->sync($request->technicians);
-        } else {
-            $area->technicians()->detach();
+            $area->technicians()->syncWithoutDetaching($request->technicians ?: []);
         }
 
         return redirect()->route('admin.areas.index')

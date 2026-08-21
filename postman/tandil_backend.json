@@ -22682,7 +22682,7 @@
                     "areas"
                   ]
                 },
-                "description": "Create area. POST /api/admin/areas.\n\n**Multi supervisors (required for shared zones):** send `supervisor_ids` as array — JSON body `{\"supervisor_ids\":[2,5]}` or form `supervisor_ids[]=2&supervisor_ids[]=5` or form string `[2,5]` / `2,5`.\n\n**Legacy:** `supervisor_id` (single) still works but only stores ONE supervisor.\n\nResponse includes `supervisor_id` (first), `supervisor_ids` (all), `supervisors` [{id,name}]."
+                "description": "Create area. POST /api/admin/areas.\n\nSend `supervisor_id` (one) or `supervisor_ids` (one/many). Later assigns ADD more supervisors — they do not wipe existing ones.\n\nResponse: `supervisor_id` (first), `supervisor_ids` (all), `supervisors` [{id,name}]."
               }
             },
             {
@@ -22770,7 +22770,7 @@
                     "{{area_id}}"
                   ]
                 },
-                "description": "Update area. POST/PUT /api/admin/areas/:id.\n\n**To assign 2+ supervisors to the same zone:** send full list via `supervisor_ids` (JSON array or repeated form keys). Sync replaces the pivot — always send every supervisor that should remain.\n\n**Warning:** `supervisor_id` (singular) replaces the entire list with ONE supervisor (this was why the second supervisor stopped seeing jobs).\n\nResponse: `supervisor_id`, `supervisor_ids`, `supervisors`."
+                "description": "Update area. POST/PUT /api/admin/areas/:id.\n\n**Additive assign (no wipe):** send `supervisor_id` OR `supervisor_ids` for supervisors to ADD. Existing supervisors on the zone stay. Example: zone already has [2]; later PUT `{\"supervisor_id\":5}` → result [2,5].\n\nResponse: `supervisor_id`, `supervisor_ids`, `supervisors`."
               }
             },
             {

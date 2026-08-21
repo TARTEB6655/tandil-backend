@@ -234,19 +234,49 @@ class AdminAreasApiTest extends TestCase
             Area::findOrFail($areaId)->supervisors()->pluck('users.id')->all()
         );
 
-        // Legacy singular supervisor_id replaces the full list with one id.
-        $replace = $this->putJson('/api/admin/areas/'.$areaId, [
+        // Legacy singular supervisor_id ADDS — does not wipe existing supervisors.
+        $supC = User::factory()->create(['name' => 'Supervisor Three', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supC, 'supervisor');
+        $add = $this->putJson('/api/admin/areas/'.$areaId, [
+            'supervisor_id' => $supC->id,
+        ], $this->authHeaders());
+        $add->assertOk();
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id, $supC->id],
+            $add->json('data.supervisor_ids')
+        );
+    }
+
+    public function test_assigning_another_supervisor_later_keeps_existing(): void
+    {
+        $supB = User::factory()->create(['name' => 'Sup B', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $create = $this->postJson('/api/admin/areas', [
+            'location' => 'Abu Dhabi Shared',
+            'supervisor_id' => $this->supervisor->id,
+        ], $this->authHeaders());
+        $create->assertStatus(201);
+        $areaId = (int) $create->json('data.id');
+        $this->assertSame([$this->supervisor->id], $create->json('data.supervisor_ids'));
+
+        // Days later: admin assigns another supervisor to the same zone.
+        $later = $this->putJson('/api/admin/areas/'.$areaId, [
             'supervisor_id' => $supB->id,
         ], $this->authHeaders());
-        $replace->assertOk();
-        $replace->assertJsonPath('data.supervisor_ids', [$supB->id]);
-
-        // Multi list restores both.
-        $both = $this->putJson('/api/admin/areas/'.$areaId, [
-            'supervisor_ids' => [$this->supervisor->id, $supB->id],
-        ], $this->authHeaders());
-        $both->assertOk();
-        $this->assertCount(2, $both->json('data.supervisor_ids'));
+        $later->assertOk();
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id],
+            $later->json('data.supervisor_ids')
+        );
+        $this->assertDatabaseHas('area_supervisor', [
+            'area_id' => $areaId,
+            'user_id' => $this->supervisor->id,
+        ]);
+        $this->assertDatabaseHas('area_supervisor', [
+            'area_id' => $areaId,
+            'user_id' => $supB->id,
+        ]);
     }
 
     public function test_area_show_returns_id_location_supervisor_id(): void
