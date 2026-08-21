@@ -115,6 +115,12 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $idsNewB = collect($newB->json('data.data') ?? [])->pluck('id')->all();
         $this->assertContains($visit->id, $idsNewA);
         $this->assertContains($visit->id, $idsNewB);
+        // Same area_id for every supervisor on the shared zone.
+        $rowA = collect($newA->json('data.data') ?? [])->firstWhere('id', $visit->id);
+        $rowB = collect($newB->json('data.data') ?? [])->firstWhere('id', $visit->id);
+        $this->assertSame((int) $area->id, (int) ($rowA['area_id'] ?? 0));
+        $this->assertSame((int) $area->id, (int) ($rowB['area_id'] ?? 0));
+        $this->assertSame($rowA['area_id'], $rowB['area_id']);
 
         $listA = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments');
         $idsA = collect($listA->json('data.data') ?? [])->pluck('id')->all();
@@ -218,5 +224,65 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $newB = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments/new');
         $this->assertNotContains($visit->id, collect($newA->json('data.data') ?? [])->pluck('id')->all());
         $this->assertContains($visit->id, collect($newB->json('data.data') ?? [])->pluck('id')->all());
+    }
+
+    public function test_new_jobs_repairs_null_area_id_so_shared_zone_supervisors_see_job(): void
+    {
+        $supA = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup A']);
+        $supB = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup B']);
+        $this->assignRoleIfAvailable($supA, 'supervisor');
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi Central',
+            'location' => 'Abu Dhabi',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach([$supA->id, $supB->id]);
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+        $address = \App\Models\UserAddress::create([
+            'user_id' => $client->id,
+            'full_name' => 'Client',
+            'phone_number' => '+971500000000',
+            'street_address' => 'Corniche',
+            'city' => 'Abu Dhabi',
+            'state' => 'Abu Dhabi',
+            'zip_code' => '00000',
+            'country' => 'United Arab Emirates',
+            'is_default' => true,
+        ]);
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'processing',
+            'shipping_address_id' => $address->id,
+            'total_amount' => 100,
+        ]);
+
+        // Broken row: unclaimed but area_id missing — previously invisible on New Jobs.
+        $visit = Visit::create([
+            'order_id' => $order->id,
+            'area_id' => null,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->addDay()->toDateString(),
+            'scheduled_time' => '09:00',
+            'status' => 'pending',
+            'notes' => 'Missing area pool job',
+            'price' => 100,
+        ]);
+
+        $newA = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newB = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newA->assertOk();
+        $newB->assertOk();
+        $this->assertContains($visit->id, collect($newA->json('data.data') ?? [])->pluck('id')->all());
+        $this->assertContains($visit->id, collect($newB->json('data.data') ?? [])->pluck('id')->all());
+
+        $visit->refresh();
+        $this->assertSame((int) $area->id, (int) $visit->area_id);
     }
 }

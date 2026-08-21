@@ -200,6 +200,8 @@ final class OrderToVisitDispatcher
 
         $existing = Visit::query()->where('order_item_id', $item->id)->first();
         if ($existing) {
+            $existing = self::backfillVisitAreaPool($existing, $resolved);
+
             return self::backfillVisitSchedule($existing, $bookingDate, $bookingSlot['start'], $durationMinutes);
         }
 
@@ -221,6 +223,8 @@ final class OrderToVisitDispatcher
                 }
                 $legacy->save();
             }
+
+            $legacy = self::backfillVisitAreaPool($legacy, $resolved);
 
             return self::backfillVisitSchedule($legacy, $bookingDate, $bookingSlot['start'], $durationMinutes);
         }
@@ -267,6 +271,58 @@ final class OrderToVisitDispatcher
             'notes' => implode(' | ', $notesParts),
             'price' => (float) $item->subtotal,
         ]);
+    }
+
+    /**
+     * Ensure an existing visit is in the area pool so all mapped supervisors see it
+     * on GET /supervisor/assignments/new. Does not steal a claimed job (keeps supervisor_id).
+     *
+     * @param  array{area: Area, supervisor_id: ?int}  $resolved
+     */
+    private static function backfillVisitAreaPool(Visit $visit, array $resolved): Visit
+    {
+        $updates = [];
+        if ($visit->area_id === null) {
+            $updates['area_id'] = (int) $resolved['area']->id;
+        }
+
+        if ($updates !== []) {
+            $visit->update($updates);
+            $visit->refresh();
+        }
+
+        return $visit;
+    }
+
+    /**
+     * Repair unclaimed visits that never got area_id (they never appear on New Jobs).
+     * Safe: only fills null area_id; never changes supervisor_id.
+     */
+    public static function repairUnclaimedVisitsMissingAreaId(int $limit = 100): int
+    {
+        $repaired = 0;
+        $visits = Visit::query()
+            ->whereNull('area_id')
+            ->whereNull('supervisor_id')
+            ->whereNotNull('order_id')
+            ->orderBy('id')
+            ->limit(max(1, min($limit, 500)))
+            ->get();
+
+        foreach ($visits as $visit) {
+            $order = Order::query()->with(['items.product', 'shippingAddress'])->find($visit->order_id);
+            if (! $order) {
+                continue;
+            }
+            $resolved = self::resolveAreaAndSupervisor($order);
+            if (! $resolved) {
+                continue;
+            }
+            $visit->update(['area_id' => (int) $resolved['area']->id]);
+            $repaired++;
+        }
+
+        return $repaired;
     }
 
     /**

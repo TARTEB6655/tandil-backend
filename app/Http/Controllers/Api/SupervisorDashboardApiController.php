@@ -1016,12 +1016,16 @@ class SupervisorDashboardApiController extends Controller
     {
         $areaIds = $this->areaIds($request);
 
+        // Old visits sometimes have supervisor_id null but area_id null — they never
+        // match whereIn(area_id). Repair from the linked order before listing.
+        OrderToVisitDispatcher::repairUnclaimedVisitsMissingAreaId();
+
         $pending = $this->newJobsQuery($request)
             ->select([
                 'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
                 'supervisor_id', 'area_id', 'order_id', 'order_item_id', 'escalated_at', 'created_at', 'accept_by',
             ])
-            ->with('supervisor:id,name')
+            ->with(['supervisor:id,name', 'area:id,name,location'])
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
@@ -1051,7 +1055,8 @@ class SupervisorDashboardApiController extends Controller
 
     private function formatAssignmentListItem($visit)
     {
-        $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
+        $visit->loadMissing('area:id,name,location');
+        $visit->makeHidden(['subscription_id', 'subscription']);
         $meta = $this->parseVisitMetaFromNotes(
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
@@ -1059,7 +1064,9 @@ class SupervisorDashboardApiController extends Controller
         $visit = $this->syncAndApplyVisitScheduleFields($visit);
         $visit->title = $meta['farm_name'] ?? ('Task #'.$visit->id);
         $visit->service_name = $meta['service_name'] ?? null;
-        $visit->location = $meta['location'] ?? null;
+        $visit->location = $meta['location'] ?? ($visit->area?->location ?: $visit->area?->name);
+        $visit->area_id = $visit->area_id !== null ? (int) $visit->area_id : null;
+        $visit->area_name = $visit->area?->name;
         $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
         $visit->price_display = $visit->price !== null ? 'AED '.number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
         $visit->supervisor_name = $visit->supervisor?->name ?? null;
@@ -1069,7 +1076,7 @@ class SupervisorDashboardApiController extends Controller
         $visit->client_phone = $meta['client_phone'] ?? null;
         $visit->is_unclaimed = $visit->supervisor_id === null;
         $visit->can_claim = $visit->supervisor_id === null;
-        $visit->makeHidden(['supervisor']);
+        $visit->makeHidden(['supervisor', 'area']);
 
         return $visit;
     }

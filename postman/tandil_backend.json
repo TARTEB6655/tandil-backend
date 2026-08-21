@@ -15431,7 +15431,7 @@
                     }
                   ]
                 },
-                "description": "Dashboard **New Jobs** list. Unclaimed jobs in this supervisor's areas. Each item: can_claim, can_reject, is_unclaimed.\n\nAccept → POST .../claim (then appears on GET /assignments).\nReject → POST .../reject (hidden for me only; other area supervisors still see it)."
+                "description": "Dashboard **New Jobs** list. Unclaimed jobs in this supervisor's areas (`supervisor_id` null + `area_id` in my zones). Each item includes `area_id`, `area_name`, can_claim, can_reject, is_unclaimed — same `area_id` for every supervisor mapped to that zone.\n\nAlso auto-repairs old visits that had null `area_id` (those never showed before).\n\nAccept → POST .../claim (then appears on GET /assignments).\nReject → POST .../reject (hidden for me only; other area supervisors still see it)."
               }
             },
             {
