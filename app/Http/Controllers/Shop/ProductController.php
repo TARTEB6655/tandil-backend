@@ -285,6 +285,7 @@ class ProductController extends Controller
             'product_type' => $productType,
             'price' => $product->price,
             'stock' => $product->stock,
+            'max_quantity' => $product->maxPurchaseQuantity(),
             'status' => $product->status,
             'is_featured' => (bool) ($product->is_featured ?? false),
             'sort_order' => (int) $product->sort_order,

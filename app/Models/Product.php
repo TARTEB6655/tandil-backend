@@ -48,6 +48,34 @@ class Product extends Model
     }
 
     /**
+     * Max units a customer may buy/select for this product (stock ceiling).
+     * No arbitrary cap (e.g. 10) — only available stock.
+     */
+    public function maxPurchaseQuantity(): int
+    {
+        return max(0, (int) ($this->stock ?? 0));
+    }
+
+    /**
+     * Null when qty is allowed; otherwise an error message for API/UI.
+     */
+    public function quantityExceedsStockMessage(int $quantity): ?string
+    {
+        $max = $this->maxPurchaseQuantity();
+        if ($quantity < 1) {
+            return 'Quantity must be at least 1.';
+        }
+        if ($max <= 0) {
+            return 'This product is out of stock.';
+        }
+        if ($quantity > $max) {
+            return "Only {$max} unit(s) available in stock.";
+        }
+
+        return null;
+    }
+
+    /**
      * Products visible on the client shop / category screens.
      * Platform (admin) products: active only.
      * Vendor products: approved vendor + live marketplace listing only.

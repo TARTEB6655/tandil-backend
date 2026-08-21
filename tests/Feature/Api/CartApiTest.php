@@ -51,6 +51,7 @@ class CartApiTest extends TestCase
             'category_id' => $category->id,
             'price' => 25.50,
             'status' => 'active',
+            'stock' => 100,
         ]);
 
         $response = $this->postJson('/api/shop/cart/add', [
@@ -76,7 +77,11 @@ class CartApiTest extends TestCase
     public function test_cart_add_increments_quantity_when_product_already_in_cart(): void
     {
         $category = Category::factory()->create();
-        $product = Product::factory()->create(['category_id' => $category->id, 'status' => 'active']);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'stock' => 50,
+        ]);
 
         Cart::create([
             'user_id' => $this->user->id,
@@ -96,6 +101,53 @@ class CartApiTest extends TestCase
             'product_id' => $product->id,
             'quantity' => 4,
         ]);
+    }
+
+    public function test_cart_allows_quantity_up_to_full_stock_not_capped_at_10(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'stock' => 90,
+            'price' => 10,
+        ]);
+
+        $add = $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 90,
+        ], $this->authHeaders());
+        $add->assertStatus(201);
+        $add->assertJsonPath('data.quantity', 90);
+        $add->assertJsonPath('data.max_quantity', 90);
+
+        $over = $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ], $this->authHeaders());
+        $over->assertStatus(422);
+
+        $show = $this->getJson('/api/shop/products/'.$product->id, $this->authHeaders());
+        $show->assertOk();
+        $show->assertJsonPath('data.stock', 90);
+        $show->assertJsonPath('data.max_quantity', 90);
+    }
+
+    public function test_cart_rejects_quantity_above_stock(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'stock' => 5,
+        ]);
+
+        $response = $this->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 6,
+        ], $this->authHeaders());
+        $response->assertStatus(422);
+        $this->assertStringContainsString('stock', strtolower((string) $response->json('message')));
     }
 
     public function test_cart_add_validation(): void

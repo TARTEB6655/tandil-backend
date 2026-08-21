@@ -24,7 +24,7 @@ class ProductFactory extends Factory
             'price' => $price,
             'compare_at_price' => $this->faker->optional()->randomFloat(2, $price * 1.1, $price * 1.5),
             'cost_per_item' => $this->faker->optional()->randomFloat(2, $price * 0.3, $price * 0.7),
-            'stock' => $this->faker->numberBetween(0, 100),
+            'stock' => $this->faker->numberBetween(50, 200),
             'status' => $this->faker->randomElement(['active', 'draft', 'archived']),
             'track_quantity' => $this->faker->boolean(80),
             'allow_backorder' => $this->faker->boolean(20),

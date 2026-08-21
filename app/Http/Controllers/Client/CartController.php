@@ -73,7 +73,7 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1|max:100',
+            'quantity' => 'required|integer|min:1',
             'option_ids' => 'nullable|array',
             'option_ids.*' => 'integer|exists:product_options,id',
             'selected_option_ids' => 'nullable|array',
@@ -91,11 +91,6 @@ class CartController extends Controller
 
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
-        // Check stock
-        if ($product->stock < $request->quantity) {
-            return back()->with('error', 'Insufficient stock available.');
-        }
-
         // Check if item already in cart (same product + same option set)
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
@@ -104,11 +99,15 @@ class CartController extends Controller
                 return Cart::normalizeSelectedOptionIds($row->selected_options) === $selectedOptionsNormalized;
             });
 
+        $newQuantity = $cartItem
+            ? ((int) $cartItem->quantity + (int) $request->quantity)
+            : (int) $request->quantity;
+        $stockError = $product->quantityExceedsStockMessage($newQuantity);
+        if ($stockError !== null) {
+            return back()->with('error', $stockError);
+        }
+
         if ($cartItem) {
-            $newQuantity = $cartItem->quantity + $request->quantity;
-            if ($product->stock < $newQuantity) {
-                return back()->with('error', 'Cannot add more items. Stock limit reached.');
-            }
             $cartItem->quantity = $newQuantity;
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
@@ -129,7 +128,7 @@ class CartController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'quantity' => 'required|integer|min:1|max:100',
+            'quantity' => 'required|integer|min:1',
         ]);
 
         $user = Auth::user();
@@ -138,8 +137,9 @@ class CartController extends Controller
             ->with('product')
             ->firstOrFail();
 
-        if ($cartItem->product->stock < $request->quantity) {
-            return back()->with('error', 'Insufficient stock available.');
+        $stockError = $cartItem->product->quantityExceedsStockMessage((int) $request->quantity);
+        if ($stockError !== null) {
+            return back()->with('error', $stockError);
         }
 
         $cartItem->quantity = $request->quantity;

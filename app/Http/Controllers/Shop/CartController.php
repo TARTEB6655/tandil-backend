@@ -459,6 +459,8 @@ class CartController extends Controller
             'current_price' => $price,
             'original_price' => $compareAt,
             'quantity' => $item->quantity,
+            'stock' => $product->maxPurchaseQuantity(),
+            'max_quantity' => $product->maxPurchaseQuantity(),
             'line_total' => $lineTotal,
             'selected_option_ids' => $selectedOptionIds,
             'selected_options' => $optionLabels,
@@ -568,6 +570,9 @@ class CartController extends Controller
 
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
+        $requestedQty = (int) $request->quantity;
+        $existingQty = 0;
+
         // Each cart line can carry its own service date/time slot (different
         // products in the same order can be scheduled on different days), so a
         // second add of the same product with a different slot must not merge
@@ -596,7 +601,16 @@ class CartController extends Controller
             });
 
         if ($cartItem) {
-            $cartItem->quantity += (int) $request->quantity;
+            $existingQty = (int) $cartItem->quantity;
+        }
+
+        $stockError = $product->quantityExceedsStockMessage($existingQty + $requestedQty);
+        if ($stockError !== null) {
+            return ApiResponse::error($stockError, 422);
+        }
+
+        if ($cartItem) {
+            $cartItem->quantity += $requestedQty;
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
             $cartItem->save();
@@ -604,7 +618,7 @@ class CartController extends Controller
             $cartItem = Cart::create([
                 'user_id' => $user->id,
                 'product_id' => $request->product_id,
-                'quantity' => $request->quantity,
+                'quantity' => $requestedQty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
                 'booking_date' => $bookingDate,
@@ -968,6 +982,10 @@ class CartController extends Controller
             $optionError = Cart::validateSelectedOptionsMessage($cart->product, $cart->selected_options ?? []);
             if ($optionError !== null) {
                 return self::emptyCheckoutPackError($optionError, $cartPreview);
+            }
+            $stockError = $cart->product->quantityExceedsStockMessage((int) $cart->quantity);
+            if ($stockError !== null) {
+                return self::emptyCheckoutPackError($stockError, $cartPreview);
             }
         }
 
@@ -1504,6 +1522,12 @@ class CartController extends Controller
         $cartItem = Cart::where('user_id', $user->id)
             ->where('id', $id)
             ->firstOrFail();
+
+        $cartItem->loadMissing('product');
+        $stockError = $cartItem->product?->quantityExceedsStockMessage((int) $request->quantity);
+        if ($stockError !== null) {
+            return ApiResponse::error($stockError, 422);
+        }
 
         $cartItem->quantity = $request->quantity;
         if ($request->has('booking_date') || $request->has('bookingDate')) {
