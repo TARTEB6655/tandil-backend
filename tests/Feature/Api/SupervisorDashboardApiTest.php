@@ -264,15 +264,24 @@ class SupervisorDashboardApiTest extends TestCase
         $unassignedVisit = Visit::factory()->create([
             'subscription_id' => $this->subscription->id,
             'area_id' => $this->area->id,
+            'supervisor_id' => null,
             'technician_id' => null,
             'status' => 'pending',
             'scheduled_date' => Carbon::today()->addDay()->toDateString(),
         ]);
 
+        $newJobs = $this->getJson('/api/supervisor/assignments/new', $this->authHeaders());
+        $newJobs->assertStatus(200)->assertJsonPath('success', true);
+        $newIds = collect($newJobs->json('data.data'))->pluck('id')->all();
+        $this->assertContains($unassignedVisit->id, $newIds, 'New Jobs should contain the unclaimed visit');
+
+        $this->postJson('/api/supervisor/assignments/'.$unassignedVisit->id.'/claim', [], $this->authHeaders())
+            ->assertOk();
+
         $pending = $this->getJson('/api/supervisor/assignments', $this->authHeaders());
         $pending->assertStatus(200)->assertJsonPath('success', true);
         $ids = collect($pending->json('data.data'))->pluck('id')->all();
-        $this->assertContains($unassignedVisit->id, $ids, 'Assignable list should contain the unassigned visit');
+        $this->assertContains($unassignedVisit->id, $ids, 'Assignable list should contain the accepted visit');
 
         $create = $this->post('/api/supervisor/assignments', [
             'visit_id' => (string) $unassignedVisit->id,

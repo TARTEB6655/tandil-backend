@@ -15395,7 +15395,43 @@
                     }
                   ]
                 },
-                "description": "List assignable jobs. GET /api/supervisor/assignments?per_page=20.\n\n**Multi-supervisor (same area):** Paid-order jobs land in an area pool (`supervisor_id` null). Every supervisor mapped to that area sees the job. First to claim owns it; others lose it from their list.\n\n**Response item fields:** id, title, date, time_slot, duration_minutes, price_display, supervisor_name, **can_claim**, **is_unclaimed** (true while unclaimed). date = scheduled_date (Y-m-d); time_slot = \"h:mm A - h:mm A\" from scheduled_time + duration_minutes, or null.\n\n**Flow:** if `can_claim` → POST /api/supervisor/assignments/{id}/claim, then assign technician via POST /assignments/{id} with technician_id."
+                "description": "Assign Tasks list — **only jobs this supervisor already Accepted** (claimed). Unclaimed pool jobs do NOT appear here.\n\n**New Jobs (Accept/Reject):** GET /api/supervisor/assignments/new\n**Accept:** POST /api/supervisor/assignments/{id}/claim\n**Reject:** POST /api/supervisor/assignments/{id}/reject\n\nThen assign technician via POST /assignments/{id} with technician_id."
+              }
+            },
+            {
+              "name": "Assignments - New Jobs (GET)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/supervisor/assignments/new?per_page=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supervisor",
+                    "assignments",
+                    "new"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20",
+                      "description": "Optional"
+                    }
+                  ]
+                },
+                "description": "Dashboard **New Jobs** list. Unclaimed jobs in this supervisor's areas. Each item: can_claim, can_reject, is_unclaimed.\n\nAccept → POST .../claim (then appears on GET /assignments).\nReject → POST .../reject (hidden for me only; other area supervisors still see it)."
               }
             },
             {
@@ -15454,7 +15490,37 @@
                     "claim"
                   ]
                 },
-                "description": "**NEW** POST /api/supervisor/assignments/{id}/claim – First supervisor to accept an unclaimed area-pool job.\n\n**Auth:** Bearer (supervisor).\n\n**Body:** none.\n\n**Success (200):** `message` \"Job accepted…\", `data` with id, supervisor_id, supervisor_name, can_claim=false, is_unclaimed=false.\n\n**Side effects:** Job removed from other same-area supervisors' assignment lists; their \"New job available\" (unclaimed) inbox notifications for this visit are deleted; client order tracking moves **processing → confirmed**.\n\n**Errors:** 403 not in your zones; 404 not found; 409 already accepted by another supervisor.\n\nAfter claim, assign a technician with POST /api/supervisor/assignments/{id} (technician_id)."
+                "description": "**Accept** (New Jobs). POST /api/supervisor/assignments/{id}/claim – First supervisor to accept an unclaimed area-pool job.\n\n**Auth:** Bearer (supervisor).\n\n**Body:** none.\n\n**Success (200):** job assigned to you → now appears on GET /assignments (Assign Tasks). Removed from GET /assignments/new for everyone. Other supervisors' unclaimed notifications deleted. Client tracking **processing → confirmed**.\n\n**Errors:** 403 not in your zones; 404 not found; 409 already accepted by another supervisor.\n\nAfter accept, assign technician: POST /api/supervisor/assignments/{id} (technician_id)."
+              }
+            },
+            {
+              "name": "Assignments - Reject job (POST)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/supervisor/assignments/{{visit_id}}/reject",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "supervisor",
+                    "assignments",
+                    "{{visit_id}}",
+                    "reject"
+                  ]
+                },
+                "description": "**Reject** (New Jobs). POST /api/supervisor/assignments/{id}/reject — Decline for myself only. Job stays in the area pool for other supervisors. Hidden from my GET /assignments/new. Does not cancel the order."
               }
             },
             {

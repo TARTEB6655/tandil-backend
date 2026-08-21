@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Models\Visit;
+use App\Models\VisitSupervisorDecline;
 use App\Models\TechnicianBreak;
 use App\Models\Order;
 use App\Support\OrderToVisitDispatcher;
@@ -45,20 +46,50 @@ class SupervisorDashboardApiController extends Controller
     private function visitsQuery(Request $request)
     {
         $areaIds = $this->areaIds($request);
-        $supervisorId = $request->user()->id;
+        $supervisorId = (int) $request->user()->id;
 
-        // Multi-supervisor areas: show (1) jobs I already claimed, and
-        // (2) still-unclaimed jobs in my zones. Once another supervisor claims,
-        // the job disappears from everyone else's list.
+        // Dashboard / overview: my claimed jobs + unclaimed pool in my zones
+        // (excluding jobs I already Rejected on New Jobs).
         return Visit::query()->where(function ($q) use ($areaIds, $supervisorId) {
             $q->where('supervisor_id', $supervisorId);
             if (! empty($areaIds)) {
-                $q->orWhere(function ($pool) use ($areaIds) {
+                $q->orWhere(function ($pool) use ($areaIds, $supervisorId) {
                     $pool->whereIn('area_id', $areaIds)
-                        ->whereNull('supervisor_id');
+                        ->whereNull('supervisor_id')
+                        ->whereNotIn('id', function ($sub) use ($supervisorId) {
+                            $sub->select('visit_id')
+                                ->from('visit_supervisor_declines')
+                                ->where('supervisor_id', $supervisorId);
+                        });
                 });
             }
         });
+    }
+
+    /** Jobs this supervisor already accepted/claimed (Assign Tasks / assignment list). */
+    private function claimedVisitsQuery(Request $request)
+    {
+        return Visit::query()->where('supervisor_id', (int) $request->user()->id);
+    }
+
+    /** Unclaimed area-pool jobs for New Jobs (Accept / Reject), excluding my declines. */
+    private function newJobsQuery(Request $request)
+    {
+        $areaIds = $this->areaIds($request);
+        $supervisorId = (int) $request->user()->id;
+
+        if (empty($areaIds)) {
+            return Visit::query()->whereRaw('1 = 0');
+        }
+
+        return Visit::query()
+            ->whereIn('area_id', $areaIds)
+            ->whereNull('supervisor_id')
+            ->whereNotIn('id', function ($sub) use ($supervisorId) {
+                $sub->select('visit_id')
+                    ->from('visit_supervisor_declines')
+                    ->where('supervisor_id', $supervisorId);
+            });
     }
 
     /** Visits for a specific technician that this supervisor can see (in my areas OR assigned by me). */
@@ -79,14 +110,15 @@ class SupervisorDashboardApiController extends Controller
     /** Visits that need supervisor action: unassigned, pending/scheduled, or escalated after auto-dispatch failures. */
     private function assignableVisitsQuery(Request $request)
     {
-        return $this->visitsQuery($request)->where(function ($q) {
+        // Assign Tasks / assignment list: only jobs I already accepted (claimed).
+        return $this->claimedVisitsQuery($request)->where(function ($q) {
             $q->whereNull('technician_id')
                 ->orWhereIn('status', ['pending', 'scheduled'])
                 ->orWhereNotNull('escalated_at');
         });
     }
 
-    /** Visits the supervisor can update or reassign: assignable list + already assigned (pending_acceptance, in_progress). */
+    /** Visits the supervisor can update or reassign: my claimed + unclaimed pool (for claim/detail). */
     private function editableAssignmentVisitsQuery(Request $request)
     {
         return $this->visitsQuery($request)->where(function ($q) {
@@ -939,6 +971,9 @@ class SupervisorDashboardApiController extends Controller
     /**
      * Pending assignments: unassigned, pending/scheduled, or escalated to supervisor (after 2-3 auto-dispatch failures).
      * Returns paginated data. Message explains when list is empty (no zones vs no assignable visits).
+     *
+     * Only jobs this supervisor has already Accepted/claimed appear here (Assign Tasks).
+     * Unclaimed pool jobs: GET /api/supervisor/assignments/new
      */
     public function assignmentsPending(Request $request): JsonResponse
     {
@@ -956,34 +991,14 @@ class SupervisorDashboardApiController extends Controller
             ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
 
         $pending->getCollection()->transform(function ($visit) {
-            $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
-            $meta = $this->parseVisitMetaFromNotes(
-                (string) ($visit->notes ?? ''),
-                $visit->order_id ? (int) $visit->order_id : null
-            );
-            $visit = $this->syncAndApplyVisitScheduleFields($visit);
-            $visit->title = $meta['farm_name'] ?? ('Task #' . $visit->id);
-            $visit->service_name = $meta['service_name'] ?? null;
-            $visit->location = $meta['location'] ?? null;
-            $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
-            $visit->price_display = $visit->price !== null ? 'AED ' . number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
-            $visit->supervisor_name = $visit->supervisor?->name ?? null;
-            $visit->address = $meta['address'] ?? $visit->location;
-            $visit->client_name = $meta['client_name'] ?? null;
-            $visit->client_email = $meta['client_email'] ?? null;
-            $visit->client_phone = $meta['client_phone'] ?? null;
-            $visit->is_unclaimed = $visit->supervisor_id === null;
-            $visit->can_claim = $visit->supervisor_id === null;
-            $visit->makeHidden(['supervisor']);
-
-            return $visit;
+            return $this->formatAssignmentListItem($visit);
         });
 
         $message = null;
         if ($pending->isEmpty()) {
             $message = empty($areaIds)
                 ? 'No zones assigned to you. Ask admin to assign you to areas (Admin Areas) so you can see and assign visits.'
-                : 'No assignable visits in your zones. Visits must have area_id set to one of your zones to appear here. Create visits with an area in your zone, or wait for new jobs.';
+                : 'No accepted jobs to assign yet. Accept a job from New Jobs first (POST /assignments/{id}/claim).';
         }
 
         return response()->json(array_filter([
@@ -991,6 +1006,72 @@ class SupervisorDashboardApiController extends Controller
             'data' => $pending,
             'message' => $message,
         ]));
+    }
+
+    /**
+     * GET /api/supervisor/assignments/new
+     * Dashboard "New Jobs": unclaimed jobs in my areas (Accept / Reject).
+     */
+    public function assignmentsNewJobs(Request $request): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+
+        $pending = $this->newJobsQuery($request)
+            ->select([
+                'id', 'notes', 'scheduled_date', 'scheduled_time', 'duration_minutes', 'status', 'price', 'technician_id',
+                'supervisor_id', 'area_id', 'order_id', 'order_item_id', 'escalated_at', 'created_at', 'accept_by',
+            ])
+            ->with('supervisor:id,name')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(min(max((int) $request->get('per_page', 30), 1), 50));
+
+        $pending->getCollection()->transform(function ($visit) {
+            $visit = $this->formatAssignmentListItem($visit);
+            $visit->can_claim = true;
+            $visit->is_unclaimed = true;
+            $visit->can_reject = true;
+
+            return $visit;
+        });
+
+        $message = null;
+        if ($pending->isEmpty()) {
+            $message = empty($areaIds)
+                ? 'No zones assigned to you. Ask admin to assign you to areas.'
+                : 'No new jobs in your zones right now.';
+        }
+
+        return response()->json(array_filter([
+            'success' => true,
+            'data' => $pending,
+            'message' => $message,
+        ]));
+    }
+
+    private function formatAssignmentListItem($visit)
+    {
+        $visit->makeHidden(['subscription_id', 'area_id', 'subscription', 'area']);
+        $meta = $this->parseVisitMetaFromNotes(
+            (string) ($visit->notes ?? ''),
+            $visit->order_id ? (int) $visit->order_id : null
+        );
+        $visit = $this->syncAndApplyVisitScheduleFields($visit);
+        $visit->title = $meta['farm_name'] ?? ('Task #'.$visit->id);
+        $visit->service_name = $meta['service_name'] ?? null;
+        $visit->location = $meta['location'] ?? null;
+        $visit->duration_minutes = $visit->duration_minutes ?? $meta['duration_minutes'] ?? null;
+        $visit->price_display = $visit->price !== null ? 'AED '.number_format((float) $visit->price, 2) : ($meta['price_display'] ?? null);
+        $visit->supervisor_name = $visit->supervisor?->name ?? null;
+        $visit->address = $meta['address'] ?? $visit->location;
+        $visit->client_name = $meta['client_name'] ?? null;
+        $visit->client_email = $meta['client_email'] ?? null;
+        $visit->client_phone = $meta['client_phone'] ?? null;
+        $visit->is_unclaimed = $visit->supervisor_id === null;
+        $visit->can_claim = $visit->supervisor_id === null;
+        $visit->makeHidden(['supervisor']);
+
+        return $visit;
     }
 
     /**
@@ -1168,6 +1249,7 @@ class SupervisorDashboardApiController extends Controller
         VisitOrderTrackingSync::syncFromVisit($visit);
 
         Visit::clearUnclaimedJobNotifications((int) $visit->id);
+        VisitSupervisorDecline::query()->where('visit_id', (int) $visit->id)->delete();
 
         $meta = $this->parseVisitMetaFromNotes(
             (string) ($visit->notes ?? ''),
@@ -1188,6 +1270,73 @@ class SupervisorDashboardApiController extends Controller
                 'is_unclaimed' => false,
                 'date' => $visit->date ?? $visit->scheduled_date?->toDateString(),
                 'time_slot' => $visit->time_slot ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/supervisor/assignments/{id}/reject
+     * Decline an unclaimed New Job for myself only. Other area supervisors still see it.
+     */
+    public function assignmentsReject(Request $request, int $id): JsonResponse
+    {
+        $areaIds = $this->areaIds($request);
+        $supervisorId = (int) $request->user()->id;
+
+        $visit = Visit::query()->whereKey($id)->first();
+        if (! $visit) {
+            return response()->json(['success' => false, 'message' => 'Assignment not found.'], 404);
+        }
+
+        $inMyArea = $visit->area_id && in_array((int) $visit->area_id, array_map('intval', $areaIds), true);
+        if (! $inMyArea) {
+            return response()->json(['success' => false, 'message' => 'This job is not in your zones.'], 403);
+        }
+
+        if ($visit->supervisor_id !== null) {
+            if ((int) $visit->supervisor_id === $supervisorId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You already accepted this job. Unassign/reassign instead of rejecting.',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'This job was already accepted by another supervisor.',
+            ], 409);
+        }
+
+        VisitSupervisorDecline::query()->firstOrCreate([
+            'visit_id' => $visit->id,
+            'supervisor_id' => $supervisorId,
+        ]);
+
+        // Remove this supervisor's unclaimed inbox notification for this visit only.
+        try {
+            DB::table('notifications')
+                ->where('notifiable_type', User::class)
+                ->where('notifiable_id', $supervisorId)
+                ->where(function ($q) use ($visit) {
+                    $q->where(function ($inner) use ($visit) {
+                        $inner->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                            ->where('data->meta->visit_id', $visit->id);
+                    })->orWhere(function ($inner) use ($visit) {
+                        $inner->where('data->type', 'supervisor_new_zone_job_unclaimed')
+                            ->where('data->visit_id', $visit->id);
+                    });
+                })
+                ->delete();
+        } catch (\Throwable $e) {
+            // non-blocking
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Job declined. It will stay available for other supervisors in this area.',
+            'data' => [
+                'id' => $visit->id,
+                'declined' => true,
             ],
         ]);
     }
@@ -1223,6 +1372,7 @@ class SupervisorDashboardApiController extends Controller
             $visit->save();
             VisitOrderTrackingSync::syncFromVisit($visit);
             Visit::clearUnclaimedJobNotifications((int) $visit->id);
+            VisitSupervisorDecline::query()->where('visit_id', (int) $visit->id)->delete();
         } elseif ((int) $visit->supervisor_id !== (int) $request->user()->id) {
             return response()->json([
                 'success' => false,

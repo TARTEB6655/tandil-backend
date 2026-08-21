@@ -328,12 +328,14 @@ Route::middleware(['auth:sanctum', 'role:supervisor'])->prefix('supervisor')->gr
     Route::post('/technician-signup-requests/{id}/confirm', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'technicianSignupRequestConfirm']);
     Route::post('/technician-signup-requests/{id}/cancel', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'technicianSignupRequestCancel']);
 
-    // Assignments: GET list; GET one detail; GET assign-tasks; POST /assignments/{id} (body: technician_id, scheduled_date)
+    // Assignments: New Jobs (accept/reject) vs claimed list (assign technician)
+    Route::get('/assignments/new', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsNewJobs']);
     Route::get('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsPending']);
     Route::get('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsShow']);
     Route::get('/assign-tasks', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignTasksPage']);
     Route::post('/assignments', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsStore']);
     Route::post('/assignments/{id}/claim', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsClaim']);
+    Route::post('/assignments/{id}/reject', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReject']);
     Route::post('/assignments/{id}', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsAssignOrUpdate']);
     Route::post('/assignments/{id}/reassign', [\App\Http\Controllers\Api\SupervisorDashboardApiController::class, 'assignmentsReassign']);
 

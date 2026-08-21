@@ -106,14 +106,19 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $order->refresh();
         $this->assertSame('processing', $order->order_status);
 
+        // New Jobs: both supervisors see it. Assignment list: empty until accept.
+        $newA = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newB = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newA->assertOk();
+        $newB->assertOk();
+        $idsNewA = collect($newA->json('data.data') ?? [])->pluck('id')->all();
+        $idsNewB = collect($newB->json('data.data') ?? [])->pluck('id')->all();
+        $this->assertContains($visit->id, $idsNewA);
+        $this->assertContains($visit->id, $idsNewB);
+
         $listA = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments');
-        $listB = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments');
-        $listA->assertOk();
-        $listB->assertOk();
         $idsA = collect($listA->json('data.data') ?? [])->pluck('id')->all();
-        $idsB = collect($listB->json('data.data') ?? [])->pluck('id')->all();
-        $this->assertContains($visit->id, $idsA);
-        $this->assertContains($visit->id, $idsB);
+        $this->assertNotContains($visit->id, $idsA);
 
         // Both supervisors received "unclaimed job available" notifications.
         $this->assertGreaterThan(
@@ -135,6 +140,15 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
             ->postJson('/api/supervisor/assignments/'.$visit->id.'/claim')
             ->assertOk()
             ->assertJsonPath('data.supervisor_id', $supA->id);
+
+        // After accept: in A's assignment list, gone from both New Jobs.
+        $listAAfter = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments');
+        $this->assertContains($visit->id, collect($listAAfter->json('data.data') ?? [])->pluck('id')->all());
+
+        $newAAfter = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newBAfter = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $this->assertNotContains($visit->id, collect($newAAfter->json('data.data') ?? [])->pluck('id')->all());
+        $this->assertNotContains($visit->id, collect($newBAfter->json('data.data') ?? [])->pluck('id')->all());
 
         $this->actingAs($supB, 'sanctum')
             ->postJson('/api/supervisor/assignments/'.$visit->id.'/claim')
@@ -168,5 +182,41 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $timeline = collect($track->json('data.tracking.timeline') ?? []);
         $this->assertTrue((bool) $timeline->firstWhere('key', 'processing')['completed']);
         $this->assertTrue((bool) $timeline->firstWhere('key', 'confirmed')['completed']);
+    }
+
+    public function test_supervisor_reject_hides_job_only_for_self(): void
+    {
+        $supA = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup A']);
+        $supB = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup B']);
+        $this->assignRoleIfAvailable($supA, 'supervisor');
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi Central',
+            'location' => 'Abu Dhabi',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach([$supA->id, $supB->id]);
+
+        $visit = Visit::create([
+            'area_id' => $area->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->addDay()->toDateString(),
+            'scheduled_time' => '10:00',
+            'status' => 'pending',
+            'notes' => 'Reject test job',
+            'price' => 100,
+        ]);
+
+        $this->actingAs($supA, 'sanctum')
+            ->postJson('/api/supervisor/assignments/'.$visit->id.'/reject')
+            ->assertOk()
+            ->assertJsonPath('data.declined', true);
+
+        $newA = $this->actingAs($supA, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $newB = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $this->assertNotContains($visit->id, collect($newA->json('data.data') ?? [])->pluck('id')->all());
+        $this->assertContains($visit->id, collect($newB->json('data.data') ?? [])->pluck('id')->all());
     }
 }
