@@ -311,12 +311,21 @@ class AreaController extends Controller
         ]);
     }
 
-    /** Return only id, location, supervisor_id for area responses. All keys always present; location/supervisor_id may be null. */
+    /**
+     * Area payload for admin zones APIs.
+     * supervisor_id = first mapped supervisor (legacy / single-select UIs).
+     * supervisor_ids + supervisors = full list (multi-supervisor zones).
+     */
     private function areaToArray(Area $area, array $extra = []): array
     {
-        $supervisorId = null;
-        if ($area->relationLoaded('supervisors') && $area->supervisors->isNotEmpty()) {
-            $supervisorId = (int) $area->supervisors->first()->id;
+        $supervisorIds = [];
+        $supervisors = [];
+        if ($area->relationLoaded('supervisors')) {
+            foreach ($area->supervisors as $u) {
+                $id = (int) $u->id;
+                $supervisorIds[] = $id;
+                $supervisors[] = ['id' => $id, 'name' => (string) ($u->name ?? '')];
+            }
         }
         $location = $area->location;
         if ($location === '' || $location === null) {
@@ -325,13 +334,70 @@ class AreaController extends Controller
         return array_merge([
             'id' => (int) $area->id,
             'location' => $location,
-            'supervisor_id' => $supervisorId,
+            'supervisor_id' => $supervisorIds[0] ?? null,
+            'supervisor_ids' => $supervisorIds,
+            'supervisors' => $supervisors,
             'is_active' => (bool) ($area->is_active ?? true),
             'priority' => (int) ($area->priority ?? 100),
             'latitude' => $area->latitude !== null ? (float) $area->latitude : null,
             'longitude' => $area->longitude !== null ? (float) $area->longitude : null,
             'service_radius_km' => $area->service_radius_km !== null ? (float) $area->service_radius_km : null,
         ], $extra);
+    }
+
+    /**
+     * Collect supervisor IDs from request.
+     * Prefer supervisor_ids[] (multi). Fall back to singular supervisor_id.
+     *
+     * @return list<int>
+     */
+    private function supervisorIdsFromRequest(Request $request): array
+    {
+        $ids = [];
+        if ($request->has('supervisor_ids')) {
+            $raw = $request->input('supervisor_ids');
+            if (is_array($raw)) {
+                foreach ($raw as $id) {
+                    $ids[] = (int) $id;
+                }
+            }
+        } elseif ($request->has('supervisor_id')) {
+            $id = (int) $request->input('supervisor_id');
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, fn (int $id) => $id > 0)));
+    }
+
+    /** Allow form-data JSON string / comma list for supervisor_ids before validation. */
+    private function normalizeSupervisorIdsInput(Request $request): void
+    {
+        if (! $request->has('supervisor_ids')) {
+            return;
+        }
+        $raw = $request->input('supervisor_ids');
+        if (is_array($raw)) {
+            return;
+        }
+        if (! is_string($raw)) {
+            return;
+        }
+        $trimmed = trim($raw);
+        if ($trimmed === '') {
+            $request->merge(['supervisor_ids' => []]);
+
+            return;
+        }
+        $decoded = json_decode($trimmed, true);
+        if (is_array($decoded)) {
+            $request->merge(['supervisor_ids' => $decoded]);
+
+            return;
+        }
+        $parts = preg_split('/\s*,\s*/', $trimmed, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $request->merge(['supervisor_ids' => array_map('intval', $parts)]);
     }
 
     /**
@@ -377,13 +443,18 @@ class AreaController extends Controller
     }
 
     /**
-     * POST /api/admin/areas – Create zone. Form-data only: location (required), supervisor_id (required).
+     * POST /api/admin/areas – Create zone.
+     * Form/JSON: location (required), supervisor_ids[] (preferred) OR supervisor_id (legacy single).
      */
     public function store(Request $request): JsonResponse
     {
+        $this->normalizeSupervisorIdsInput($request);
+
         $validator = Validator::make($request->all(), [
             'location' => 'required|string|max:255',
-            'supervisor_id' => 'required|integer|exists:users,id',
+            'supervisor_id' => 'nullable|integer|exists:users,id',
+            'supervisor_ids' => 'nullable|array|min:1',
+            'supervisor_ids.*' => 'integer|exists:users,id',
             'is_active' => 'nullable|boolean',
             'priority' => 'nullable|integer|min:0|max:10000',
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -394,11 +465,19 @@ class AreaController extends Controller
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
-        $supervisorId = (int) $request->input('supervisor_id');
-        if (! User::role('supervisor')->where('id', $supervisorId)->exists()) {
+        $supervisorIds = $this->supervisorIdsFromRequest($request);
+        if ($supervisorIds === []) {
             return response()->json([
                 'success' => false,
-                'message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.',
+                'message' => 'At least one supervisor is required. Send supervisor_ids[] (multiple) or supervisor_id (single).',
+            ], 422);
+        }
+
+        $validCount = User::role('supervisor')->whereIn('id', $supervisorIds)->count();
+        if ($validCount !== count($supervisorIds)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Every selected user must have the supervisor role. Use supervisor_ids[] or supervisor_id.',
             ], 422);
         }
 
@@ -421,7 +500,7 @@ class AreaController extends Controller
             'service_radius_km' => $request->filled('service_radius_km') ? (float) $request->input('service_radius_km') : 30,
         ]);
 
-        $this->ensureSupervisorsAndSync($area, [$supervisorId]);
+        $this->ensureSupervisorsAndSync($area, $supervisorIds);
 
         $area->load('supervisors');
         return response()->json([
@@ -445,13 +524,19 @@ class AreaController extends Controller
     }
 
     /**
-     * PUT/POST /api/admin/areas/{id} – Update zone. Form-data only: location (optional), supervisor_id (optional).
+     * PUT/POST /api/admin/areas/{id} – Update zone.
+     * Optional: location, supervisor_ids[] (full replace — send ALL supervisors for the zone),
+     * or legacy supervisor_id (also replaces the full list with that single id).
      */
     public function update(Request $request, int $id): JsonResponse
     {
+        $this->normalizeSupervisorIdsInput($request);
+
         $validator = Validator::make($request->all(), [
             'location' => 'nullable|string|max:255',
             'supervisor_id' => 'nullable|integer|exists:users,id',
+            'supervisor_ids' => 'nullable|array',
+            'supervisor_ids.*' => 'integer|exists:users,id',
             'is_active' => 'nullable|boolean',
             'priority' => 'nullable|integer|min:0|max:10000',
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -484,15 +569,18 @@ class AreaController extends Controller
         }
         $area->save();
 
-        if ($request->has('supervisor_id')) {
-            $supervisorId = (int) $request->input('supervisor_id');
-            if ($supervisorId && ! User::role('supervisor')->where('id', $supervisorId)->exists()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.',
-                ], 422);
+        if ($request->has('supervisor_ids') || $request->has('supervisor_id')) {
+            $supervisorIds = $this->supervisorIdsFromRequest($request);
+            if ($supervisorIds !== []) {
+                $validCount = User::role('supervisor')->whereIn('id', $supervisorIds)->count();
+                if ($validCount !== count($supervisorIds)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Every selected user must have the supervisor role. Use supervisor_ids[] or supervisor_id.',
+                    ], 422);
+                }
             }
-            $this->ensureSupervisorsAndSync($area, $supervisorId ? [$supervisorId] : []);
+            $this->ensureSupervisorsAndSync($area, $supervisorIds);
         }
 
         $area->load('supervisors');

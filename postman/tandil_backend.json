@@ -22651,10 +22651,23 @@
                       "description": "Required"
                     },
                     {
+                      "key": "supervisor_ids[]",
+                      "value": "2",
+                      "type": "text",
+                      "description": "Preferred for multi-supervisor zones. Repeat this key for each supervisor id."
+                    },
+                    {
+                      "key": "supervisor_ids[]",
+                      "value": "5",
+                      "type": "text",
+                      "description": "Second supervisor (optional). Or send JSON: supervisor_ids=[2,5]"
+                    },
+                    {
                       "key": "supervisor_id",
                       "value": "2",
                       "type": "text",
-                      "description": "Required"
+                      "description": "Legacy single supervisor. Ignored if supervisor_ids is sent.",
+                      "disabled": true
                     }
                   ]
                 },
@@ -22669,7 +22682,7 @@
                     "areas"
                   ]
                 },
-                "description": "Create area. POST /api/admin/areas. Form: location (required), supervisor_id (required). Response: id, location, supervisor_id only."
+                "description": "Create area. POST /api/admin/areas.\n\n**Multi supervisors (required for shared zones):** send `supervisor_ids` as array — JSON body `{\"supervisor_ids\":[2,5]}` or form `supervisor_ids[]=2&supervisor_ids[]=5` or form string `[2,5]` / `2,5`.\n\n**Legacy:** `supervisor_id` (single) still works but only stores ONE supervisor.\n\nResponse includes `supervisor_id` (first), `supervisor_ids` (all), `supervisors` [{id,name}]."
               }
             },
             {
@@ -22725,10 +22738,23 @@
                       "description": "Optional"
                     },
                     {
+                      "key": "supervisor_ids[]",
+                      "value": "2",
+                      "type": "text",
+                      "description": "Send ALL supervisors for this zone (full replace)."
+                    },
+                    {
+                      "key": "supervisor_ids[]",
+                      "value": "5",
+                      "type": "text",
+                      "description": "Second supervisor id"
+                    },
+                    {
                       "key": "supervisor_id",
                       "value": "2",
                       "type": "text",
-                      "description": "Optional"
+                      "description": "Legacy single — replaces list with only this id. Do not use when assigning 2+ supervisors.",
+                      "disabled": true
                     }
                   ]
                 },
@@ -22744,7 +22770,7 @@
                     "{{area_id}}"
                   ]
                 },
-                "description": "Update area. POST /api/admin/areas/:id. Form: location (optional), supervisor_id (optional). Response: id, location, supervisor_id only. Set area_id."
+                "description": "Update area. POST/PUT /api/admin/areas/:id.\n\n**To assign 2+ supervisors to the same zone:** send full list via `supervisor_ids` (JSON array or repeated form keys). Sync replaces the pivot — always send every supervisor that should remain.\n\n**Warning:** `supervisor_id` (singular) replaces the entire list with ONE supervisor (this was why the second supervisor stopped seeing jobs).\n\nResponse: `supervisor_id`, `supervisor_ids`, `supervisors`."
               }
             },
             {

@@ -191,7 +191,7 @@ class AdminAreasApiTest extends TestCase
         ], $this->authHeaders());
         $response->assertStatus(422);
         $response->assertJsonPath('success', false);
-        $response->assertJsonFragment(['message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.']);
+        $response->assertJsonFragment(['message' => 'Every selected user must have the supervisor role. Use supervisor_ids[] or supervisor_id.']);
     }
 
     public function test_area_create_success_and_returns_id_location_supervisor_id(): void
@@ -204,12 +204,49 @@ class AdminAreasApiTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('data.location', 'Abu Dhabi North');
         $response->assertJsonPath('data.supervisor_id', $this->supervisor->id);
-        $response->assertJsonStructure(['data' => ['id', 'location', 'supervisor_id']]);
+        $response->assertJsonPath('data.supervisor_ids.0', $this->supervisor->id);
+        $response->assertJsonStructure(['data' => ['id', 'location', 'supervisor_id', 'supervisor_ids', 'supervisors']]);
         $this->assertDatabaseHas('areas', ['location' => 'Abu Dhabi North']);
         $this->assertDatabaseHas('area_supervisor', [
             'area_id' => $response->json('data.id'),
             'user_id' => $this->supervisor->id,
         ]);
+    }
+
+    public function test_area_create_and_update_accept_multiple_supervisor_ids(): void
+    {
+        $supB = User::factory()->create(['name' => 'Supervisor Two', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $create = $this->postJson('/api/admin/areas', [
+            'location' => 'Shared Zone',
+            'supervisor_ids' => [$this->supervisor->id, $supB->id],
+        ], $this->authHeaders());
+        $create->assertStatus(201);
+        $areaId = (int) $create->json('data.id');
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id],
+            $create->json('data.supervisor_ids')
+        );
+        $this->assertCount(2, $create->json('data.supervisors'));
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id],
+            Area::findOrFail($areaId)->supervisors()->pluck('users.id')->all()
+        );
+
+        // Legacy singular supervisor_id replaces the full list with one id.
+        $replace = $this->putJson('/api/admin/areas/'.$areaId, [
+            'supervisor_id' => $supB->id,
+        ], $this->authHeaders());
+        $replace->assertOk();
+        $replace->assertJsonPath('data.supervisor_ids', [$supB->id]);
+
+        // Multi list restores both.
+        $both = $this->putJson('/api/admin/areas/'.$areaId, [
+            'supervisor_ids' => [$this->supervisor->id, $supB->id],
+        ], $this->authHeaders());
+        $both->assertOk();
+        $this->assertCount(2, $both->json('data.supervisor_ids'));
     }
 
     public function test_area_show_returns_id_location_supervisor_id(): void
@@ -255,7 +292,7 @@ class AdminAreasApiTest extends TestCase
             'supervisor_id' => $client->id,
         ], $this->authHeaders());
         $response->assertStatus(422);
-        $response->assertJsonFragment(['message' => 'The selected user is not a supervisor. supervisor_id must be a user with the supervisor role.']);
+        $response->assertJsonFragment(['message' => 'Every selected user must have the supervisor role. Use supervisor_ids[] or supervisor_id.']);
     }
 
     public function test_area_delete_success(): void
@@ -321,18 +358,20 @@ class AdminAreasApiTest extends TestCase
         $this->assertArrayHasKey('supervisor_id', $response->json('data'));
     }
 
-    /** Create/Show/Update responses have exactly id, location, supervisor_id. */
-    public function test_area_single_response_has_only_expected_keys(): void
+    /** Create/Show/Update responses include multi-supervisor fields. */
+    public function test_area_single_response_has_expected_keys(): void
     {
         $area = Area::factory()->create(['location' => 'Keys Test']);
         $area->supervisors()->attach($this->supervisor->id);
         $response = $this->getJson('/api/admin/areas/' . $area->id, $this->authHeaders());
         $response->assertStatus(200);
         $data = $response->json('data');
-        $expectedKeys = ['id', 'location', 'supervisor_id'];
-        $this->assertEqualsCanonicalizing(array_keys($data), $expectedKeys);
+        foreach (['id', 'location', 'supervisor_id', 'supervisor_ids', 'supervisors'] as $key) {
+            $this->assertArrayHasKey($key, $data);
+        }
         $this->assertSame($area->id, $data['id']);
         $this->assertSame('Keys Test', $data['location']);
         $this->assertSame($this->supervisor->id, $data['supervisor_id']);
+        $this->assertSame([$this->supervisor->id], $data['supervisor_ids']);
     }
 }
