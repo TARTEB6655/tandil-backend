@@ -5,8 +5,9 @@ namespace App\Models;
 use App\Jobs\SyncVisitOrderTrackingJob;
 use App\Notifications\AdminNotification;
 use App\Support\RoleUsersNotifier;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Visit extends Model
 {
@@ -210,6 +211,33 @@ class Visit extends Model
             foreach (RoleUsersNotifier::usersForRole('admin') as $admin) {
                 $admin->notify(new AdminNotification('New job available', $message, $meta));
             }
+        } catch (\Throwable $e) {
+            // non-blocking
+        }
+    }
+
+    /**
+     * After a supervisor claims a pool job, remove the "available to claim"
+     * inbox notifications from every supervisor/admin so losers no longer see it.
+     */
+    public static function clearUnclaimedJobNotifications(int $visitId): void
+    {
+        if ($visitId <= 0) {
+            return;
+        }
+
+        try {
+            DB::table('notifications')
+                ->where(function ($q) use ($visitId) {
+                    $q->where(function ($inner) use ($visitId) {
+                        $inner->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                            ->where('data->meta->visit_id', $visitId);
+                    })->orWhere(function ($inner) use ($visitId) {
+                        $inner->where('data->type', 'supervisor_new_zone_job_unclaimed')
+                            ->where('data->visit_id', $visitId);
+                    });
+                })
+                ->delete();
         } catch (\Throwable $e) {
             // non-blocking
         }

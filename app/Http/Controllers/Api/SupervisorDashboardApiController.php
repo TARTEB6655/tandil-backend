@@ -1167,6 +1167,8 @@ class SupervisorDashboardApiController extends Controller
 
         VisitOrderTrackingSync::syncFromVisit($visit);
 
+        Visit::clearUnclaimedJobNotifications((int) $visit->id);
+
         $meta = $this->parseVisitMetaFromNotes(
             (string) ($visit->notes ?? ''),
             $visit->order_id ? (int) $visit->order_id : null
@@ -1220,6 +1222,7 @@ class SupervisorDashboardApiController extends Controller
             $visit->supervisor_id = $request->user()->id;
             $visit->save();
             VisitOrderTrackingSync::syncFromVisit($visit);
+            Visit::clearUnclaimedJobNotifications((int) $visit->id);
         } elseif ((int) $visit->supervisor_id !== (int) $request->user()->id) {
             return response()->json([
                 'success' => false,

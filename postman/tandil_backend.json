@@ -15454,7 +15454,7 @@
                     "claim"
                   ]
                 },
-                "description": "**NEW** POST /api/supervisor/assignments/{id}/claim – First supervisor to accept an unclaimed area-pool job.\n\n**Auth:** Bearer (supervisor).\n\n**Body:** none.\n\n**Success (200):** `message` \"Job accepted…\", `data` with id, supervisor_id, supervisor_name, can_claim=false, is_unclaimed=false. Client order tracking moves **processing → confirmed**.\n\n**Errors:** 403 not in your zones; 404 not found; 409 already accepted by another supervisor.\n\nAfter claim, assign a technician with POST /api/supervisor/assignments/{id} (technician_id)."
+                "description": "**NEW** POST /api/supervisor/assignments/{id}/claim – First supervisor to accept an unclaimed area-pool job.\n\n**Auth:** Bearer (supervisor).\n\n**Body:** none.\n\n**Success (200):** `message` \"Job accepted…\", `data` with id, supervisor_id, supervisor_name, can_claim=false, is_unclaimed=false.\n\n**Side effects:** Job removed from other same-area supervisors' assignment lists; their \"New job available\" (unclaimed) inbox notifications for this visit are deleted; client order tracking moves **processing → confirmed**.\n\n**Errors:** 403 not in your zones; 404 not found; 409 already accepted by another supervisor.\n\nAfter claim, assign a technician with POST /api/supervisor/assignments/{id} (technician_id)."
               }
             },
             {

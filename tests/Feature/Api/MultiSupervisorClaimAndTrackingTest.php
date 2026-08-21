@@ -115,6 +115,22 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $this->assertContains($visit->id, $idsA);
         $this->assertContains($visit->id, $idsB);
 
+        // Both supervisors received "unclaimed job available" notifications.
+        $this->assertGreaterThan(
+            0,
+            $supA->notifications()
+                ->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                ->where('data->meta->visit_id', $visit->id)
+                ->count()
+        );
+        $this->assertGreaterThan(
+            0,
+            $supB->notifications()
+                ->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                ->where('data->meta->visit_id', $visit->id)
+                ->count()
+        );
+
         $this->actingAs($supA, 'sanctum')
             ->postJson('/api/supervisor/assignments/'.$visit->id.'/claim')
             ->assertOk()
@@ -127,6 +143,22 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $listBAfter = $this->actingAs($supB, 'sanctum')->getJson('/api/supervisor/assignments');
         $idsBAfter = collect($listBAfter->json('data.data') ?? [])->pluck('id')->all();
         $this->assertNotContains($visit->id, $idsBAfter);
+
+        // Unclaimed notifications removed for both after claim.
+        $this->assertSame(
+            0,
+            $supA->fresh()->notifications()
+                ->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                ->where('data->meta->visit_id', $visit->id)
+                ->count()
+        );
+        $this->assertSame(
+            0,
+            $supB->fresh()->notifications()
+                ->where('data->meta->type', 'supervisor_new_zone_job_unclaimed')
+                ->where('data->meta->visit_id', $visit->id)
+                ->count()
+        );
 
         $order->refresh();
         $this->assertSame('confirmed', $order->order_status);
