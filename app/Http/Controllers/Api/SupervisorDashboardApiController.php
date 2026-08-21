@@ -82,9 +82,12 @@ class SupervisorDashboardApiController extends Controller
             return Visit::query()->whereRaw('1 = 0');
         }
 
+        // New Jobs = unclaimed pool in my zones, still awaiting Accept.
+        // Only pending (not completed / in_progress / rejected / cancelled, etc.).
         return Visit::query()
             ->whereIn('area_id', $areaIds)
             ->whereNull('supervisor_id')
+            ->where('status', 'pending')
             ->whereNotIn('id', function ($sub) use ($supervisorId) {
                 $sub->select('visit_id')
                     ->from('visit_supervisor_declines')

@@ -285,4 +285,63 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $visit->refresh();
         $this->assertSame((int) $area->id, (int) $visit->area_id);
     }
+
+    public function test_new_jobs_only_includes_pending_unclaimed_not_completed(): void
+    {
+        $sup = User::factory()->create(['role' => 'supervisor', 'name' => 'Sup']);
+        $this->assignRoleIfAvailable($sup, 'supervisor');
+
+        $area = Area::factory()->create([
+            'name' => 'Abu Dhabi',
+            'location' => 'Abu Dhabi',
+            'country' => 'UAE',
+            'is_active' => true,
+        ]);
+        $area->supervisors()->attach([$sup->id]);
+
+        $pending = Visit::create([
+            'area_id' => $area->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->addDay()->toDateString(),
+            'scheduled_time' => '09:00',
+            'status' => 'pending',
+            'notes' => 'Open new job',
+            'price' => 100,
+        ]);
+        $completed = Visit::create([
+            'area_id' => $area->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->subDay()->toDateString(),
+            'scheduled_time' => '09:00',
+            'status' => 'completed',
+            'notes' => 'Old completed should hide',
+            'price' => 100,
+        ]);
+        $inProgress = Visit::create([
+            'area_id' => $area->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->toDateString(),
+            'scheduled_time' => '10:00',
+            'status' => 'in_progress',
+            'notes' => 'In progress should hide',
+            'price' => 100,
+        ]);
+        $rejected = Visit::create([
+            'area_id' => $area->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->toDateString(),
+            'scheduled_time' => '11:00',
+            'status' => 'rejected',
+            'notes' => 'Rejected should hide',
+            'price' => 100,
+        ]);
+
+        $new = $this->actingAs($sup, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $new->assertOk();
+        $ids = collect($new->json('data.data') ?? [])->pluck('id')->all();
+        $this->assertContains($pending->id, $ids);
+        $this->assertNotContains($completed->id, $ids);
+        $this->assertNotContains($inProgress->id, $ids);
+        $this->assertNotContains($rejected->id, $ids);
+    }
 }
