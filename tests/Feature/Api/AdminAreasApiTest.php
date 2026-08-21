@@ -279,6 +279,63 @@ class AdminAreasApiTest extends TestCase
         ]);
     }
 
+    public function test_creating_same_location_twice_reuses_area_id_instead_of_abu_dhabi_one(): void
+    {
+        $supB = User::factory()->create(['name' => 'Hamood', 'email' => 'hamood@tandil.com', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $first = $this->postJson('/api/admin/areas', [
+            'location' => 'Abu Dhabi',
+            'supervisor_id' => $this->supervisor->id,
+        ], $this->authHeaders());
+        $first->assertStatus(201);
+        $areaId = (int) $first->json('data.id');
+        $this->assertFalse((bool) $first->json('reused'));
+
+        // FE mistakenly POSTs create again for second supervisor — must NOT create "Abu Dhabi (1)".
+        $second = $this->postJson('/api/admin/areas', [
+            'location' => 'Abu Dhabi',
+            'supervisor_id' => $supB->id,
+        ], $this->authHeaders());
+        $second->assertOk();
+        $second->assertJsonPath('reused', true);
+        $second->assertJsonPath('data.id', $areaId);
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id],
+            $second->json('data.supervisor_ids')
+        );
+        $this->assertSame(1, Area::query()->where('location', 'Abu Dhabi')->where(function ($q) {
+            $q->where('name', 'Abu Dhabi')->orWhere('name', 'like', 'Abu Dhabi (%)');
+        })->count());
+        $this->assertDatabaseMissing('areas', ['name' => 'Abu Dhabi (1)']);
+    }
+
+    public function test_consolidate_duplicates_merges_abu_dhabi_and_abu_dhabi_one(): void
+    {
+        $supB = User::factory()->create(['name' => 'Hamood', 'role' => 'supervisor']);
+        $this->assignRoleIfAvailable($supB, 'supervisor');
+
+        $a = Area::factory()->create(['name' => 'Abu Dhabi (1)', 'location' => 'Abu Dhabi']);
+        $b = Area::factory()->create(['name' => 'Abu Dhabi', 'location' => 'Abu Dhabi']);
+        $a->supervisors()->attach($this->supervisor->id);
+        $b->supervisors()->attach($supB->id);
+
+        $canonicalId = min($a->id, $b->id);
+        $dupeId = max($a->id, $b->id);
+
+        $res = $this->postJson('/api/admin/areas/consolidate-duplicates', [
+            'location' => 'Abu Dhabi',
+        ], $this->authHeaders());
+        $res->assertOk();
+        $res->assertJsonPath('data.id', $canonicalId);
+        $this->assertEqualsCanonicalizing(
+            [$this->supervisor->id, $supB->id],
+            $res->json('data.supervisor_ids')
+        );
+        $this->assertDatabaseMissing('areas', ['id' => $dupeId]);
+        $this->assertDatabaseHas('areas', ['id' => $canonicalId, 'name' => 'Abu Dhabi']);
+    }
+
     public function test_area_show_returns_id_location_supervisor_id(): void
     {
         $area = Area::factory()->create(['location' => 'Show Test']);

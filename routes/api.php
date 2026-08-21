@@ -498,6 +498,7 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
     Route::get('/operational-areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'operationalAreas']);
     Route::post('/operational-areas/{id}/toggle-active', [\App\Http\Controllers\Api\Admin\AreaController::class, 'toggleOperationalArea']);
+    Route::post('/areas/consolidate-duplicates', [\App\Http\Controllers\Api\Admin\AreaController::class, 'consolidateDuplicates']);
     Route::post('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'store']);
     Route::get('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'show']);
     Route::put('/areas/{id}', [\App\Http\Controllers\Api\Admin\AreaController::class, 'update']);

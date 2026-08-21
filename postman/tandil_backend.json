@@ -22682,7 +22682,47 @@
                     "areas"
                   ]
                 },
-                "description": "Create area. POST /api/admin/areas.\n\nSend `supervisor_id` (one) or `supervisor_ids` (one/many). Later assigns ADD more supervisors — they do not wipe existing ones.\n\nResponse: `supervisor_id` (first), `supervisor_ids` (all), `supervisors` [{id,name}]."
+                "description": "Create area. POST /api/admin/areas.\n\nSend `supervisor_id` (one) or `supervisor_ids` (one/many). Later assigns ADD more supervisors — they do not wipe existing ones.\n\n**Important:** Creating the same location twice (e.g. Abu Dhabi again for a 2nd supervisor) REUSES the same area_id — it does NOT create \"Abu Dhabi (1)\". Prefer PUT /areas/{id} to add supervisors.\n\nResponse: `supervisor_id` (first), `supervisor_ids` (all), `supervisors` [{id,name}], `reused` bool."
+              }
+            },
+            {
+              "name": "Areas - Consolidate Duplicates",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "location",
+                      "value": "Abu Dhabi",
+                      "type": "text",
+                      "description": "Required. Merges Abu Dhabi + Abu Dhabi (1) into one area_id; moves supervisors and visits."
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/areas/consolidate-duplicates",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "areas",
+                    "consolidate-duplicates"
+                  ]
+                },
+                "description": "Fix split zones (e.g. area 83 Abu Dhabi (1) + area 86 Abu Dhabi). POST /api/admin/areas/consolidate-duplicates with location=Abu Dhabi. Keeps lowest area_id, attaches all supervisors, rewrites visits.area_id, deletes duplicates."
               }
             },
             {

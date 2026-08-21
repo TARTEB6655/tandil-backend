@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Area;
 use App\Models\User;
+use App\Models\Visit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -443,8 +444,8 @@ class AreaController extends Controller
     }
 
     /**
-     * POST /api/admin/areas – Create zone.
-     * Form/JSON: location (required), supervisor_ids[] (preferred) OR supervisor_id (legacy single).
+     * POST /api/admin/areas – Create zone OR add supervisors to an existing same-location zone.
+     * Never creates "Abu Dhabi (1)" duplicates when "Abu Dhabi" already exists — reuses that area_id.
      */
     public function store(Request $request): JsonResponse
     {
@@ -481,15 +482,25 @@ class AreaController extends Controller
             ], 422);
         }
 
-        $location = $request->input('location');
-        $name = $location;
-        $n = 0;
-        while (Area::where('name', $name)->exists()) {
-            $n++;
-            $name = $location . ' (' . $n . ')';
+        $location = trim((string) $request->input('location'));
+
+        // Same location label already exists (incl. historical "Name (1)" dupes) → reuse one area_id.
+        $existing = $this->findReusableAreaByLocationLabel($location);
+        if ($existing) {
+            $this->ensureSupervisorsAttached($existing, $supervisorIds);
+            $existing = $this->mergeNumberedLocationDuplicates($existing, $location);
+            $existing->load('supervisors');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Supervisor(s) added to existing area. Same location keeps one area_id (no duplicate zone).',
+                'data' => $this->areaToArray($existing),
+                'reused' => true,
+            ]);
         }
+
         $area = Area::create([
-            'name' => $name,
+            'name' => $location,
             'description' => null,
             'location' => $location,
             'country' => 'UAE',
@@ -507,7 +518,43 @@ class AreaController extends Controller
             'success' => true,
             'message' => 'Area created successfully.',
             'data' => $this->areaToArray($area),
+            'reused' => false,
         ], 201);
+    }
+
+    /**
+     * POST /api/admin/areas/consolidate-duplicates
+     * Fix already-split zones like "Abu Dhabi" + "Abu Dhabi (1)" into one area_id.
+     * Body: location (required) e.g. "Abu Dhabi". Moves supervisors + visits, deletes dupes.
+     */
+    public function consolidateDuplicates(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'location' => 'required|string|max:255',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+
+        $location = trim((string) $request->input('location'));
+        $canonical = $this->findReusableAreaByLocationLabel($location);
+        if (! $canonical) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No area found for that location.',
+            ], 404);
+        }
+
+        $mergedIds = $this->collectNumberedLocationDuplicateIds($canonical, $location);
+        $canonical = $this->mergeNumberedLocationDuplicates($canonical, $location);
+        $canonical->load('supervisors');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Duplicate location zones consolidated into one area_id.',
+            'data' => $this->areaToArray($canonical),
+            'merged_area_ids' => $mergedIds,
+        ]);
     }
 
     /**
@@ -617,6 +664,92 @@ class AreaController extends Controller
             return;
         }
         $area->supervisors()->syncWithoutDetaching($valid);
+    }
+
+    /**
+     * Find an area for a location label, including historical duplicates named "X (1)".
+     * Does NOT match distinct zones like "Abu Dhabi City" / "Mussafah".
+     */
+    private function findReusableAreaByLocationLabel(string $location): ?Area
+    {
+        $norm = strtolower(trim($location));
+        if ($norm === '') {
+            return null;
+        }
+
+        return Area::query()
+            ->where(function ($q) use ($norm) {
+                $q->whereRaw('LOWER(TRIM(name)) = ?', [$norm])
+                    ->orWhereRaw('LOWER(TRIM(name)) LIKE ?', [$norm.' (%)']);
+            })
+            ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function collectNumberedLocationDuplicateIds(Area $canonical, string $location): array
+    {
+        $norm = strtolower(trim($location));
+        if ($norm === '') {
+            return [];
+        }
+
+        return Area::query()
+            ->where('id', '!=', $canonical->id)
+            ->where(function ($q) use ($norm) {
+                $q->whereRaw('LOWER(TRIM(name)) = ?', [$norm])
+                    ->orWhereRaw('LOWER(TRIM(name)) LIKE ?', [$norm.' (%)']);
+            })
+            ->orderBy('id')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+    }
+
+    /**
+     * Merge "Abu Dhabi (1)" style duplicates into the canonical area.
+     * Moves supervisors, technicians, and visits; deletes duplicate rows.
+     */
+    private function mergeNumberedLocationDuplicates(Area $canonical, string $location): Area
+    {
+        $dupeIds = $this->collectNumberedLocationDuplicateIds($canonical, $location);
+        if ($dupeIds === []) {
+            // Normalize canonical name/location to the clean label.
+            $clean = trim($location);
+            if ($clean !== '' && ($canonical->name !== $clean || $canonical->location !== $clean)) {
+                $canonical->name = $clean;
+                $canonical->location = $clean;
+                $canonical->save();
+            }
+
+            return $canonical->fresh() ?? $canonical;
+        }
+
+        foreach (Area::query()->whereIn('id', $dupeIds)->get() as $dupe) {
+            $supIds = $dupe->supervisors()->pluck('users.id')->all();
+            $techIds = $dupe->technicians()->pluck('users.id')->all();
+            if ($supIds !== []) {
+                $canonical->supervisors()->syncWithoutDetaching($supIds);
+            }
+            if ($techIds !== []) {
+                $canonical->technicians()->syncWithoutDetaching($techIds);
+            }
+            Visit::query()->where('area_id', $dupe->id)->update(['area_id' => $canonical->id]);
+            $dupe->supervisors()->detach();
+            $dupe->technicians()->detach();
+            $dupe->delete();
+        }
+
+        $clean = trim($location);
+        if ($clean !== '') {
+            $canonical->name = $clean;
+            $canonical->location = $clean;
+            $canonical->save();
+        }
+
+        return $canonical->fresh() ?? $canonical;
     }
 
     private function ensureTechniciansAndSync(Area $area, array $ids): void
