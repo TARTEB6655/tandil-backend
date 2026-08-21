@@ -12002,7 +12002,7 @@
         },
         {
           "name": "K. Job Scheduling",
-          "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, **per-product time slots (C2)**, **Jobs calendar** with technician overlap warning. Auth: Bearer admin.\n\n**Per product:** `GET/POST /api/admin/job-scheduling/products/{productId}/time-slots` — set different dates/times per product. Shop `GET /api/shop/products/{id}?date=` then shows those slots in `data.booking`.\n\nCalendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD` — overlapping jobs return `technician_overlap: true` + `overlap_warning: \"Technician overlap\"`.",
+          "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, Jobs calendar. Auth: Bearer admin.\n\n**Shop booking rule:** Time slots / working hours / blocked dates here are **GLOBAL** (same for every product). Capacity is **per product** on `GET /api/shop/products/{id}` — Product A filling 9–10 AM does not fill Product B.\n\nCalendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD`.",
           "item": [
             {
               "name": "A. Working Hours & Capacity",
@@ -12442,8 +12442,8 @@
               ]
             },
             {
-              "name": "C2. Product Time Slots (per product)",
-              "description": "Admin configures **different date/time slots per product**. When a product has any custom slots, `GET /api/shop/products/{id}` booking uses those only (not global time slots). `date` null = recurring every working day; set `date` for a specific calendar day only.",
+              "name": "C2. Product Time Slots (optional / unused by shop)",
+              "description": "Optional admin CRUD for product_time_slots rows. **Shop product booking does NOT use these** — clients always see global folder K time slots; only booking **capacity** is per product. Prefer configuring times under **B. Time slots**.",
               "item": [
                 {
                   "name": "1. List product time slots",
@@ -16757,7 +16757,7 @@
                     }
                   ]
                 },
-                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] for **this product**.\n- If admin set product slots (folder **K → C2**): `uses_custom_slots=true`, `slot_source=product` — only those times.\n- Else: global job-scheduling slots (`slot_source=global`).\n- Capacity still per product. Enable only `available===true`. Date change → `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
+                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] from **global** admin Job Scheduling (folder **K** time-slots). Same times on every product.\n- `slot_source`: `global`\n- `capacity_scope`: `product` — if Product A has 2 bookings at 9–10 AM, that slot is `available:false` **only on Product A**; Product B still shows it available until B also hits max.\n- Max per slot = `max_bookings_per_slot` (default 2). FE: enable only `available===true`. Date change → `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
               }
             },
             {

@@ -337,14 +337,17 @@ class ProductController extends Controller
      */
     private function getBookingAvailability(?string $selectedDate = null, ?int $productId = null): array
     {
+        /*
+         * Dates/times come from global admin Job Scheduling (folder K).
+         * Capacity (booked_count / remaining / available) is per product.
+         */
         $daysToShow = 7;
-        $candidateDates = JobSchedulingService::candidateDatesForProduct($productId, $daysToShow);
-        $usesCustomSlots = JobSchedulingService::productUsesCustomSlots($productId);
-
+        $today = Carbon::today();
         $dates = [];
 
-        foreach ($candidateDates as $dateString) {
-            $date = Carbon::parse($dateString);
+        for ($i = 0; $i < $daysToShow; $i++) {
+            $date = $today->copy()->addDays($i);
+            $dateString = $date->format('Y-m-d');
 
             $slots = JobSchedulingService::availableSlots($dateString, $productId);
             $hasBookableSlot = collect($slots)->contains(
@@ -375,7 +378,7 @@ class ProductController extends Controller
             ? JobSchedulingService::availableSlots($dateToUse, $productId)
             : [];
 
-        $formattedSlots = array_map(function ($slot) use ($usesCustomSlots) {
+        $formattedSlots = array_map(function ($slot) {
             return [
                 'id' => $slot['id'],
                 'time' => Carbon::parse(
@@ -389,7 +392,6 @@ class ProductController extends Controller
                 'max_bookings' => $slot['max_bookings'] ?? null,
                 'blocked' => (bool) ($slot['blocked'] ?? false),
                 'available' => (bool) $slot['available'],
-                'source' => $slot['source'] ?? ($usesCustomSlots ? 'product' : 'global'),
             ];
         }, $slots);
 
@@ -398,8 +400,8 @@ class ProductController extends Controller
         return [
             'enabled' => true,
             'product_id' => $productId,
-            'uses_custom_slots' => $usesCustomSlots,
-            'slot_source' => $usesCustomSlots ? 'product' : 'global',
+            'slot_source' => 'global',
+            'capacity_scope' => 'product',
             'date_selection_required' => true,
             'time_selection_required' => true,
             'max_bookings_per_slot' => (int) $settings->max_bookings_per_slot,

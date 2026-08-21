@@ -14,6 +14,10 @@ use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
+/**
+ * Shop booking always uses GLOBAL folder-K slots.
+ * Product custom slot rows (admin C2) must not change the times shown on product detail.
+ */
 class ProductCustomSlotsTest extends TestCase
 {
     use RefreshDatabase;
@@ -69,7 +73,7 @@ class ProductCustomSlotsTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_add_product_specific_time_slot(): void
+    public function test_admin_can_manage_product_time_slot_rows(): void
     {
         $admin = $this->admin();
         $product = $this->product();
@@ -81,18 +85,10 @@ class ProductCustomSlotsTest extends TestCase
                 'date' => '2026-08-12',
             ])
             ->assertCreated()
-            ->assertJsonPath('data.start_time', '14:00')
-            ->assertJsonPath('data.date', '2026-08-12')
-            ->assertJsonPath('data.recurring', false);
-
-        $this->actingAs($admin, 'sanctum')
-            ->getJson('/api/admin/job-scheduling/products/'.$product->id.'/time-slots')
-            ->assertOk()
-            ->assertJsonPath('data.uses_custom_slots', true)
-            ->assertJsonPath('data.slots.0.start_time', '14:00');
+            ->assertJsonPath('data.start_time', '14:00');
     }
 
-    public function test_product_detail_shows_only_custom_slots_not_global(): void
+    public function test_product_detail_always_shows_global_slots_even_if_product_rows_exist(): void
     {
         $product = $this->product();
 
@@ -105,90 +101,63 @@ class ProductCustomSlotsTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $res = $this->getJson('/api/shop/products/'.$product->id.'?date=2026-08-12')
+        $res = $this->getJson('/api/shop/products/'.$product->id.'?date=2026-08-10')
             ->assertOk();
 
-        $this->assertTrue($res->json('data.booking.uses_custom_slots'));
-        $this->assertSame('product', $res->json('data.booking.slot_source'));
-
+        $this->assertSame('global', $res->json('data.booking.slot_source'));
+        $this->assertSame('product', $res->json('data.booking.capacity_scope'));
         $starts = collect($res->json('data.booking.slots'))->pluck('start_time')->all();
-        $this->assertContains('14:00', $starts);
-        $this->assertNotContains('09:00', $starts, 'Global 09:00 must not appear when product has custom slots');
+        $this->assertContains('09:00', $starts);
+        $this->assertNotContains('14:00', $starts);
     }
 
-    public function test_two_products_can_have_different_custom_slots(): void
+    public function test_two_products_share_same_global_times_with_independent_capacity(): void
     {
-        $productA = $this->product();
-        $productB = $this->product();
-
-        ProductTimeSlot::create([
-            'product_id' => $productA->id,
-            'date' => null,
+        JobTimeSlot::create([
             'start_time' => '10:00',
             'duration_minutes' => 60,
             'is_active' => true,
-            'sort_order' => 1,
+            'sort_order' => 2,
         ]);
-        ProductTimeSlot::create([
-            'product_id' => $productB->id,
-            'date' => null,
-            'start_time' => '16:00',
+
+        $settings = JobSchedulingSetting::current();
+        $settings->max_bookings_per_slot = 1;
+        $settings->save();
+
+        $productA = $this->product();
+        $productB = $this->product();
+
+        $order = \App\Models\Order::factory()->create([
+            'user_id' => User::factory()->create(['role' => 'client'])->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'total_amount' => 50,
+        ]);
+        $item = \App\Models\OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $productA->id,
+            'quantity' => 1,
+            'price' => 50,
+            'subtotal' => 50,
+            'booking_date' => '2026-08-10',
+            'booking_slot' => '10:00 AM - 11:00 AM',
+        ]);
+        \App\Models\Visit::create([
+            'order_id' => $order->id,
+            'order_item_id' => $item->id,
+            'scheduled_date' => '2026-08-10',
+            'scheduled_time' => '10:00',
             'duration_minutes' => 60,
-            'is_active' => true,
-            'sort_order' => 1,
+            'status' => 'pending',
         ]);
 
         $a = $this->getJson('/api/shop/products/'.$productA->id.'?date=2026-08-10')->assertOk();
         $b = $this->getJson('/api/shop/products/'.$productB->id.'?date=2026-08-10')->assertOk();
 
-        $this->assertSame(['10:00'], collect($a->json('data.booking.slots'))->pluck('start_time')->all());
-        $this->assertSame(['16:00'], collect($b->json('data.booking.slots'))->pluck('start_time')->all());
-    }
+        $tenA = collect($a->json('data.booking.slots'))->firstWhere('start_time', '10:00');
+        $tenB = collect($b->json('data.booking.slots'))->firstWhere('start_time', '10:00');
 
-    public function test_product_without_custom_slots_falls_back_to_global(): void
-    {
-        $product = $this->product();
-
-        $res = $this->getJson('/api/shop/products/'.$product->id.'?date=2026-08-10')
-            ->assertOk();
-
-        $this->assertFalse($res->json('data.booking.uses_custom_slots'));
-        $this->assertSame('global', $res->json('data.booking.slot_source'));
-        $this->assertContains('09:00', collect($res->json('data.booking.slots'))->pluck('start_time')->all());
-    }
-
-    public function test_cart_rejects_global_slot_when_product_has_custom_only(): void
-    {
-        $product = $this->product();
-        ProductTimeSlot::create([
-            'product_id' => $product->id,
-            'date' => null,
-            'start_time' => '14:00',
-            'duration_minutes' => 60,
-            'is_active' => true,
-            'sort_order' => 1,
-        ]);
-
-        $user = User::factory()->create(['role' => 'client']);
-
-        $this->postJson('/api/shop/cart/add', [
-            'product_id' => $product->id,
-            'quantity' => 1,
-            'booking_date' => '2026-08-10',
-            'booking_slot' => '09:00 AM - 10:00 AM',
-        ], [
-            'Accept' => 'application/json',
-            'Authorization' => 'Bearer '.$user->createToken('t')->plainTextToken,
-        ])->assertStatus(422);
-
-        $this->postJson('/api/shop/cart/add', [
-            'product_id' => $product->id,
-            'quantity' => 1,
-            'booking_date' => '2026-08-10',
-            'booking_slot' => '02:00 PM - 03:00 PM',
-        ], [
-            'Accept' => 'application/json',
-            'Authorization' => 'Bearer '.$user->createToken('t')->plainTextToken,
-        ])->assertSuccessful();
+        $this->assertFalse($tenA['available']);
+        $this->assertTrue($tenB['available']);
     }
 }
