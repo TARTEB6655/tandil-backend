@@ -15431,7 +15431,7 @@
                     }
                   ]
                 },
-                "description": "Dashboard **New Jobs** list. Only **pending** unclaimed jobs in this supervisor's zones (`supervisor_id` null + `area_id` in my zones + `status=pending`). Completed / in_progress / rejected / cancelled do **not** appear.\n\nEach item includes `area_id`, `area_name`, can_claim, can_reject, is_unclaimed.\n\nAlso auto-repairs old visits that had null `area_id` (those never showed before).\n\nAccept → POST .../claim (then appears on GET /assignments).\nReject → POST .../reject (hidden for me only; other area supervisors still see it)."
+                "description": "Dashboard **New Jobs** list.\n\n**Only** jobs that still need Accept:\n- visit `status=pending`\n- `supervisor_id` null (unclaimed)\n- `technician_id` null\n- linked order `order_status` is `pending` or `processing` (NOT `confirmed` — that happens after claim)\n- `area_id` in this supervisor's zones\n\nAfter Accept → job leaves this list and appears on `GET /api/supervisor/assignments` (Assign Tasks). Order becomes `confirmed`.\n\nAccept → POST .../claim\nReject → POST .../reject"
               }
             },
             {

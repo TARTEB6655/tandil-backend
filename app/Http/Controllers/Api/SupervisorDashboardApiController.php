@@ -82,12 +82,21 @@ class SupervisorDashboardApiController extends Controller
             return Visit::query()->whereRaw('1 = 0');
         }
 
-        // New Jobs = unclaimed pool in my zones, still awaiting Accept.
-        // Only pending (not completed / in_progress / rejected / cancelled, etc.).
+        // New Jobs = still waiting for supervisor Accept.
+        // Visit must be pending + unclaimed. Order (if any) must still be
+        // processing/pending — "confirmed" only happens AFTER claim, so those
+        // must not appear here (they belong on GET /assignments).
         return Visit::query()
             ->whereIn('area_id', $areaIds)
             ->whereNull('supervisor_id')
-            ->where('status', 'pending')
+            ->whereNull('technician_id')
+            ->whereRaw('LOWER(TRIM(status)) = ?', ['pending'])
+            ->where(function ($q) {
+                $q->whereNull('order_id')
+                    ->orWhereHas('order', function ($oq) {
+                        $oq->whereIn('order_status', ['pending', 'processing']);
+                    });
+            })
             ->whereNotIn('id', function ($sub) use ($supervisorId) {
                 $sub->select('visit_id')
                     ->from('visit_supervisor_declines')
@@ -113,12 +122,12 @@ class SupervisorDashboardApiController extends Controller
     /** Visits that need supervisor action: unassigned, pending/scheduled, or escalated after auto-dispatch failures. */
     private function assignableVisitsQuery(Request $request)
     {
-        // Assign Tasks / assignment list: only jobs I already accepted (claimed).
+        // Assign Tasks: jobs I already Accepted (claimed). Still open for technician assign.
         return $this->claimedVisitsQuery($request)->where(function ($q) {
             $q->whereNull('technician_id')
-                ->orWhereIn('status', ['pending', 'scheduled'])
+                ->orWhereIn('status', ['pending', 'scheduled', 'pending_acceptance'])
                 ->orWhereNotNull('escalated_at');
-        });
+        })->whereNotIn('status', ['completed', 'approved', 'rejected', 'cancelled']);
     }
 
     /** Visits the supervisor can update or reassign: my claimed + unclaimed pool (for claim/detail). */
@@ -1229,8 +1238,15 @@ class SupervisorDashboardApiController extends Controller
                     return 'taken';
                 }
 
+                $status = strtolower(trim((string) ($visit->status ?? '')));
+                if ($visit->supervisor_id === null && $status !== 'pending') {
+                    return 'not_pending';
+                }
+
                 if ($visit->supervisor_id === null) {
                     $visit->supervisor_id = $supervisorId;
+                    // Keep visit status pending until a technician is assigned;
+                    // order tracking moves to "confirmed" via VisitOrderTrackingSync.
                     $visit->save();
                 }
 
@@ -1254,6 +1270,12 @@ class SupervisorDashboardApiController extends Controller
                 'success' => false,
                 'message' => 'This job was already accepted by another supervisor.',
             ], 409);
+        }
+        if ($visit === 'not_pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending jobs can be accepted from New Jobs.',
+            ], 422);
         }
 
         VisitOrderTrackingSync::syncFromVisit($visit);

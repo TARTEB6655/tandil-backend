@@ -299,13 +299,42 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         ]);
         $area->supervisors()->attach([$sup->id]);
 
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+
+        $orderProcessing = Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'processing',
+            'total_amount' => 100,
+        ]);
+        $orderConfirmed = Order::factory()->create([
+            'user_id' => $client->id,
+            'package_id' => null,
+            'payment_status' => 'paid',
+            'order_status' => 'confirmed',
+            'total_amount' => 100,
+        ]);
+
         $pending = Visit::create([
             'area_id' => $area->id,
+            'order_id' => $orderProcessing->id,
             'supervisor_id' => null,
             'scheduled_date' => now()->addDay()->toDateString(),
             'scheduled_time' => '09:00',
             'status' => 'pending',
             'notes' => 'Open new job',
+            'price' => 100,
+        ]);
+        $confirmedOrderButUnclaimed = Visit::create([
+            'area_id' => $area->id,
+            'order_id' => $orderConfirmed->id,
+            'supervisor_id' => null,
+            'scheduled_date' => now()->addDay()->toDateString(),
+            'scheduled_time' => '09:30',
+            'status' => 'pending',
+            'notes' => 'Order already confirmed — hide from New Jobs',
             'price' => 100,
         ]);
         $completed = Visit::create([
@@ -340,8 +369,23 @@ class MultiSupervisorClaimAndTrackingTest extends TestCase
         $new->assertOk();
         $ids = collect($new->json('data.data') ?? [])->pluck('id')->all();
         $this->assertContains($pending->id, $ids);
+        $this->assertNotContains($confirmedOrderButUnclaimed->id, $ids);
         $this->assertNotContains($completed->id, $ids);
         $this->assertNotContains($inProgress->id, $ids);
         $this->assertNotContains($rejected->id, $ids);
+
+        $this->actingAs($sup, 'sanctum')
+            ->postJson('/api/supervisor/assignments/'.$pending->id.'/claim')
+            ->assertOk();
+
+        $newAfter = $this->actingAs($sup, 'sanctum')->getJson('/api/supervisor/assignments/new');
+        $this->assertNotContains($pending->id, collect($newAfter->json('data.data') ?? [])->pluck('id')->all());
+
+        $assign = $this->actingAs($sup, 'sanctum')->getJson('/api/supervisor/assignments');
+        $assign->assertOk();
+        $this->assertContains($pending->id, collect($assign->json('data.data') ?? [])->pluck('id')->all());
+
+        $orderProcessing->refresh();
+        $this->assertSame('confirmed', $orderProcessing->order_status);
     }
 }
