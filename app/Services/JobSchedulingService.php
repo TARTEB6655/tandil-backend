@@ -59,27 +59,47 @@ class JobSchedulingService
     }
 
     /**
+     * Scope shop capacity to one product (order_item.product_id).
+     * When null, counts stay global (admin / legacy).
+     */
+    private static function scopeVisitsToProduct($query, ?int $productId)
+    {
+        if ($productId === null) {
+            return $query;
+        }
+
+        return $query->whereHas('orderItem', function ($q) use ($productId) {
+            $q->where('product_id', $productId);
+        });
+    }
+
+    /**
      * How many active bookings currently occupy this date + start time.
      * Counts visits (any HH:mm / HH:mm:ss storage) plus paid shop order-items
      * whose booking_slot maps to this start when the visit time is still missing.
+     *
+     * When $productId is set, only that product's bookings consume capacity
+     * (Product A at 10:00 does not fill Product B's 10:00).
      */
     public static function countBookingsForSlot(
         string $date,
         string $time,
-        ?int $excludeVisitId = null
+        ?int $excludeVisitId = null,
+        ?int $productId = null
     ): int {
         $slotHi = self::normalizeTimeHi($time);
         if ($slotHi === null) {
             return 0;
         }
 
-        $visits = Visit::query()
+        $visitsQuery = Visit::query()
             ->whereDate('scheduled_date', $date)
             ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
             ->when(
                 $excludeVisitId,
                 fn ($q) => $q->where('id', '!=', $excludeVisitId)
-            )
+            );
+        $visits = self::scopeVisitsToProduct($visitsQuery, $productId)
             ->get(['id', 'scheduled_time', 'order_item_id']);
 
         $countedOrderItemIds = [];
@@ -103,12 +123,16 @@ class JobSchedulingService
             ->whereDate('booking_date', $date)
             ->whereNotNull('booking_slot')
             ->where('booking_slot', '!=', '')
+            ->when(
+                $productId !== null,
+                fn ($q) => $q->where('product_id', $productId)
+            )
             ->whereHas('order', function ($q) {
                 $q->whereNull('package_id')
                     ->where('payment_status', 'paid');
             })
             ->with(['visit:id,order_item_id,scheduled_time,status'])
-            ->get(['id', 'booking_slot', 'booking_date']);
+            ->get(['id', 'booking_slot', 'booking_date', 'product_id']);
 
         foreach ($orderItems as $item) {
             if (isset($countedOrderItemIds[(int) $item->id])) {
@@ -149,14 +173,16 @@ class JobSchedulingService
      *
      * @return array<string, int> map of "H:i" => count
      */
-    public static function bookedCountsBySlotForDate(string $date): array
+    public static function bookedCountsBySlotForDate(string $date, ?int $productId = null): array
     {
         $counts = [];
 
-        $visits = Visit::query()
-            ->whereDate('scheduled_date', $date)
-            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
-            ->get(['id', 'scheduled_time', 'order_item_id']);
+        $visits = self::scopeVisitsToProduct(
+            Visit::query()
+                ->whereDate('scheduled_date', $date)
+                ->whereNotIn('status', self::NON_BLOCKING_STATUSES),
+            $productId
+        )->get(['id', 'scheduled_time', 'order_item_id']);
 
         $countedOrderItemIds = [];
         foreach ($visits as $visit) {
@@ -176,12 +202,16 @@ class JobSchedulingService
             ->whereDate('booking_date', $date)
             ->whereNotNull('booking_slot')
             ->where('booking_slot', '!=', '')
+            ->when(
+                $productId !== null,
+                fn ($q) => $q->where('product_id', $productId)
+            )
             ->whereHas('order', function ($q) {
                 $q->whereNull('package_id')
                     ->where('payment_status', 'paid');
             })
             ->with(['visit:id,order_item_id,scheduled_time,status'])
-            ->get(['id', 'booking_slot']);
+            ->get(['id', 'booking_slot', 'product_id']);
 
         foreach ($orderItems as $item) {
             if (isset($countedOrderItemIds[(int) $item->id])) {
@@ -208,6 +238,25 @@ class JobSchedulingService
         }
 
         return $counts;
+    }
+
+    /**
+     * Day-level booking count (visits). Scoped to product when $productId is set.
+     */
+    public static function countBookingsForDay(
+        string $date,
+        ?int $excludeVisitId = null,
+        ?int $productId = null
+    ): int {
+        $query = Visit::query()
+            ->whereDate('scheduled_date', $date)
+            ->whereNotIn('status', self::NON_BLOCKING_STATUSES)
+            ->when(
+                $excludeVisitId,
+                fn ($q) => $q->where('id', '!=', $excludeVisitId)
+            );
+
+        return (int) self::scopeVisitsToProduct($query, $productId)->count();
     }
     /**
      * Get current scheduling settings.
@@ -331,7 +380,7 @@ class JobSchedulingService
      * This allows the frontend to clearly understand that
      * the selected date itself is blocked.
      */
-    public static function availableSlots(string $date): array
+    public static function availableSlots(string $date, ?int $productId = null): array
     {
         $settings = self::settings();
 
@@ -363,23 +412,15 @@ class JobSchedulingService
         $dateBlocked = self::isDateFullyBlocked($date);
 
         /**
-         * Get total bookings for the date.
+         * Get total bookings for the date (product-scoped when set).
          */
-        $dayBookedCount = Visit::whereDate(
-            'scheduled_date',
-            $date
-        )
-            ->whereNotIn(
-                'status',
-                self::NON_BLOCKING_STATUSES
-            )
-            ->count();
+        $dayBookedCount = self::countBookingsForDay($date, null, $productId);
 
         $dayFull =
             $dayBookedCount >=
             $settings->max_bookings_per_day;
 
-        $bookedBySlot = self::bookedCountsBySlotForDate($date);
+        $bookedBySlot = self::bookedCountsBySlotForDate($date, $productId);
 
         /**
          * Get all active configured slots.
@@ -569,7 +610,8 @@ class JobSchedulingService
         string $date,
         ?string $time,
         ?int $excludeVisitId = null,
-        bool $requireConfiguredSlot = true
+        bool $requireConfiguredSlot = true,
+        ?int $productId = null
     ): ?string {
 
         /**
@@ -705,9 +747,9 @@ class JobSchedulingService
         }
 
         /**
-         * Check capacity for this exact date/time.
+         * Check capacity for this exact date/time (per product when set).
          */
-        $bookedForSlot = self::countBookingsForSlot($date, $time, $excludeVisitId);
+        $bookedForSlot = self::countBookingsForSlot($date, $time, $excludeVisitId, $productId);
 
         if (
             $bookedForSlot >=
@@ -717,25 +759,9 @@ class JobSchedulingService
         }
 
         /**
-         * Check total capacity for the entire day.
+         * Check total capacity for the entire day (per product when set).
          */
-        $dayBooked = Visit::whereDate(
-            'scheduled_date',
-            $date
-        )
-            ->whereNotIn(
-                'status',
-                self::NON_BLOCKING_STATUSES
-            )
-            ->when(
-                $excludeVisitId,
-                fn ($q) => $q->where(
-                    'id',
-                    '!=',
-                    $excludeVisitId
-                )
-            )
-            ->count();
+        $dayBooked = self::countBookingsForDay($date, $excludeVisitId, $productId);
 
         if (
             $dayBooked >=

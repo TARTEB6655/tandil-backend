@@ -30,7 +30,7 @@ class ShopBookingSlotCheckoutTest extends TestCase
         ];
     }
 
-    private function seedSchedulingWithSingleSlotCapacity(): void
+    private function seedSchedulingWithSingleSlotCapacity(?Product $forProduct = null): void
     {
         JobTimeSlot::create([
             'start_time' => '10:00',
@@ -44,25 +44,52 @@ class ShopBookingSlotCheckoutTest extends TestCase
         $settings->max_bookings_per_day = 20;
         $settings->save();
 
-        Visit::create([
-            'scheduled_date' => self::BOOKING_DATE,
-            'scheduled_time' => '10:00',
-            'duration_minutes' => 60,
-            'status' => 'pending',
-            'notes' => 'Existing booking',
-        ]);
+        if ($forProduct !== null) {
+            $order = \App\Models\Order::factory()->create([
+                'user_id' => User::factory()->create(['role' => 'client'])->id,
+                'package_id' => null,
+                'payment_status' => 'paid',
+                'total_amount' => 50,
+            ]);
+            $item = \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $forProduct->id,
+                'quantity' => 1,
+                'price' => 50,
+                'subtotal' => 50,
+                'booking_date' => self::BOOKING_DATE,
+                'booking_slot' => '10:00 AM - 11:00 AM',
+            ]);
+            Visit::create([
+                'scheduled_date' => self::BOOKING_DATE,
+                'scheduled_time' => '10:00',
+                'duration_minutes' => 60,
+                'status' => 'pending',
+                'order_id' => $order->id,
+                'order_item_id' => $item->id,
+                'notes' => 'Existing booking',
+            ]);
+        } else {
+            Visit::create([
+                'scheduled_date' => self::BOOKING_DATE,
+                'scheduled_time' => '10:00',
+                'duration_minutes' => 60,
+                'status' => 'pending',
+                'notes' => 'Existing booking',
+            ]);
+        }
     }
 
     public function test_cart_add_rejects_fully_booked_slot(): void
     {
-        $this->seedSchedulingWithSingleSlotCapacity();
-
         $user = User::factory()->create(['role' => 'client']);
         $product = Product::factory()->create([
             'category_id' => Category::factory()->create()->id,
             'status' => 'active',
             'compare_at_price' => null,
         ]);
+
+        $this->seedSchedulingWithSingleSlotCapacity($product);
 
         $response = $this->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,

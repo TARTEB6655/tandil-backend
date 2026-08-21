@@ -94,11 +94,14 @@ class JobSchedulingBookingTest extends TestCase
             'date' => self::MON, 'block_type' => 'full_day', 'reason' => 'Holiday',
         ]);
 
-        $this->actingAs($this->client, 'sanctum')
+        $res = $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/visits/available-slots?date='.self::MON)
             ->assertOk()
-            ->assertJsonPath('data.date_blocked', true)
-            ->assertJsonPath('data.slots', []);
+            ->assertJsonPath('data.date_blocked', true);
+
+        $slots = collect($res->json('data.slots'));
+        $this->assertTrue($slots->isNotEmpty());
+        $this->assertTrue($slots->every(fn ($s) => $s['available'] === false && $s['blocked'] === true));
     }
 
     public function test_available_slots_marks_specific_slot_unavailable_when_time_blocked(): void

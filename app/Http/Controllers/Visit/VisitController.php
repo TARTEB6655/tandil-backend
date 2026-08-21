@@ -265,7 +265,7 @@ class VisitController extends Controller
     }
 
     /**
-     * GET /api/visits/available-slots?date=YYYY-MM-DD
+     * GET /api/visits/available-slots?date=YYYY-MM-DD&product_id={id}
      *
      * Returns:
      * - selected date availability
@@ -274,9 +274,11 @@ class VisitController extends Controller
      * - selected date blocked status
      * - blocked dates for the complete week
      * - blocked time slots
-     * - available slots
+     * - available slots (capacity scoped to product_id when provided)
      *
      * IMPORTANT:
+     * For product booking screens, pass product_id so remaining/available
+     * counts are per product (not shared across all products).
      * The blocked_dates array is provided so frontend calendar
      * can mark dates such as 20 Aug as blocked.
      */
@@ -284,6 +286,7 @@ class VisitController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'date' => 'required|date_format:Y-m-d',
+            'product_id' => 'nullable|integer|exists:products,id',
         ]);
 
         if ($validator->fails()) {
@@ -297,6 +300,9 @@ class VisitController extends Controller
         try {
 
             $date = $request->input('date');
+            $productId = $request->filled('product_id')
+                ? (int) $request->input('product_id')
+                : null;
 
             /*
              * Normalize selected date.
@@ -463,7 +469,8 @@ class VisitController extends Controller
              * is blocked.
              */
             $slots = JobSchedulingService::availableSlots(
-                $normalizedDate
+                $normalizedDate,
+                $productId
             );
 
             /*
@@ -474,10 +481,11 @@ class VisitController extends Controller
             $slots = collect($slots)
                 ->map(function (array $slot) use ($normalizedDate) {
 
-                    $blocked = JobSchedulingService::isSlotBlocked(
+                    $slotBlocked = JobSchedulingService::isSlotBlocked(
                         $normalizedDate,
                         $slot['start_time']
                     );
+                    $blocked = (bool) ($slot['blocked'] ?? false) || $slotBlocked;
 
                     return [
                         'id' => $slot['id'],
@@ -521,6 +529,11 @@ class VisitController extends Controller
                      * Selected date
                      */
                     'date' => $normalizedDate,
+
+                    /*
+                     * Product whose capacity was used (null = global / legacy).
+                     */
+                    'product_id' => $productId,
 
                     /*
                      * Day name

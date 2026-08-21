@@ -335,7 +335,7 @@ class ProductController extends Controller
      * working hours, blocked dates, blocked slots, capacity and
      * existing bookings all use the same rules as the rest of the system.
      */
-    private function getBookingAvailability(?string $selectedDate = null): array
+    private function getBookingAvailability(?string $selectedDate = null, ?int $productId = null): array
     {
         $today = Carbon::today();
 
@@ -353,7 +353,7 @@ class ProductController extends Controller
 
             $dateString = $date->format('Y-m-d');
 
-            $slots = JobSchedulingService::availableSlots($dateString);
+            $slots = JobSchedulingService::availableSlots($dateString, $productId);
             $hasBookableSlot = collect($slots)->contains(
                 fn ($slot) => ! empty($slot['available'])
             );
@@ -388,7 +388,7 @@ class ProductController extends Controller
          * Get actual slots for selected date.
          */
         $slots = $dateToUse
-            ? JobSchedulingService::availableSlots($dateToUse)
+            ? JobSchedulingService::availableSlots($dateToUse, $productId)
             : [];
 
         /*
@@ -426,6 +426,8 @@ class ProductController extends Controller
 
         return [
             'enabled' => true,
+
+            'product_id' => $productId,
 
             'date_selection_required' => true,
 
@@ -498,7 +500,8 @@ class ProductController extends Controller
              * Add date/time availability.
              */
             $data['booking'] = $this->getBookingAvailability(
-                $request->query('date')
+                $request->query('date'),
+                (int) $product->id
             );
 
             /*

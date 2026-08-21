@@ -3531,7 +3531,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/api/visits/available-slots?date=2026-08-17",
+                  "raw": "{{base_url}}/api/visits/available-slots?date=2026-08-17&product_id={{product_id}}",
                   "host": [
                     "{{base_url}}"
                   ],
@@ -3545,10 +3545,15 @@
                       "key": "date",
                       "value": "2026-08-17",
                       "description": "Required, Y-m-d. The date the client picked on the calendar."
+                    },
+                    {
+                      "key": "product_id",
+                      "value": "{{product_id}}",
+                      "description": "Required for product booking screens. Capacity (booked_count / remaining / available) is per product — Product A filling 10:00 does not fill Product B's 10:00. Omit only for legacy/global visit create."
                     }
                   ]
                 },
-                "description": "Job Scheduling - Customer \"select date and available time slot\" step. Call before Create Visit once a date is chosen. Response data: date, date_blocked (true when admin closed the whole date), slots[] (id, start_time, end_time, duration_minutes, booked_count, remaining, available). Only show/enable slots where available is true. Pass the chosen slot's start_time as scheduled_time on Create Visit."
+                "description": "Job Scheduling – available time slots for a date.\n\n**Product page (shop):** always pass `product_id` so slot capacity is **per product**.\n\n`GET /api/visits/available-slots?date=YYYY-MM-DD&product_id={id}`\n\nResponse `data`: date, product_id, date_blocked, slots[] (id, start_time, end_time, duration_minutes, booked_count, remaining, max_bookings, available). Only enable slots where `available` is true.\n\n**Preferred for product UI:** `GET /api/shop/products/{id}?date=YYYY-MM-DD` → `data.booking` (dates + slots already scoped to that product).\n\nWithout `product_id`, counts stay global (legacy visit create)."
               }
             },
             {
@@ -16491,7 +16496,7 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{base_url}}/api/shop/products/{{product_id}}",
+                  "raw": "{{base_url}}/api/shop/products/{{product_id}}?date=2026-08-17",
                   "host": [
                     "{{base_url}}"
                   ],
@@ -16500,9 +16505,16 @@
                     "shop",
                     "products",
                     "{{product_id}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "date",
+                      "value": "2026-08-17",
+                      "description": "Optional Y-m-d. Refresh slots for this date. Capacity is scoped to this product_id."
+                    }
                   ]
                 },
-                "description": "Get single product by ID or handle (public).\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
+                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] for **this product only**. Capacity is per product (`booking.product_id`). Same clock time on Product A and Product B are independent. Max per slot = `booking.max_bookings_per_slot` (default 2). FE: enable only slots where `available === true`. Date change → recall with `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
               }
             },
             {

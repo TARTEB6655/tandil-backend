@@ -183,7 +183,7 @@ final class ShopBookingSlotHelper
      * Validate a customer-selected date/time slot against scheduling rules.
      * Returns an error message, or null when valid / no slot supplied.
      */
-    public static function validate(?string $bookingDate, ?string $bookingSlot): ?string
+    public static function validate(?string $bookingDate, ?string $bookingSlot, ?int $productId = null): ?string
     {
         $bookingDate = self::normalizedDate($bookingDate);
         $bookingSlot = self::normalizedSlot($bookingSlot);
@@ -205,7 +205,13 @@ final class ShopBookingSlotHelper
             return 'Selected time slot format is invalid.';
         }
 
-        return JobSchedulingService::validateSlotForBooking($bookingDate, $start);
+        return JobSchedulingService::validateSlotForBooking(
+            $bookingDate,
+            $start,
+            null,
+            true,
+            $productId
+        );
     }
 
     /**

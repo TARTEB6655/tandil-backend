@@ -127,7 +127,8 @@ class ShopStripeMobilePaymentService
         foreach ($lines as $line) {
             $bookingError = ShopBookingSlotHelper::validate(
                 $line['booking_date'] ?? null,
-                $line['booking_slot'] ?? null
+                $line['booking_slot'] ?? null,
+                isset($line['product_id']) ? (int) $line['product_id'] : null
             );
             if ($bookingError !== null) {
                 $product = Product::find($line['product_id'] ?? null);

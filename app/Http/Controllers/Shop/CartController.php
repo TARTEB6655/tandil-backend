@@ -269,7 +269,8 @@ class CartController extends Controller
 
             $error = ShopBookingSlotHelper::validate(
                 $payload['booking_date'] ?? null,
-                $payload['booking_slot'] ?? null
+                $payload['booking_slot'] ?? null,
+                isset($payload['product_id']) ? (int) $payload['product_id'] : null
             );
             if ($error !== null) {
                 $name = (string) ($cart->product->name ?? 'Product');
@@ -574,7 +575,11 @@ class CartController extends Controller
         $bookingDate = self::normalizedBookingValue($request->input('booking_date') ?? $request->input('bookingDate'));
         $bookingSlot = self::normalizedBookingValue($request->input('booking_slot') ?? $request->input('bookingSlot') ?? $request->input('slot'));
 
-        $bookingError = ShopBookingSlotHelper::validate($bookingDate, $bookingSlot);
+        $bookingError = ShopBookingSlotHelper::validate(
+            $bookingDate,
+            $bookingSlot,
+            (int) $product->id
+        );
         if ($bookingError !== null) {
             return ApiResponse::error($bookingError, 422);
         }
@@ -756,7 +761,8 @@ class CartController extends Controller
             $booking = ShopBookingSlotHelper::resolveFromItemArray($row, $fallbackDate, $fallbackSlot);
             $bookingError = ShopBookingSlotHelper::validate(
                 $booking['booking_date'],
-                $booking['booking_slot']
+                $booking['booking_slot'],
+                (int) $product->id
             );
             if ($bookingError !== null) {
                 throw new \InvalidArgumentException(
@@ -1509,7 +1515,8 @@ class CartController extends Controller
 
         $bookingError = ShopBookingSlotHelper::validate(
             $cartItem->booking_date?->toDateString(),
-            $cartItem->booking_slot
+            $cartItem->booking_slot,
+            (int) $cartItem->product_id
         );
         if ($bookingError !== null) {
             return ApiResponse::error($bookingError, 422);
