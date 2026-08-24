@@ -97,6 +97,7 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::post('/inventory/{vendorProductId}', [VendorInventoryController::class, 'update']);
 
         Route::get('/orders', [VendorOrderController::class, 'index']);
+        Route::get('/orders/{id}/track', [VendorOrderController::class, 'track']);
         Route::get('/orders/{id}/contact', [VendorOrderController::class, 'contact']);
         Route::get('/orders/{id}/invoice', [VendorOrderController::class, 'invoice']);
         Route::get('/orders/{id}/download', [VendorOrderController::class, 'download']);

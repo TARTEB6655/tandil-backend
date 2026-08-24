@@ -542,12 +542,13 @@ SNo,Module,Method,Endpoint,Status
 541,K. Inventory (approved only),POST,/api/vendor/inventory/{id},Done
 542,L. Orders (approved only),GET,/api/vendor/orders,Done
 543,L. Orders (approved only),GET,/api/vendor/orders/{id},Done
-544,L. Orders (approved only),GET,/api/vendor/orders/{id}/contact,Done
-545,L. Orders (approved only),GET,/api/vendor/orders/{id}/invoice,Done
-546,L. Orders (approved only),GET,/api/vendor/orders/{id}/download,Done
-547,L. Orders (approved only),POST,/api/vendor/orders/{id}/status,Done
-548,M. Compare vendors & prices (public),GET,/api/shop/products/{id}/compare-vendors,Done
-549,M. Compare vendors & prices (public),GET,/api/vendor/compare/products/{id},Done
+544,L. Orders (approved only),GET,/api/vendor/orders/{id}/track,Done
+545,L. Orders (approved only),GET,/api/vendor/orders/{id}/contact,Done
+546,L. Orders (approved only),GET,/api/vendor/orders/{id}/invoice,Done
+547,L. Orders (approved only),GET,/api/vendor/orders/{id}/download,Done
+548,L. Orders (approved only),POST,/api/vendor/orders/{id}/status,Done
+549,M. Compare vendors & prices (public),GET,/api/shop/products/{id}/compare-vendors,Done
+550,M. Compare vendors & prices (public),GET,/api/vendor/compare/products/{id},Done
 550,M. Compare vendors & prices (public),POST,/api/vendor/compare/products,Done
 551,A. Vendor Management (Mobile),GET,/api/admin/vendors/management,Done
 552,A. Vendor Management (Mobile),GET,/api/admin/vendors/{id}/management,Done

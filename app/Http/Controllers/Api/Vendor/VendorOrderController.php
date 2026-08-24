@@ -70,6 +70,20 @@ class VendorOrderController extends Controller
         ]);
     }
 
+    public function track(Request $request, int $id): JsonResponse
+    {
+        $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'detail');
+
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        return ApiResponse::success(
+            'Order tracking information retrieved successfully',
+            $this->orders->formatTrack($mapping)
+        );
+    }
+
     public function contact(Request $request, int $id): JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'contact');

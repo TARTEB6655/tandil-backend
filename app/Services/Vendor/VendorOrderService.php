@@ -266,6 +266,66 @@ class VendorOrderService
         ];
     }
 
+    /**
+     * Dedicated track payload for vendor order tracking UI.
+     *
+     * @return array<string, mixed>
+     */
+    public function formatTrack(VendorOrderMapping $mapping): array
+    {
+        $order = $mapping->order;
+        $status = $mapping->statusEnum();
+        $currency = $this->currency();
+        $vendorItems = $this->vendorOrderItems($mapping);
+        $latestLog = $mapping->relationLoaded('statusLogs')
+            ? $mapping->statusLogs->last()
+            : null;
+
+        return [
+            'id' => $mapping->id,
+            'order_id' => $mapping->order_id,
+            'order_number' => $this->orderNumber($mapping),
+            'tracking_number' => $mapping->tracking_number,
+            'status' => $status->value,
+            'status_label' => $status->label(),
+            'current_status' => $status->label(),
+            'order' => [
+                'id' => $mapping->id,
+                'shop_order_id' => $mapping->order_id,
+                'order_number' => $this->orderNumber($mapping),
+                'status' => $status->value,
+                'status_label' => $status->label(),
+                'tracking_number' => $mapping->tracking_number,
+                'order_date' => $this->formatDateTime($order?->created_at),
+                'delivery_date' => $this->formatDate($order?->estimated_arrival),
+                'payment_method' => $this->paymentMethodLabel($order),
+                'payment_status' => $this->paymentStatusLabel($order?->payment_status),
+                'currency' => $currency,
+                'subtotal' => (float) $mapping->subtotal,
+                'tax_amount' => (float) $mapping->tax_amount,
+                'shipping_amount' => (float) $mapping->shipping_amount,
+                'total_amount' => (float) $mapping->total_amount,
+                'customer' => $this->formatCustomer($order, includeAddress: true),
+                'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
+                'order_notes' => $order?->special_instructions,
+            ],
+            'tracking' => [
+                'status' => $status->value,
+                'payment_status' => $order?->payment_status,
+                'tracking_number' => $mapping->tracking_number,
+                'timeline' => $this->buildTrackTimeline($mapping),
+                'last_note' => $latestLog?->note,
+                'cancellation_reason' => $mapping->cancellation_reason,
+                'created_at' => $order?->created_at?->format('c'),
+                'updated_at' => $mapping->updated_at?->format('c'),
+                'cancelled_at' => $mapping->cancelled_at?->format('c'),
+            ],
+            'customer' => $this->formatCustomer($order, includeAddress: true),
+            'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
+            'actions' => array_merge($this->resolveActions($status), $this->resolveDocumentActions($mapping)),
+        ];
+    }
+
     public function orderNumber(VendorOrderMapping $mapping): string
     {
         $year = $mapping->created_at?->year ?? now()->year;
@@ -370,6 +430,98 @@ class VendorOrderService
                 'label' => $step['label'],
                 'status' => $stepStatus,
                 'date' => $this->formatDateTime($date),
+            ];
+        }
+
+        return $timeline;
+    }
+
+    /**
+     * Timeline for vendor order track API (Pending → Delivered, or Placed → Cancelled).
+     *
+     * @return list<array{key: string, label: string, description: string, completed: bool, current: bool, timestamp: ?string, date: ?string}>
+     */
+    public function buildTrackTimeline(VendorOrderMapping $mapping): array
+    {
+        $current = $mapping->statusEnum();
+        $logDates = $mapping->relationLoaded('statusLogs')
+            ? $mapping->statusLogs->keyBy('status')
+            : collect();
+
+        $descriptions = [
+            VendorOrderStatus::Pending->value => 'Order placed successfully',
+            VendorOrderStatus::Confirmed->value => 'Vendor confirmed the order',
+            VendorOrderStatus::Processing->value => 'Order is being prepared',
+            VendorOrderStatus::Shipped->value => 'Order has been shipped',
+            VendorOrderStatus::Delivered->value => 'Order delivered to customer',
+            VendorOrderStatus::Cancelled->value => 'Order was cancelled',
+        ];
+
+        if ($current === VendorOrderStatus::Cancelled) {
+            $cancelledLog = $logDates->get(VendorOrderStatus::Cancelled->value);
+            $cancelledAt = $cancelledLog?->created_at ?? $mapping->cancelled_at;
+
+            return [
+                [
+                    'key' => 'pending',
+                    'label' => 'Order Placed',
+                    'description' => $descriptions[VendorOrderStatus::Pending->value],
+                    'completed' => true,
+                    'current' => false,
+                    'timestamp' => $this->formatTime($mapping->order?->created_at),
+                    'date' => $this->formatDateTime($mapping->order?->created_at),
+                ],
+                [
+                    'key' => 'cancelled',
+                    'label' => 'Cancelled',
+                    'description' => filled($mapping->cancellation_reason)
+                        ? (string) $mapping->cancellation_reason
+                        : $descriptions[VendorOrderStatus::Cancelled->value],
+                    'completed' => true,
+                    'current' => true,
+                    'timestamp' => $this->formatTime($cancelledAt),
+                    'date' => $this->formatDateTime($cancelledAt),
+                ],
+            ];
+        }
+
+        $steps = [
+            ['key' => 'pending', 'label' => 'Order Placed', 'status' => VendorOrderStatus::Pending],
+            ['key' => 'confirmed', 'label' => 'Confirmed', 'status' => VendorOrderStatus::Confirmed],
+            ['key' => 'processing', 'label' => 'Processing', 'status' => VendorOrderStatus::Processing],
+            ['key' => 'shipped', 'label' => 'Shipped', 'status' => VendorOrderStatus::Shipped],
+            ['key' => 'delivered', 'label' => 'Delivered', 'status' => VendorOrderStatus::Delivered],
+        ];
+
+        $currentIndex = array_search($current->value, array_map(fn ($s) => $s['status']->value, $steps), true);
+        if ($currentIndex === false) {
+            $currentIndex = 0;
+        }
+
+        $timeline = [];
+        foreach ($steps as $index => $step) {
+            $log = $logDates->get($step['status']->value);
+            $isCurrent = $index === $currentIndex;
+            $completed = $index <= $currentIndex;
+
+            if ($index === 0) {
+                $date = $mapping->order?->created_at ?? $log?->created_at;
+            } elseif ($log?->created_at) {
+                $date = $log->created_at;
+            } elseif ($isCurrent) {
+                $date = $mapping->updated_at;
+            } else {
+                $date = null;
+            }
+
+            $timeline[] = [
+                'key' => $step['key'],
+                'label' => $step['label'],
+                'description' => $descriptions[$step['status']->value],
+                'completed' => $completed,
+                'current' => $isCurrent,
+                'timestamp' => $completed ? $this->formatTime($date) : null,
+                'date' => $completed ? $this->formatDateTime($date) : null,
             ];
         }
 
@@ -596,6 +748,7 @@ class VendorOrderService
             'contact_endpoint' => "/api/vendor/orders/{$id}/contact",
             'invoice_endpoint' => "/api/vendor/orders/{$id}/invoice",
             'download_endpoint' => "/api/vendor/orders/{$id}/download",
+            'track_endpoint' => "/api/vendor/orders/{$id}/track",
         ];
     }
 
@@ -832,5 +985,14 @@ class VendorOrderService
         }
 
         return Carbon::parse($value)->format('d/m/Y');
+    }
+
+    private function formatTime(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        return Carbon::parse($value)->format('g:i A');
     }
 }

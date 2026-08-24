@@ -174,6 +174,88 @@ class VendorOrderApiTest extends TestCase
             ]);
     }
 
+    public function test_vendor_can_track_order(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id.'/track')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.id', $mapping->id)
+            ->assertJsonPath('data.order_id', $mapping->order_id)
+            ->assertJsonPath('data.order_number', 'VND-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT))
+            ->assertJsonPath('data.status', 'confirmed')
+            ->assertJsonPath('data.current_status', 'Confirmed')
+            ->assertJsonPath('data.order.products.0.name', 'Fresh Tomatoes')
+            ->assertJsonPath('data.customer.name', 'Ahmed Ali')
+            ->assertJsonPath('data.tracking.status', 'confirmed')
+            ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
+            ->assertJsonPath('data.tracking.timeline.0.completed', true)
+            ->assertJsonPath('data.tracking.timeline.1.key', 'confirmed')
+            ->assertJsonPath('data.tracking.timeline.1.current', true)
+            ->assertJsonPath('data.tracking.timeline.1.completed', true)
+            ->assertJsonPath('data.tracking.timeline.2.completed', false)
+            ->assertJsonPath('data.actions.track_endpoint', '/api/vendor/orders/'.$mapping->id.'/track')
+            ->assertJsonStructure([
+                'data' => [
+                    'order',
+                    'customer',
+                    'products',
+                    'actions',
+                    'tracking' => [
+                        'timeline' => [
+                            ['key', 'label', 'description', 'completed', 'current', 'timestamp', 'date'],
+                        ],
+                    ],
+                ],
+            ]);
+    }
+
+    public function test_vendor_track_requires_authentication(): void
+    {
+        $this->getJson('/api/vendor/orders/1/track')->assertStatus(401);
+    }
+
+    public function test_vendor_track_returns_404_for_unknown_order(): void
+    {
+        ['token' => $token] = $this->makeVendorUser();
+
+        $this->withToken($token)->getJson('/api/vendor/orders/999999/track')
+            ->assertStatus(404)
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_vendor_cannot_track_another_vendors_order(): void
+    {
+        ['vendor' => $owner] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($owner, VendorOrderStatus::Confirmed);
+        ['token' => $otherToken] = $this->makeVendorUser();
+
+        $this->withToken($otherToken)->getJson('/api/vendor/orders/'.$mapping->id.'/track')
+            ->assertStatus(404);
+    }
+
+    public function test_vendor_track_cancelled_order_returns_cancelled_timeline(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Cancelled);
+        $mapping->update([
+            'cancellation_reason' => 'Out of stock',
+            'cancelled_at' => now(),
+        ]);
+
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id.'/track')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'cancelled')
+            ->assertJsonPath('data.tracking.status', 'cancelled')
+            ->assertJsonPath('data.tracking.cancellation_reason', 'Out of stock')
+            ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
+            ->assertJsonPath('data.tracking.timeline.1.key', 'cancelled')
+            ->assertJsonPath('data.tracking.timeline.1.current', true)
+            ->assertJsonPath('data.tracking.timeline.1.completed', true);
+    }
+
     public function test_vendor_order_detail_includes_document_actions(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
@@ -184,7 +266,8 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.order.actions.can_contact_customer', true)
             ->assertJsonPath('data.order.actions.can_print_invoice', true)
             ->assertJsonPath('data.order.actions.can_download_order', true)
-            ->assertJsonPath('data.order.actions.invoice_endpoint', '/api/vendor/orders/'.$mapping->id.'/invoice');
+            ->assertJsonPath('data.order.actions.invoice_endpoint', '/api/vendor/orders/'.$mapping->id.'/invoice')
+            ->assertJsonPath('data.order.actions.track_endpoint', '/api/vendor/orders/'.$mapping->id.'/track');
     }
 
     public function test_vendor_can_print_invoice_pdf(): void
