@@ -95,12 +95,12 @@ class OrderSupervisorNotificationTest extends TestCase
         $this->assertSame(1, (int) ($amN->data['meta']['alert_wave'] ?? 0));
 
         $this->assertNotNull($visit);
-        $this->assertSame($supervisor->id, $visit->supervisor_id);
+        $this->assertNull($visit->supervisor_id);
         $this->assertSame($area->id, $visit->area_id);
         $this->assertStringContainsString('[SHOP-ORDER:' . $order->id . ']', (string) ($visit->notes ?? ''));
         $this->assertDatabaseHas('visits', [
             'id' => $visit->id,
-            'supervisor_id' => $supervisor->id,
+            'supervisor_id' => null,
             'area_id' => $area->id,
             'status' => 'pending',
         ]);

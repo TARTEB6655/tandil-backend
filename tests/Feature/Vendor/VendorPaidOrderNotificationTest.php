@@ -110,6 +110,9 @@ class VendorPaidOrderNotificationTest extends TestCase
         $this->assertSame('14:00-16:00', $payload['required_time']);
         $this->assertTrue($payload['payment_confirmation']['confirmed']);
         $this->assertSame('paid', $payload['payment_confirmation']['status']);
+        $this->assertSame('/api/vendor/orders/'.$order->id.'/track', $payload['track_endpoint']);
+        $this->assertSame('confirmed', $payload['status']);
+        $this->assertSame('Confirmed', $payload['current_status']);
 
         OrderVendorNotifier::notifyVendorsForPaidOrder($order->fresh());
         $this->assertSame(1, $vendorUser->fresh()->notifications()->count());

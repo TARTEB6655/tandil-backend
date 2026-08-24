@@ -12,8 +12,8 @@ use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
 use App\Services\ShopOrderCancellationService;
 use App\Support\OrderClientReportService;
+use App\Support\OrderPaidSideEffects;
 use App\Support\OrderTrackingTimeline;
-use App\Support\OrderVendorNotifier;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -110,7 +110,7 @@ class OrderController extends Controller
 
         $oldPaymentStatus = $order->payment_status;
         $order->payment_status = 'paid';
-        $order->order_status = 'paid';
+        $order->order_status = 'processing';
         $order->paid_at = now();
         $order->save();
 
@@ -127,7 +127,7 @@ class OrderController extends Controller
         }
 
         if ($oldPaymentStatus !== 'paid') {
-            OrderVendorNotifier::notifyVendorsForPaidOrder($order->fresh());
+            OrderPaidSideEffects::run($order->fresh(), 'Mark paid (API)', notifyAdmins: true);
         }
 
         return response()->json(['status' => true, 'data' => $order], 200);

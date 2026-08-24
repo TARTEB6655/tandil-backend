@@ -9,16 +9,13 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\UserPaymentMethod;
-use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\ShopCheckoutOrderService;
 use App\Services\ShopStripeMobilePaymentService;
 use App\Services\ShopWalletRedemptionService;
 use App\Services\StripeCheckoutSessionService;
-use App\Support\OrderToVisitDispatcher;
+use App\Support\OrderPaidSideEffects;
 use App\Support\RefundPolicy;
-use App\Support\OrderSupervisorNotifier;
-use App\Support\OrderVendorNotifier;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -532,17 +529,7 @@ class ShopPaymentController extends Controller
     protected function notifyAdminsNewOrder(Order $order, float $total, string $placedBy): void
     {
         try {
-            $admins = User::role('admin')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new AdminNotification(
-                    'New Order Received',
-                    "A new order #{$order->id} has been placed by {$placedBy} for AED {$total}."
-                ));
-            }
-
-            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
-            OrderVendorNotifier::notifyVendorsForPaidOrder($order);
-            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
+            OrderPaidSideEffects::run($order, $placedBy);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

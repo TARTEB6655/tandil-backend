@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Subscription;
 use App\Models\Order;
 use App\Services\PayPalService;
-use App\Support\OrderVendorNotifier;
+use App\Support\OrderPaidSideEffects;
 use Illuminate\Http\Request;
 
 class PaymentController extends Controller
@@ -116,10 +116,10 @@ class PaymentController extends Controller
                     $wasPaid = strtolower((string) $order->payment_status) === 'paid';
                     $order->payment_status = 'paid';
                     $order->paid_at = now();
-                    $order->order_status = 'paid';
+                    $order->order_status = 'processing';
                     $order->save();
                     if (! $wasPaid) {
-                        OrderVendorNotifier::notifyVendorsForPaidOrder($order);
+                        OrderPaidSideEffects::run($order, 'PayPal (webhook)');
                     }
                 }
             }

@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\VendorOrderMapping;
 use App\Support\NotificationAudiencePayload;
+use App\Support\OrderTrackingTimeline;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -30,17 +31,21 @@ class VendorNewPaidOrderNotification extends Notification
         $order = $this->order;
         $mapping = $this->mapping;
         $orderNumber = $order->publicOrderNumber();
+        $shopStatus = OrderTrackingTimeline::normalize((string) ($order->order_status ?? 'pending'));
+        $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
         $items = $this->vendorItems($order, (int) $mapping->vendor_id);
         $products = $items->map(fn (OrderItem $item) => $this->productPayload($item))->values()->all();
         $required = $this->requiredDateTime($order, $items);
         $location = $this->locationPayload($order);
         $firstProduct = $items->first()?->product?->name ?: 'Product';
         $locationText = $location['display'] !== '' ? $location['display'] : 'not provided';
+        $trackUrl = '/vendor/orders/'.$order->id.'/track';
 
         $message = trim(preg_replace('/\s+/', ' ', sprintf(
-            '%s paid for %s. Location: %s. Required: %s %s. Payment confirmed.',
+            '%s paid for %s. Status: %s. Location: %s. Required: %s %s. Payment confirmed.',
             $orderNumber,
             $firstProduct,
+            $shopStatusLabel,
             $locationText,
             $required['date'] ?: 'date TBC',
             $required['time'] ?: ''
@@ -50,11 +55,16 @@ class VendorNewPaidOrderNotification extends Notification
             'title' => 'New paid order',
             'message' => $message,
             'type' => 'vendor_new_paid_order',
-            'action_url' => '/vendor/orders/'.$order->id,
+            'action_url' => $trackUrl,
             'order_id' => $order->id,
             'order_number' => $orderNumber,
             'vendor_order_id' => $mapping->id,
             'vendor_amount' => $mapping->total_amount,
+            'status' => $shopStatus,
+            'status_label' => $shopStatusLabel,
+            'current_status' => $shopStatusLabel,
+            'vendor_status' => $mapping->status,
+            'track_endpoint' => '/api'.$trackUrl,
             'product_ordered' => $products,
             'products' => $products,
             'customer_location' => $location,
@@ -66,7 +76,8 @@ class VendorNewPaidOrderNotification extends Notification
             'order' => [
                 'id' => $order->id,
                 'order_number' => $orderNumber,
-                'status' => $order->order_status,
+                'status' => $shopStatus,
+                'status_label' => $shopStatusLabel,
                 'payment_status' => $order->payment_status,
                 'total_amount' => $order->total_amount,
                 'notes' => $order->special_instructions,
@@ -82,7 +93,9 @@ class VendorNewPaidOrderNotification extends Notification
                 'vendor_id' => $mapping->vendor_id,
                 'vendor_amount' => $mapping->total_amount,
                 'total_amount' => (float) $mapping->total_amount,
-                'action_url' => '/vendor/orders/'.$order->id,
+                'status' => $shopStatus,
+                'action_url' => $trackUrl,
+                'track_endpoint' => '/api'.$trackUrl,
             ],
         ]);
     }

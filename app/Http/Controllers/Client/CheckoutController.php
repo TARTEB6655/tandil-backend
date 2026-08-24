@@ -9,13 +9,10 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Setting;
 use App\Models\User;
-use App\Notifications\AdminNotification;
 use App\Services\PayPalService;
 use App\Services\ShopCouponService;
 use App\Services\StripeCheckoutSessionService;
-use App\Support\OrderSupervisorNotifier;
-use App\Support\OrderToVisitDispatcher;
-use App\Support\OrderVendorNotifier;
+use App\Support\OrderPaidSideEffects;
 use App\Support\RefundPolicy;
 use App\Support\StripeCredentials;
 use Illuminate\Http\Request;
@@ -357,22 +354,6 @@ class CheckoutController extends Controller
 
     protected function notifyAdminsShopOrder(Order $order, string $via): void
     {
-        try {
-            $total = (float) $order->total_amount;
-            $admins = User::role('admin')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new AdminNotification(
-                    'New Order Received',
-                    "A new order #{$order->id} has been placed via {$via} for AED {$total}."
-                ));
-            }
-
-            // Same wave-1 alerts + job card as API/mobile pay (supervisor + area manager + vendor).
-            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $via);
-            OrderVendorNotifier::notifyVendorsForPaidOrder($order);
-            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
-        } catch (\Exception $e) {
-            Log::error('Failed to send order notification: '.$e->getMessage());
-        }
+        OrderPaidSideEffects::run($order, $via);
     }
 }

@@ -11,11 +11,8 @@ use App\Models\Product;
 use App\Models\ShopMobileCheckout;
 use App\Models\User;
 use App\Models\UserAddress;
-use App\Notifications\AdminNotification;
 use App\Services\Vendor\VendorOrderSyncService;
-use App\Support\OrderToVisitDispatcher;
-use App\Support\OrderSupervisorNotifier;
-use App\Support\OrderVendorNotifier;
+use App\Support\OrderPaidSideEffects;
 use App\Support\RefundPolicy;
 use App\Support\ShopBookingSlotHelper;
 use App\Support\StripeCredentials;
@@ -1066,17 +1063,7 @@ class ShopStripeMobilePaymentService
     protected function notifyAdminsNewOrder(Order $order, float $total, string $placedBy): void
     {
         try {
-            $admins = User::role('admin')->get();
-            foreach ($admins as $admin) {
-                $admin->notify(new AdminNotification(
-                    'New Order Received',
-                    "A new order #{$order->id} has been placed by {$placedBy} for AED {$total}."
-                ));
-            }
-
-            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
-            OrderVendorNotifier::notifyVendorsForPaidOrder($order);
-            OrderToVisitDispatcher::createVisitsForPaidOrder($order);
+            OrderPaidSideEffects::run($order, $placedBy);
         } catch (\Exception $e) {
             Log::error('Failed to send order notification: '.$e->getMessage());
         }

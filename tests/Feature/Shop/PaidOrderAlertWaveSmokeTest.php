@@ -114,11 +114,17 @@ class PaidOrderAlertWaveSmokeTest extends TestCase
         $this->assertGreaterThan($beforeSup, $supervisor->unreadNotifications()->count());
         $this->assertGreaterThan($beforeAm, $areaManager->unreadNotifications()->count(), 'Area manager must get first-wave alert on pay');
 
-        $supNote = $supervisor->notifications()->latest()->first();
+        $supNote = $supervisor->notifications()
+            ->get()
+            ->first(fn ($n) => (string) ($n->data['meta']['type'] ?? '') === 'new_paid_order');
+        $this->assertNotNull($supNote);
         $this->assertSame(1, (int) ($supNote->data['meta']['alert_wave'] ?? 0));
         $this->assertSame('new_paid_order', (string) ($supNote->data['meta']['type'] ?? ''));
 
-        $amNote = $areaManager->notifications()->latest()->first();
+        $amNote = $areaManager->notifications()
+            ->get()
+            ->first(fn ($n) => (string) ($n->data['meta']['type'] ?? '') === 'new_paid_order');
+        $this->assertNotNull($amNote);
         $this->assertSame(1, (int) ($amNote->data['meta']['alert_wave'] ?? 0));
         $this->assertSame('area_manager', (string) ($amNote->data['meta']['recipient_role'] ?? ''));
 
@@ -128,7 +134,7 @@ class PaidOrderAlertWaveSmokeTest extends TestCase
         $visit = Visit::query()->where('order_id', $orderId)->first()
             ?? Visit::query()->where('notes', 'like', '%[SHOP-ORDER:'.$orderId.']%')->first();
         $this->assertNotNull($visit);
-        $this->assertSame($supervisor->id, (int) $visit->supervisor_id);
+        $this->assertNull($visit->supervisor_id);
         $this->assertSame($area->id, (int) $visit->area_id);
         $this->assertNull($visit->technician_id);
 
