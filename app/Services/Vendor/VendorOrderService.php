@@ -42,7 +42,23 @@ class VendorOrderService
             ->where('vendor_id', $vendorId);
 
         if (! empty($filters['status'])) {
-            $q->where('status', $filters['status']);
+            $status = (string) $filters['status'];
+            if ($status === 'shipped') {
+                // Vendor fulfillment filter (no shop equivalent)
+                $q->where('status', VendorOrderStatus::Shipped->value);
+            } else {
+                // List cards show shop job status — filter on orders.order_status
+                $q->whereHas('order', function ($orderQuery) use ($status) {
+                    if ($status === 'processing') {
+                        $orderQuery->where(function ($inner) {
+                            $inner->where('order_status', 'processing')
+                                ->orWhere('order_status', 'paid');
+                        });
+                    } else {
+                        $orderQuery->where('order_status', $status);
+                    }
+                });
+            }
         }
 
         if (! empty($filters['search'])) {
@@ -128,8 +144,12 @@ class VendorOrderService
                 'guest_city',
                 'guest_country',
                 'shipping_address_id',
+                'order_status',
+                'payment_status',
+                'paid_at',
                 'special_instructions',
                 'created_at',
+                'updated_at',
             ]),
             'order.user' => fn ($query) => $query->select(['id', 'name', 'email', 'phone']),
             'order.shippingAddress' => fn ($query) => $query->select([
@@ -148,23 +168,45 @@ class VendorOrderService
     public function statusSummary(Vendor $vendor): array
     {
         $rows = VendorOrderMapping::query()
-            ->where('vendor_id', $vendor->id)
-            ->select('status', DB::raw('COUNT(*) as count'))
-            ->groupBy('status')
-            ->pluck('count', 'status');
+            ->where('vendor_order_mappings.vendor_id', $vendor->id)
+            ->join('orders', 'orders.id', '=', 'vendor_order_mappings.order_id')
+            ->select('orders.order_status', DB::raw('COUNT(*) as count'))
+            ->groupBy('orders.order_status')
+            ->pluck('count', 'order_status');
 
-        $total = (int) $rows->sum();
-        $delivered = (int) ($rows[VendorOrderStatus::Delivered->value] ?? 0);
+        $normalize = static function (?string $raw): string {
+            $status = strtolower(trim((string) $raw));
 
-        return [
-            'total' => $total,
-            'pending' => (int) ($rows[VendorOrderStatus::Pending->value] ?? 0),
-            'confirmed' => (int) ($rows[VendorOrderStatus::Confirmed->value] ?? 0),
-            'processing' => (int) ($rows[VendorOrderStatus::Processing->value] ?? 0),
-            'shipped' => (int) ($rows[VendorOrderStatus::Shipped->value] ?? 0),
-            'delivered' => $delivered,
-            'cancelled' => (int) ($rows[VendorOrderStatus::Cancelled->value] ?? 0),
+            return match ($status) {
+                'paid' => 'processing',
+                'shipped' => 'completed',
+                '' => 'pending',
+                default => $status,
+            };
+        };
+
+        $counts = [
+            'pending' => 0,
+            'processing' => 0,
+            'confirmed' => 0,
+            'assigned' => 0,
+            'in_progress' => 0,
+            'completed' => 0,
+            'delivered' => 0,
+            'cancelled' => 0,
         ];
+
+        foreach ($rows as $rawStatus => $count) {
+            $key = $normalize(is_string($rawStatus) ? $rawStatus : (string) $rawStatus);
+            if (! array_key_exists($key, $counts)) {
+                $key = 'pending';
+            }
+            $counts[$key] += (int) $count;
+        }
+
+        $total = (int) array_sum($counts);
+
+        return array_merge(['total' => $total], $counts);
     }
 
     public function updateStatus(
@@ -201,27 +243,67 @@ class VendorOrderService
     public function formatListItem(VendorOrderMapping $mapping): array
     {
         $order = $mapping->order;
-        $status = $mapping->statusEnum();
+        $fulfillment = $mapping->statusEnum();
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
         $primaryProduct = $this->formatPrimaryProduct($vendorItems, $currency);
 
+        $shopStatus = OrderTrackingTimeline::normalize((string) ($order?->order_status ?? 'pending'));
+        $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
+
         return [
             'id' => $mapping->id,
             'order_id' => $mapping->order_id,
-            'order_number' => $this->orderNumber($mapping),
+            'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
+            'order_number_vendor' => $this->orderNumber($mapping),
             'order_date' => $this->formatDateTime($order?->created_at),
             'order_date_label' => $this->formatDate($order?->created_at),
-            'status' => $status->value,
-            'status_label' => $status->label(),
+            // Shop job lifecycle (same as client / vendor track)
+            'status' => $shopStatus,
+            'status_label' => $shopStatusLabel,
+            'status_icon' => $this->shopStatusIcon($shopStatus),
+            'status_color' => $this->shopStatusColor($shopStatus),
+            'current_status' => $shopStatusLabel,
+            // Vendor fulfillment mapping (separate from job track)
+            'vendor_status' => $fulfillment->value,
+            'vendor_status_label' => $fulfillment->label(),
+            'vendor_status_icon' => $fulfillment->icon(),
+            'vendor_status_color' => $fulfillment->color(),
             'is_demo' => $this->isDemoOrder($order),
             'customer' => $this->formatCustomer($order),
             'product' => $primaryProduct,
             'product_count' => $vendorItems->count(),
             'currency' => $currency,
             'total_amount' => (float) $mapping->total_amount,
-            'actions' => $this->resolveActions($status),
+            'actions' => $this->resolveActions($fulfillment),
+            'track_endpoint' => '/api/vendor/orders/'.$mapping->order_id.'/track',
         ];
+    }
+
+    private function shopStatusIcon(string $status): string
+    {
+        return match (OrderTrackingTimeline::normalize($status)) {
+            'pending' => 'clock',
+            'processing' => 'gear',
+            'confirmed' => 'check',
+            'assigned' => 'user',
+            'in_progress' => 'wrench',
+            'completed' => 'check',
+            'delivered' => 'check-circle',
+            'cancelled' => 'x',
+            default => 'clock',
+        };
+    }
+
+    private function shopStatusColor(string $status): string
+    {
+        return match (OrderTrackingTimeline::normalize($status)) {
+            'pending', 'processing', 'in_progress' => 'gold',
+            'confirmed', 'assigned' => 'blue',
+            'completed', 'delivered' => 'green',
+            'cancelled' => 'red',
+            default => 'grey',
+        };
     }
 
     public function formatDetail(VendorOrderMapping $mapping): array

@@ -25,11 +25,24 @@ class VendorOrderController extends Controller
         $perPage = (int) $request->query('per_page', 15);
 
         // Postman/FE often send `?status=` (empty) — treat as "all statuses".
+        // Filter uses shop order_status (same values shown on list cards / track).
         $status = trim((string) $request->query('status', ''));
         $search = trim((string) $request->query('search', ''));
-        if ($status !== '' && ! in_array($status, VendorOrderStatus::values(), true)) {
+        $allowedStatuses = [
+            'pending',
+            'processing',
+            'confirmed',
+            'assigned',
+            'in_progress',
+            'completed',
+            'delivered',
+            'cancelled',
+            // Vendor fulfillment filters still accepted for existing tabs
+            'shipped',
+        ];
+        if ($status !== '' && ! in_array($status, $allowedStatuses, true)) {
             throw ValidationException::withMessages([
-                'status' => ['Invalid status. Allowed: '.implode(', ', VendorOrderStatus::values()).'.'],
+                'status' => ['Invalid status. Allowed: '.implode(', ', $allowedStatuses).'.'],
             ]);
         }
 

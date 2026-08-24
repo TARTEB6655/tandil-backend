@@ -40,30 +40,53 @@ class VendorOrderApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.summary.total', 1)
             ->assertJsonPath('data.items.0.id', $mapping->id)
-            ->assertJsonPath('data.items.0.order_number', 'VND-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT))
-            ->assertJsonPath('data.items.0.status', 'pending')
+            ->assertJsonPath('data.items.0.order_id', $mapping->order_id)
+            ->assertJsonPath('data.items.0.order_number', $mapping->order->publicOrderNumber())
+            ->assertJsonPath('data.items.0.status', 'processing')
+            ->assertJsonPath('data.items.0.status_label', 'Processing')
+            ->assertJsonPath('data.items.0.current_status', 'Processing')
+            ->assertJsonPath('data.items.0.vendor_status', 'pending')
             ->assertJsonPath('data.items.0.is_demo', false)
             ->assertJsonPath('data.items.0.customer.name', 'Ahmed Ali')
             ->assertJsonPath('data.items.0.product.name', 'Fresh Tomatoes')
             ->assertJsonPath('data.items.0.actions.can_confirm', true)
             ->assertJsonPath('data.items.0.actions.primary_action', 'confirm')
+            ->assertJsonPath('data.items.0.track_endpoint', '/api/vendor/orders/'.$mapping->order_id.'/track')
             ->assertJsonStructure([
                 'data' => [
                     'summary',
                     'items' => [[
                         'id',
+                        'order_id',
                         'order_number',
                         'order_date',
                         'status',
                         'status_label',
+                        'current_status',
+                        'vendor_status',
                         'is_demo',
                         'customer' => ['name', 'phone', 'location'],
                         'product' => ['name', 'qty', 'price', 'currency'],
                         'actions',
+                        'track_endpoint',
                     ]],
                     'pagination',
                 ],
             ]);
+    }
+
+    public function test_vendor_orders_list_status_follows_shop_order_not_vendor_fulfillment(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Shipped);
+        $mapping->order->update(['order_status' => 'processing', 'paid_at' => now()]);
+
+        $this->withToken($token)->getJson('/api/vendor/orders')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.status', 'processing')
+            ->assertJsonPath('data.items.0.status_label', 'Processing')
+            ->assertJsonPath('data.items.0.vendor_status', 'shipped')
+            ->assertJsonPath('data.items.0.actions.can_mark_delivered', true);
     }
 
     public function test_vendor_orders_list_accepts_empty_status_query(): void
