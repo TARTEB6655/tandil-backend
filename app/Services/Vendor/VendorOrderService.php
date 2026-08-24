@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorOrderStatusLog;
+use App\Support\OrderTrackingTimeline;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
@@ -269,7 +270,8 @@ class VendorOrderService
     }
 
     /**
-     * Track payload — same idea as client GET /api/orders/{id}/track.
+     * Track payload — same timeline as client GET /api/orders/{id}/track.
+     * Progress uses shop order_status (supervisor/technician flow), not vendor fulfillment status.
      * Use shop order id OR vendor mapping id in the URL.
      *
      * @return array<string, mixed>
@@ -277,28 +279,37 @@ class VendorOrderService
     public function formatTrack(VendorOrderMapping $mapping): array
     {
         $order = $mapping->order;
-        $status = $mapping->statusEnum();
+        $fulfillment = $mapping->statusEnum();
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
+
+        $shopStatus = (string) ($order?->order_status ?? 'pending');
+        $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
 
         return [
             // Client-compatible: order_id is the shop order id used in /api/orders/{id}/track
             'order_id' => $mapping->order_id,
             'vendor_order_id' => $mapping->id,
-            'order_number' => $this->orderNumber($mapping),
+            'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
+            'order_number_short' => $order?->publicOrderNumberDigits(),
             'tracking_number' => $mapping->tracking_number,
             'tracking_display' => $this->displayOrDash($mapping->tracking_number),
-            'status' => $status->value,
-            'status_label' => $status->label(),
-            'status_icon' => $status->icon(),
-            'status_color' => $status->color(),
-            'current_status' => $status->label(),
+            // Shop job lifecycle (same as client track)
+            'status' => $shopStatus,
+            'status_label' => $shopStatusLabel,
+            'current_status' => $shopStatusLabel,
+            // Vendor fulfillment mapping (separate from track timeline)
+            'vendor_status' => $fulfillment->value,
+            'vendor_status_label' => $fulfillment->label(),
+            'vendor_status_icon' => $fulfillment->icon(),
+            'vendor_status_color' => $fulfillment->color(),
             'order' => [
                 'id' => $mapping->order_id,
                 'vendor_order_id' => $mapping->id,
-                'order_number' => $this->orderNumber($mapping),
-                'status' => $status->value,
-                'status_label' => $status->label(),
+                'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
+                'status' => $shopStatus,
+                'status_label' => $shopStatusLabel,
+                'vendor_status' => $fulfillment->value,
                 'tracking_number' => $mapping->tracking_number,
                 'currency' => $currency,
                 'subtotal' => (float) $mapping->subtotal,
@@ -322,12 +333,13 @@ class VendorOrderService
                 'special_instructions' => $order?->special_instructions,
             ],
             'tracking' => [
-                'status' => $status->value,
+                'status' => $shopStatus,
                 'payment_status' => $order?->payment_status,
                 'tracking_number' => $mapping->tracking_number,
                 'timeline' => $this->buildTrackTimeline($mapping),
                 'created_at' => $order?->created_at?->format('c'),
-                'updated_at' => $mapping->updated_at?->format('c'),
+                'updated_at' => $order?->updated_at?->format('c'),
+                'paid_at' => $order?->paid_at?->format('c'),
                 'cancelled_at' => $mapping->cancelled_at?->format('c'),
                 'cancellation_reason' => $mapping->cancellation_reason,
             ],
@@ -485,199 +497,85 @@ class VendorOrderService
     }
 
     /**
-     * Timeline for vendor order track API.
-     *
-     * Same service steps as client GET /api/orders/{id}/track
-     * (Pending → Processing → Confirmed → Assigned → In Progress → Completed → Delivered).
+     * Same service timeline as client track, enriched with icon/color/current for vendor UI.
      *
      * @return list<array{key: string, label: string, icon: string, color: string, description: string, completed: bool, current: bool, timestamp: ?string, date: ?string, date_display: string}>
      */
     public function buildTrackTimeline(VendorOrderMapping $mapping): array
     {
-        $current = $mapping->statusEnum();
         $order = $mapping->order;
-        $logDates = $mapping->relationLoaded('statusLogs')
-            ? $mapping->statusLogs->keyBy('status')
-            : collect();
-
-        if ($current === VendorOrderStatus::Cancelled) {
-            $cancelledAt = $logDates->get(VendorOrderStatus::Cancelled->value)?->created_at
-                ?? $mapping->cancelled_at
-                ?? $order?->updated_at;
-
-            $steps = [
-                $this->trackTimelineStep(
-                    key: 'pending',
-                    label: 'Pending',
-                    icon: 'clock',
-                    color: 'gold',
-                    description: 'Order placed successfully',
-                    date: $order?->created_at,
-                    completed: true,
-                    current: false
-                ),
-                $this->trackTimelineStep(
-                    key: 'cancel_order',
-                    label: 'Cancel order',
-                    icon: 'x',
-                    color: 'red',
-                    description: filled($mapping->cancellation_reason)
-                        ? (string) $mapping->cancellation_reason
-                        : 'Order cancelled by customer request',
-                    date: $cancelledAt,
-                    completed: true,
-                    current: true
-                ),
-            ];
-
-            $isRefunded = strtolower((string) ($order?->payment_status ?? '')) === 'refunded';
-            $hasRefund = (float) ($order?->refund_amount ?? 0) > 0;
-
-            if ($hasRefund && ! $isRefunded) {
-                $steps[] = $this->trackTimelineStep(
-                    key: 'refund_processing',
-                    label: 'Refund Processing',
-                    icon: 'clock',
-                    color: 'gold',
-                    description: 'Refund request is being processed',
-                    date: null,
-                    completed: false,
-                    current: false
-                );
-            }
-
-            if ($isRefunded) {
-                $steps[] = $this->trackTimelineStep(
-                    key: 'refund_processing',
-                    label: 'Refund Processing',
-                    icon: 'clock',
-                    color: 'gold',
-                    description: 'Refund request is being processed',
-                    date: $order?->refunded_at ?? $cancelledAt,
-                    completed: true,
-                    current: false
-                );
-                $steps[] = $this->trackTimelineStep(
-                    key: 'refund_complete',
-                    label: 'Refund complete',
-                    icon: 'check-circle',
-                    color: 'green',
-                    description: 'Refund amount credited back to original payment method',
-                    date: $order?->refunded_at ?? $cancelledAt,
-                    completed: true,
-                    current: true
-                );
-                $steps[1]['current'] = false;
-            }
-
-            return $steps;
+        if ($order === null) {
+            return [];
         }
 
-        $rank = $this->vendorTrackRank($current);
-        $createdAt = $order?->created_at;
-        $paidAt = $order?->paid_at;
-        $updatedAt = $mapping->updated_at;
-        $confirmedAt = $logDates->get(VendorOrderStatus::Confirmed->value)?->created_at;
-        $processingAt = $logDates->get(VendorOrderStatus::Processing->value)?->created_at;
-        $shippedAt = $logDates->get(VendorOrderStatus::Shipped->value)?->created_at;
-        $deliveredAt = $logDates->get(VendorOrderStatus::Delivered->value)?->created_at;
+        $base = OrderTrackingTimeline::forOrder($order);
+        $shopStatus = OrderTrackingTimeline::normalize((string) ($order->order_status ?? 'pending'));
+        $isCancelled = $shopStatus === 'cancelled';
 
-        $definitions = [
-            [
-                'key' => 'pending',
-                'label' => 'Pending',
-                'icon' => 'clock',
-                'color' => 'gold',
-                'description' => 'Order placed successfully',
-                'rank' => 0,
-                'date' => $createdAt,
-            ],
-            [
-                'key' => 'processing',
-                'label' => 'Processing',
-                'icon' => 'gear',
-                'color' => 'gold',
-                'description' => 'Waiting for a supervisor to accept the job',
-                'rank' => 1,
-                'date' => $paidAt ?? $logDates->get(VendorOrderStatus::Pending->value)?->created_at ?? $updatedAt,
-            ],
-            [
-                'key' => 'confirmed',
-                'label' => 'Confirmed',
-                'icon' => 'check',
-                'color' => 'blue',
-                'description' => 'Supervisor accepted your order',
-                'rank' => 2,
-                'date' => $confirmedAt ?? $updatedAt,
-            ],
-            [
-                'key' => 'assigned',
-                'label' => 'Assigned',
-                'icon' => 'user',
-                'color' => 'blue',
-                'description' => 'Technician assigned to your order',
-                'rank' => 3,
-                'date' => $processingAt ?? $updatedAt,
-            ],
-            [
-                'key' => 'in_progress',
-                'label' => 'In Progress',
-                'icon' => 'wrench',
-                'color' => 'gold',
-                'description' => 'Your order is being processed',
-                'rank' => 4,
-                'date' => $processingAt ?? $updatedAt,
-            ],
-            [
-                'key' => 'completed',
-                'label' => 'Completed',
-                'icon' => 'check',
-                'color' => 'green',
-                'description' => 'Your order is ready!',
-                'rank' => 5,
-                'date' => $shippedAt ?? $updatedAt,
-            ],
-            [
-                'key' => 'delivered',
-                'label' => 'Delivered',
-                'icon' => 'check-circle',
-                'color' => 'green',
-                'description' => 'Delivered',
-                'rank' => 6,
-                'date' => $deliveredAt ?? $updatedAt,
-            ],
+        $icons = [
+            'pending' => 'clock',
+            'processing' => 'gear',
+            'confirmed' => 'check',
+            'assigned' => 'user',
+            'in_progress' => 'wrench',
+            'completed' => 'check',
+            'delivered' => 'check-circle',
+            'cancel_order' => 'x',
+            'refund_processing' => 'clock',
+            'refund_complete' => 'check-circle',
+        ];
+        $colors = [
+            'pending' => 'gold',
+            'processing' => 'gold',
+            'confirmed' => 'blue',
+            'assigned' => 'blue',
+            'in_progress' => 'gold',
+            'completed' => 'green',
+            'delivered' => 'green',
+            'cancel_order' => 'red',
+            'refund_processing' => 'gold',
+            'refund_complete' => 'green',
         ];
 
+        $currentKey = $isCancelled
+            ? (collect($base)->last(fn (array $step) => $step['completed'])['key'] ?? 'cancel_order')
+            : $shopStatus;
+
         $timeline = [];
-        foreach ($definitions as $step) {
-            $completed = $rank >= $step['rank'];
-            $isCurrent = $rank === $step['rank'];
-            $date = $completed ? $step['date'] : null;
+        foreach ($base as $step) {
+            $key = $step['key'];
+            $completed = (bool) $step['completed'];
+            $isCurrent = $key === $currentKey;
+            $at = $this->resolveStepDate($order, $key, $completed);
 
             $timeline[] = $this->trackTimelineStep(
-                key: $step['key'],
+                key: $key,
                 label: $step['label'],
-                icon: $step['icon'],
-                color: $isCurrent ? $step['color'] : ($completed ? 'gold' : 'grey'),
+                icon: $icons[$key] ?? 'clock',
+                color: $isCurrent ? ($colors[$key] ?? 'gold') : ($completed ? 'gold' : 'grey'),
                 description: $step['description'],
-                date: $date,
+                date: $at,
                 completed: $completed,
-                current: $isCurrent
+                current: $isCurrent,
+                timestampOverride: $step['timestamp']
             );
         }
 
         return $timeline;
     }
 
-    private function vendorTrackRank(VendorOrderStatus $status): int
+    private function resolveStepDate(Order $order, string $key, bool $completed): mixed
     {
-        return match ($status) {
-            VendorOrderStatus::Pending => 0,
-            VendorOrderStatus::Confirmed => 2,
-            VendorOrderStatus::Processing => 4,
-            VendorOrderStatus::Shipped => 5,
-            VendorOrderStatus::Delivered => 6,
-            default => 0,
+        if (! $completed) {
+            return null;
+        }
+
+        return match ($key) {
+            'pending' => $order->created_at,
+            'processing' => $order->paid_at ?? $order->updated_at,
+            'cancel_order' => $order->updated_at,
+            'refund_processing', 'refund_complete' => $order->refunded_at ?? $order->updated_at,
+            default => $order->updated_at,
         };
     }
 
@@ -816,13 +714,18 @@ class VendorOrderService
             'guest_zip_code',
             'guest_country',
             'shipping_address_id',
+            'order_status',
             'payment_method',
             'payment_status',
             'payment_reference',
             'transaction_id',
+            'paid_at',
+            'refund_amount',
+            'refunded_at',
             'special_instructions',
             'estimated_arrival',
             'created_at',
+            'updated_at',
         ];
     }
 
@@ -1245,7 +1148,8 @@ class VendorOrderService
         string $description,
         mixed $date,
         bool $completed,
-        bool $current
+        bool $current,
+        ?string $timestampOverride = null
     ): array {
         return [
             'key' => $key,
@@ -1255,7 +1159,7 @@ class VendorOrderService
             'description' => $description,
             'completed' => $completed,
             'current' => $current,
-            'timestamp' => $date !== null ? $this->formatTime($date) : null,
+            'timestamp' => $timestampOverride ?? ($date !== null ? $this->formatTime($date) : null),
             'date' => $this->formatDateTime($date),
             'date_display' => $this->formatDisplayDateTime($date) ?? '—',
         ];

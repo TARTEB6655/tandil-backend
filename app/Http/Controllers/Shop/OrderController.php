@@ -12,6 +12,7 @@ use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
 use App\Services\ShopOrderCancellationService;
 use App\Support\OrderClientReportService;
+use App\Support\OrderTrackingTimeline;
 use App\Support\OrderVendorNotifier;
 use App\Support\RefundPolicy;
 use Illuminate\Http\Request;
@@ -247,7 +248,7 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
-        $timeline = $this->buildOrderTimeline($order);
+        $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
 
@@ -260,7 +261,7 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
-                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
                     'payment_status' => $order->payment_status,
@@ -355,7 +356,7 @@ class OrderController extends Controller
                     'order_status' => $order->order_status,
                     'tracking' => [
                         'status' => $order->order_status,
-                        'timeline' => $this->buildOrderTimeline($order),
+                        'timeline' => OrderTrackingTimeline::forOrder($order),
                     ],
                 ],
             ], 200);
@@ -377,10 +378,10 @@ class OrderController extends Controller
             'data' => [
                 'order_id' => $order->id,
                 'order_status' => $order->order_status,
-                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
-                    'timeline' => $this->buildOrderTimeline($order),
+                    'timeline' => OrderTrackingTimeline::forOrder($order),
                 ],
                 'service_report' => $reportService->serviceReportMetaForOrder($order),
             ],
@@ -466,7 +467,7 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $timeline = $this->buildCancelledOrderTimeline($order);
+        $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
 
         return response()->json([
@@ -478,7 +479,7 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
-                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
                     'payment_status' => $order->payment_status,
@@ -537,7 +538,7 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
         }
         $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress']);
-        $timeline = $this->buildOrderTimeline($order);
+        $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
 
@@ -550,7 +551,7 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
-                'current_status' => $this->mapOrderStatusToLabel($order->order_status),
+                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
                 'tracking' => [
                     'status' => $order->order_status,
                     'payment_status' => $order->payment_status,
@@ -588,81 +589,6 @@ class OrderController extends Controller
             ->where('id', $id)
             ->where('guest_email', $email)
             ->first();
-    }
-
-    /**
-     * Build timeline steps for order tracking UI (Pending → Delivered).
-     */
-    private function buildOrderTimeline(Order $order): array
-    {
-        $status = $this->normalizeOrderTrackingStatus((string) ($order->order_status ?? 'pending'));
-        $rank = $this->orderTrackingRank($status);
-        $createdAt = $order->created_at;
-        $updatedAt = $order->updated_at;
-        $paidAt = $order->paid_at;
-
-        $steps = [
-            ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'completed' => true, 'timestamp' => $createdAt?->format('g:i A') ?? null],
-            ['key' => 'processing', 'label' => 'Processing', 'description' => 'Waiting for a supervisor to accept the job', 'completed' => $rank >= $this->orderTrackingRank('processing'), 'timestamp' => $rank >= $this->orderTrackingRank('processing') ? ($paidAt ?? $updatedAt)?->format('g:i A') : null],
-            ['key' => 'confirmed', 'label' => 'Confirmed', 'description' => 'Supervisor accepted your order', 'completed' => $rank >= $this->orderTrackingRank('confirmed'), 'timestamp' => $rank >= $this->orderTrackingRank('confirmed') ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'assigned', 'label' => 'Assigned', 'description' => 'Technician assigned to your order', 'completed' => $rank >= $this->orderTrackingRank('assigned'), 'timestamp' => $rank >= $this->orderTrackingRank('assigned') ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'in_progress', 'label' => 'In Progress', 'description' => 'Your order is being processed', 'completed' => $rank >= $this->orderTrackingRank('in_progress'), 'timestamp' => $rank >= $this->orderTrackingRank('in_progress') ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'completed', 'label' => 'Completed', 'description' => 'Your order is ready!', 'completed' => $rank >= $this->orderTrackingRank('completed'), 'timestamp' => $rank >= $this->orderTrackingRank('completed') ? $updatedAt?->format('g:i A') : null],
-            ['key' => 'delivered', 'label' => 'Delivered', 'description' => 'Delivered', 'completed' => $rank >= $this->orderTrackingRank('delivered'), 'timestamp' => $rank >= $this->orderTrackingRank('delivered') ? $updatedAt?->format('g:i A') : null],
-        ];
-
-        return $steps;
-    }
-
-    /**
-     * Build timeline for cancelled-order tracking.
-     */
-    private function buildCancelledOrderTimeline(Order $order): array
-    {
-        $createdAt = $order->created_at;
-        $cancelledAt = $order->updated_at;
-        $isRefunded = strtolower((string) ($order->payment_status ?? '')) === 'refunded';
-        $hasRefund = (float) ($order->refund_amount ?? 0) > 0;
-        $refundProcessing = $hasRefund && ! $isRefunded;
-
-        $steps = [
-            [
-                'key' => 'pending',
-                'label' => 'Pending',
-                'description' => 'Order placed successfully',
-                'completed' => true,
-                'timestamp' => $createdAt?->format('g:i A') ?? null,
-            ],
-            [
-                'key' => 'cancel_order',
-                'label' => 'Cancel order',
-                'description' => 'Order cancelled by customer request',
-                'completed' => true,
-                'timestamp' => $cancelledAt?->format('g:i A') ?? null,
-            ],
-        ];
-
-        if ($refundProcessing || $isRefunded) {
-            $steps[] = [
-                'key' => 'refund_processing',
-                'label' => 'Refund Processing',
-                'description' => 'Refund request is being processed',
-                'completed' => $isRefunded,
-                'timestamp' => $isRefunded ? ($order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A')) : null,
-            ];
-        }
-
-        if ($isRefunded) {
-            $steps[] = [
-                'key' => 'refund_complete',
-                'label' => 'Refund complete',
-                'description' => 'Refund amount credited back to original payment method',
-                'completed' => true,
-                'timestamp' => $order->refunded_at?->format('g:i A') ?? $cancelledAt?->format('g:i A'),
-            ];
-        }
-
-        return $steps;
     }
 
     /**
@@ -808,49 +734,6 @@ class OrderController extends Controller
             'estimated_arrival' => $estimatedArrival,
             'job_duration' => $jobDuration,
         ];
-    }
-
-    private function mapOrderStatusToLabel(?string $status): string
-    {
-        $status = $this->normalizeOrderTrackingStatus((string) ($status ?? 'pending'));
-        $map = [
-            'pending' => 'Pending',
-            'processing' => 'Processing',
-            'confirmed' => 'Confirmed',
-            'assigned' => 'Assigned',
-            'in_progress' => 'In Progress',
-            'completed' => 'Completed',
-            'delivered' => 'Delivered',
-            'cancelled' => 'Cancelled',
-        ];
-
-        return $map[$status ?? ''] ?? ucfirst($status ?? 'Pending');
-    }
-
-    private function normalizeOrderTrackingStatus(string $status): string
-    {
-        $status = strtolower(trim($status));
-
-        return match ($status) {
-            'paid' => 'processing',
-            'shipped' => 'completed',
-            'pending', 'processing', 'confirmed', 'assigned', 'in_progress', 'completed', 'delivered', 'cancelled' => $status,
-            default => $status !== '' ? $status : 'pending',
-        };
-    }
-
-    private function orderTrackingRank(string $status): int
-    {
-        return match ($status) {
-            'pending' => 0,
-            'processing' => 1,
-            'confirmed' => 2,
-            'assigned' => 3,
-            'in_progress' => 4,
-            'completed' => 5,
-            'delivered' => 6,
-            default => 0,
-        };
     }
 
     /**
