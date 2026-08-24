@@ -25,7 +25,13 @@ final class OrderVendorNotifier
                 return;
             }
 
-            app(VendorOrderSyncService::class)->syncFromOrder($order->fresh('items.product') ?? $order);
+            $order = $order->fresh([
+                'items.product',
+                'shippingAddress',
+                'user',
+            ]) ?? $order;
+
+            app(VendorOrderSyncService::class)->syncFromOrder($order);
 
             $mappings = VendorOrderMapping::query()
                 ->with('vendor.user')
