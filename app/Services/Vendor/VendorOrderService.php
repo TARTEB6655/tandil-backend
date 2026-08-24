@@ -607,8 +607,7 @@ class VendorOrderService
     }
 
     /**
-     * Resolve a vendor's order mapping by vendor-order mapping id OR shop order id.
-     * Same pattern as client track: FE can pass the order id from the orders list (`order_id`).
+     * Resolve by shop/vendor order id first (`order_id` from GET /orders), then mapping id.
      *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
@@ -635,14 +634,10 @@ class VendorOrderService
             default => $this->detailRelations($vendorId),
         };
 
-        // Prefer mapping id (list card `id`), then shop order id (list card `order_id` / client-style track).
-        $mapping = VendorOrderMapping::with($with)
-            ->where('vendor_id', $vendorId)
-            ->where(function ($query) use ($id) {
-                $query->where('id', $id)->orWhere('order_id', $id);
-            })
-            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$id])
-            ->first();
+        $base = fn () => VendorOrderMapping::with($with)->where('vendor_id', $vendorId);
+
+        $mapping = $base()->where('order_id', $id)->first()
+            ?? $base()->where('id', $id)->first();
 
         if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null
             && $mapping->order->relationLoaded('items')) {
@@ -781,16 +776,16 @@ class VendorOrderService
     public function resolveDocumentActions(VendorOrderMapping $mapping): array
     {
         $contactActions = $this->buildContactActions($mapping->order);
-        $id = $mapping->id;
+        $orderId = $mapping->order_id ?: $mapping->id;
 
         return [
             'can_contact_customer' => $contactActions !== [],
             'can_print_invoice' => true,
             'can_download_order' => true,
-            'contact_endpoint' => "/api/vendor/orders/{$id}/contact",
-            'invoice_endpoint' => "/api/vendor/orders/{$id}/invoice",
-            'download_endpoint' => "/api/vendor/orders/{$id}/download",
-            'track_endpoint' => "/api/vendor/orders/{$id}/track",
+            'contact_endpoint' => "/api/vendor/orders/{$orderId}/contact",
+            'invoice_endpoint' => "/api/vendor/orders/{$orderId}/invoice",
+            'download_endpoint' => "/api/vendor/orders/{$orderId}/download",
+            'track_endpoint' => "/api/vendor/orders/{$orderId}/track",
         ];
     }
 

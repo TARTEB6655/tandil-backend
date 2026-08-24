@@ -236,18 +236,36 @@ class VendorOrderApiTest extends TestCase
             ]);
     }
 
-    public function test_vendor_track_accepts_shop_order_id_like_client(): void
+    public function test_vendor_track_smoke_uses_list_order_id_not_mapping_id(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
-        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
 
-        // Same pattern as client GET /api/orders/{order_id}/track — pass shop order id.
-        $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->order_id.'/track')
+        // Live case: mapping id=6, order_id=58. Force ids to differ.
+        Order::create([
+            'total_amount' => 1,
+            'payment_status' => 'paid',
+            'order_status' => 'processing',
+        ]);
+
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Shipped);
+        $this->assertNotSame((int) $mapping->id, (int) $mapping->order_id);
+
+        $list = $this->withToken($token)->getJson('/api/vendor/orders?status=&per_page=15');
+        $list->assertOk();
+        $orderId = (int) $list->json('data.items.0.order_id');
+        $mappingId = (int) $list->json('data.items.0.id');
+
+        $this->assertSame((int) $mapping->order_id, $orderId);
+        $this->assertSame((int) $mapping->id, $mappingId);
+        $this->assertNotSame($orderId, $mappingId);
+
+        $this->withToken($token)->getJson('/api/vendor/orders/'.$orderId.'/track')
             ->assertOk()
-            ->assertJsonPath('data.order_id', $mapping->order_id)
-            ->assertJsonPath('data.vendor_order_id', $mapping->id)
-            ->assertJsonPath('data.status', 'confirmed')
-            ->assertJsonPath('data.tracking.timeline.1.current', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.order_id', $orderId)
+            ->assertJsonPath('data.vendor_order_id', $mappingId)
+            ->assertJsonPath('data.status', 'shipped')
+            ->assertJsonPath('data.tracking.status', 'shipped');
     }
 
     public function test_vendor_track_requires_authentication(): void
@@ -308,8 +326,8 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.order.actions.can_contact_customer', true)
             ->assertJsonPath('data.order.actions.can_print_invoice', true)
             ->assertJsonPath('data.order.actions.can_download_order', true)
-            ->assertJsonPath('data.order.actions.invoice_endpoint', '/api/vendor/orders/'.$mapping->id.'/invoice')
-            ->assertJsonPath('data.order.actions.track_endpoint', '/api/vendor/orders/'.$mapping->id.'/track');
+            ->assertJsonPath('data.order.actions.invoice_endpoint', '/api/vendor/orders/'.$mapping->order_id.'/invoice')
+            ->assertJsonPath('data.order.actions.track_endpoint', '/api/vendor/orders/'.$mapping->order_id.'/track');
     }
 
     public function test_vendor_can_print_invoice_pdf(): void
