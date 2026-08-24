@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Tandil Backend - Flow-Based Collection",
-    "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
+    "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.19"
+    "version": "3.6.20"
   },
   "item": [
     {
@@ -25672,7 +25672,7 @@
         },
         {
           "name": "L. Orders (approved only)",
-          "description": "Bottom nav **Orders** tab — mobile-ready list cards + order detail screen.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET orders | Order list with summary tabs |\n| 2 | GET orders/{id} | Order detail — timeline, products, customer, notes |\n| 3 | GET orders/{id}/contact | **Contact Customer** — phone, email, call/WhatsApp/mailto links |\n| 4 | GET orders/{id}/invoice | **Print Invoice** — PDF (inline for print preview) |\n| 5 | GET orders/{id}/download | **Download Order** — PDF attachment |\n| 6–8 | POST orders/{id}/status | Confirm / Ship / Mark delivered |\n\nAuth: `{{vendor_token}}`, approved vendor only.\n\n**Detail `actions` flags:** `can_contact_customer`, `can_print_invoice`, `can_download_order` + endpoint paths.",
+          "description": "Bottom nav **Orders** tab — mobile Order Details / Track screen.\n\n| # | API | Mobile screen |\n|---|-----|---------------|\n| 1 | GET orders | Order list with summary tabs |\n| 2 | GET orders/{id} | **Order Details** — header, stepper, products, order info, customer, actions, Update Status |\n| 3 | GET orders/{id}/track | **Track order** — same fields + `tracking.timeline` |\n| 4 | GET orders/{id}/contact | **Contact Customer** |\n| 5 | GET orders/{id}/invoice | **Print Invoice** PDF |\n| 6 | GET orders/{id}/download | **Download Order** PDF |\n| 7–9 | POST orders/{id}/status | Confirm / Ship / Mark delivered |\n\nAuth: `{{vendor_token}}`, approved vendor only.\n\n**Status stepper / Update Status:** `pending` → `confirmed` → `processing` → `shipped` → `delivered` (`status_timeline[]` + `status_options[]` with `icon`/`color`/`selected`/`enabled`).\n\n**Display helpers:** `order_date_display`, `total_amount_label`, `qty_label`, `price_label`, `phone_display` (`No phone`), empty → `—`.\n\n**Detail `actions`:** `can_contact_customer`, `can_print_invoice`, `can_download_order`, `track_endpoint` + paths.",
           "item": [
             {
               "name": "1. List orders",
@@ -25762,7 +25762,7 @@
                     "{{vendor_order_mapping_id}}"
                   ]
                 },
-                "description": "GET `/api/vendor/orders/{id}` — **Order Details screen**.\n\n**Header:** `order_number` (VND-YYYY-####), `status_label` + `status_icon` + `status_color`, `order_date_display` (`21 Aug 2026 at 12:56 PM`), `total_amount_label` (`AED 230.00`).\n\n**Stepper (Pending → Delivered):** `data.order.status_timeline[]` → `{ key, label, icon, color, status: completed|current|pending, completed, current, date_display }`.\n\n**Update Status grid:** `data.order.status_options[]` (all 5: pending/confirmed/processing/shipped/delivered) → `{ value, label, icon, color, selected, enabled, completed }`. POST `/status` with a selected `value` when `enabled` is true.\n\n**Order Info card:** `order_info.order_date`, `order_info.delivery_date`, `order_info.tracking` (empty → `—`).\n\n**Customer:** `name`, `phone_display` (`No phone` if missing), `email_display`, `address_display`.\n\n**Products:** `name`, `image_url`, `qty_label` (`Qty 1`), `price_label` (`AED 200.00`).\n\n**Actions:** contact / invoice / download / track endpoints."
+                "description": "GET `/api/vendor/orders/{id}` — **Order Details screen**.\n\n**Header:** `order_number` (VND-YYYY-####), `status_label` + `status_icon` + `status_color`, `order_date_display` (`21 Aug 2026 at 12:56 PM`), `total_amount_label` (`AED 230.00`).\n\n**Stepper (Pending → Delivered):** `data.order.status_timeline[]` → `{ key, label, icon, color, status: completed|current|pending, completed, current, date_display }`.\n\n**Update Status grid:** `data.order.status_options[]` (all 5: pending/confirmed/processing/shipped/delivered) → `{ value, label, icon, color, selected, enabled, completed }`. POST `/status` with a selected `value` when `enabled` is true.\n\n**Order Info card:** `order_info.order_date`, `order_info.delivery_date`, `order_info.tracking` (empty → `—`).\n\n**Customer:** `name`, `phone_display` (`No phone` if missing), `email_display`, `address_display`.\n\n**Products:** `name`, `image_url`, `qty_label` (`Qty 1`), `price_label` (`AED 200.00`).\n\n**Actions:** contact / invoice / download / track endpoints.\n\n**Sample `data.order` (confirmed):**\n```json\n{\n  \"order_number\": \"VND-2026-0006\",\n  \"status\": \"confirmed\",\n  \"status_label\": \"Confirmed\",\n  \"status_icon\": \"check\",\n  \"status_color\": \"blue\",\n  \"total_amount_label\": \"AED 230.00\",\n  \"order_info\": { \"order_date\": \"21 Aug 2026 at 12:56 PM\", \"delivery_date\": \"—\", \"tracking\": \"—\" },\n  \"customer\": { \"name\": \"Customer\", \"phone_display\": \"No phone\", \"email_display\": \"—\" },\n  \"status_timeline\": [\n    { \"label\": \"Pending\", \"icon\": \"clock\", \"color\": \"gold\", \"completed\": true },\n    { \"label\": \"Confirmed\", \"icon\": \"check\", \"color\": \"blue\", \"current\": true },\n    { \"label\": \"Processing\", \"icon\": \"gear\", \"color\": \"grey\" },\n    { \"label\": \"Shipped\", \"icon\": \"truck\", \"color\": \"grey\" },\n    { \"label\": \"Delivered\", \"icon\": \"check-circle\", \"color\": \"grey\" }\n  ]\n}\n```"
               }
             },
             {
@@ -25792,11 +25792,11 @@
                     "track"
                   ]
                 },
-                "description": "GET `/api/vendor/orders/{id}/track` — Same Order Details / track screen as GET detail.\n\n**Header:** `order_number`, `current_status`, `status_icon`, `status_color`, `order_date_display`, `total_amount_label`.\n\n**Stepper:** `status_timeline[]` and `tracking.timeline[]` — labels **Pending, Confirmed, Processing, Shipped, Delivered** with `icon` (clock/check/gear/truck/check-circle) and `color` (gold/blue/green/grey).\n\n**Update Status grid:** `status_options[]` — `selected` = current, `enabled` = allowed next status. POST `/api/vendor/orders/{id}/status` `{ \"status\": \"shipped\" }`.\n\n**Order Info:** `order_info.order_date`, `delivery_date`, `tracking` (`—` if empty).\n\n**Customer:** `phone_display` / `email_display` / `address_display`.\n\nCancelled orders: timeline Placed/Pending → Cancelled; all `status_options` disabled."
+                "description": "GET `/api/vendor/orders/{id}/track` — Same Order Details / track screen as GET detail.\n\n**Header:** `order_number`, `current_status`, `status_icon`, `status_color`, `order_date_display`, `total_amount_label`.\n\n**Stepper:** `status_timeline[]` and `tracking.timeline[]` — labels **Pending, Confirmed, Processing, Shipped, Delivered** with `icon` (clock/check/gear/truck/check-circle) and `color` (gold/blue/green/grey).\n\n**Update Status grid:** `status_options[]` — `selected` = current, `enabled` = allowed next status. POST `/api/vendor/orders/{id}/status` `{ \"status\": \"shipped\", \"tracking_number\": \"TEL-2026\" }`.\n\n**Order Info:** `order_info.order_date`, `delivery_date`, `tracking` (`—` if empty).\n\n**Customer:** `phone_display` / `email_display` / `address_display`.\n\nCancelled orders: timeline Pending → Cancelled; all `status_options` disabled.\n\n**Sample top-level `data`:**\n```json\n{\n  \"order_number\": \"VND-2026-0006\",\n  \"status\": \"confirmed\",\n  \"current_status\": \"Confirmed\",\n  \"status_icon\": \"check\",\n  \"status_color\": \"blue\",\n  \"total_amount_label\": \"AED 230.00\",\n  \"order_info\": { \"order_date\": \"21 Aug 2026 at 12:56 PM\", \"delivery_date\": \"—\", \"tracking\": \"—\" },\n  \"status_options\": [\n    { \"value\": \"confirmed\", \"selected\": true, \"icon\": \"check\", \"color\": \"blue\" },\n    { \"value\": \"shipped\", \"enabled\": true, \"icon\": \"truck\" }\n  ],\n  \"tracking\": { \"timeline\": [ { \"key\": \"pending\", \"label\": \"Pending\", \"completed\": true }, { \"key\": \"confirmed\", \"label\": \"Confirmed\", \"current\": true } ] }\n}\n```"
               }
             },
             {
-              "name": "3. Contact customer",
+              "name": "4. Contact customer",
               "request": {
                 "method": "GET",
                 "header": [
@@ -25826,7 +25826,7 @@
               }
             },
             {
-              "name": "4. Print invoice (PDF)",
+              "name": "5. Print invoice (PDF)",
               "request": {
                 "method": "GET",
                 "header": [
@@ -25863,7 +25863,7 @@
               }
             },
             {
-              "name": "5. Download order (PDF)",
+              "name": "6. Download order (PDF)",
               "request": {
                 "method": "GET",
                 "header": [
@@ -25893,7 +25893,7 @@
               }
             },
             {
-              "name": "6. Confirm order (pending → confirmed)",
+              "name": "7. Confirm order (pending → confirmed)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -25927,11 +25927,11 @@
                     "status"
                   ]
                 },
-                "description": "POST `/api/vendor/orders/{id}/status` — Confirm button on pending orders. Returns formatted `data.order`."
+                "description": "POST `/api/vendor/orders/{id}/status` — Confirm on pending orders.\n\nBody: `{ \"status\": \"confirmed\", \"note\": optional }`.\n\nResponse `data.order` includes refreshed `status_timeline`, `status_options` (`confirmed.selected=true`), and display fields."
               }
             },
             {
-              "name": "7. Ship order (confirmed → shipped)",
+              "name": "8. Ship order (confirmed → shipped)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -25950,7 +25950,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"status\": \"shipped\",\n  \"note\": \"Dispatched via courier\",\n  \"tracking_number\": \"TRK-2026-0001\"\n}"
+                  "raw": "{\n  \"status\": \"shipped\",\n  \"note\": \"Dispatched via courier\",\n  \"tracking_number\": \"TEL-2026\"\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/status",
@@ -25965,11 +25965,11 @@
                     "status"
                   ]
                 },
-                "description": "POST ship status. `tracking_number` optional — auto-generated as TRK-YYYY-#### if omitted when status is shipped."
+                "description": "POST ship. Allowed from `confirmed` or `processing`.\n\nBody: `{ \"status\": \"shipped\", \"tracking_number\": optional, \"note\": optional }`.\n\n- If `tracking_number` omitted → auto `TRK-YYYY-####`.\n- Response: `status=shipped`, `status_icon=truck`, `status_color=green`, `order_info.tracking` set, `status_options[shipped].selected=true`, `delivered.enabled=true`."
               }
             },
             {
-              "name": "8. Mark delivered (shipped → delivered)",
+              "name": "9. Mark delivered (shipped → delivered)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -26003,7 +26003,7 @@
                     "status"
                   ]
                 },
-                "description": "POST delivered status. Invalid transitions return 422."
+                "description": "POST delivered (only from `shipped`). Invalid transitions return 422.\n\nResponse: `status=delivered`, `status_icon=check-circle`, `status_color=green`, all earlier timeline steps completed."
               }
             }
           ]
