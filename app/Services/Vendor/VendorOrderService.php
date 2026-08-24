@@ -236,33 +236,35 @@ class VendorOrderService
             'order_number' => $this->orderNumber($mapping),
             'status' => $status->value,
             'status_label' => $status->label(),
+            'status_icon' => $status->icon(),
+            'status_color' => $status->color(),
             'order_date' => $this->formatDateTime($order?->created_at),
             'order_date_label' => $this->formatDate($order?->created_at),
+            'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
             'delivery_date' => $this->formatDate($order?->estimated_arrival),
             'delivery_date_label' => $order?->estimated_arrival
                 ? $this->formatDate($order->estimated_arrival)
                 : null,
+            'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
             'payment_method' => $this->paymentMethodLabel($order),
             'payment_status' => $this->paymentStatusLabel($order?->payment_status),
             'tracking_number' => $mapping->tracking_number,
+            'tracking_display' => $this->displayOrDash($mapping->tracking_number),
             'currency' => $currency,
             'subtotal' => (float) $mapping->subtotal,
             'tax_amount' => (float) $mapping->tax_amount,
             'shipping_amount' => (float) $mapping->shipping_amount,
             'total_amount' => (float) $mapping->total_amount,
+            'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
             'customer' => $this->formatCustomer($order, includeAddress: true),
             'order_notes' => $order?->special_instructions,
             'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
             'product' => $this->formatPrimaryProduct($vendorItems, $currency),
             'status_timeline' => $this->buildStatusTimeline($mapping),
+            'status_options' => $this->statusOptions($status),
             'available_statuses' => $this->availableStatuses($status),
             'actions' => array_merge($this->resolveActions($status), $this->resolveDocumentActions($mapping)),
-            'order_info' => [
-                'placed_at' => $this->formatDateTime($order?->created_at),
-                'estimated_delivery' => $this->formatDate($order?->estimated_arrival),
-                'payment_reference' => $order?->payment_reference,
-                'transaction_id' => $order?->transaction_id,
-            ],
+            'order_info' => $this->formatOrderInfo($mapping),
         ];
     }
 
@@ -286,18 +288,33 @@ class VendorOrderService
             'order_id' => $mapping->order_id,
             'order_number' => $this->orderNumber($mapping),
             'tracking_number' => $mapping->tracking_number,
+            'tracking_display' => $this->displayOrDash($mapping->tracking_number),
             'status' => $status->value,
             'status_label' => $status->label(),
+            'status_icon' => $status->icon(),
+            'status_color' => $status->color(),
             'current_status' => $status->label(),
+            'order_date' => $this->formatDateTime($order?->created_at),
+            'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
+            'delivery_date' => $this->formatDate($order?->estimated_arrival),
+            'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+            'currency' => $currency,
+            'total_amount' => (float) $mapping->total_amount,
+            'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
             'order' => [
                 'id' => $mapping->id,
                 'shop_order_id' => $mapping->order_id,
                 'order_number' => $this->orderNumber($mapping),
                 'status' => $status->value,
                 'status_label' => $status->label(),
+                'status_icon' => $status->icon(),
+                'status_color' => $status->color(),
                 'tracking_number' => $mapping->tracking_number,
+                'tracking_display' => $this->displayOrDash($mapping->tracking_number),
                 'order_date' => $this->formatDateTime($order?->created_at),
+                'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
                 'delivery_date' => $this->formatDate($order?->estimated_arrival),
+                'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
                 'payment_method' => $this->paymentMethodLabel($order),
                 'payment_status' => $this->paymentStatusLabel($order?->payment_status),
                 'currency' => $currency,
@@ -305,12 +322,20 @@ class VendorOrderService
                 'tax_amount' => (float) $mapping->tax_amount,
                 'shipping_amount' => (float) $mapping->shipping_amount,
                 'total_amount' => (float) $mapping->total_amount,
+                'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
                 'customer' => $this->formatCustomer($order, includeAddress: true),
                 'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
                 'order_notes' => $order?->special_instructions,
             ],
+            'status_timeline' => $this->buildStatusTimeline($mapping),
+            'status_options' => $this->statusOptions($status),
+            'available_statuses' => $this->availableStatuses($status),
+            'order_info' => $this->formatOrderInfo($mapping),
             'tracking' => [
                 'status' => $status->value,
+                'status_label' => $status->label(),
+                'status_icon' => $status->icon(),
+                'status_color' => $status->color(),
                 'payment_status' => $order?->payment_status,
                 'tracking_number' => $mapping->tracking_number,
                 'timeline' => $this->buildTrackTimeline($mapping),
@@ -338,6 +363,44 @@ class VendorOrderService
         $year = now()->year;
 
         return sprintf('TRK-%d-%s', $year, $this->paddedId($mapping->id));
+    }
+
+    /**
+     * Update Status grid: all 5 workflow buttons with selected/enabled flags.
+     *
+     * @return list<array{value: string, label: string, icon: string, color: string, selected: bool, enabled: bool, completed: bool}>
+     */
+    public function statusOptions(VendorOrderStatus $current): array
+    {
+        $allowed = array_map(
+            fn (VendorOrderStatus $status) => $status->value,
+            $this->allowedNextStatuses($current)
+        );
+        $isCancelled = $current === VendorOrderStatus::Cancelled;
+        $currentIndex = array_search($current, VendorOrderStatus::workflow(), true);
+        if ($currentIndex === false) {
+            $currentIndex = 0;
+        }
+
+        $options = [];
+        foreach (VendorOrderStatus::workflow() as $index => $status) {
+            $selected = ! $isCancelled && $status === $current;
+            $completed = ! $isCancelled && $index < $currentIndex;
+
+            $options[] = [
+                'value' => $status->value,
+                'label' => $status->label(),
+                'icon' => $status->icon(),
+                'color' => $isCancelled
+                    ? 'grey'
+                    : ($selected ? $status->color() : ($completed ? 'gold' : 'grey')),
+                'selected' => $selected,
+                'enabled' => ! $isCancelled && ($selected || in_array($status->value, $allowed, true)),
+                'completed' => $completed,
+            ];
+        }
+
+        return $options;
     }
 
     /**
@@ -382,55 +445,57 @@ class VendorOrderService
             $cancelledLog = $logDates->get(VendorOrderStatus::Cancelled->value);
 
             return [
-                [
-                    'step' => 'placed',
-                    'label' => 'Order Placed',
-                    'status' => 'completed',
-                    'date' => $this->formatDateTime($mapping->order?->created_at),
-                ],
-                [
-                    'step' => 'cancelled',
-                    'label' => 'Cancelled',
-                    'status' => 'cancelled',
-                    'date' => $this->formatDateTime($cancelledLog?->created_at ?? $mapping->cancelled_at),
-                ],
+                $this->timelineStep(
+                    VendorOrderStatus::Pending,
+                    'completed',
+                    $mapping->order?->created_at,
+                    completed: true,
+                    current: false
+                ),
+                $this->timelineStep(
+                    VendorOrderStatus::Cancelled,
+                    'cancelled',
+                    $cancelledLog?->created_at ?? $mapping->cancelled_at,
+                    completed: true,
+                    current: true
+                ),
             ];
         }
 
-        $steps = [
-            ['step' => 'placed', 'label' => 'Order Placed', 'status' => VendorOrderStatus::Pending],
-            ['step' => 'confirmed', 'label' => 'Confirmed', 'status' => VendorOrderStatus::Confirmed],
-            ['step' => 'processing', 'label' => 'Processing', 'status' => VendorOrderStatus::Processing],
-            ['step' => 'shipped', 'label' => 'Shipped', 'status' => VendorOrderStatus::Shipped],
-            ['step' => 'delivered', 'label' => 'Delivered', 'status' => VendorOrderStatus::Delivered],
-        ];
-
-        $order = array_search($current->value, array_map(fn ($s) => $s['status']->value, $steps), true);
-        if ($order === false) {
-            $order = 0;
+        $steps = VendorOrderStatus::workflow();
+        $currentIndex = array_search($current, $steps, true);
+        if ($currentIndex === false) {
+            $currentIndex = 0;
         }
 
         $timeline = [];
-        foreach ($steps as $index => $step) {
-            $log = $logDates->get($step['status']->value);
-            $date = $index === 0
-                ? ($mapping->order?->created_at ?? $log?->created_at)
-                : $log?->created_at;
+        foreach ($steps as $index => $status) {
+            $log = $logDates->get($status->value);
+            if ($index === 0) {
+                $date = $mapping->order?->created_at ?? $log?->created_at;
+            } elseif ($log?->created_at) {
+                $date = $log->created_at;
+            } elseif ($index === $currentIndex) {
+                $date = $mapping->updated_at;
+            } else {
+                $date = null;
+            }
 
-            if ($index < $order) {
+            if ($index < $currentIndex) {
                 $stepStatus = 'completed';
-            } elseif ($index === $order) {
+            } elseif ($index === $currentIndex) {
                 $stepStatus = 'current';
             } else {
                 $stepStatus = 'pending';
             }
 
-            $timeline[] = [
-                'step' => $step['step'],
-                'label' => $step['label'],
-                'status' => $stepStatus,
-                'date' => $this->formatDateTime($date),
-            ];
+            $timeline[] = $this->timelineStep(
+                $status,
+                $stepStatus,
+                $date,
+                completed: $index <= $currentIndex,
+                current: $index === $currentIndex
+            );
         }
 
         return $timeline;
@@ -462,45 +527,34 @@ class VendorOrderService
             $cancelledAt = $cancelledLog?->created_at ?? $mapping->cancelled_at;
 
             return [
-                [
-                    'key' => 'pending',
-                    'label' => 'Order Placed',
-                    'description' => $descriptions[VendorOrderStatus::Pending->value],
-                    'completed' => true,
-                    'current' => false,
-                    'timestamp' => $this->formatTime($mapping->order?->created_at),
-                    'date' => $this->formatDateTime($mapping->order?->created_at),
-                ],
-                [
-                    'key' => 'cancelled',
-                    'label' => 'Cancelled',
-                    'description' => filled($mapping->cancellation_reason)
+                $this->trackTimelineStep(
+                    VendorOrderStatus::Pending,
+                    $descriptions[VendorOrderStatus::Pending->value],
+                    $mapping->order?->created_at,
+                    completed: true,
+                    current: false
+                ),
+                $this->trackTimelineStep(
+                    VendorOrderStatus::Cancelled,
+                    filled($mapping->cancellation_reason)
                         ? (string) $mapping->cancellation_reason
                         : $descriptions[VendorOrderStatus::Cancelled->value],
-                    'completed' => true,
-                    'current' => true,
-                    'timestamp' => $this->formatTime($cancelledAt),
-                    'date' => $this->formatDateTime($cancelledAt),
-                ],
+                    $cancelledAt,
+                    completed: true,
+                    current: true
+                ),
             ];
         }
 
-        $steps = [
-            ['key' => 'pending', 'label' => 'Order Placed', 'status' => VendorOrderStatus::Pending],
-            ['key' => 'confirmed', 'label' => 'Confirmed', 'status' => VendorOrderStatus::Confirmed],
-            ['key' => 'processing', 'label' => 'Processing', 'status' => VendorOrderStatus::Processing],
-            ['key' => 'shipped', 'label' => 'Shipped', 'status' => VendorOrderStatus::Shipped],
-            ['key' => 'delivered', 'label' => 'Delivered', 'status' => VendorOrderStatus::Delivered],
-        ];
-
-        $currentIndex = array_search($current->value, array_map(fn ($s) => $s['status']->value, $steps), true);
+        $steps = VendorOrderStatus::workflow();
+        $currentIndex = array_search($current, $steps, true);
         if ($currentIndex === false) {
             $currentIndex = 0;
         }
 
         $timeline = [];
-        foreach ($steps as $index => $step) {
-            $log = $logDates->get($step['status']->value);
+        foreach ($steps as $index => $status) {
+            $log = $logDates->get($status->value);
             $isCurrent = $index === $currentIndex;
             $completed = $index <= $currentIndex;
 
@@ -514,15 +568,13 @@ class VendorOrderService
                 $date = null;
             }
 
-            $timeline[] = [
-                'key' => $step['key'],
-                'label' => $step['label'],
-                'description' => $descriptions[$step['status']->value],
-                'completed' => $completed,
-                'current' => $isCurrent,
-                'timestamp' => $completed ? $this->formatTime($date) : null,
-                'date' => $completed ? $this->formatDateTime($date) : null,
-            ];
+            $timeline[] = $this->trackTimelineStep(
+                $status,
+                $descriptions[$status->value],
+                $completed ? $date : null,
+                completed: $completed,
+                current: $isCurrent
+            );
         }
 
         return $timeline;
@@ -846,7 +898,9 @@ class VendorOrderService
             'id' => $first->product_id,
             'name' => $name.' +'.($vendorItems->count() - 1).' more',
             'qty' => $qty,
+            'qty_label' => 'Qty '.$qty,
             'price' => $price,
+            'price_label' => $this->moneyLabel($price, $currency),
             'currency' => $currency,
             'image_url' => $first->product?->image_url,
         ];
@@ -861,7 +915,9 @@ class VendorOrderService
             'id' => $item->product_id,
             'name' => $item->product?->name ?? 'Product',
             'qty' => (int) $item->quantity,
+            'qty_label' => 'Qty '.(int) $item->quantity,
             'price' => (float) $item->subtotal,
+            'price_label' => $this->moneyLabel((float) $item->subtotal, $currency),
             'unit_price' => (float) $item->price,
             'currency' => $currency,
             'image_url' => $item->product?->image_url,
@@ -877,22 +933,31 @@ class VendorOrderService
             return [
                 'name' => 'Customer',
                 'phone' => null,
+                'phone_display' => 'No phone',
                 'email' => null,
+                'email_display' => '—',
                 'location' => null,
             ];
         }
 
         $location = $this->customerLocationLine($order);
+        $phone = $order->payerPhone();
+        $email = $order->payerEmail();
+        $name = trim((string) $order->payerDisplayName());
         $customer = [
-            'name' => $order->payerDisplayName(),
-            'phone' => $order->payerPhone(),
-            'email' => $order->payerEmail(),
+            'name' => $name !== '' ? $name : 'Customer',
+            'phone' => $phone,
+            'phone_display' => filled($phone) ? $phone : 'No phone',
+            'email' => $email,
+            'email_display' => $this->displayOrDash($email),
             'location' => $location,
         ];
 
         if ($includeAddress) {
+            $addressText = $order->payerAddressForDisplay();
             $customer['address'] = $order->getShippingAddressForApi();
-            $customer['address_text'] = $order->payerAddressForDisplay();
+            $customer['address_text'] = $addressText;
+            $customer['address_display'] = $this->displayOrDash($addressText !== '' ? $addressText : null);
         }
 
         return $customer;
@@ -994,5 +1059,101 @@ class VendorOrderService
         }
 
         return Carbon::parse($value)->format('g:i A');
+    }
+
+    private function formatDisplayDateTime(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $date = Carbon::parse($value);
+
+        return $date->format('j M Y').' at '.$date->format('g:i A');
+    }
+
+    private function displayOrDash(?string $value): string
+    {
+        return filled($value) ? $value : '—';
+    }
+
+    private function moneyLabel(float $amount, string $currency): string
+    {
+        return $currency.' '.number_format($amount, 2);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function formatOrderInfo(VendorOrderMapping $mapping): array
+    {
+        $order = $mapping->order;
+
+        return [
+            'order_date' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
+            'delivery_date' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+            'tracking' => $this->displayOrDash($mapping->tracking_number),
+            'placed_at' => $this->formatDateTime($order?->created_at),
+            'estimated_delivery' => $this->formatDate($order?->estimated_arrival),
+            'payment_reference' => $order?->payment_reference,
+            'transaction_id' => $order?->transaction_id,
+        ];
+    }
+
+    /**
+     * @return array{key: string, step: string, label: string, icon: string, color: string, status: string, completed: bool, current: bool, date: ?string, date_display: string}
+     */
+    private function timelineStep(
+        VendorOrderStatus $status,
+        string $stepStatus,
+        mixed $date,
+        bool $completed,
+        bool $current
+    ): array {
+        $color = match ($stepStatus) {
+            'completed' => 'gold',
+            'current' => $status->color(),
+            'cancelled' => 'red',
+            default => 'grey',
+        };
+
+        return [
+            'key' => $status->value,
+            'step' => $status->value,
+            'label' => $status->label(),
+            'icon' => $status->icon(),
+            'color' => $color,
+            'status' => $stepStatus,
+            'completed' => $completed,
+            'current' => $current,
+            'date' => $this->formatDateTime($date),
+            'date_display' => $this->formatDisplayDateTime($date) ?? '—',
+        ];
+    }
+
+    /**
+     * @return array{key: string, label: string, icon: string, color: string, description: string, completed: bool, current: bool, timestamp: ?string, date: ?string, date_display: string}
+     */
+    private function trackTimelineStep(
+        VendorOrderStatus $status,
+        string $description,
+        mixed $date,
+        bool $completed,
+        bool $current
+    ): array {
+        $color = $current ? $status->color() : ($completed ? 'gold' : 'grey');
+
+        return [
+            'key' => $status->value,
+            'label' => $status->label(),
+            'icon' => $status->icon(),
+            'color' => $color,
+            'description' => $description,
+            'completed' => $completed,
+            'current' => $current,
+            'timestamp' => $date !== null ? $this->formatTime($date) : null,
+            'date' => $this->formatDateTime($date),
+            'date_display' => $this->formatDisplayDateTime($date) ?? '—',
+        ];
     }
 }

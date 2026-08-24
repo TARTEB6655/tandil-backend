@@ -96,19 +96,38 @@ class VendorOrderApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.order.id', $mapping->id)
             ->assertJsonPath('data.order.status', 'confirmed')
+            ->assertJsonPath('data.order.status_label', 'Confirmed')
+            ->assertJsonPath('data.order.status_icon', 'check')
+            ->assertJsonPath('data.order.status_color', 'blue')
             ->assertJsonPath('data.order.payment_status', 'Paid')
             ->assertJsonPath('data.order.products.0.name', 'Fresh Tomatoes')
+            ->assertJsonPath('data.order.products.0.qty_label', 'Qty 2')
             ->assertJsonPath('data.order.order_notes', 'Leave at door')
             ->assertJsonPath('data.order.actions.can_ship', true)
+            ->assertJsonPath('data.order.status_timeline.0.key', 'pending')
+            ->assertJsonPath('data.order.status_timeline.0.label', 'Pending')
+            ->assertJsonPath('data.order.status_timeline.0.status', 'completed')
+            ->assertJsonPath('data.order.status_timeline.1.key', 'confirmed')
+            ->assertJsonPath('data.order.status_timeline.1.label', 'Confirmed')
+            ->assertJsonPath('data.order.status_timeline.1.current', true)
+            ->assertJsonPath('data.order.status_timeline.2.label', 'Processing')
+            ->assertJsonPath('data.order.status_options.0.value', 'pending')
+            ->assertJsonPath('data.order.status_options.1.value', 'confirmed')
+            ->assertJsonPath('data.order.status_options.1.selected', true)
+            ->assertJsonPath('data.order.status_options.1.icon', 'check')
+            ->assertJsonPath('data.order.status_options.3.enabled', true)
+            ->assertJsonPath('data.order.order_info.tracking', '—')
+            ->assertJsonPath('data.order.customer.phone_display', '+971500000001')
             ->assertJsonStructure([
                 'data' => [
                     'order' => [
                         'order_number',
                         'status_timeline',
+                        'status_options',
                         'available_statuses',
-                        'customer' => ['name', 'phone', 'email', 'address'],
+                        'customer' => ['name', 'phone', 'email', 'address', 'phone_display', 'email_display', 'address_display'],
                         'products',
-                        'order_info',
+                        'order_info' => ['order_date', 'delivery_date', 'tracking'],
                     ],
                 ],
             ]);
@@ -138,7 +157,11 @@ class VendorOrderApiTest extends TestCase
         ])
             ->assertOk()
             ->assertJsonPath('data.order.status', 'shipped')
-            ->assertJsonPath('data.order.tracking_number', 'TRK-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT));
+            ->assertJsonPath('data.order.tracking_number', 'TRK-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT))
+            ->assertJsonPath('data.order.status_options.3.selected', true)
+            ->assertJsonPath('data.order.status_options.3.color', 'green')
+            ->assertJsonPath('data.order.status_options.4.enabled', true)
+            ->assertJsonPath('data.order.order_info.tracking', 'TRK-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT));
     }
 
     public function test_invalid_status_transition_is_rejected(): void
@@ -187,10 +210,21 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.order_number', 'VND-'.now()->year.'-'.str_pad((string) $mapping->id, 4, '0', STR_PAD_LEFT))
             ->assertJsonPath('data.status', 'confirmed')
             ->assertJsonPath('data.current_status', 'Confirmed')
+            ->assertJsonPath('data.status_icon', 'check')
+            ->assertJsonPath('data.status_color', 'blue')
             ->assertJsonPath('data.order.products.0.name', 'Fresh Tomatoes')
             ->assertJsonPath('data.customer.name', 'Ahmed Ali')
+            ->assertJsonPath('data.customer.phone_display', '+971500000001')
+            ->assertJsonPath('data.order_info.tracking', '—')
+            ->assertJsonPath('data.status_timeline.0.label', 'Pending')
+            ->assertJsonPath('data.status_timeline.1.label', 'Confirmed')
+            ->assertJsonPath('data.status_timeline.1.current', true)
+            ->assertJsonPath('data.status_options.1.selected', true)
+            ->assertJsonPath('data.status_options.3.value', 'shipped')
+            ->assertJsonPath('data.status_options.3.icon', 'truck')
             ->assertJsonPath('data.tracking.status', 'confirmed')
             ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
+            ->assertJsonPath('data.tracking.timeline.0.label', 'Pending')
             ->assertJsonPath('data.tracking.timeline.0.completed', true)
             ->assertJsonPath('data.tracking.timeline.1.key', 'confirmed')
             ->assertJsonPath('data.tracking.timeline.1.current', true)
@@ -203,9 +237,12 @@ class VendorOrderApiTest extends TestCase
                     'customer',
                     'products',
                     'actions',
+                    'status_timeline',
+                    'status_options',
+                    'order_info',
                     'tracking' => [
                         'timeline' => [
-                            ['key', 'label', 'description', 'completed', 'current', 'timestamp', 'date'],
+                            ['key', 'label', 'icon', 'color', 'description', 'completed', 'current', 'timestamp', 'date'],
                         ],
                     ],
                 ],
@@ -252,8 +289,10 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.tracking.cancellation_reason', 'Out of stock')
             ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
             ->assertJsonPath('data.tracking.timeline.1.key', 'cancelled')
+            ->assertJsonPath('data.tracking.timeline.1.label', 'Cancelled')
             ->assertJsonPath('data.tracking.timeline.1.current', true)
-            ->assertJsonPath('data.tracking.timeline.1.completed', true);
+            ->assertJsonPath('data.tracking.timeline.1.completed', true)
+            ->assertJsonPath('data.status_options.0.enabled', false);
     }
 
     public function test_vendor_order_detail_includes_document_actions(): void
