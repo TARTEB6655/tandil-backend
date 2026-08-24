@@ -269,7 +269,8 @@ class VendorOrderService
     }
 
     /**
-     * Dedicated track payload for vendor order tracking UI.
+     * Track payload — same idea as client GET /api/orders/{id}/track.
+     * Use shop order id OR vendor mapping id in the URL.
      *
      * @return array<string, mixed>
      */
@@ -279,13 +280,11 @@ class VendorOrderService
         $status = $mapping->statusEnum();
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
-        $latestLog = $mapping->relationLoaded('statusLogs')
-            ? $mapping->statusLogs->last()
-            : null;
 
         return [
-            'id' => $mapping->id,
+            // Client-compatible: order_id is the shop order id used in /api/orders/{id}/track
             'order_id' => $mapping->order_id,
+            'vendor_order_id' => $mapping->id,
             'order_number' => $this->orderNumber($mapping),
             'tracking_number' => $mapping->tracking_number,
             'tracking_display' => $this->displayOrDash($mapping->tracking_number),
@@ -294,60 +293,44 @@ class VendorOrderService
             'status_icon' => $status->icon(),
             'status_color' => $status->color(),
             'current_status' => $status->label(),
-            'order_date' => $this->formatDateTime($order?->created_at),
-            'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
-            'delivery_date' => $this->formatDate($order?->estimated_arrival),
-            'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
-            'currency' => $currency,
-            'total_amount' => (float) $mapping->total_amount,
-            'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
             'order' => [
-                'id' => $mapping->id,
-                'shop_order_id' => $mapping->order_id,
+                'id' => $mapping->order_id,
+                'vendor_order_id' => $mapping->id,
                 'order_number' => $this->orderNumber($mapping),
                 'status' => $status->value,
                 'status_label' => $status->label(),
-                'status_icon' => $status->icon(),
-                'status_color' => $status->color(),
                 'tracking_number' => $mapping->tracking_number,
-                'tracking_display' => $this->displayOrDash($mapping->tracking_number),
-                'order_date' => $this->formatDateTime($order?->created_at),
-                'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
-                'delivery_date' => $this->formatDate($order?->estimated_arrival),
-                'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
-                'payment_method' => $this->paymentMethodLabel($order),
-                'payment_status' => $this->paymentStatusLabel($order?->payment_status),
                 'currency' => $currency,
                 'subtotal' => (float) $mapping->subtotal,
                 'tax_amount' => (float) $mapping->tax_amount,
                 'shipping_amount' => (float) $mapping->shipping_amount,
                 'total_amount' => (float) $mapping->total_amount,
                 'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
-                'customer' => $this->formatCustomer($order, includeAddress: true),
                 'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
+                'customer' => $this->formatCustomer($order, includeAddress: true),
                 'order_notes' => $order?->special_instructions,
             ],
-            'status_timeline' => $this->buildStatusTimeline($mapping),
-            'status_options' => $this->statusOptions($status),
-            'available_statuses' => $this->availableStatuses($status),
-            'order_info' => $this->formatOrderInfo($mapping),
+            'order_summary' => [
+                'order_date' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
+                'delivery_date' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+                'tracking' => $this->displayOrDash($mapping->tracking_number),
+                'payment_method' => $this->paymentMethodLabel($order),
+                'payment_status' => $this->paymentStatusLabel($order?->payment_status),
+                'total' => (float) $mapping->total_amount,
+                'currency' => $currency,
+                'total_amount_label' => $this->moneyLabel((float) $mapping->total_amount, $currency),
+                'special_instructions' => $order?->special_instructions,
+            ],
             'tracking' => [
                 'status' => $status->value,
-                'status_label' => $status->label(),
-                'status_icon' => $status->icon(),
-                'status_color' => $status->color(),
                 'payment_status' => $order?->payment_status,
                 'tracking_number' => $mapping->tracking_number,
                 'timeline' => $this->buildTrackTimeline($mapping),
-                'last_note' => $latestLog?->note,
-                'cancellation_reason' => $mapping->cancellation_reason,
                 'created_at' => $order?->created_at?->format('c'),
                 'updated_at' => $mapping->updated_at?->format('c'),
                 'cancelled_at' => $mapping->cancelled_at?->format('c'),
+                'cancellation_reason' => $mapping->cancellation_reason,
             ],
-            'customer' => $this->formatCustomer($order, includeAddress: true),
-            'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
-            'actions' => array_merge($this->resolveActions($status), $this->resolveDocumentActions($mapping)),
         ];
     }
 
@@ -624,6 +607,9 @@ class VendorOrderService
     }
 
     /**
+     * Resolve a vendor's order mapping by vendor-order mapping id OR shop order id.
+     * Same pattern as client track: FE can pass the order id from the orders list (`order_id`).
+     *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
     public function findMappingForVendorById(int $vendorId, int $id, string $mode = 'detail'): ?VendorOrderMapping
@@ -649,9 +635,13 @@ class VendorOrderService
             default => $this->detailRelations($vendorId),
         };
 
+        // Prefer mapping id (list card `id`), then shop order id (list card `order_id` / client-style track).
         $mapping = VendorOrderMapping::with($with)
             ->where('vendor_id', $vendorId)
-            ->where('id', $id)
+            ->where(function ($query) use ($id) {
+                $query->where('id', $id)->orWhere('order_id', $id);
+            })
+            ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$id])
             ->first();
 
         if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null

@@ -136,7 +136,7 @@ class VendorOrderController extends Controller
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $mapping = VendorOrderMapping::where('vendor_id', $vendor->id)->where('id', $id)->first();
+        $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
         if ($mapping === null) {
             return ApiResponse::error('Order not found.', 404);
         }
