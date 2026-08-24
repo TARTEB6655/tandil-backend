@@ -214,11 +214,19 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.tracking.status', 'confirmed')
             ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
             ->assertJsonPath('data.tracking.timeline.0.label', 'Pending')
+            ->assertJsonPath('data.tracking.timeline.0.description', 'Order placed successfully')
             ->assertJsonPath('data.tracking.timeline.0.completed', true)
-            ->assertJsonPath('data.tracking.timeline.1.key', 'confirmed')
-            ->assertJsonPath('data.tracking.timeline.1.current', true)
+            ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
+            ->assertJsonPath('data.tracking.timeline.1.description', 'Waiting for a supervisor to accept the job')
             ->assertJsonPath('data.tracking.timeline.1.completed', true)
-            ->assertJsonPath('data.tracking.timeline.2.completed', false)
+            ->assertJsonPath('data.tracking.timeline.2.key', 'confirmed')
+            ->assertJsonPath('data.tracking.timeline.2.description', 'Supervisor accepted your order')
+            ->assertJsonPath('data.tracking.timeline.2.current', true)
+            ->assertJsonPath('data.tracking.timeline.2.completed', true)
+            ->assertJsonPath('data.tracking.timeline.3.key', 'assigned')
+            ->assertJsonPath('data.tracking.timeline.3.description', 'Technician assigned to your order')
+            ->assertJsonPath('data.tracking.timeline.3.completed', false)
+            ->assertJsonPath('data.tracking.timeline.4.description', 'Your order is being processed')
             ->assertJsonStructure([
                 'data' => [
                     'order_id',
@@ -310,8 +318,8 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.tracking.status', 'cancelled')
             ->assertJsonPath('data.tracking.cancellation_reason', 'Out of stock')
             ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
-            ->assertJsonPath('data.tracking.timeline.1.key', 'cancelled')
-            ->assertJsonPath('data.tracking.timeline.1.label', 'Cancelled')
+            ->assertJsonPath('data.tracking.timeline.1.key', 'cancel_order')
+            ->assertJsonPath('data.tracking.timeline.1.label', 'Cancel order')
             ->assertJsonPath('data.tracking.timeline.1.current', true)
             ->assertJsonPath('data.tracking.timeline.1.completed', true);
     }
