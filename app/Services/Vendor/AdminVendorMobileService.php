@@ -94,6 +94,10 @@ class AdminVendorMobileService
             ],
             'products' => [
                 'count' => $paginator->total(),
+                'create' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/products",
+                ],
                 'items' => collect($paginator->items())
                     ->map(fn (VendorProduct $vp) => $this->formatProductItem($vendor, $vp))
                     ->values()
@@ -130,6 +134,15 @@ class AdminVendorMobileService
             'image_url' => $product?->image_url,
             'can_toggle' => true,
             'actions' => [
+                'show' => [
+                    'method' => 'GET',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}",
+                ],
+                'update' => [
+                    'method' => 'POST',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}",
+                    'note' => 'JSON or multipart form-data. PUT also accepted.',
+                ],
                 'toggle' => [
                     'method' => 'POST',
                     'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}/toggle",

@@ -20,7 +20,7 @@ class VendorProductService
         private readonly ProductCatalogWriter $catalog
     ) {}
 
-    public function createFromRequest(Vendor $vendor, Request $request): VendorProduct
+    public function createFromRequest(Vendor $vendor, Request $request, bool $adminOverride = false): VendorProduct
     {
         $this->catalog->prepareRequest($request);
         $validated = $request->validate(
@@ -28,7 +28,7 @@ class VendorProductService
             $this->catalog->validationMessages()
         );
 
-        return DB::transaction(function () use ($vendor, $request, $validated) {
+        return DB::transaction(function () use ($vendor, $request, $validated, $adminOverride) {
             $productStatus = ($validated['status'] ?? null) === 'draft' ? 'draft' : 'active';
 
             $createData = $this->catalog->buildCreateData($request, $validated, [
@@ -56,14 +56,15 @@ class VendorProductService
                 'status' => $validated['vendor_product_status'] ?? 'active',
                 'approval_status' => VendorProductApprovalStatus::Approved->value,
                 'approved_at' => now(),
+                'approved_by' => $adminOverride ? ($request->user()?->id) : null,
             ]);
 
             $this->recordPrice(
                 $vendorProduct,
                 (float) $validated['price'],
                 null,
-                $vendor->user_id,
-                false
+                $request->user()?->id ?? $vendor->user_id,
+                $adminOverride
             );
 
             VendorInventory::create([
@@ -89,7 +90,7 @@ class VendorProductService
         });
     }
 
-    public function updateFromRequest(VendorProduct $vendorProduct, Request $request, ?int $setByUserId = null): VendorProduct
+    public function updateFromRequest(VendorProduct $vendorProduct, Request $request, ?int $setByUserId = null, bool $adminOverride = false): VendorProduct
     {
         $this->catalog->prepareRequest($request);
         $productId = $vendorProduct->product_id;
@@ -98,7 +99,7 @@ class VendorProductService
             $this->catalog->validationMessages()
         );
 
-        return DB::transaction(function () use ($vendorProduct, $request, $validated, $setByUserId) {
+        return DB::transaction(function () use ($vendorProduct, $request, $validated, $setByUserId, $adminOverride) {
             $product = $vendorProduct->product;
 
             $updateData = $this->catalog->buildUpdateData($request, $validated);
@@ -116,7 +117,7 @@ class VendorProductService
                     (float) $validated['price'],
                     null,
                     $setByUserId,
-                    false
+                    $adminOverride
                 );
             }
 
@@ -134,7 +135,15 @@ class VendorProductService
                         'vendor_product_status' => 'This product was disabled by an administrator and cannot be re-enabled.',
                     ]);
                 }
-                $vendorProduct->update(['status' => $validated['vendor_product_status']]);
+                $statusUpdate = ['status' => $validated['vendor_product_status']];
+                if ($adminOverride && $validated['vendor_product_status'] === 'active' && $vendorProduct->disabled_by_admin) {
+                    $statusUpdate['disabled_by_admin'] = false;
+                    $statusUpdate['disabled_by_admin_at'] = null;
+                    $statusUpdate['disabled_by_admin_by'] = null;
+                    $statusUpdate['admin_disable_reason'] = null;
+                    $statusUpdate['approval_status'] = VendorProductApprovalStatus::Approved->value;
+                }
+                $vendorProduct->update($statusUpdate);
             }
 
             if (isset($validated['stock'])) {

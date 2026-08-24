@@ -307,6 +307,7 @@ class AdminVendorManagementApiTest extends TestCase
                     ],
                     'products' => [
                         'count',
+                        'create' => ['method', 'endpoint'],
                         'items' => [
                             [
                                 'vendor_product_id',
@@ -316,6 +317,8 @@ class AdminVendorManagementApiTest extends TestCase
                                 'is_enabled',
                                 'image_url',
                                 'actions' => [
+                                    'show' => ['method', 'endpoint'],
+                                    'update' => ['method', 'endpoint'],
                                     'toggle' => ['method', 'endpoint'],
                                     'delete' => ['method', 'endpoint'],
                                 ],
@@ -327,7 +330,11 @@ class AdminVendorManagementApiTest extends TestCase
             ])
             ->assertJsonPath('data.summary.total_products', 1)
             ->assertJsonPath('data.summary.enabled_products', 1)
-            ->assertJsonPath('data.products.items.0.is_enabled', true);
+            ->assertJsonPath('data.products.items.0.is_enabled', true)
+            ->assertJsonPath(
+                'data.products.create.endpoint',
+                "/api/admin/vendors/{$vendor->id}/products"
+            );
     }
 
     public function test_admin_can_toggle_vendor_product_from_mobile_api(): void

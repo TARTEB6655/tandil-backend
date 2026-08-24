@@ -21,6 +21,7 @@ use App\Services\Vendor\AdminVendorRevenueService;
 use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorApprovalService;
 use App\Services\Vendor\VendorDashboardService;
+use App\Services\Vendor\VendorProductService;
 use App\Services\Vendor\VendorRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,7 +41,8 @@ class VendorManagementController extends Controller
         private readonly AdminVendorProductService $adminProducts,
         private readonly AdminVendorProductListService $productList,
         private readonly AdminVendorOrderListService $orderList,
-        private readonly AdminVendorRevenueService $revenue
+        private readonly AdminVendorRevenueService $revenue,
+        private readonly VendorProductService $vendorProducts
     ) {}
 
     /**
@@ -64,6 +66,89 @@ class VendorManagementController extends Controller
             ->findOrFail($id);
 
         return ApiResponse::success('Vendor management detail retrieved.', $this->mobile->managementDetail($vendor, $request));
+    }
+
+    /**
+     * Admin — create a product for a vendor (same fields as vendor product create).
+     */
+    public function storeProduct(Request $request, int $vendorId): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+
+        try {
+            $vp = $this->vendorProducts->createFromRequest($vendor, $request, adminOverride: true);
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        } catch (ValidationException $e) {
+            return ApiResponse::error(
+                $this->firstProductValidationMessage($e),
+                422,
+                $e->errors()
+            );
+        }
+
+        return ApiResponse::success('Product created.', [
+            'vendor_id' => $vendor->id,
+            'vendor_product' => $this->vendorProducts->formatApiResponse($vp),
+            'product' => $this->mobile->formatProductItem($vendor, $vp),
+        ], 201);
+    }
+
+    /**
+     * Admin — product detail for a vendor listing.
+     */
+    public function showProduct(Request $request, int $vendorId, int $productId): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendorProduct = VendorProduct::findForVendorToggle($vendor->id, $productId);
+        $vendorProduct->load([
+            'product.category',
+            'product.services',
+            'product.images',
+            'product.primaryImage',
+            'product.optionGroups.options',
+            'product.variants.options',
+            'inventory',
+            'currentPrice',
+        ]);
+
+        return ApiResponse::success('Product retrieved.', [
+            'vendor_id' => $vendor->id,
+            'vendor_product' => $this->vendorProducts->formatApiResponse($vendorProduct),
+            'product' => $this->mobile->formatProductItem($vendor, $vendorProduct),
+        ]);
+    }
+
+    /**
+     * Admin — full update of a vendor product (JSON or multipart form-data).
+     */
+    public function updateProduct(Request $request, int $vendorId, int $productId): JsonResponse
+    {
+        $vendor = Vendor::findOrFail($vendorId);
+        $vendorProduct = VendorProduct::findForVendorToggle($vendor->id, $productId);
+
+        try {
+            $vp = $this->vendorProducts->updateFromRequest(
+                $vendorProduct,
+                $request,
+                $request->user()?->id,
+                adminOverride: true
+            );
+        } catch (\InvalidArgumentException $e) {
+            return ApiResponse::error($e->getMessage(), 422);
+        } catch (ValidationException $e) {
+            return ApiResponse::error(
+                $this->firstProductValidationMessage($e),
+                422,
+                $e->errors()
+            );
+        }
+
+        return ApiResponse::success('Product updated.', [
+            'vendor_id' => $vendor->id,
+            'vendor_product' => $this->vendorProducts->formatApiResponse($vp),
+            'product' => $this->mobile->formatProductItem($vendor, $vp),
+        ]);
     }
 
     /**
@@ -687,5 +772,23 @@ class VendorManagementController extends Controller
         }
 
         return $this->approval->activate($vendor, $admin, $notes);
+    }
+
+    private function firstProductValidationMessage(ValidationException $e): string
+    {
+        $errors = $e->errors();
+        foreach (['category_id', 'service_id', 'service_ids', 'name', 'price', 'stock'] as $field) {
+            if (! empty($errors[$field][0])) {
+                return (string) $errors[$field][0];
+            }
+        }
+
+        foreach ($errors as $messages) {
+            if (! empty($messages[0])) {
+                return (string) $messages[0];
+            }
+        }
+
+        return $e->getMessage();
     }
 }
