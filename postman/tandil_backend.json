@@ -4,7 +4,7 @@
     "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.21"
+    "version": "3.6.22"
   },
   "item": [
     {
@@ -25672,7 +25672,7 @@
         },
         {
           "name": "L. Orders (approved only)",
-          "description": "Vendor orders — list + detail + **one track API** (same pattern as client).\n\n| # | API | Use |\n|---|-----|-----|\n| 1 | GET `/orders` | List — each item has `id` (mapping) + `order_id` (shop) |\n| 2 | GET `/orders/{id}` | Order details / update-status UI |\n| 3 | GET `/orders/{id}/track` | **Track only** — `{id}` = shop `order_id` OR mapping `id` |\n| 4–6 | contact / invoice / download | Optional actions |\n| 7–9 | POST `/orders/{id}/status` | Confirm / Ship / Delivered |\n\n**Track like client:** `GET /api/vendor/orders/{{order_id}}/track` using `order_id` from the list response.\n\nAuth: `{{vendor_token}}`, approved vendor only.",
+          "description": "Vendor orders — list, track, **one** status POST.\n\n| # | API | Use |\n|---|-----|-----|\n| 1 | GET `/orders` | List (`id` mapping + `order_id` shop) |\n| 2 | GET `/orders/{id}` | Order details |\n| 3 | GET `/orders/{id}/track` | Track (client-style) — `{id}` = `order_id` or mapping `id` |\n| 4–6 | contact / invoice / download | Optional |\n| 7 | POST `/orders/{id}/status` | **Single API** — change any allowed status via body `status` |\n\n**Track:** `GET /api/vendor/orders/{{order_id}}/track`\n**Update status:** `POST /api/vendor/orders/{id}/status` with `{ \"status\": \"confirmed\"|\"processing\"|\"shipped\"|\"delivered\"|\"cancelled\" }` — not separate APIs per status.\n\nAuth: `{{vendor_token}}`, approved vendor only.",
           "item": [
             {
               "name": "1. List orders",
@@ -25687,6 +25687,10 @@
                       "    if (items.length && items[0].id) {",
                       "        pm.collectionVariables.set('vendor_order_mapping_id', String(items[0].id));",
                       "        pm.environment.set('vendor_order_mapping_id', String(items[0].id));",
+                      "    }",
+                      "    if (items.length && items[0].order_id) {",
+                      "        pm.collectionVariables.set('vendor_shop_order_id', String(items[0].order_id));",
+                      "        pm.environment.set('vendor_shop_order_id', String(items[0].order_id));",
                       "    }",
                       "}"
                     ]
@@ -25733,7 +25737,7 @@
                     }
                   ]
                 },
-                "description": "GET `/api/vendor/orders` — `data.summary` (total, pending, confirmed, …) + `data.items[]` mobile cards + `data.pagination`. Auto-sets `{{vendor_order_mapping_id}}` from first item.\n\n**Performance tip:** keep `per_page` ≤ 50. For print/download use invoice/download endpoints separately (PDF is slower than JSON list/detail)."
+                "description": "GET `/api/vendor/orders` — `data.summary` + `data.items[]` + `data.pagination`.\n\nEach item has:\n- `id` → vendor mapping id\n- `order_id` → shop order id (use this for track, same as client)\n\nAuto-sets `{{vendor_order_mapping_id}}` and `{{vendor_shop_order_id}}` from first item."
               }
             },
             {
@@ -25762,7 +25766,7 @@
                     "{{vendor_order_mapping_id}}"
                   ]
                 },
-                "description": "GET `/api/vendor/orders/{id}` — **Order Details screen**.\n\n**Header:** `order_number` (VND-YYYY-####), `status_label` + `status_icon` + `status_color`, `order_date_display` (`21 Aug 2026 at 12:56 PM`), `total_amount_label` (`AED 230.00`).\n\n**Stepper (Pending → Delivered):** `data.order.status_timeline[]` → `{ key, label, icon, color, status: completed|current|pending, completed, current, date_display }`.\n\n**Update Status grid:** `data.order.status_options[]` (all 5: pending/confirmed/processing/shipped/delivered) → `{ value, label, icon, color, selected, enabled, completed }`. POST `/status` with a selected `value` when `enabled` is true.\n\n**Order Info card:** `order_info.order_date`, `order_info.delivery_date`, `order_info.tracking` (empty → `—`).\n\n**Customer:** `name`, `phone_display` (`No phone` if missing), `email_display`, `address_display`.\n\n**Products:** `name`, `image_url`, `qty_label` (`Qty 1`), `price_label` (`AED 200.00`).\n\n**Actions:** contact / invoice / download / track endpoints.\n\n**Sample `data.order` (confirmed):**\n```json\n{\n  \"order_number\": \"VND-2026-0006\",\n  \"status\": \"confirmed\",\n  \"status_label\": \"Confirmed\",\n  \"status_icon\": \"check\",\n  \"status_color\": \"blue\",\n  \"total_amount_label\": \"AED 230.00\",\n  \"order_info\": { \"order_date\": \"21 Aug 2026 at 12:56 PM\", \"delivery_date\": \"—\", \"tracking\": \"—\" },\n  \"customer\": { \"name\": \"Customer\", \"phone_display\": \"No phone\", \"email_display\": \"—\" },\n  \"status_timeline\": [\n    { \"label\": \"Pending\", \"icon\": \"clock\", \"color\": \"gold\", \"completed\": true },\n    { \"label\": \"Confirmed\", \"icon\": \"check\", \"color\": \"blue\", \"current\": true },\n    { \"label\": \"Processing\", \"icon\": \"gear\", \"color\": \"grey\" },\n    { \"label\": \"Shipped\", \"icon\": \"truck\", \"color\": \"grey\" },\n    { \"label\": \"Delivered\", \"icon\": \"check-circle\", \"color\": \"grey\" }\n  ]\n}\n```"
+                "description": "GET `/api/vendor/orders/{id}` — **Order Details screen**.\n\n`{id}` = mapping `id` OR shop `order_id`.\n\n**Update Status grid:** `data.order.status_options[]` — POST **one** API `/orders/{id}/status` with body `status` = the option `value` when `enabled` is true. Not a separate endpoint per status."
               }
             },
             {
@@ -25893,45 +25897,7 @@
               }
             },
             {
-              "name": "7. Confirm order (pending → confirmed)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{vendor_token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"confirmed\",\n  \"note\": \"Order accepted\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/status",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "orders",
-                    "{{vendor_order_mapping_id}}",
-                    "status"
-                  ]
-                },
-                "description": "POST `/api/vendor/orders/{id}/status` — Confirm on pending orders.\n\nBody: `{ \"status\": \"confirmed\", \"note\": optional }`.\n\nResponse `data.order` includes refreshed `status_timeline`, `status_options` (`confirmed.selected=true`), and display fields."
-              }
-            },
-            {
-              "name": "8. Ship order (confirmed → shipped)",
+              "name": "7. Update order status",
               "request": {
                 "method": "POST",
                 "header": [
@@ -25965,45 +25931,7 @@
                     "status"
                   ]
                 },
-                "description": "POST ship. Allowed from `confirmed` or `processing`.\n\nBody: `{ \"status\": \"shipped\", \"tracking_number\": optional, \"note\": optional }`.\n\n- If `tracking_number` omitted → auto `TRK-YYYY-####`.\n- Response: `status=shipped`, `status_icon=truck`, `status_color=green`, `order_info.tracking` set, `status_options[shipped].selected=true`, `delivered.enabled=true`."
-              }
-            },
-            {
-              "name": "9. Mark delivered (shipped → delivered)",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{vendor_token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"status\": \"delivered\",\n  \"note\": \"Delivered to customer\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/status",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "orders",
-                    "{{vendor_order_mapping_id}}",
-                    "status"
-                  ]
-                },
-                "description": "POST delivered (only from `shipped`). Invalid transitions return 422.\n\nResponse: `status=delivered`, `status_icon=check-circle`, `status_color=green`, all earlier timeline steps completed."
+                "description": "**One POST for all status changes.** There are no separate confirm/ship/delivered endpoints.\n\n`POST /api/vendor/orders/{id}/status`\n`{id}` = mapping `id` OR shop `order_id`.\n\n**Body**\n```json\n{\n  \"status\": \"shipped\",\n  \"note\": \"optional\",\n  \"tracking_number\": \"optional — only when shipping\"\n}\n```\n\n**`status` values:** `confirmed` | `processing` | `shipped` | `delivered` | `cancelled`\n\nChange `status` in the body to match the Update Status button:\n- pending → `{ \"status\": \"confirmed\" }`\n- confirmed → `{ \"status\": \"processing\" }` or `{ \"status\": \"shipped\", \"tracking_number\": \"TEL-2026\" }`\n- shipped → `{ \"status\": \"delivered\" }`\n\nInvalid jump (e.g. pending → delivered) returns **422**.\nIf `status=shipped` and `tracking_number` omitted, backend auto-sets `TRK-YYYY-####`."
               }
             }
           ]
