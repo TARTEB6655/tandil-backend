@@ -89,9 +89,7 @@ class ProductCatalogWriter
             'vendor_product_status' => 'nullable|in:active,inactive',
             'is_featured' => 'nullable|boolean',
             'sort_order' => 'nullable|integer|min:0',
-            'category_id' => $existingProductId
-                ? ['nullable', 'integer', $categoryRule]
-                : ['required', 'integer', $categoryRule],
+            'category_id' => ['nullable', 'integer', $categoryRule],
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku' => $skuRule,
             'handle' => $handleRule,
@@ -170,10 +168,27 @@ class ProductCatalogWriter
         $rawCategoryId = $this->resolveCategoryId($request, $validated);
         if ($rawCategoryId !== null) {
             $createData['category_id'] = $rawCategoryId;
-        } elseif (Schema::getConnection()->getDriverName() === 'sqlite') {
-            $firstCategory = Category::vendorAssignable()->orderBy('id')->first();
+        } else {
+            $createData['category_id'] = null;
+        }
+
+        // SQLite only: column is NOT NULL; assign first category or Uncategorized when none sent
+        if ($createData['category_id'] === null && Schema::getConnection()->getDriverName() === 'sqlite') {
+            $firstCategory = Category::vendorAssignable()->orderBy('id')->first()
+                ?? Category::orderBy('id')->first();
             if ($firstCategory) {
                 $createData['category_id'] = $firstCategory->id;
+            } else {
+                $uncategorized = Category::firstOrCreate(
+                    ['slug' => 'uncategorized'],
+                    [
+                        'name' => 'Uncategorized',
+                        'is_active' => true,
+                        'shipping_cost' => 0,
+                        'tax_percentage' => 0,
+                    ]
+                );
+                $createData['category_id'] = $uncategorized->id;
             }
         }
 
@@ -472,10 +487,9 @@ class ProductCatalogWriter
      */
     public function assertCategoryAllowed(?int $categoryId, callable $categoryValidator): void
     {
+        // category_id is optional on vendor/admin-vendor product create & update
         if ($categoryId === null || $categoryId < 1) {
-            throw new \InvalidArgumentException(
-                'category_id is required. Call GET /api/vendor/categories and send an active platform category id in the request body.'
-            );
+            return;
         }
         if (! $categoryValidator($categoryId)) {
             throw new \InvalidArgumentException(
@@ -511,9 +525,9 @@ class ProductCatalogWriter
     public function validationMessages(): array
     {
         return [
-            'category_id.required' => 'category_id is required. List platform categories: GET /api/vendor/categories',
-            'category_id.integer' => 'category_id must be a numeric platform category id.',
+            'category_id.integer' => 'category_id must be a numeric platform category id from GET /api/vendor/categories (optional).',
             'category_id.exists' => 'Invalid platform category. Use an active admin category id from GET /api/vendor/categories.',
+            'service_id.integer' => 'service_id must be a numeric platform service id from GET /api/vendor/services (optional).',
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique' => 'The SKU has already been taken. Please use a unique SKU.',
         ];

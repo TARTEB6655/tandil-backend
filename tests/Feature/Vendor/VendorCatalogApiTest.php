@@ -279,16 +279,21 @@ class VendorCatalogApiTest extends TestCase
         ]);
     }
 
-    public function test_vendor_product_requires_platform_category_id(): void
+    public function test_vendor_product_allows_missing_category_and_service_id(): void
     {
         ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
 
-        $this->withToken($token)->postJson('/api/vendor/products', [
+        $response = $this->withToken($token)->postJson('/api/vendor/products', [
             'name' => 'No Category Product',
             'price' => 25,
-        ])
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
+        ]);
+
+        $response->assertCreated()->assertJsonPath('success', true);
+        $productId = (int) $response->json('data.vendor_product.product_id');
+        $this->assertDatabaseHas('products', [
+            'id' => $productId,
+            'name' => 'No Category Product',
+        ]);
     }
 
     public function test_vendor_product_rejects_vendor_owned_category_and_service(): void

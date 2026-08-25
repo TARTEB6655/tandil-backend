@@ -10,7 +10,12 @@ class AssignablePlatformCategoryId implements ValidationRule
 {
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        if ($value === null || $value === '' || ! is_numeric($value)) {
+        // Optional field — empty/null is allowed (use with `nullable` rule)
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        if (! is_numeric($value)) {
             $fail('category_id must be a numeric platform category id from GET /api/vendor/categories.');
 
             return;

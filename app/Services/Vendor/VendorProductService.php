@@ -38,11 +38,16 @@ class VendorProductService
             ]);
 
             $categoryId = $this->catalog->resolveCategoryId($request, $validated);
-            $this->catalog->assertCategoryAllowed(
-                $categoryId,
-                fn (int $id) => Category::vendorAssignable()->where('id', $id)->exists()
-            );
-            $createData['category_id'] = $categoryId;
+            if ($categoryId !== null) {
+                $this->catalog->assertCategoryAllowed(
+                    $categoryId,
+                    fn (int $id) => Category::vendorAssignable()->where('id', $id)->exists()
+                );
+                $createData['category_id'] = $categoryId;
+            } else {
+                // Optional: keep SQLite fallback from buildCreateData when present, else null
+                $createData['category_id'] = $createData['category_id'] ?? null;
+            }
 
             try {
                 $product = Product::create($createData);

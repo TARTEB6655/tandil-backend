@@ -169,17 +169,18 @@ class AdminVendorProductCrudApiTest extends TestCase
             ->assertJsonPath('data.product.stock', 9);
     }
 
-    public function test_admin_product_create_requires_category(): void
+    public function test_admin_product_create_allows_missing_category_and_service_id(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedApprovedVendor();
 
-        $this->withToken($token)
+        $response = $this->withToken($token)
             ->postJson("/api/admin/vendors/{$vendor->id}/products", [
                 'name' => 'Missing Category',
                 'price' => 10,
-            ])
-            ->assertStatus(422)
-            ->assertJsonPath('success', false);
+            ]);
+
+        $response->assertCreated()->assertJsonPath('success', true);
+        $this->assertSame('Missing Category', $response->json('data.vendor_product.product.name'));
     }
 
     public function test_non_admin_cannot_create_vendor_product(): void
