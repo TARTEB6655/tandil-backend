@@ -212,6 +212,12 @@ class VendorOrderService
         ?string $note = null,
         ?string $trackingNumber = null
     ): VendorOrderMapping {
+        if ($this->mappingFulfillmentType($mapping) === OrderFulfillmentType::SERVICE) {
+            throw ValidationException::withMessages([
+                'status' => ['This is a service order. Fulfillment is handled by the supervisor team — vendor cannot change ship/OTP status.'],
+            ]);
+        }
+
         if ($status === VendorOrderStatus::Delivered) {
             throw ValidationException::withMessages([
                 'status' => ['Use POST /api/vendor/orders/{id}/confirm-delivery with the customer OTP to mark delivered.'],
@@ -252,6 +258,12 @@ class VendorOrderService
 
     public function confirmDeliveryWithOtp(VendorOrderMapping $mapping, string $otp, User $user): VendorOrderMapping
     {
+        if ($this->mappingFulfillmentType($mapping) === OrderFulfillmentType::SERVICE) {
+            throw ValidationException::withMessages([
+                'otp' => ['Service orders are completed by the supervisor/technician flow, not vendor OTP.'],
+            ]);
+        }
+
         $mapping = app(VendorDeliveryOtpService::class)->confirmWithOtp($mapping, $otp, $user);
 
         return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
@@ -260,6 +272,12 @@ class VendorOrderService
 
     public function resendDeliveryOtp(VendorOrderMapping $mapping, User $user): VendorOrderMapping
     {
+        if ($this->mappingFulfillmentType($mapping) === OrderFulfillmentType::SERVICE) {
+            throw ValidationException::withMessages([
+                'otp' => ['Service orders do not use vendor delivery OTP.'],
+            ]);
+        }
+
         $mapping = app(VendorDeliveryOtpService::class)->resendOtp($mapping, $user);
 
         return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
@@ -273,15 +291,23 @@ class VendorOrderService
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
         $primaryProduct = $this->formatPrimaryProduct($vendorItems, $currency);
+        $fulfillmentType = $this->mappingFulfillmentType($mapping);
 
         $shopStatus = OrderTrackingTimeline::normalize((string) ($order?->order_status ?? 'pending'));
         $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
 
-        // Vendor product orders: list card matches Order Details (vendor fulfillment status).
-        $status = $fulfillment->value;
-        $statusLabel = $fulfillment->label();
-        $statusIcon = $fulfillment->icon();
-        $statusColor = $fulfillment->color();
+        // Simple product: vendor mapping status. Service: show shop/supervisor status on the card.
+        if ($fulfillmentType === OrderFulfillmentType::SERVICE) {
+            $status = $shopStatus;
+            $statusLabel = $shopStatusLabel;
+            $statusIcon = $this->shopStatusIcon($shopStatus);
+            $statusColor = $this->shopStatusColor($shopStatus);
+        } else {
+            $status = $fulfillment->value;
+            $statusLabel = $fulfillment->label();
+            $statusIcon = $fulfillment->icon();
+            $statusColor = $fulfillment->color();
+        }
 
         return [
             'id' => $mapping->id,
@@ -301,7 +327,7 @@ class VendorOrderService
             'vendor_status_label' => $fulfillment->label(),
             'vendor_status_icon' => $fulfillment->icon(),
             'vendor_status_color' => $fulfillment->color(),
-            'fulfillment_type' => OrderFulfillmentType::PRODUCT,
+            'fulfillment_type' => $fulfillmentType,
             'is_demo' => $this->isDemoOrder($order),
             'customer' => $this->formatCustomer($order),
             'product' => $primaryProduct,
@@ -345,15 +371,26 @@ class VendorOrderService
         $status = $mapping->statusEnum();
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
+        $fulfillmentType = $this->mappingFulfillmentType($mapping);
+        $isService = $fulfillmentType === OrderFulfillmentType::SERVICE;
 
         return [
             'id' => $mapping->id,
             'order_id' => $mapping->order_id,
             'order_number' => $this->orderNumber($mapping),
-            'status' => $status->value,
-            'status_label' => $status->label(),
-            'status_icon' => $status->icon(),
-            'status_color' => $status->color(),
+            'status' => $isService
+                ? OrderTrackingTimeline::normalize((string) ($order?->order_status ?? 'pending'))
+                : $status->value,
+            'status_label' => $isService
+                ? OrderTrackingTimeline::statusLabel((string) ($order?->order_status ?? 'pending'))
+                : $status->label(),
+            'status_icon' => $isService
+                ? $this->shopStatusIcon((string) ($order?->order_status ?? 'pending'))
+                : $status->icon(),
+            'status_color' => $isService
+                ? $this->shopStatusColor((string) ($order?->order_status ?? 'pending'))
+                : $status->color(),
+            'fulfillment_type' => $fulfillmentType,
             'order_date' => $this->formatDateTime($order?->created_at),
             'order_date_label' => $this->formatDate($order?->created_at),
             'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
@@ -366,7 +403,9 @@ class VendorOrderService
             'payment_status' => $this->paymentStatusLabel($order?->payment_status),
             'tracking_number' => $mapping->tracking_number,
             'tracking_display' => $this->displayOrDash($mapping->tracking_number),
-            'delivery_otp' => app(VendorDeliveryOtpService::class)->otpControlsForVendor($mapping),
+            'delivery_otp' => $isService
+                ? null
+                : app(VendorDeliveryOtpService::class)->otpControlsForVendor($mapping),
             'currency' => $currency,
             'subtotal' => (float) $mapping->subtotal,
             'tax_amount' => (float) $mapping->tax_amount,
@@ -378,8 +417,8 @@ class VendorOrderService
             'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
             'product' => $this->formatPrimaryProduct($vendorItems, $currency),
             'status_timeline' => $this->buildStatusTimeline($mapping),
-            'status_options' => $this->statusOptions($status),
-            'available_statuses' => $this->availableStatuses($status),
+            'status_options' => $isService ? [] : $this->statusOptions($status),
+            'available_statuses' => $isService ? [] : $this->availableStatuses($status),
             'actions' => array_merge($this->resolveActions($status, $mapping), $this->resolveDocumentActions($mapping)),
             'order_info' => $this->formatOrderInfo($mapping),
         ];
@@ -696,6 +735,25 @@ class VendorOrderService
      */
     public function resolveActions(VendorOrderStatus $status, ?VendorOrderMapping $mapping = null): array
     {
+        if ($mapping instanceof VendorOrderMapping
+            && $this->mappingFulfillmentType($mapping) === OrderFulfillmentType::SERVICE) {
+            return [
+                'can_view' => true,
+                'can_confirm' => false,
+                'can_ship' => false,
+                'can_mark_delivered' => false,
+                'can_confirm_delivery_otp' => false,
+                'can_resend_delivery_otp' => false,
+                'resend_delivery_otp_available_in_seconds' => 0,
+                'can_cancel' => false,
+                'primary_action' => null,
+                'primary_action_label' => null,
+                'confirm_delivery_endpoint' => null,
+                'resend_delivery_otp_endpoint' => null,
+                'fulfillment_note' => 'Service order — handled by supervisor/technician.',
+            ];
+        }
+
         $canConfirm = $status === VendorOrderStatus::Pending;
         $canShip = in_array($status, [VendorOrderStatus::Confirmed, VendorOrderStatus::Processing], true);
         $canMarkDelivered = $status === VendorOrderStatus::Shipped;
@@ -742,6 +800,37 @@ class VendorOrderService
                 ? '/api/vendor/orders/{id}/resend-delivery-otp'
                 : null,
         ];
+    }
+
+    /**
+     * Fulfillment type for this vendor mapping (this vendor's lines only).
+     */
+    public function mappingFulfillmentType(VendorOrderMapping $mapping): string
+    {
+        $mapping->loadMissing('order.items.product.services');
+        $items = $this->vendorOrderItems($mapping);
+        if ($items->isEmpty() && $mapping->order) {
+            return OrderTrackingTimeline::fulfillmentType($mapping->order);
+        }
+
+        $hasService = $items->contains(
+            fn (OrderItem $item) => OrderFulfillmentType::isServiceProduct($item->product)
+        );
+        $hasSimple = $items->contains(
+            fn (OrderItem $item) => OrderFulfillmentType::isVendorFulfillmentProduct($item->product)
+        );
+
+        if ($hasService && ! $hasSimple) {
+            return OrderFulfillmentType::SERVICE;
+        }
+
+        if ($hasSimple && ! $hasService) {
+            return OrderFulfillmentType::PRODUCT;
+        }
+
+        return $mapping->order
+            ? OrderTrackingTimeline::fulfillmentType($mapping->order)
+            : OrderFulfillmentType::PRODUCT;
     }
 
     public function findMappingForVendor(Vendor $vendor, int $id, string $mode = 'detail'): ?VendorOrderMapping

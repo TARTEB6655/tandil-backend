@@ -58,6 +58,15 @@ final class OrderFulfillmentType
         return (int) ($product->vendor_id ?? 0) > 0;
     }
 
+    /**
+     * Any vendor-owned listing (simple OR service) — used for vendor order list sync.
+     * Service still fulfills via supervisor; mapping is for vendor visibility/sales.
+     */
+    public static function isVendorOwnedListing(?Product $product): bool
+    {
+        return $product !== null && (int) ($product->vendor_id ?? 0) > 0;
+    }
+
     public static function isPlatformCheckoutProduct(?Product $product): bool
     {
         if ($product === null || self::isServiceCatalogProduct($product)) {

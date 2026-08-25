@@ -208,10 +208,24 @@ class VendorDualProductFulfillmentSmokeTest extends TestCase
         $visit = Visit::query()->where('order_id', $serviceOrder->id)->first();
         $this->assertNotNull($visit);
         $this->assertSame('processing', $serviceOrder->fresh()->order_status);
-        $this->assertNull(
-            VendorOrderMapping::where('order_id', $serviceOrder->id)->first(),
-            'Service lines must not create vendor fulfillment mappings'
+        $serviceMapping = VendorOrderMapping::where('order_id', $serviceOrder->id)->where('vendor_id', $vendor->id)->first();
+        $this->assertNotNull(
+            $serviceMapping,
+            'Vendor-owned service orders should appear on GET /api/vendor/orders'
         );
+
+        $this->actingAs($vendorUser, 'sanctum');
+        $vendorList = $this->getJson('/api/vendor/orders');
+        $vendorList->assertOk();
+        $listedOrderIds = collect($vendorList->json('data.items'))->pluck('order_id')->all();
+        $this->assertContains($simpleOrder->id, $listedOrderIds);
+        $this->assertContains($serviceOrder->id, $listedOrderIds);
+        $serviceListItem = collect($vendorList->json('data.items'))->firstWhere('order_id', $serviceOrder->id);
+        $this->assertSame('service', $serviceListItem['fulfillment_type'] ?? null);
+
+        // Vendor cannot ship/OTP a service order
+        $this->postJson('/api/vendor/orders/'.$serviceMapping->id.'/status', ['status' => 'shipped'])
+            ->assertStatus(422);
 
         $this->actingAs($client, 'sanctum');
         $this->getJson('/api/orders/'.$serviceOrder->id.'/track')

@@ -26,7 +26,9 @@ class VendorOrderSyncService
 
         $byVendor = [];
         foreach ($order->items as $item) {
-            if (! OrderFulfillmentType::isVendorFulfillmentProduct($item->product)) {
+            // Include vendor-owned simple AND service listings so both appear on GET /api/vendor/orders.
+            // Service fulfillment stays on supervisor path (OTP/ship blocked for service mappings).
+            if (! OrderFulfillmentType::isVendorOwnedListing($item->product)) {
                 continue;
             }
             $vendorId = (int) $item->product->vendor_id;
