@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.27"
+        "version": "3.6.28"
     },
     "item": [
         {
@@ -4499,7 +4499,7 @@
                         },
                         {
                             "name": "E. My orders (app routes — track / cancel / service report)",
-                            "description": "Same orders, shorter URLs for the app: `/api/orders`. **Track** = timeline + `order_summary` + `service_report` flags. **Service Report** = full report after supervisor submits (`sent_to_client`). **Mark as Delivered** = client confirms delivery. **Cancel** = POST cancel.",
+                            "description": "Same orders, shorter URLs for the app: `/api/orders`.\n\n**Track** returns fulfillment-aware timeline:\n- **Product** → horizontal + OTP fields (no supervisor)\n- **Service** → vertical + `service_report` flags\n\n**Service Report** = full report after supervisor `sent_to_client` (service orders only).\n**Mark as Delivered** = client confirms (service flow). Product delivery is completed by vendor OTP confirm.\n**Cancel** = POST cancel.",
                             "item": [
                                 {
                                     "name": "1. Orders - List (Alternative Route)",
@@ -4633,7 +4633,7 @@
                                                 "track"
                                             ]
                                         },
-                                        "description": "GET /api/orders/{id}/track – Timeline + order_summary + **service_report** block.\n\n**service_report:** `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n\nShow report card only when `service_report.can_view_report` is true (after supervisor POST /api/supervisor/visits/{visit_id}/finalize with status=sent_to_client).\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos.\n\n**Tracking status (multi-supervisor):** After payment, the job goes to the area supervisor pool. Order stays **`processing`** until a supervisor claims it (`POST /api/supervisor/assignments/{id}/claim`). Only then does tracking move to **`confirmed`**. Timeline includes a Processing step.\n\n**Booking — per product, not per order:** each row in `data.order.items[]` now has its own `booking_date` (Y-m-d) + `booking_slot` (e.g. \"10:00 AM - 12:00 PM\") — different products in the same order can be booked for different, out-of-order dates/times. `order_summary.booking_date`/`booking_slot` (+ derived `slot_start_time`/`slot_end_time`) still exist as an order-level value (set when the whole cart used one slot, or a Buy Now single-product order), but for a multi-slot order treat `data.order.items[].booking_date`/`booking_slot` as the source of truth per product.\n\n**Carries through to the job (Visit):** when the order is paid, one Visit is auto-created **per order item** (not one per order) — each Visit's `scheduled_date`/`scheduled_time`/`duration_minutes` come from that specific item's own `booking_date`/`booking_slot`, so the supervisor/technician assignment endpoints' `date`/`time_slot` fields reflect each product's own booked slot. If an item's `booking_slot` is empty or doesn't match a parseable range, that Visit's `scheduled_time` stays null (not a bug — nothing was booked for that product)."
+                                        "description": "GET /api/orders/{id}/track – Timeline + order_summary + fulfillment-aware fields.\n\n**Fulfillment split (admin catalog OR vendor catalog — same behaviour):**\n\n### Product / simple order (`fulfillment_type` = `product`)\n- **Horizontal** delivery timeline (pending → confirmed → processing → shipped → delivered).\n- **No** supervisor steps / “goes to supervisor” messaging.\n- When status is `shipped`: `delivery_otp` (6-digit, 5 min TTL) shown here + **in-app** Delivery OTP notification (no SMS).\n- Vendor confirms with `POST /api/vendor/orders/{id}/confirm-delivery`.\n\n### Service order (`fulfillment_type` = `service`)\n- **Vertical** service timeline (area pool → supervisor claim → technician → report).\n- `service_report` block: `available`, `report_id`, `can_view_report`, `can_mark_delivered`, `pending_message`.\n- Show report card only when `service_report.can_view_report` is true (after supervisor finalize `sent_to_client`).\n- After payment, job goes to area supervisor pool. Order may stay **`processing`** until claim (`POST /api/supervisor/assignments/{id}/claim`) → then **`confirmed`**.\n\nAlso: placed_at, delivery_address, payment_method, total, order_number_short, can_cancel, maintenance_photos.\n\n**Booking — per product, not per order:** each row in `data.order.items[]` has its own `booking_date` + `booking_slot`. For multi-slot orders treat item-level booking as source of truth."
                                     }
                                 },
                                 {
@@ -4989,7 +4989,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "Get guest order tracking (timeline, status). No auth. Query: order_number, email."
+                                        "description": "GET /api/shop/orders/guest/track — Guest order tracking (no auth). Query: `order_number`, `email`.\n\nSame fulfillment-aware payload as auth track:\n- `fulfillment_type`: `product` | `service`\n- Product: horizontal timeline + `delivery_otp` when shipped (OTP also delivered in-app if the guest later has an account; track screen still shows code when shipped)\n- Service: vertical supervisor timeline + `service_report` flags\n- **Product orders do not include supervisor “goes to supervisor” steps**"
                                     }
                                 }
                             ]
@@ -17035,10 +17035,22 @@
                                             "description": "Optional. Empty or e.g. 2"
                                         },
                                         {
+                                            "key": "vendor_id",
+                                            "value": "{{vendor_id}}",
+                                            "type": "text",
+                                            "description": "REQUIRED for simple/physical admin catalog products — approved vendor who fulfills the order (OTP flow). Leave empty only for type=service."
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "product",
+                                            "type": "text",
+                                            "description": "product = simple/physical (needs vendor_id) | service = supervisor flow. Prefer dedicated Add Simple / Add Service requests below."
+                                        },
+                                        {
                                             "key": "service_id",
                                             "value": "{{service_id}}",
                                             "type": "text",
-                                            "description": "Optional. Single service ID (e.g. 1 or {{service_id}}). Link product to one service."
+                                            "description": "For service products: platform service ID. Linking service_id / type=service → supervisor fulfillment."
                                         },
                                         {
                                             "key": "weight_unit",
@@ -17057,9 +17069,9 @@
                                         },
                                         {
                                             "key": "product_type",
-                                            "value": "variable",
+                                            "value": "simple",
                                             "type": "text",
-                                            "description": "Optional. simple | variable. For variable product set value = variable."
+                                            "description": "Optional UI shape: simple | variable. Not the same as fulfillment `type` (product|service)."
                                         },
                                         {
                                             "key": "option_groups_json",
@@ -17104,7 +17116,221 @@
                                         "products"
                                     ]
                                 },
-                                "description": "Add product (multipart/form-data). Fields: name, description, price, stock, status, category_id, service_id (optional; single ID like category_id), weight_unit, sku, handle, main_image, images[]. Variable optional fields: product_type=variable, option_groups_json, option_images[temp_key]. Response 201: data.image, data.image_url, data.images, data.primary_image, data.service_ids, data.option_groups (variable groups), data.variants (if configured). Auth: Bearer {{token}}."
+                                "description": "Add admin catalog product (multipart/form-data). Auth: Bearer {{token}}.\n\n### Dual fulfillment (required understanding)\n\n| Intent | Fields | Order flow after paid |\n|--------|--------|------------------------|\n| **Simple / physical product** | `type=product` (or omit), **`vendor_id` required** (approved vendor who fulfills stock) | Vendor OTP / horizontal track — **no supervisor** |\n| **Service product** | `type=service` and/or `service_id` | Supervisor pool / vertical track |\n\nOther fields: name, description, price, stock, status, category_id, weight_unit, sku, handle, main_image, images[]. Variable: `product_type=variable`, option_groups_json, option_images[temp_key].\n\nResponse 201: data includes `type`, `vendor_id`, images, service_ids, option_groups."
+                            }
+                        },
+                        {
+                            "name": "Add Simple Product (physical + vendor_id)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    if (j.data && j.data.id) {",
+                                            "        pm.environment.set('product_id', String(j.data.id));",
+                                            "        pm.collectionVariables.set('product_id', String(j.data.id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "name",
+                                            "value": "Admin Simple Fertilizer",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "description",
+                                            "value": "Physical product fulfilled by vendor (OTP flow)",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price",
+                                            "value": "49.99",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "stock",
+                                            "value": "25",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "active",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "category_id",
+                                            "value": "{{category_id}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "product",
+                                            "type": "text",
+                                            "description": "product = simple fulfillment"
+                                        },
+                                        {
+                                            "key": "vendor_id",
+                                            "value": "{{vendor_id}}",
+                                            "type": "text",
+                                            "description": "Required — fulfillment vendor"
+                                        },
+                                        {
+                                            "key": "product_type",
+                                            "value": "simple",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "sku",
+                                            "value": "ADM-SIMPLE-001",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "handle",
+                                            "value": "admin-simple-fertilizer",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products"
+                                    ]
+                                },
+                                "description": "POST `/api/admin/products` — **Admin simple/physical catalog product**.\n\nRequires **`vendor_id`** (approved vendor). After client pays: vendor OTP flow + horizontal track. **No supervisor / goes-to-supervisor messaging.**\n\nSet `{{vendor_id}}` from Admin Vendor Management list or Login Vendor → auth/me.\n\nAuth: Bearer admin {{token}}."
+                            }
+                        },
+                        {
+                            "name": "Add Service Product (type=service)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201 || pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    if (j.data && j.data.id) {",
+                                            "        pm.environment.set('product_id', String(j.data.id));",
+                                            "        pm.collectionVariables.set('product_id', String(j.data.id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "name",
+                                            "value": "Admin Lawn Care Visit",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "description",
+                                            "value": "Service product — supervisor flow",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price",
+                                            "value": "120.00",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "stock",
+                                            "value": "0",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "status",
+                                            "value": "active",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "category_id",
+                                            "value": "{{category_id}}",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "type",
+                                            "value": "service",
+                                            "type": "text",
+                                            "description": "service = supervisor fulfillment"
+                                        },
+                                        {
+                                            "key": "service_id",
+                                            "value": "{{service_id}}",
+                                            "type": "text",
+                                            "description": "Platform service ID"
+                                        },
+                                        {
+                                            "key": "product_type",
+                                            "value": "simple",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "sku",
+                                            "value": "ADM-SERVICE-001",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "handle",
+                                            "value": "admin-lawn-care-visit",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/products",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "products"
+                                    ]
+                                },
+                                "description": "POST `/api/admin/products` — **Admin service catalog product**.\n\nSet `type=service` and/or `service_id`. After client pays: supervisor area pool → claim → technician. Client track is **vertical** with supervisor steps.\n\n`vendor_id` not required for service.\n\nAuth: Bearer admin {{token}}."
                             }
                         },
                         {
@@ -17509,10 +17735,10 @@
                             }
                         }
                     ],
-                    "description": "Admin product APIs – Bearer {{token}}. Create/Update (multipart): same fields; main_image, images[] (any size; auto-compressed to max 2 MB). Set product_id for Get/Update/Delete. Response: data.image, data.image_url, data.images, data.primary_image. List: ?category_id=, search. Bulk: product_ids; toggle-status POST."
+                    "description": "Admin platform catalog (`/api/admin/products`). Bearer admin {{token}}.\n\n**Simple product:** set `vendor_id` (fulfillment vendor) → client track/notifications use **product** flow (OTP, no supervisor).\n**Service product:** set `type=service` / `service_id` → **service** flow (supervisor).\n\nSee requests: **Add Simple Product (physical + vendor_id)** and **Add Service Product (type=service)**."
                 }
             ],
-            "description": "Single module for all product APIs. Public: GET /api/shop/products (per_page; no category required), get by category, get categories. Admin: GET /api/admin/products (per_page, filter), create (JSON or multipart; category_id and service_id optional, same pattern), get (includes service_ids), update, delete, toggle-status, bulk-delete, bulk-update-status, bulk-update-stock. category_id and service_id (single, optional) are optional on create and update."
+            "description": "Public shop products + Admin catalog CRUD.\n\n**Fulfillment (v3.6.28):** Admin simple products need `vendor_id`. Service products use `type=service`. Client track/notifications follow the same product vs service split as vendor-created listings."
         },
         {
             "name": "9. Area Manager Dashboard – All APIs",
@@ -23987,7 +24213,7 @@
         },
         {
             "name": "12. Vendor Dashboard – All APIs",
-            "description": "Login: `2. Authentication` → Login Vendor.\n\n**Subfolders A → R (alphabetical):**\n| Letter | Folder | Purpose |\n|--------|--------|--------|\n| A | Business Profile | Edit profile, business info, location, payment methods |\n| B | Application & Onboarding | Vendor application submit/resubmit |\n| C | Documents | Trade license, Emirates ID uploads |\n| D | Dashboard | Stats & summary (approved only) |\n| E | Performance Analytics | Analytics dashboard, PDF export, share |\n| F | Support & Live Chat | Vendor support chat |\n| G | Add Product – Dropdown options | Category/service dropdowns |\n| H | Categories | Platform categories (read-only) |\n| I | Services | Platform services (read-only) |\n| J | Products | Create/list/update vendor products |\n| K | Inventory | Stock per product |\n| L | Orders | Order list, detail, contact, invoice, status |\n| M | Compare vendors & prices | Client compare screen (public) |\n| N | Admin – Vendor Management | Mobile vendor management + approval actions |\n| O | Admin – Marketplace | Marketplace settings (admin token) |\n| P | Vendor Store (client) | Client vendor store page (public) |\n| Q | Legal & Contact | Public policy/contact pages |\n| R | Notifications | Vendor inbox (list, read, delete) |\n\n**Vendor products:** Admin approval only — unlimited products after approval.\n\n**Edit Profile POST:** `profile_picture`, `logo`, `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.",
+            "description": "Login: `2. Authentication` → Login Vendor.\n\n**Subfolders A → R (alphabetical):**\n| Letter | Folder | Purpose |\n|--------|--------|--------|\n| A | Business Profile | Edit profile, business info, location, payment methods |\n| B | Application & Onboarding | Vendor application submit/resubmit |\n| C | Documents | Trade license, Emirates ID uploads |\n| D | Dashboard | Stats & summary (approved only) |\n| E | Performance Analytics | Analytics dashboard, PDF export, share |\n| F | Support & Live Chat | Vendor support chat |\n| G | Add Product – Dropdown options | Category/service dropdowns |\n| H | Categories | Platform categories (read-only) |\n| I | Services | Platform services (read-only) |\n| J | Products | Create/list/update vendor products |\n| K | Inventory | Stock per product |\n| L | Orders | Order list, detail, contact, invoice, status |\n| M | Compare vendors & prices | Client compare screen (public) |\n| N | Admin – Vendor Management | Mobile vendor management + approval actions |\n| O | Admin – Marketplace | Marketplace settings (admin token) |\n| P | Vendor Store (client) | Client vendor store page (public) |\n| Q | Legal & Contact | Public policy/contact pages |\n| R | Notifications | Vendor inbox (list, read, delete) |\n\n**Vendor products:** Admin approval only — unlimited products after approval.\n\n**Edit Profile POST:** `profile_picture`, `logo`, `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.\n**Product vs Service (v3.6.28):** Vendor **J. Products** simple listings and Admin catalog simple listings both use OTP + horizontal track. Service listings use supervisor vertical track. Client APIs: folder **4 → O → E/F**. OTP APIs: **L. Orders** items 8–9.",
             "event": [
                 {
                     "listen": "prerequest",
@@ -25218,7 +25444,7 @@
                 },
                 {
                     "name": "J. Products (approved only)",
-                    "description": "Same multipart fields as Admin Add Product (Products - All APIs). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls.\n\n**Remove gallery / main images (update only — no new endpoint):** POST /api/vendor/products/{id} with `removed_image_ids[]` (id from GET `gallery_images[].id`), or `keep_image_ids[]` to keep only listed ids, or `remove_main_image=1`. Aliases: `remove_image_ids[]`, `deleted_image_ids[]`.\n\nUse **G** for mobile dropdown ids (id+name only) or **I/J** for full platform catalog. category_id + service_id must be platform (admin) IDs. Use inventory API for low_stock_threshold.\n\nList/filter: `?category_id=` returns only this vendor's products (admin products excluded).",
+                    "description": "Vendor catalog products (multipart same shape as Admin Add Product). Required: name, price, category_id (platform). Optional: description, stock, status, is_featured, service_id, weight_unit, sku, handle, product_type, option_groups_json, main_image, images[], image_urls.\n\n**Fulfillment:**\n- **Simple / product** (no service link / `type=product`) → after paid: vendor OTP + horizontal client track. No supervisor.\n- **Service** (`type=service` or `service_id`) → supervisor vertical flow.\n\n**Remove gallery / main images (update only):** `removed_image_ids[]`, `keep_image_ids[]`, or `remove_main_image=1`.\n\nList/filter: `?category_id=` returns only this vendor's products (admin products excluded).",
                     "item": [
                         {
                             "name": "1. List products",
@@ -25672,7 +25898,7 @@
                 },
                 {
                     "name": "L. Orders (approved only)",
-                    "description": "Vendor orders — list, track, **one** status POST (form-data).\n\n| # | API | Use |\n|---|-----|-----|\n| 1 | GET `/orders` | List (`id` mapping + `order_id` shop) |\n| 2 | GET `/orders/{id}` | Order details |\n| 3 | GET `/orders/{id}/track` | Track — `{id}` = `order_id` or mapping `id` |\n| 4–6 | contact / invoice / download | Optional |\n| 7 | POST `/orders/{id}/status` | **Single API** — form-data `status` (+ optional `note`, `tracking_number`) |\n\n**Status form field values:** `pending` | `confirmed` | `processing` | `shipped` | `delivered` | `cancelled`\n\nAuth: `{{vendor_token}}`, approved vendor only.",
+                    "description": "Vendor orders — list, track, status POST, **OTP confirm** (product only).\n\n| # | API | Use |\n|---|-----|-----|\n| 1 | GET `/orders` | List (`id` mapping + `order_id` shop) |\n| 2 | GET `/orders/{id}` | Order details |\n| 3 | GET `/orders/{id}/track` | Track — `{id}` = `order_id` or mapping `id` |\n| 4–6 | contact / invoice / download | Optional |\n| 7 | POST `/orders/{id}/status` | form-data `status` (+ optional `note`, `tracking_number`) |\n| 8 | POST `/orders/{id}/confirm-delivery` | **Product only** — body `otp` |\n| 9 | POST `/orders/{id}/resend-delivery-otp` | **Product only** — in-app OTP resend |\n\n**Product order flow:** `pending` → … → `shipped` (OTP pushed in-app + track `delivery_otp`) → customer tells vendor OTP → **confirm-delivery**.\n**Service lines** do not use vendor OTP; they go through supervisor.\n\nStatus values: `pending` | `confirmed` | `processing` | `shipped` | `delivered` | `cancelled`\n\nAuth: `{{vendor_token}}`, approved vendor only.",
                     "item": [
                         {
                             "name": "1. List orders",
@@ -25991,7 +26217,7 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\nCustomer gives OTP (shown in Tandil app notification + Track `delivery_otp`, 5 min TTL) to supplier. Supplier submits it here to complete delivery.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP is single-use and cleared after success.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`, 5 min TTL) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
                             }
                         },
                         {
@@ -26021,7 +26247,7 @@
                                         "resend-delivery-otp"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates the previous OTP and sends a new 6-digit code to the customer **inside the Tandil app** (notification + track screen). 5 min expiry, 60s cooldown between sends. No SMS.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates previous OTP and sends a new 6-digit code **inside the Tandil app** (notification + track). 5 min expiry, 60s cooldown. No SMS.\n\nWorks for vendor-created and admin-catalog simple products fulfilled by this vendor.\n\n**Token:** `{{vendor_token}}`."
                             }
                         }
                     ]
