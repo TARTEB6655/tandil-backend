@@ -253,6 +253,27 @@ class VendorDualProductFulfillmentSmokeTest extends TestCase
         $this->postJson('/api/vendor/orders/'.$serviceMapping->id.'/status', ['status' => 'shipped'])
             ->assertStatus(422);
 
+        $this->getJson('/api/vendor/orders/'.$serviceMapping->id)
+            ->assertOk()
+            ->assertJsonPath('data.order.fulfillment_type', 'service')
+            ->assertJsonPath('data.order.can_update_status', false)
+            ->assertJsonPath('data.order.uses_delivery_otp', false)
+            ->assertJsonPath('data.order.delivery_otp', null)
+            ->assertJsonPath('data.order.status_options', [])
+            ->assertJsonPath('data.order.actions.can_ship', false)
+            ->assertJsonPath('data.order.actions.can_confirm_delivery_otp', false);
+
+        $vendorTrack = $this->getJson('/api/vendor/orders/'.$serviceOrder->id.'/track');
+        $vendorTrack->assertOk()
+            ->assertJsonPath('data.fulfillment_type', 'service')
+            ->assertJsonPath('data.tracking_layout', 'vertical')
+            ->assertJsonPath('data.can_update_status', false)
+            ->assertJsonPath('data.uses_delivery_otp', false)
+            ->assertJsonPath('data.delivery_otp', null)
+            ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
+            ->assertJsonPath('data.tracking.timeline.1.description', 'Waiting for a supervisor to accept the job')
+            ->assertJsonPath('data.tracking.timeline.3.key', 'assigned');
+
         $this->actingAs($client, 'sanctum');
         $this->getJson('/api/orders/'.$serviceOrder->id.'/track')
             ->assertOk()

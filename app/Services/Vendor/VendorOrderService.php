@@ -336,6 +336,8 @@ class VendorOrderService
             'total_amount' => (float) $mapping->total_amount,
             'actions' => $this->resolveActions($fulfillment, $mapping),
             'track_endpoint' => '/api/vendor/orders/'.$mapping->order_id.'/track',
+            'can_update_status' => $fulfillmentType !== OrderFulfillmentType::SERVICE,
+            'uses_delivery_otp' => $fulfillmentType !== OrderFulfillmentType::SERVICE,
         ];
     }
 
@@ -416,18 +418,23 @@ class VendorOrderService
             'order_notes' => $order?->special_instructions,
             'products' => $vendorItems->map(fn (OrderItem $item) => $this->formatProductLine($item, $currency))->values()->all(),
             'product' => $this->formatPrimaryProduct($vendorItems, $currency),
-            'status_timeline' => $this->buildStatusTimeline($mapping),
+            // Service: supervisor/technician timeline. Simple product: vendor OTP workflow steps.
+            'status_timeline' => $isService
+                ? $this->buildTrackTimeline($mapping)
+                : $this->buildStatusTimeline($mapping),
             'status_options' => $isService ? [] : $this->statusOptions($status),
             'available_statuses' => $isService ? [] : $this->availableStatuses($status),
             'actions' => array_merge($this->resolveActions($status, $mapping), $this->resolveDocumentActions($mapping)),
             'order_info' => $this->formatOrderInfo($mapping),
+            'can_update_status' => ! $isService,
+            'uses_delivery_otp' => ! $isService,
         ];
     }
 
     /**
      * Track payload — same timeline as client GET /api/orders/{id}/track.
-     * Product orders → horizontal Pending→Confirmed→Processing→Shipped→Delivered.
-     * Service orders → vertical supervisor/technician timeline.
+     * Product orders → horizontal Pending→Confirmed→Processing→Shipped→Delivered + OTP.
+     * Service orders → vertical supervisor/technician timeline (no OTP, vendor cannot update status).
      *
      * @return array<string, mixed>
      */
@@ -438,11 +445,10 @@ class VendorOrderService
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
 
-        $fulfillmentType = $order
-            ? OrderTrackingTimeline::fulfillmentType($order)
-            : OrderFulfillmentType::PRODUCT;
+        $fulfillmentType = $this->mappingFulfillmentType($mapping);
+        $isService = $fulfillmentType === OrderFulfillmentType::SERVICE;
         $display = $order
-            ? OrderTrackingTimeline::displayStatus($order, $mapping)
+            ? OrderTrackingTimeline::displayStatus($order, $isService ? null : $mapping)
             : [
                 'status' => $fulfillment->value,
                 'status_label' => $fulfillment->label(),
@@ -450,15 +456,15 @@ class VendorOrderService
             ];
         $layout = $order
             ? OrderTrackingTimeline::trackingLayout($order)
-            : 'horizontal';
+            : ($isService ? 'vertical' : 'horizontal');
 
         return [
             'order_id' => $mapping->order_id,
             'vendor_order_id' => $mapping->id,
             'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
             'order_number_short' => $order?->publicOrderNumberDigits(),
-            'tracking_number' => $mapping->tracking_number,
-            'tracking_display' => $this->displayOrDash($mapping->tracking_number),
+            'tracking_number' => $isService ? null : $mapping->tracking_number,
+            'tracking_display' => $isService ? '—' : $this->displayOrDash($mapping->tracking_number),
             'fulfillment_type' => $fulfillmentType,
             'tracking_layout' => $layout,
             'status' => $display['status'],
@@ -469,6 +475,9 @@ class VendorOrderService
             'vendor_status_label' => $fulfillment->label(),
             'vendor_status_icon' => $fulfillment->icon(),
             'vendor_status_color' => $fulfillment->color(),
+            'can_update_status' => ! $isService,
+            'uses_delivery_otp' => ! $isService,
+            'delivery_otp' => null,
             'order' => [
                 'id' => $mapping->order_id,
                 'vendor_order_id' => $mapping->id,
@@ -476,7 +485,7 @@ class VendorOrderService
                 'status' => $display['status'],
                 'status_label' => $display['status_label'],
                 'vendor_status' => $fulfillment->value,
-                'tracking_number' => $mapping->tracking_number,
+                'tracking_number' => $isService ? null : $mapping->tracking_number,
                 'currency' => $currency,
                 'subtotal' => (float) $mapping->subtotal,
                 'tax_amount' => (float) $mapping->tax_amount,
@@ -490,7 +499,7 @@ class VendorOrderService
             'order_summary' => [
                 'order_date' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
                 'delivery_date' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
-                'tracking' => $this->displayOrDash($mapping->tracking_number),
+                'tracking' => $isService ? '—' : $this->displayOrDash($mapping->tracking_number),
                 'payment_method' => $this->paymentMethodLabel($order),
                 'payment_status' => $this->paymentStatusLabel($order?->payment_status),
                 'total' => (float) $mapping->total_amount,
@@ -504,7 +513,7 @@ class VendorOrderService
                 'status' => $display['status'],
                 'status_label' => $display['status_label'],
                 'payment_status' => $order?->payment_status,
-                'tracking_number' => $mapping->tracking_number,
+                'tracking_number' => $isService ? null : $mapping->tracking_number,
                 'timeline' => $this->buildTrackTimeline($mapping),
                 'created_at' => $order?->created_at?->format('c'),
                 'updated_at' => $order?->updated_at?->format('c'),
