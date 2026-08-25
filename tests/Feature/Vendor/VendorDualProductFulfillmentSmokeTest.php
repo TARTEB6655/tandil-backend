@@ -206,8 +206,34 @@ class VendorDualProductFulfillmentSmokeTest extends TestCase
         OrderPaidSideEffects::run($serviceOrder->fresh(['items.product.services']), 'Stripe (smoke)');
 
         $visit = Visit::query()->where('order_id', $serviceOrder->id)->first();
-        $this->assertNotNull($visit);
+        $this->assertNotNull($visit, 'Service order must create a Visit for supervisor pool');
         $this->assertSame('processing', $serviceOrder->fresh()->order_status);
+        $this->assertSame($area->id, (int) $visit->area_id);
+        $this->assertNull($visit->supervisor_id, 'Visit stays unclaimed in area pool until supervisor accepts');
+
+        // First-wave paid-order alert (OrderSupervisorNotifier via OrderPaidSideEffects)
+        Notification::assertSentTo(
+            $supervisor,
+            \App\Notifications\AdminNotification::class,
+            function (\App\Notifications\AdminNotification $n) use ($serviceOrder, $supervisor): bool {
+                $data = $n->toArray($supervisor);
+
+                return str_contains((string) ($data['message'] ?? ''), (string) $serviceOrder->id)
+                    && (int) (($data['meta']['alert_wave'] ?? 0)) === 1
+                    && (int) (($data['meta']['order_id'] ?? 0)) === (int) $serviceOrder->id;
+            }
+        );
+
+        $this->actingAs($supervisor, 'sanctum');
+        $newJobs = $this->getJson('/api/supervisor/assignments/new');
+        $newJobs->assertOk();
+        $newJobIds = collect($newJobs->json('data.data') ?? [])->pluck('id')->all();
+        $this->assertContains(
+            (int) $visit->id,
+            $newJobIds,
+            'Service visit must appear on GET /api/supervisor/assignments/new'
+        );
+
         $serviceMapping = VendorOrderMapping::where('order_id', $serviceOrder->id)->where('vendor_id', $vendor->id)->first();
         $this->assertNotNull(
             $serviceMapping,
