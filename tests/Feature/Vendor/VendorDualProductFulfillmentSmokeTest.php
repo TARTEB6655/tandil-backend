@@ -181,6 +181,7 @@ class VendorDualProductFulfillmentSmokeTest extends TestCase
         ])->assertOk()->assertJsonPath('data.order.status', 'delivered');
 
         $this->assertSame('delivered', $simpleOrder->fresh()->order_status);
+        $this->assertNull($mapping->fresh()->delivery_otp);
 
         // --- Paid SERVICE product order: supervisor visit + service track ---
         $area = Area::factory()->create([

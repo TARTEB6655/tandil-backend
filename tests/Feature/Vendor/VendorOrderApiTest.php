@@ -286,24 +286,105 @@ class VendorOrderApiTest extends TestCase
         $ship = $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
             'status' => 'shipped',
         ]);
-        $ship->assertOk()->assertJsonPath('data.order.status', 'shipped');
+        $ship->assertOk()
+            ->assertJsonPath('data.order.status', 'shipped')
+            ->assertJsonPath('data.order.delivery_otp.has_active_otp', true)
+            ->assertJsonPath('data.order.delivery_otp.ttl_minutes', 5)
+            ->assertJsonPath('data.order.actions.can_resend_delivery_otp', false);
 
         $mapping->refresh();
         $this->assertNotEmpty($mapping->delivery_otp);
+        $this->assertSame('+971500000001', $mapping->delivery_otp_sent_to);
+        $this->assertNotNull($mapping->delivery_otp_expires_at);
+        $this->assertTrue($mapping->delivery_otp_expires_at->lessThanOrEqualTo(now()->addMinutes(5)->addSecond()));
         $this->assertSame('shipped', $mapping->order->fresh()->order_status);
 
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
             'otp' => '000000',
         ])->assertStatus(422);
 
+        $otp = $mapping->delivery_otp;
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
-            'otp' => $mapping->delivery_otp,
+            'otp' => $otp,
         ])
             ->assertOk()
             ->assertJsonPath('data.order.status', 'delivered');
 
+        $mapping->refresh();
         $this->assertSame('delivered', $mapping->order->fresh()->order_status);
-        $this->assertNotNull($mapping->fresh()->delivery_otp_confirmed_at);
+        $this->assertNotNull($mapping->delivery_otp_confirmed_at);
+        $this->assertNull($mapping->delivery_otp);
+
+        // Single-use: previous OTP cannot complete delivery again.
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $otp,
+        ])->assertOk()->assertJsonPath('data.order.status', 'delivered');
+    }
+
+    public function test_vendor_delivery_otp_resend_cooldown_expiry_and_attempt_limits(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
+            'status' => 'shipped',
+        ])->assertOk();
+
+        $mapping->refresh();
+        $firstOtp = $mapping->delivery_otp;
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')
+            ->assertStatus(422);
+
+        $this->travel(61)->seconds();
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')
+            ->assertOk()
+            ->assertJsonPath('data.order.delivery_otp.has_active_otp', true)
+            ->assertJsonPath('data.order.actions.can_resend_delivery_otp', false);
+
+        $mapping->refresh();
+        $this->assertNotSame($firstOtp, $mapping->delivery_otp);
+        $secondOtp = $mapping->delivery_otp;
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $firstOtp,
+        ])->assertStatus(422);
+
+        $this->travel(6)->minutes();
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $secondOtp,
+        ])->assertStatus(422);
+
+        $this->travel(61)->seconds();
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')->assertOk();
+        $mapping->refresh();
+        $activeOtp = $mapping->delivery_otp;
+
+        for ($i = 0; $i < 5; $i++) {
+            $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+                'otp' => '000000',
+            ])->assertStatus(422);
+        }
+
+        $mapping->refresh();
+        $this->assertNotNull($mapping->delivery_otp_locked_until);
+        $this->assertTrue($mapping->delivery_otp_locked_until->isFuture());
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $activeOtp,
+        ])->assertStatus(422);
+
+        $this->travel(61)->seconds();
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')->assertOk();
+        $mapping->refresh();
+        $this->assertNull($mapping->delivery_otp_locked_until);
+        $this->assertSame(0, (int) $mapping->delivery_otp_attempts);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $mapping->delivery_otp,
+        ])->assertOk()->assertJsonPath('data.order.status', 'delivered');
     }
 
     public function test_vendor_track_product_timeline_follows_vendor_fulfillment(): void

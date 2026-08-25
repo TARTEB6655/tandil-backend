@@ -25991,7 +25991,37 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\nCustomer gives OTP (from client Track `delivery_otp`) to vendor. Vendor submits it here to complete delivery.\n\nSets mapping `delivered` + shop `order_status=delivered`.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\nCustomer gives OTP (SMS / Track `delivery_otp`, 5 min TTL) to vendor. Vendor submits it here to complete delivery.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP is single-use and cleared after success.\n\n**Token:** `{{vendor_token}}`."
+                            }
+                        },
+                        {
+                            "name": "12. Resend delivery OTP",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{vendor_token}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/orders/{{vendor_order_mapping_id}}/resend-delivery-otp",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "orders",
+                                        "{{vendor_order_mapping_id}}",
+                                        "resend-delivery-otp"
+                                    ]
+                                },
+                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates the previous OTP, sends a new 6-digit code to the customer mobile (SMS + in-app), 5 min expiry, 60s cooldown between sends.\n\n**Token:** `{{vendor_token}}`."
                             }
                         }
                     ]

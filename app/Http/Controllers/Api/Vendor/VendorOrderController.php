@@ -204,4 +204,22 @@ class VendorOrderController extends Controller
             'order' => $this->orders->formatDetail($mapping),
         ]);
     }
+
+    /**
+     * Product orders: invalidate the current delivery OTP and send a new one to the customer.
+     */
+    public function resendDeliveryOtp(Request $request, int $id): JsonResponse
+    {
+        $vendor = $request->attributes->get('vendor');
+        $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        $mapping = $this->orders->resendDeliveryOtp($mapping, $request->user());
+
+        return ApiResponse::success('Delivery OTP resent to the customer.', [
+            'order' => $this->orders->formatDetail($mapping),
+        ]);
+    }
 }

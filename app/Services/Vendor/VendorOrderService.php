@@ -258,6 +258,14 @@ class VendorOrderService
             ?? $mapping;
     }
 
+    public function resendDeliveryOtp(VendorOrderMapping $mapping, User $user): VendorOrderMapping
+    {
+        $mapping = app(VendorDeliveryOtpService::class)->resendOtp($mapping, $user);
+
+        return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
+            ?? $mapping;
+    }
+
     public function formatListItem(VendorOrderMapping $mapping): array
     {
         $order = $mapping->order;
@@ -300,7 +308,7 @@ class VendorOrderService
             'product_count' => $vendorItems->count(),
             'currency' => $currency,
             'total_amount' => (float) $mapping->total_amount,
-            'actions' => $this->resolveActions($fulfillment),
+            'actions' => $this->resolveActions($fulfillment, $mapping),
             'track_endpoint' => '/api/vendor/orders/'.$mapping->order_id.'/track',
         ];
     }
@@ -358,6 +366,7 @@ class VendorOrderService
             'payment_status' => $this->paymentStatusLabel($order?->payment_status),
             'tracking_number' => $mapping->tracking_number,
             'tracking_display' => $this->displayOrDash($mapping->tracking_number),
+            'delivery_otp' => app(VendorDeliveryOtpService::class)->otpControlsForVendor($mapping),
             'currency' => $currency,
             'subtotal' => (float) $mapping->subtotal,
             'tax_amount' => (float) $mapping->tax_amount,
@@ -371,7 +380,7 @@ class VendorOrderService
             'status_timeline' => $this->buildStatusTimeline($mapping),
             'status_options' => $this->statusOptions($status),
             'available_statuses' => $this->availableStatuses($status),
-            'actions' => array_merge($this->resolveActions($status), $this->resolveDocumentActions($mapping)),
+            'actions' => array_merge($this->resolveActions($status, $mapping), $this->resolveDocumentActions($mapping)),
             'order_info' => $this->formatOrderInfo($mapping),
         ];
     }
@@ -685,7 +694,7 @@ class VendorOrderService
     /**
      * @return array<string, mixed>
      */
-    public function resolveActions(VendorOrderStatus $status): array
+    public function resolveActions(VendorOrderStatus $status, ?VendorOrderMapping $mapping = null): array
     {
         $canConfirm = $status === VendorOrderStatus::Pending;
         $canShip = in_array($status, [VendorOrderStatus::Confirmed, VendorOrderStatus::Processing], true);
@@ -695,6 +704,12 @@ class VendorOrderService
             VendorOrderStatus::Confirmed,
             VendorOrderStatus::Processing,
         ], true);
+
+        $otpService = app(VendorDeliveryOtpService::class);
+        $resendCooldown = $mapping instanceof VendorOrderMapping
+            ? $otpService->resendCooldownRemainingSeconds($mapping)
+            : 0;
+        $canResendOtp = $canMarkDelivered && $resendCooldown === 0;
 
         $primaryAction = null;
         $primaryActionLabel = null;
@@ -715,11 +730,16 @@ class VendorOrderService
             'can_ship' => $canShip,
             'can_mark_delivered' => $canMarkDelivered,
             'can_confirm_delivery_otp' => $canMarkDelivered,
+            'can_resend_delivery_otp' => $canResendOtp,
+            'resend_delivery_otp_available_in_seconds' => $canMarkDelivered ? $resendCooldown : 0,
             'can_cancel' => $canCancel,
             'primary_action' => $primaryAction,
             'primary_action_label' => $primaryActionLabel,
             'confirm_delivery_endpoint' => $canMarkDelivered
                 ? '/api/vendor/orders/{id}/confirm-delivery'
+                : null,
+            'resend_delivery_otp_endpoint' => $canMarkDelivered
+                ? '/api/vendor/orders/{id}/resend-delivery-otp'
                 : null,
         ];
     }

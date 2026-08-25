@@ -17,6 +17,10 @@ class VendorOrderMapping extends Model
         'delivery_otp',
         'delivery_otp_expires_at',
         'delivery_otp_confirmed_at',
+        'delivery_otp_sent_at',
+        'delivery_otp_sent_to',
+        'delivery_otp_attempts',
+        'delivery_otp_locked_until',
         'subtotal',
         'tax_amount',
         'shipping_amount',
@@ -41,6 +45,8 @@ class VendorOrderMapping extends Model
         'vendor_notified_at' => 'datetime',
         'delivery_otp_expires_at' => 'datetime',
         'delivery_otp_confirmed_at' => 'datetime',
+        'delivery_otp_sent_at' => 'datetime',
+        'delivery_otp_locked_until' => 'datetime',
     ];
 
     public function order(): BelongsTo
