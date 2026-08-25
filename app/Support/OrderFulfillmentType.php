@@ -30,8 +30,16 @@ final class OrderFulfillmentType
             return self::SERVICE;
         }
 
-        // Legacy: platform catalog rows linked to Services are treated as service jobs.
-        if ($product->relationLoaded('services') && $product->services->isNotEmpty()) {
+        if (in_array($type, ['product', 'physical', 'digital', 'simple', 'variable'], true)) {
+            return self::PRODUCT;
+        }
+
+        if (! $product->relationLoaded('services')) {
+            $product->loadMissing('services');
+        }
+
+        // Legacy: platform/admin catalog rows linked to Services are treated as service jobs.
+        if ($product->services->isNotEmpty()) {
             return self::SERVICE;
         }
 

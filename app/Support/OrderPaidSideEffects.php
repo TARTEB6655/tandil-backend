@@ -87,7 +87,7 @@ final class OrderPaidSideEffects
     {
         if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
             $status = strtolower(trim((string) ($order->order_status ?? 'pending')));
-            if (in_array($status, ['paid', ''], true)) {
+            if (in_array($status, ['paid', '', 'processing'], true)) {
                 $order->order_status = 'pending';
                 $order->save();
             }

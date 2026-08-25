@@ -1927,6 +1927,16 @@ class ProductController extends Controller
         }
         $product->services()->sync($serviceIds);
 
+        $product->refresh();
+        $product->loadMissing('services');
+        $resolvedType = strtolower(trim((string) ($request->input('type') ?? '')));
+        if ($resolvedType === '') {
+            $resolvedType = $this->requestLooksLikeServiceProduct($request, $product) ? 'service' : 'product';
+        }
+        if ($product->type !== $resolvedType) {
+            $product->update(['type' => $resolvedType]);
+        }
+
         // Variable options: same pipeline as store() — product_type then option groups + images
         if ($request->has('product_type')) {
             $product->update(['product_type' => $request->input('product_type', 'simple')]);

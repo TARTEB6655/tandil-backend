@@ -110,17 +110,33 @@ class OrderController extends Controller
         }
 
         $oldPaymentStatus = $order->payment_status;
+        if ($order->user_id !== null && (int) $order->user_id !== (int) $request->user()->id
+            && ! $request->user()->hasRole('admin')) {
+            return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+        }
+
         $order->payment_status = 'paid';
-        $order->order_status = 'processing';
         $order->paid_at = now();
         $order->save();
 
         // 🔔 Notify client when order is paid
         try {
             if ($oldPaymentStatus !== 'paid' && $order->user) {
+                $order = $order->fresh(['items.product.services']) ?? $order;
+                $isProductOrder = OrderFulfillmentType::usesVendorProductWorkflow($order);
+                $message = $isProductOrder
+                    ? "Your order #{$order->id} payment is confirmed (AED {$order->total_amount}). The supplier will prepare and deliver your items. You will receive a delivery OTP in the app when your order is shipped."
+                    : "Your order #{$order->id} payment has been confirmed. Amount: AED {$order->total_amount}. Our team will assign a supervisor shortly.";
+
                 $order->user->notify(new AdminNotification(
                     'Order Payment Confirmed',
-                    "Your order #{$order->id} payment has been confirmed. Amount: AED {$order->total_amount}."
+                    $message,
+                    [
+                        'type' => 'order_payment_confirmed',
+                        'fulfillment_type' => $isProductOrder ? OrderFulfillmentType::PRODUCT : OrderFulfillmentType::SERVICE,
+                        'order_id' => $order->id,
+                        'track_endpoint' => '/api/orders/'.$order->id.'/track',
+                    ]
                 ));
             }
         } catch (\Exception $e) {
@@ -128,10 +144,10 @@ class OrderController extends Controller
         }
 
         if ($oldPaymentStatus !== 'paid') {
-            OrderPaidSideEffects::run($order->fresh(), 'Mark paid (API)', notifyAdmins: true);
+            OrderPaidSideEffects::run($order->fresh(['items.product.services']), 'Mark paid (API)', notifyAdmins: true);
         }
 
-        return response()->json(['status' => true, 'data' => $order], 200);
+        return response()->json(['status' => true, 'data' => $order->fresh()], 200);
     }
 
     /**
@@ -164,6 +180,10 @@ class OrderController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        if (! $user->hasRole('admin') && ! $user->hasRole('supervisor') && ! $user->hasRole('area_manager')) {
+            unset($validated['order_status'], $validated['payment_status']);
+        }
 
         $order->update($validated);
 
@@ -239,13 +259,13 @@ class OrderController extends Controller
     public function track(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::with(['items.product', 'items.product.primaryImage', 'user', 'shippingAddress'])->find($id);
+        $order = Order::with(['items.product', 'items.product.primaryImage', 'user', 'shippingAddress', 'vendorMappings'])->find($id);
 
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        if ($order->user_id !== $user->id && ! $user->hasRole('admin')) {
+        if (! $this->canViewOrder($user, $order)) {
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
@@ -590,10 +610,19 @@ class OrderController extends Controller
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found or email does not match.'], 404);
         }
-        $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress']);
+        $order->load(['items.product', 'items.product.primaryImage', 'shippingAddress', 'vendorMappings']);
         $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
+        $fulfillmentType = OrderTrackingTimeline::fulfillmentType($order);
+        $display = OrderTrackingTimeline::displayStatus($order);
+        $deliveryOtp = null;
+        if ($fulfillmentType === OrderFulfillmentType::PRODUCT) {
+            $mapping = $order->vendorMappings()->latest('id')->first();
+            $deliveryOtp = app(\App\Services\Vendor\VendorDeliveryOtpService::class)
+                ->otpPayloadForCustomer($mapping);
+            $display = OrderTrackingTimeline::displayStatus($order, $mapping);
+        }
 
         return response()->json([
             'success' => true,
@@ -604,9 +633,18 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
-                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
+                'fulfillment_type' => $fulfillmentType,
+                'tracking_layout' => OrderTrackingTimeline::trackingLayout($order),
+                'status' => $display['status'],
+                'status_label' => $display['status_label'],
+                'status_icon' => $display['status_icon'],
+                'current_status' => $display['status_label'],
+                'delivery_otp' => $deliveryOtp,
                 'tracking' => [
-                    'status' => $order->order_status,
+                    'fulfillment_type' => $fulfillmentType,
+                    'layout' => OrderTrackingTimeline::trackingLayout($order),
+                    'status' => $display['status'],
+                    'status_label' => $display['status_label'],
                     'payment_status' => $order->payment_status,
                     'timeline' => $timeline,
                     'created_at' => $order->created_at?->format('c'),
