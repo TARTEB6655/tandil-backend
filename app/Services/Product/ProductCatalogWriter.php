@@ -19,7 +19,7 @@ class ProductCatalogWriter
 {
     public const PRODUCT_API_FIELDS = [
         'name', 'description', 'price', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'weight_unit', 'sku', 'handle', 'product_type',
-        'estimated_arrival', 'job_duration',
+        'estimated_arrival', 'job_duration', 'type',
     ];
 
     public function __construct(
@@ -108,6 +108,7 @@ class ProductCatalogWriter
             'estimated_arrival' => 'nullable|string|max:255',
             'job_duration' => 'nullable|string|max:255',
             'product_type' => 'nullable|in:simple,variable',
+            'type' => 'nullable|in:product,service',
             'option_groups_json' => 'nullable',
             'option_groups' => 'nullable',
             'option_images' => 'nullable|array',
@@ -153,6 +154,9 @@ class ProductCatalogWriter
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         $createData['product_type'] = $request->input('product_type', 'simple');
+        if (empty($createData['type'])) {
+            $createData['type'] = $this->requestLooksLikeService($request) ? 'service' : 'product';
+        }
 
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
@@ -216,7 +220,24 @@ class ProductCatalogWriter
             $updateData['category_id'] = $this->resolveCategoryId($request, ['category_id' => $updateData['category_id']]);
         }
 
+        if (! array_key_exists('type', $updateData) && ($request->has('service_id') || $request->has('service_ids') || $request->has('type'))) {
+            $updateData['type'] = $this->requestLooksLikeService($request) ? 'service' : 'product';
+        }
+
         return array_filter($updateData, fn ($v) => $v !== null);
+    }
+
+    public function requestLooksLikeService(Request $request): bool
+    {
+        $type = strtolower(trim((string) $request->input('type', '')));
+        if ($type === 'service') {
+            return true;
+        }
+        if ($type === 'product') {
+            return false;
+        }
+
+        return $this->resolveServiceIds($request) !== [];
     }
 
     public function persistImages(Product $product, Request $request): void

@@ -6,6 +6,7 @@ use App\Enums\VendorOrderStatus;
 use App\Enums\VendorStatus;
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
@@ -271,6 +272,7 @@ class VendorCatalogApiTest extends TestCase
             ->assertJsonPath('data.vendor_product.product.name', 'Organic Tomatoes');
 
         $productId = $response->json('data.vendor_product.product.id');
+        $this->assertSame('service', Product::find($productId)?->type);
         $this->assertDatabaseHas('product_service', [
             'product_id' => $productId,
             'service_id' => $service->id,

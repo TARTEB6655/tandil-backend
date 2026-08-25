@@ -42,10 +42,11 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.items.0.id', $mapping->id)
             ->assertJsonPath('data.items.0.order_id', $mapping->order_id)
             ->assertJsonPath('data.items.0.order_number', $mapping->order->publicOrderNumber())
-            ->assertJsonPath('data.items.0.status', 'processing')
-            ->assertJsonPath('data.items.0.status_label', 'Processing')
-            ->assertJsonPath('data.items.0.current_status', 'Processing')
+            ->assertJsonPath('data.items.0.status', 'pending')
+            ->assertJsonPath('data.items.0.status_label', 'Pending')
+            ->assertJsonPath('data.items.0.current_status', 'Pending')
             ->assertJsonPath('data.items.0.vendor_status', 'pending')
+            ->assertJsonPath('data.items.0.fulfillment_type', 'product')
             ->assertJsonPath('data.items.0.is_demo', false)
             ->assertJsonPath('data.items.0.customer.name', 'Ahmed Ali')
             ->assertJsonPath('data.items.0.product.name', 'Fresh Tomatoes')
@@ -75,7 +76,7 @@ class VendorOrderApiTest extends TestCase
             ]);
     }
 
-    public function test_vendor_orders_list_status_follows_shop_order_not_vendor_fulfillment(): void
+    public function test_vendor_orders_list_status_follows_vendor_fulfillment(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
         $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Shipped);
@@ -83,9 +84,10 @@ class VendorOrderApiTest extends TestCase
 
         $this->withToken($token)->getJson('/api/vendor/orders')
             ->assertOk()
-            ->assertJsonPath('data.items.0.status', 'processing')
-            ->assertJsonPath('data.items.0.status_label', 'Processing')
+            ->assertJsonPath('data.items.0.status', 'shipped')
+            ->assertJsonPath('data.items.0.status_label', 'Shipped')
             ->assertJsonPath('data.items.0.vendor_status', 'shipped')
+            ->assertJsonPath('data.items.0.shop_status', 'processing')
             ->assertJsonPath('data.items.0.actions.can_mark_delivered', true);
     }
 

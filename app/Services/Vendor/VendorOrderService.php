@@ -45,22 +45,8 @@ class VendorOrderService
 
         if (! empty($filters['status'])) {
             $status = (string) $filters['status'];
-            if ($status === 'shipped') {
-                // Vendor fulfillment filter (no shop equivalent)
-                $q->where('status', VendorOrderStatus::Shipped->value);
-            } else {
-                // List cards show shop job status — filter on orders.order_status
-                $q->whereHas('order', function ($orderQuery) use ($status) {
-                    if ($status === 'processing') {
-                        $orderQuery->where(function ($inner) {
-                            $inner->where('order_status', 'processing')
-                                ->orWhere('order_status', 'paid');
-                        });
-                    } else {
-                        $orderQuery->where('order_status', $status);
-                    }
-                });
-            }
+            // Vendor portal filters by fulfillment mapping status (product workflow).
+            $q->where('status', $status);
         }
 
         if (! empty($filters['search'])) {
@@ -169,19 +155,18 @@ class VendorOrderService
      */
     public function statusSummary(Vendor $vendor): array
     {
+        // Vendor portal only lists product fulfillment mappings — count by vendor status.
         $rows = VendorOrderMapping::query()
-            ->where('vendor_order_mappings.vendor_id', $vendor->id)
-            ->join('orders', 'orders.id', '=', 'vendor_order_mappings.order_id')
-            ->select('orders.order_status', DB::raw('COUNT(*) as count'))
-            ->groupBy('orders.order_status')
-            ->pluck('count', 'order_status');
+            ->where('vendor_id', $vendor->id)
+            ->select('status', DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->pluck('count', 'status');
 
         $normalize = static function (?string $raw): string {
             $status = strtolower(trim((string) $raw));
 
             return match ($status) {
-                'paid' => 'processing',
-                'shipped' => 'completed',
+                'paid' => 'pending',
                 '' => 'pending',
                 default => $status,
             };
@@ -189,13 +174,15 @@ class VendorOrderService
 
         $counts = [
             'pending' => 0,
-            'processing' => 0,
             'confirmed' => 0,
+            'processing' => 0,
+            'shipped' => 0,
+            'delivered' => 0,
+            'cancelled' => 0,
+            // Kept for older mobile clients that still read these keys
             'assigned' => 0,
             'in_progress' => 0,
             'completed' => 0,
-            'delivered' => 0,
-            'cancelled' => 0,
         ];
 
         foreach ($rows as $rawStatus => $count) {
@@ -206,7 +193,14 @@ class VendorOrderService
             $counts[$key] += (int) $count;
         }
 
-        $total = (int) array_sum($counts);
+        $total = (int) array_sum([
+            $counts['pending'],
+            $counts['confirmed'],
+            $counts['processing'],
+            $counts['shipped'],
+            $counts['delivered'],
+            $counts['cancelled'],
+        ]);
 
         return array_merge(['total' => $total], $counts);
     }
@@ -275,6 +269,12 @@ class VendorOrderService
         $shopStatus = OrderTrackingTimeline::normalize((string) ($order?->order_status ?? 'pending'));
         $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
 
+        // Vendor product orders: list card matches Order Details (vendor fulfillment status).
+        $status = $fulfillment->value;
+        $statusLabel = $fulfillment->label();
+        $statusIcon = $fulfillment->icon();
+        $statusColor = $fulfillment->color();
+
         return [
             'id' => $mapping->id,
             'order_id' => $mapping->order_id,
@@ -282,17 +282,18 @@ class VendorOrderService
             'order_number_vendor' => $this->orderNumber($mapping),
             'order_date' => $this->formatDateTime($order?->created_at),
             'order_date_label' => $this->formatDate($order?->created_at),
-            // Shop job lifecycle (same as client / vendor track)
-            'status' => $shopStatus,
-            'status_label' => $shopStatusLabel,
-            'status_icon' => $this->shopStatusIcon($shopStatus),
-            'status_color' => $this->shopStatusColor($shopStatus),
-            'current_status' => $shopStatusLabel,
-            // Vendor fulfillment mapping (separate from job track)
+            'status' => $status,
+            'status_label' => $statusLabel,
+            'status_icon' => $statusIcon,
+            'status_color' => $statusColor,
+            'current_status' => $statusLabel,
+            'shop_status' => $shopStatus,
+            'shop_status_label' => $shopStatusLabel,
             'vendor_status' => $fulfillment->value,
             'vendor_status_label' => $fulfillment->label(),
             'vendor_status_icon' => $fulfillment->icon(),
             'vendor_status_color' => $fulfillment->color(),
+            'fulfillment_type' => OrderFulfillmentType::PRODUCT,
             'is_demo' => $this->isDemoOrder($order),
             'customer' => $this->formatCustomer($order),
             'product' => $primaryProduct,

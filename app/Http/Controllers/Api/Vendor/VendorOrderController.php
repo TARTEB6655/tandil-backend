@@ -30,15 +30,11 @@ class VendorOrderController extends Controller
         $search = trim((string) $request->query('search', ''));
         $allowedStatuses = [
             'pending',
-            'processing',
             'confirmed',
-            'assigned',
-            'in_progress',
-            'completed',
+            'processing',
+            'shipped',
             'delivered',
             'cancelled',
-            // Vendor fulfillment filters still accepted for existing tabs
-            'shipped',
         ];
         if ($status !== '' && ! in_array($status, $allowedStatuses, true)) {
             throw ValidationException::withMessages([
