@@ -252,11 +252,14 @@ class OrderController extends Controller
         $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
+        $fulfillmentType = OrderTrackingTimeline::fulfillmentType($order);
+        $display = OrderTrackingTimeline::displayStatus($order);
         $deliveryOtp = null;
-        if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
+        if ($fulfillmentType === OrderFulfillmentType::PRODUCT) {
             $mapping = $order->vendorMappings()->latest('id')->first();
             $deliveryOtp = app(\App\Services\Vendor\VendorDeliveryOtpService::class)
                 ->otpPayloadForCustomer($mapping);
+            $display = OrderTrackingTimeline::displayStatus($order, $mapping);
         }
 
         return response()->json([
@@ -268,13 +271,18 @@ class OrderController extends Controller
                 'order_number_short' => $order->publicOrderNumberDigits(),
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
-                'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
-                'fulfillment_type' => OrderFulfillmentType::usesVendorProductWorkflow($order)
-                    ? OrderFulfillmentType::PRODUCT
-                    : (OrderFulfillmentType::hasServiceLines($order) ? OrderFulfillmentType::SERVICE : OrderFulfillmentType::PRODUCT),
+                'fulfillment_type' => $fulfillmentType,
+                'tracking_layout' => OrderTrackingTimeline::trackingLayout($order),
+                'status' => $display['status'],
+                'status_label' => $display['status_label'],
+                'status_icon' => $display['status_icon'],
+                'current_status' => $display['status_label'],
                 'delivery_otp' => $deliveryOtp,
                 'tracking' => [
-                    'status' => $order->order_status,
+                    'fulfillment_type' => $fulfillmentType,
+                    'layout' => OrderTrackingTimeline::trackingLayout($order),
+                    'status' => $display['status'],
+                    'status_label' => $display['status_label'],
                     'payment_status' => $order->payment_status,
                     'timeline' => $timeline,
                     'created_at' => $order->created_at?->format('c'),

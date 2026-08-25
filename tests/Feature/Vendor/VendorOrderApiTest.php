@@ -232,23 +232,24 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.order_id', $mapping->order_id)
             ->assertJsonPath('data.vendor_order_id', $mapping->id)
-            ->assertJsonPath('data.status', 'processing')
-            ->assertJsonPath('data.current_status', 'Processing')
+            ->assertJsonPath('data.status', 'confirmed')
+            ->assertJsonPath('data.current_status', 'Confirmed')
             ->assertJsonPath('data.vendor_status', 'confirmed')
+            ->assertJsonPath('data.fulfillment_type', 'product')
+            ->assertJsonPath('data.tracking_layout', 'horizontal')
             ->assertJsonPath('data.order.products.0.name', 'Fresh Tomatoes')
-            ->assertJsonPath('data.tracking.status', 'processing')
+            ->assertJsonPath('data.tracking.status', 'confirmed')
             ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
             ->assertJsonPath('data.tracking.timeline.0.label', 'Pending')
             ->assertJsonPath('data.tracking.timeline.0.description', 'Order placed successfully')
             ->assertJsonPath('data.tracking.timeline.0.completed', true)
             ->assertJsonPath('data.tracking.timeline.0.current', false)
-            ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
-            ->assertJsonPath('data.tracking.timeline.1.description', 'Order sent to the vendor')
+            ->assertJsonPath('data.tracking.timeline.1.key', 'confirmed')
+            ->assertJsonPath('data.tracking.timeline.1.description', 'Vendor confirmed your order')
             ->assertJsonPath('data.tracking.timeline.1.completed', true)
-            ->assertJsonPath('data.tracking.timeline.2.key', 'confirmed')
-            ->assertJsonPath('data.tracking.timeline.2.description', 'Vendor confirmed your order')
-            ->assertJsonPath('data.tracking.timeline.2.completed', true)
-            ->assertJsonPath('data.tracking.timeline.2.current', true)
+            ->assertJsonPath('data.tracking.timeline.1.current', true)
+            ->assertJsonPath('data.tracking.timeline.2.key', 'processing')
+            ->assertJsonPath('data.tracking.timeline.2.completed', false)
             ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
             ->assertJsonPath('data.tracking.timeline.3.completed', false)
             ->assertJsonPath('data.tracking.timeline.4.key', 'delivered')
@@ -287,7 +288,7 @@ class VendorOrderApiTest extends TestCase
 
         $mapping->refresh();
         $this->assertNotEmpty($mapping->delivery_otp);
-        $this->assertSame('completed', $mapping->order->fresh()->order_status);
+        $this->assertSame('shipped', $mapping->order->fresh()->order_status);
 
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
             'otp' => '000000',
@@ -311,8 +312,10 @@ class VendorOrderApiTest extends TestCase
 
         $response = $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->order_id.'/track');
         $response->assertOk()
-            ->assertJsonPath('data.status', 'processing')
+            ->assertJsonPath('data.status', 'shipped')
             ->assertJsonPath('data.vendor_status', 'shipped')
+            ->assertJsonPath('data.fulfillment_type', 'product')
+            ->assertJsonPath('data.tracking.timeline.1.completed', true)
             ->assertJsonPath('data.tracking.timeline.2.completed', true)
             ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
             ->assertJsonPath('data.tracking.timeline.3.current', true)
@@ -360,9 +363,9 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.order_id', $orderId)
             ->assertJsonPath('data.vendor_order_id', $mappingId)
-            ->assertJsonPath('data.status', 'processing')
+            ->assertJsonPath('data.status', 'shipped')
             ->assertJsonPath('data.vendor_status', 'shipped')
-            ->assertJsonPath('data.tracking.status', 'processing')
+            ->assertJsonPath('data.tracking.status', 'shipped')
             ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
             ->assertJsonPath('data.tracking.timeline.3.current', true)
             ->assertJsonPath('data.tracking.timeline.3.completed', true);

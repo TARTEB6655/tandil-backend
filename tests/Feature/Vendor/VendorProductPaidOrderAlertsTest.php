@@ -39,7 +39,7 @@ class VendorProductPaidOrderAlertsTest extends TestCase
         }
     }
 
-    public function test_paid_vendor_product_notifies_vendor_and_supervisor_and_list_shows_processing(): void
+    public function test_paid_simple_vendor_product_notifies_vendor_not_supervisor(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $supervisor = User::factory()->create(['role' => 'supervisor']);
@@ -76,8 +76,8 @@ class VendorProductPaidOrderAlertsTest extends TestCase
             'vendor_id' => $vendor->id,
             'price' => 80,
             'status' => 'active',
-            'job_duration' => '60 minutes',
-            'name' => 'AC Deep Clean',
+            'type' => 'product',
+            'name' => 'Fresh Fruits Box',
         ]);
         VendorProduct::create([
             'vendor_id' => $vendor->id,
@@ -101,8 +101,6 @@ class VendorProductPaidOrderAlertsTest extends TestCase
             'guest_street_address' => 'Marina Walk',
             'guest_city' => 'Dubai',
             'guest_country' => 'UAE',
-            'booking_date' => '2026-09-10',
-            'booking_slot' => '10:00 AM - 12:00 PM',
         ]);
         OrderItem::create([
             'order_id' => $order->id,
@@ -110,18 +108,16 @@ class VendorProductPaidOrderAlertsTest extends TestCase
             'quantity' => 1,
             'price' => 80,
             'subtotal' => 80,
-            'booking_date' => '2026-09-10',
-            'booking_slot' => '10:00 AM - 12:00 PM',
         ]);
 
         $beforeSupervisor = $supervisor->unreadNotifications()->count();
         $beforeAreaManager = $areaManager->unreadNotifications()->count();
         $beforeAdmin = $admin->unreadNotifications()->count();
 
-        OrderPaidSideEffects::run($order->fresh('items.product'), 'Stripe (test)');
+        OrderPaidSideEffects::run($order->fresh(['items.product.services']), 'Stripe (test)');
 
         $order->refresh();
-        $this->assertSame('processing', (string) $order->order_status);
+        $this->assertSame('pending', (string) $order->order_status);
 
         $mapping = VendorOrderMapping::where('order_id', $order->id)->where('vendor_id', $vendor->id)->first();
         $this->assertNotNull($mapping);
@@ -132,25 +128,17 @@ class VendorProductPaidOrderAlertsTest extends TestCase
         $payload = $vendorUser->notifications()->first()->data;
         $this->assertSame(VendorNewPaidOrderNotification::class, $vendorUser->notifications()->first()->type);
         $this->assertSame('New paid order', $payload['title']);
-        $this->assertSame('processing', $payload['status']);
-        $this->assertSame('Processing', $payload['status_label']);
-        $this->assertSame('Processing', $payload['current_status']);
         $this->assertSame($product->name, $payload['product_ordered'][0]['name']);
         $this->assertSame('Dubai', $payload['customer_location']['city']);
-        $this->assertSame('2026-09-10', $payload['required_date']);
         $this->assertTrue($payload['payment_confirmation']['confirmed']);
         $this->assertSame('/api/vendor/orders/'.$order->id.'/track', $payload['track_endpoint']);
 
-        $this->assertGreaterThan($beforeSupervisor, $supervisor->fresh()->unreadNotifications()->count());
-        $this->assertGreaterThan($beforeAreaManager, $areaManager->fresh()->unreadNotifications()->count());
+        // Product-only: no supervisor / visit path
+        $this->assertSame($beforeSupervisor, $supervisor->fresh()->unreadNotifications()->count());
+        $this->assertSame($beforeAreaManager, $areaManager->fresh()->unreadNotifications()->count());
         $this->assertGreaterThan($beforeAdmin, $admin->fresh()->unreadNotifications()->count());
+        $this->assertNull(Visit::query()->where('order_id', $order->id)->first());
 
-        $visit = Visit::query()->where('order_id', $order->id)->first();
-        $this->assertNotNull($visit);
-        $this->assertSame((int) $area->id, (int) $visit->area_id);
-        $this->assertNull($visit->supervisor_id);
-
-        // Idempotent — no duplicate vendor notification.
         OrderPaidSideEffects::run($order->fresh(), 'Stripe (test)');
         $this->assertSame(1, $vendorUser->fresh()->notifications()->count());
 
@@ -158,16 +146,19 @@ class VendorProductPaidOrderAlertsTest extends TestCase
         $this->withToken($token)->getJson('/api/vendor/orders')
             ->assertOk()
             ->assertJsonPath('data.items.0.order_id', $order->id)
-            ->assertJsonPath('data.items.0.status', 'processing')
-            ->assertJsonPath('data.items.0.current_status', 'Processing')
+            ->assertJsonPath('data.items.0.status', 'pending')
+            ->assertJsonPath('data.items.0.current_status', 'Pending')
             ->assertJsonPath('data.items.0.vendor_status', 'pending');
 
         $this->withToken($token)->getJson('/api/vendor/orders/'.$order->id.'/track')
             ->assertOk()
-            ->assertJsonPath('data.status', 'processing')
-            ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
-            ->assertJsonPath('data.tracking.timeline.1.current', true)
-            ->assertJsonPath('data.tracking.timeline.2.completed', false);
+            ->assertJsonPath('data.fulfillment_type', 'product')
+            ->assertJsonPath('data.tracking_layout', 'horizontal')
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.tracking.timeline.0.key', 'pending')
+            ->assertJsonPath('data.tracking.timeline.0.current', true)
+            ->assertJsonPath('data.tracking.timeline.1.key', 'confirmed')
+            ->assertJsonPath('data.tracking.timeline.1.completed', false);
 
         $this->withToken($token)->getJson('/api/vendor/notifications')
             ->assertOk();

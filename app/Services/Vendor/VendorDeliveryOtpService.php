@@ -108,10 +108,10 @@ class VendorDeliveryOtpService
         }
 
         $shopStatus = match ($mapping->statusEnum()) {
-            VendorOrderStatus::Pending => 'processing',
+            VendorOrderStatus::Pending => 'pending',
             VendorOrderStatus::Confirmed => 'confirmed',
-            VendorOrderStatus::Processing => 'in_progress',
-            VendorOrderStatus::Shipped => 'completed',
+            VendorOrderStatus::Processing => 'processing',
+            VendorOrderStatus::Shipped => 'shipped',
             VendorOrderStatus::Delivered => 'delivered',
             VendorOrderStatus::Cancelled => 'cancelled',
         };

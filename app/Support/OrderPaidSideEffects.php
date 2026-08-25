@@ -80,11 +80,21 @@ final class OrderPaidSideEffects
     }
 
     /**
-     * If no visit was created (no matching area), still move paid shop orders
-     * out of bare pending/paid so list + track show Processing.
+     * Service jobs move to processing when paid.
+     * Product-only orders stay pending until the vendor confirms (UI: Pending → Confirmed → …).
      */
     private static function ensureProcessingStatus(Order $order): void
     {
+        if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
+            $status = strtolower(trim((string) ($order->order_status ?? 'pending')));
+            if (in_array($status, ['paid', ''], true)) {
+                $order->order_status = 'pending';
+                $order->save();
+            }
+
+            return;
+        }
+
         $status = strtolower(trim((string) ($order->order_status ?? 'pending')));
         if (in_array($status, ['pending', 'paid', ''], true)) {
             $order->order_status = 'processing';

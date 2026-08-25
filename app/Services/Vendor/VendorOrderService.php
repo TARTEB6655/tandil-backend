@@ -377,8 +377,8 @@ class VendorOrderService
 
     /**
      * Track payload — same timeline as client GET /api/orders/{id}/track.
-     * Progress uses shop order_status (supervisor/technician flow), not vendor fulfillment status.
-     * Use shop order id OR vendor mapping id in the URL.
+     * Product orders → horizontal Pending→Confirmed→Processing→Shipped→Delivered.
+     * Service orders → vertical supervisor/technician timeline.
      *
      * @return array<string, mixed>
      */
@@ -389,22 +389,33 @@ class VendorOrderService
         $currency = $this->currency();
         $vendorItems = $this->vendorOrderItems($mapping);
 
-        $shopStatus = (string) ($order?->order_status ?? 'pending');
-        $shopStatusLabel = OrderTrackingTimeline::statusLabel($shopStatus);
+        $fulfillmentType = $order
+            ? OrderTrackingTimeline::fulfillmentType($order)
+            : OrderFulfillmentType::PRODUCT;
+        $display = $order
+            ? OrderTrackingTimeline::displayStatus($order, $mapping)
+            : [
+                'status' => $fulfillment->value,
+                'status_label' => $fulfillment->label(),
+                'status_icon' => $fulfillment->icon(),
+            ];
+        $layout = $order
+            ? OrderTrackingTimeline::trackingLayout($order)
+            : 'horizontal';
 
         return [
-            // Client-compatible: order_id is the shop order id used in /api/orders/{id}/track
             'order_id' => $mapping->order_id,
             'vendor_order_id' => $mapping->id,
             'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
             'order_number_short' => $order?->publicOrderNumberDigits(),
             'tracking_number' => $mapping->tracking_number,
             'tracking_display' => $this->displayOrDash($mapping->tracking_number),
-            // Shop job lifecycle (same as client track)
-            'status' => $shopStatus,
-            'status_label' => $shopStatusLabel,
-            'current_status' => $shopStatusLabel,
-            // Vendor fulfillment mapping (separate from track timeline)
+            'fulfillment_type' => $fulfillmentType,
+            'tracking_layout' => $layout,
+            'status' => $display['status'],
+            'status_label' => $display['status_label'],
+            'status_icon' => $display['status_icon'],
+            'current_status' => $display['status_label'],
             'vendor_status' => $fulfillment->value,
             'vendor_status_label' => $fulfillment->label(),
             'vendor_status_icon' => $fulfillment->icon(),
@@ -413,8 +424,8 @@ class VendorOrderService
                 'id' => $mapping->order_id,
                 'vendor_order_id' => $mapping->id,
                 'order_number' => $order?->publicOrderNumber() ?? $this->orderNumber($mapping),
-                'status' => $shopStatus,
-                'status_label' => $shopStatusLabel,
+                'status' => $display['status'],
+                'status_label' => $display['status_label'],
                 'vendor_status' => $fulfillment->value,
                 'tracking_number' => $mapping->tracking_number,
                 'currency' => $currency,
@@ -439,7 +450,10 @@ class VendorOrderService
                 'special_instructions' => $order?->special_instructions,
             ],
             'tracking' => [
-                'status' => $shopStatus,
+                'fulfillment_type' => $fulfillmentType,
+                'layout' => $layout,
+                'status' => $display['status'],
+                'status_label' => $display['status_label'],
                 'payment_status' => $order?->payment_status,
                 'tracking_number' => $mapping->tracking_number,
                 'timeline' => $this->buildTrackTimeline($mapping),
@@ -615,23 +629,6 @@ class VendorOrderService
         }
 
         $base = OrderTrackingTimeline::forOrder($order);
-        $shopStatus = OrderTrackingTimeline::normalize((string) ($order->order_status ?? 'pending'));
-        $isCancelled = $shopStatus === 'cancelled';
-        $isProductFlow = OrderFulfillmentType::usesVendorProductWorkflow($order);
-
-        $icons = [
-            'pending' => 'clock',
-            'processing' => 'gear',
-            'confirmed' => 'check',
-            'assigned' => 'user',
-            'in_progress' => 'wrench',
-            'completed' => 'check',
-            'shipped' => 'truck',
-            'delivered' => 'check-circle',
-            'cancel_order' => 'x',
-            'refund_processing' => 'clock',
-            'refund_complete' => 'check-circle',
-        ];
         $colors = [
             'pending' => 'gold',
             'processing' => 'gold',
@@ -646,32 +643,17 @@ class VendorOrderService
             'refund_complete' => 'green',
         ];
 
-        if ($isProductFlow && ! $isCancelled) {
-            $vendorStatus = strtolower((string) $mapping->status);
-            $currentKey = match ($vendorStatus) {
-                'pending' => 'processing',
-                'confirmed', 'processing' => 'confirmed',
-                'shipped' => 'shipped',
-                'delivered' => 'delivered',
-                default => 'processing',
-            };
-        } else {
-            $currentKey = $isCancelled
-                ? (collect($base)->last(fn (array $step) => $step['completed'])['key'] ?? 'cancel_order')
-                : $shopStatus;
-        }
-
         $timeline = [];
         foreach ($base as $step) {
             $key = $step['key'];
             $completed = (bool) $step['completed'];
-            $isCurrent = $key === $currentKey;
+            $isCurrent = (bool) ($step['current'] ?? false);
             $at = $this->resolveStepDate($order, $key, $completed);
 
             $timeline[] = $this->trackTimelineStep(
                 key: $key,
                 label: $step['label'],
-                icon: $icons[$key] ?? 'clock',
+                icon: $step['icon'] ?? 'clock',
                 color: $isCurrent ? ($colors[$key] ?? 'gold') : ($completed ? 'gold' : 'grey'),
                 description: $step['description'],
                 date: $at,
