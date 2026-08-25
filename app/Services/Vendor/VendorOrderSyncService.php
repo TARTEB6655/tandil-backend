@@ -8,6 +8,7 @@ use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorOrderStatusLog;
 use App\Support\MarketplaceSettings;
+use App\Support\OrderFulfillmentType;
 use Illuminate\Support\Facades\DB;
 
 class VendorOrderSyncService
@@ -21,10 +22,14 @@ class VendorOrderSyncService
             return;
         }
 
-        $order->loadMissing('items.product');
+        $order->loadMissing('items.product.services');
 
         $byVendor = [];
         foreach ($order->items as $item) {
+            // Service lines stay on the supervisor path — do not map to vendor fulfillment.
+            if (! OrderFulfillmentType::isProductLine($item->product)) {
+                continue;
+            }
             $vendorId = $item->product?->vendor_id;
             if (! $vendorId) {
                 continue;

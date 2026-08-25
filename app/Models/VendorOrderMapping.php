@@ -14,6 +14,9 @@ class VendorOrderMapping extends Model
         'vendor_id',
         'status',
         'tracking_number',
+        'delivery_otp',
+        'delivery_otp_expires_at',
+        'delivery_otp_confirmed_at',
         'subtotal',
         'tax_amount',
         'shipping_amount',
@@ -36,6 +39,8 @@ class VendorOrderMapping extends Model
         'commission_amount' => 'decimal:2',
         'cancelled_at' => 'datetime',
         'vendor_notified_at' => 'datetime',
+        'delivery_otp_expires_at' => 'datetime',
+        'delivery_otp_confirmed_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

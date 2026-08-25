@@ -103,6 +103,7 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::get('/orders/{id}/download', [VendorOrderController::class, 'download']);
         Route::get('/orders/{id}', [VendorOrderController::class, 'show']);
         Route::post('/orders/{id}/status', [VendorOrderController::class, 'updateStatus']);
+        Route::post('/orders/{id}/confirm-delivery', [VendorOrderController::class, 'confirmDelivery']);
     });
 });
 

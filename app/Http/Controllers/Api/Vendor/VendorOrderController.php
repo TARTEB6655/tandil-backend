@@ -181,4 +181,31 @@ class VendorOrderController extends Controller
             'order' => $this->orders->formatDetail($mapping),
         ]);
     }
+
+    /**
+     * Product orders: customer gives OTP to vendor; vendor confirms delivery here.
+     */
+    public function confirmDelivery(Request $request, int $id): JsonResponse
+    {
+        $vendor = $request->attributes->get('vendor');
+        $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
+        if ($mapping === null) {
+            return ApiResponse::error('Order not found.', 404);
+        }
+
+        $data = $request->validate([
+            'otp' => 'required|string|max:10',
+            'note' => 'nullable|string|max:500',
+        ]);
+
+        $mapping = $this->orders->confirmDeliveryWithOtp(
+            $mapping,
+            $data['otp'],
+            $request->user()
+        );
+
+        return ApiResponse::success('Delivery confirmed with OTP.', [
+            'order' => $this->orders->formatDetail($mapping),
+        ]);
+    }
 }

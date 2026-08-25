@@ -12,6 +12,7 @@ use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
 use App\Services\ShopOrderCancellationService;
 use App\Support\OrderClientReportService;
+use App\Support\OrderFulfillmentType;
 use App\Support\OrderPaidSideEffects;
 use App\Support\OrderTrackingTimeline;
 use App\Support\RefundPolicy;
@@ -251,6 +252,12 @@ class OrderController extends Controller
         $timeline = OrderTrackingTimeline::forOrder($order);
         $maintenancePhotos = $this->getOrderMaintenancePhotos($order);
         $serviceReport = app(OrderClientReportService::class)->serviceReportMetaForOrder($order);
+        $deliveryOtp = null;
+        if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
+            $mapping = $order->vendorMappings()->latest('id')->first();
+            $deliveryOtp = app(\App\Services\Vendor\VendorDeliveryOtpService::class)
+                ->otpPayloadForCustomer($mapping);
+        }
 
         return response()->json([
             'success' => true,
@@ -262,6 +269,10 @@ class OrderController extends Controller
                 'order' => $this->mapOrderForTrackApi($order),
                 'order_summary' => $this->orderSummaryForApi($order),
                 'current_status' => OrderTrackingTimeline::statusLabel($order->order_status),
+                'fulfillment_type' => OrderFulfillmentType::usesVendorProductWorkflow($order)
+                    ? OrderFulfillmentType::PRODUCT
+                    : (OrderFulfillmentType::hasServiceLines($order) ? OrderFulfillmentType::SERVICE : OrderFulfillmentType::PRODUCT),
+                'delivery_otp' => $deliveryOtp,
                 'tracking' => [
                     'status' => $order->order_status,
                     'payment_status' => $order->payment_status,
@@ -314,12 +325,13 @@ class OrderController extends Controller
     }
 
     /**
-     * Client confirms delivery after reviewing the service report.
+     * Client confirms delivery after reviewing the service report (service orders).
+     * Product-only orders are completed when the vendor confirms the customer OTP.
      */
     public function markDelivered(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::query()->find($id);
+        $order = Order::query()->with(['items.product.services', 'vendorMappings'])->find($id);
 
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
@@ -335,6 +347,39 @@ class OrderController extends Controller
             if ($orderEmail === '' || $orderEmail !== $userEmail) {
                 return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
             }
+        }
+
+        if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
+            $status = strtolower((string) ($order->order_status ?? 'pending'));
+            if ($status === 'delivered') {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Order is already marked as delivered.',
+                    'data' => [
+                        'order_id' => $order->id,
+                        'order_status' => $order->order_status,
+                        'tracking' => [
+                            'status' => $order->order_status,
+                            'timeline' => OrderTrackingTimeline::forOrder($order),
+                        ],
+                    ],
+                ], 200);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Product orders are completed when you give the delivery OTP to the vendor. Check Track for your OTP after the order is out for delivery.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_status' => $order->order_status,
+                    'delivery_otp' => app(\App\Services\Vendor\VendorDeliveryOtpService::class)
+                        ->otpPayloadForCustomer($order->vendorMappings->sortByDesc('id')->first()),
+                    'tracking' => [
+                        'status' => $order->order_status,
+                        'timeline' => OrderTrackingTimeline::forOrder($order),
+                    ],
+                ],
+            ], 422);
         }
 
         $reportService = app(OrderClientReportService::class);

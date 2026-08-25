@@ -10,11 +10,10 @@ use Illuminate\Support\Facades\Log;
 /**
  * Single entry-point after a shop order becomes paid.
  *
- * Wave 1 (same for platform + vendor products):
+ * Split by line type (not by who listed the catalog row):
  * 1) Admin alert (optional)
- * 2) Create supervisor job visits (moves order_status → processing when area resolves)
- * 3) Supervisor + area-manager alerts
- * 4) Vendor paid-order notifications (full order details)
+ * 2) Service lines → supervisor Visits + supervisor/area-manager alerts
+ * 3) Product lines → vendor mappings + vendor paid-order notifications
  */
 final class OrderPaidSideEffects
 {
@@ -30,7 +29,7 @@ final class OrderPaidSideEffects
             }
 
             $order = $order->fresh([
-                'items.product',
+                'items.product.services',
                 'shippingAddress',
                 'user',
             ]) ?? $order;
@@ -41,18 +40,20 @@ final class OrderPaidSideEffects
                 self::notifyAdmins($order, $total, $placedBy);
             }
 
-            // Visits first so VisitOrderTrackingSync can set order_status=processing
-            // before vendor/list/track consumers read the order.
+            // Service lines only — product lines never create Visits.
             OrderToVisitDispatcher::createVisitsForPaidOrder($order);
             $order = $order->fresh([
-                'items.product',
+                'items.product.services',
                 'shippingAddress',
                 'user',
             ]) ?? $order;
 
             self::ensureProcessingStatus($order);
 
-            OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            if (OrderFulfillmentType::hasServiceLines($order)) {
+                OrderSupervisorNotifier::notifySupervisorsForPaidOrder($order, $total, $placedBy);
+            }
+
             OrderVendorNotifier::notifyVendorsForPaidOrder($order);
         } catch (\Throwable $e) {
             Log::warning('Order paid side-effects failed: '.$e->getMessage(), [

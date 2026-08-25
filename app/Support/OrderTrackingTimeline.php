@@ -2,7 +2,9 @@
 
 namespace App\Support;
 
+use App\Enums\VendorOrderStatus;
 use App\Models\Order;
+use App\Models\VendorOrderMapping;
 use Carbon\CarbonInterface;
 
 /**
@@ -10,9 +12,8 @@ use Carbon\CarbonInterface;
  * - Client GET /api/orders/{id}/track
  * - Vendor GET /api/vendor/orders/{id}/track
  *
- * Progress is driven only by the shop order's order_status
- * (supervisor claim / technician assignment / job lifecycle) — never by
- * vendor fulfillment mapping status (confirmed/shipped/etc.).
+ * Service / mixed carts → supervisor → technician job lifecycle (order_status).
+ * Product-only carts → vendor fulfillment mapping (+ customer OTP at shipped).
  */
 final class OrderTrackingTimeline
 {
@@ -25,7 +26,11 @@ final class OrderTrackingTimeline
             return self::cancelledTimeline($order);
         }
 
-        return self::activeTimeline($order);
+        if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {
+            return self::productTimeline($order);
+        }
+
+        return self::serviceTimeline($order);
     }
 
     public static function statusLabel(?string $status): string
@@ -38,6 +43,7 @@ final class OrderTrackingTimeline
             'assigned' => 'Assigned',
             'in_progress' => 'In Progress',
             'completed' => 'Completed',
+            'shipped' => 'Out for delivery',
             'delivered' => 'Delivered',
             'cancelled' => 'Cancelled',
         ];
@@ -74,7 +80,64 @@ final class OrderTrackingTimeline
     /**
      * @return list<array{key: string, label: string, description: string, completed: bool, timestamp: ?string}>
      */
-    private static function activeTimeline(Order $order): array
+    private static function productTimeline(Order $order): array
+    {
+        $order->loadMissing('vendorMappings');
+        $mapping = $order->vendorMappings->sortByDesc('id')->first()
+            ?? VendorOrderMapping::query()->where('order_id', $order->id)->latest('id')->first();
+
+        $vendorStatus = strtolower((string) ($mapping?->status ?? VendorOrderStatus::Pending->value));
+        $vendorRank = match ($vendorStatus) {
+            'pending' => 1,
+            'confirmed' => 2,
+            'processing' => 3,
+            'shipped' => 4,
+            'delivered' => 5,
+            'cancelled' => 0,
+            default => 1,
+        };
+
+        $createdAt = $order->created_at;
+        $paidAt = $order->paid_at ?? $order->updated_at;
+        $updatedAt = $mapping?->updated_at ?? $order->updated_at;
+
+        return [
+            self::step('pending', 'Pending', 'Order placed successfully', true, $createdAt),
+            self::step(
+                'processing',
+                'Processing',
+                'Order sent to the vendor',
+                $vendorRank >= 1,
+                $vendorRank >= 1 ? $paidAt : null
+            ),
+            self::step(
+                'confirmed',
+                'Confirmed',
+                'Vendor confirmed your order',
+                $vendorRank >= 2,
+                $vendorRank >= 2 ? $updatedAt : null
+            ),
+            self::step(
+                'shipped',
+                'Out for delivery',
+                'On the way — give the OTP to the vendor when it arrives',
+                $vendorRank >= 4,
+                $vendorRank >= 4 ? $updatedAt : null
+            ),
+            self::step(
+                'delivered',
+                'Delivered',
+                'Delivery confirmed with OTP',
+                $vendorRank >= 5,
+                $vendorRank >= 5 ? ($mapping?->delivery_otp_confirmed_at ?? $updatedAt) : null
+            ),
+        ];
+    }
+
+    /**
+     * @return list<array{key: string, label: string, description: string, completed: bool, timestamp: ?string}>
+     */
+    private static function serviceTimeline(Order $order): array
     {
         $status = self::normalize((string) ($order->order_status ?? 'pending'));
         $rank = self::rank($status);

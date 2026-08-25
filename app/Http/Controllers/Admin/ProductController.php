@@ -21,14 +21,14 @@ class ProductController extends Controller
 {
     /** Product API allowed fields for create/update payload (plus images handled separately). */
     private const PRODUCT_API_FIELDS = [
-        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'weight_unit', 'sku', 'handle', 'product_type',
-        'estimated_arrival', 'job_duration',
+        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle', 'product_type',
+        'estimated_arrival', 'job_duration', 'type',
     ];
 
     /** Response keys for product API (allowed fields + id, image, image_url, main_image, gallery_images, category, timestamps). */
     private const PRODUCT_API_RESPONSE_KEYS = [
-        'id', 'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'weight_unit', 'sku', 'handle',
-        'estimated_arrival', 'job_duration',
+        'id', 'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle',
+        'estimated_arrival', 'job_duration', 'type',
         'image', 'image_url', 'main_image', 'gallery_images', 'category', 'created_at', 'updated_at',
     ];
 
@@ -335,6 +335,58 @@ class ProductController extends Controller
     private function compressOptionImageIfNeeded(string $relativePath): void
     {
         $this->scheduleProductImageOptimization($relativePath, 'option');
+    }
+
+    /**
+     * Regular (non-service) marketplace products must be owned/fulfilled by a vendor.
+     * Admin manages the catalog; the linked vendor fulfills stock and delivery.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    private function assertFulfillmentVendorForPhysicalProduct(
+        Request $request,
+        array $validated,
+        ?Product $existing = null
+    ): void {
+        if ($this->requestLooksLikeServiceProduct($request, $existing)) {
+            return;
+        }
+
+        $vendorId = $request->input('vendor_id', $validated['vendor_id'] ?? null);
+        if (($vendorId === null || $vendorId === '') && $existing !== null && ! $request->exists('vendor_id')) {
+            $vendorId = $existing->vendor_id;
+        }
+
+        if ($vendorId === null || $vendorId === '' || (int) $vendorId <= 0) {
+            throw ValidationException::withMessages([
+                'vendor_id' => ['Assign a vendor who owns stock and fulfills this product order.'],
+            ]);
+        }
+    }
+
+    private function requestLooksLikeServiceProduct(Request $request, ?Product $existing = null): bool
+    {
+        $type = strtolower(trim((string) ($request->input('type') ?? $existing?->type ?? '')));
+        if ($type === 'service') {
+            return true;
+        }
+
+        $serviceIds = $request->input('service_ids');
+        if (is_array($serviceIds) && $serviceIds !== []) {
+            return true;
+        }
+        if ($request->filled('service_id')) {
+            return true;
+        }
+
+        if ($existing !== null && ! $request->exists('service_ids') && ! $request->exists('service_id') && ! $request->exists('type')) {
+            $existing->loadMissing('services');
+            if ($existing->services->isNotEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1322,6 +1374,8 @@ class ProductController extends Controller
             'is_featured' => 'nullable|boolean',
             'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
+            'vendor_id'   => 'nullable|integer|exists:vendors,id',
+            'type'        => 'nullable|in:product,service',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku',
             'handle'      => 'nullable|string|max:255|unique:products,handle',
@@ -1345,7 +1399,10 @@ class ProductController extends Controller
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
+            'vendor_id.exists' => 'Select an approved vendor who will fulfill this product.',
         ]);
+
+        $this->assertFulfillmentVendorForPhysicalProduct($request, $validated);
 
         // Build create data from allowed fields only (no extra fields)
         $createData = [];
@@ -1365,6 +1422,12 @@ class ProductController extends Controller
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         $createData['product_type'] = $request->input('product_type', 'simple');
+        if ($request->filled('vendor_id') || isset($createData['vendor_id'])) {
+            $createData['vendor_id'] = (int) ($request->input('vendor_id') ?? $createData['vendor_id']);
+        }
+        if (empty($createData['type'])) {
+            $createData['type'] = $this->requestLooksLikeServiceProduct($request) ? 'service' : 'product';
+        }
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
@@ -1659,6 +1722,8 @@ class ProductController extends Controller
             'is_featured' => 'nullable|boolean',
             'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
+            'vendor_id'   => 'nullable|integer|exists:vendors,id',
+            'type'        => 'nullable|in:product,service',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
             'handle'      => 'nullable|string|max:255|unique:products,handle,' . $id,
@@ -1682,7 +1747,10 @@ class ProductController extends Controller
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
+            'vendor_id.exists' => 'Select an approved vendor who will fulfill this product.',
         ]);
+
+        $this->assertFulfillmentVendorForPhysicalProduct($request, $validated, $product);
 
         // Build update payload from allowed fields only (no extra fields)
         $updateData = [];

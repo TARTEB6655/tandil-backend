@@ -223,7 +223,7 @@ class VendorOrderApiTest extends TestCase
     public function test_vendor_can_track_order(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
-        // Vendor may have marked fulfillment "confirmed", but shop job is still waiting for supervisor.
+        // Product-only order: timeline follows vendor fulfillment, not supervisor job copy.
         $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
         $mapping->order->update(['order_status' => 'processing', 'paid_at' => now()]);
 
@@ -243,18 +243,16 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.tracking.timeline.0.completed', true)
             ->assertJsonPath('data.tracking.timeline.0.current', false)
             ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
-            ->assertJsonPath('data.tracking.timeline.1.description', 'Waiting for a supervisor to accept the job')
+            ->assertJsonPath('data.tracking.timeline.1.description', 'Order sent to the vendor')
             ->assertJsonPath('data.tracking.timeline.1.completed', true)
-            ->assertJsonPath('data.tracking.timeline.1.current', true)
             ->assertJsonPath('data.tracking.timeline.2.key', 'confirmed')
-            ->assertJsonPath('data.tracking.timeline.2.description', 'Supervisor accepted your order')
-            ->assertJsonPath('data.tracking.timeline.2.completed', false)
-            ->assertJsonPath('data.tracking.timeline.2.current', false)
-            ->assertJsonPath('data.tracking.timeline.3.key', 'assigned')
+            ->assertJsonPath('data.tracking.timeline.2.description', 'Vendor confirmed your order')
+            ->assertJsonPath('data.tracking.timeline.2.completed', true)
+            ->assertJsonPath('data.tracking.timeline.2.current', true)
+            ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
             ->assertJsonPath('data.tracking.timeline.3.completed', false)
+            ->assertJsonPath('data.tracking.timeline.4.key', 'delivered')
             ->assertJsonPath('data.tracking.timeline.4.completed', false)
-            ->assertJsonPath('data.tracking.timeline.5.completed', false)
-            ->assertJsonPath('data.tracking.timeline.6.completed', false)
             ->assertJsonStructure([
                 'data' => [
                     'order_id',
@@ -273,7 +271,39 @@ class VendorOrderApiTest extends TestCase
             ]);
     }
 
-    public function test_vendor_track_follows_shop_order_status_not_vendor_fulfillment(): void
+    public function test_vendor_ship_generates_otp_and_confirm_delivery_completes_order(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
+            'status' => 'delivered',
+        ])->assertStatus(422);
+
+        $ship = $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
+            'status' => 'shipped',
+        ]);
+        $ship->assertOk()->assertJsonPath('data.order.status', 'shipped');
+
+        $mapping->refresh();
+        $this->assertNotEmpty($mapping->delivery_otp);
+        $this->assertSame('completed', $mapping->order->fresh()->order_status);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => '000000',
+        ])->assertStatus(422);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+            'otp' => $mapping->delivery_otp,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.order.status', 'delivered');
+
+        $this->assertSame('delivered', $mapping->order->fresh()->order_status);
+        $this->assertNotNull($mapping->fresh()->delivery_otp_confirmed_at);
+    }
+
+    public function test_vendor_track_product_timeline_follows_vendor_fulfillment(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
         $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Shipped);
@@ -283,19 +313,22 @@ class VendorOrderApiTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.status', 'processing')
             ->assertJsonPath('data.vendor_status', 'shipped')
-            ->assertJsonPath('data.tracking.timeline.1.current', true)
-            ->assertJsonPath('data.tracking.timeline.2.completed', false)
-            ->assertJsonPath('data.tracking.timeline.5.completed', false);
+            ->assertJsonPath('data.tracking.timeline.2.completed', true)
+            ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
+            ->assertJsonPath('data.tracking.timeline.3.current', true)
+            ->assertJsonPath('data.tracking.timeline.3.completed', true)
+            ->assertJsonPath('data.tracking.timeline.4.completed', false);
 
-        $mapping->order->update(['order_status' => 'confirmed']);
+        $mapping->update(['status' => VendorOrderStatus::Delivered->value]);
+        $mapping->order->update(['order_status' => 'delivered']);
 
         $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->order_id.'/track')
             ->assertOk()
-            ->assertJsonPath('data.status', 'confirmed')
-            ->assertJsonPath('data.current_status', 'Confirmed')
-            ->assertJsonPath('data.tracking.timeline.2.current', true)
-            ->assertJsonPath('data.tracking.timeline.2.completed', true)
-            ->assertJsonPath('data.tracking.timeline.3.completed', false);
+            ->assertJsonPath('data.status', 'delivered')
+            ->assertJsonPath('data.current_status', 'Delivered')
+            ->assertJsonPath('data.tracking.timeline.4.key', 'delivered')
+            ->assertJsonPath('data.tracking.timeline.4.current', true)
+            ->assertJsonPath('data.tracking.timeline.4.completed', true);
     }
 
     public function test_vendor_track_smoke_uses_list_order_id_not_mapping_id(): void
@@ -330,8 +363,9 @@ class VendorOrderApiTest extends TestCase
             ->assertJsonPath('data.status', 'processing')
             ->assertJsonPath('data.vendor_status', 'shipped')
             ->assertJsonPath('data.tracking.status', 'processing')
-            ->assertJsonPath('data.tracking.timeline.1.current', true)
-            ->assertJsonPath('data.tracking.timeline.2.completed', false);
+            ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
+            ->assertJsonPath('data.tracking.timeline.3.current', true)
+            ->assertJsonPath('data.tracking.timeline.3.completed', true);
     }
 
     public function test_vendor_track_requires_authentication(): void

@@ -9,12 +9,14 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorOrderStatusLog;
+use App\Support\OrderFulfillmentType;
 use App\Support\OrderTrackingTimeline;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class VendorOrderService
 {
@@ -216,6 +218,12 @@ class VendorOrderService
         ?string $note = null,
         ?string $trackingNumber = null
     ): VendorOrderMapping {
+        if ($status === VendorOrderStatus::Delivered) {
+            throw ValidationException::withMessages([
+                'status' => ['Use POST /api/vendor/orders/{id}/confirm-delivery with the customer OTP to mark delivered.'],
+            ]);
+        }
+
         return DB::transaction(function () use ($mapping, $status, $user, $note, $trackingNumber) {
             $updates = ['status' => $status->value];
 
@@ -234,10 +242,26 @@ class VendorOrderService
                 'note' => $note,
             ]);
 
-            // Reuse the same constrained eager-load path as GET detail (no full-table fresh).
-            return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
+            $mapping = $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
                 ?? $mapping->fresh(['order.user', 'order.shippingAddress', 'statusLogs']);
+
+            if ($status === VendorOrderStatus::Shipped) {
+                $mapping = app(VendorDeliveryOtpService::class)->ensureOtpForShipped($mapping);
+            }
+
+            app(VendorDeliveryOtpService::class)->syncShopOrderStatus($mapping);
+
+            return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
+                ?? $mapping;
         });
+    }
+
+    public function confirmDeliveryWithOtp(VendorOrderMapping $mapping, string $otp, User $user): VendorOrderMapping
+    {
+        $mapping = app(VendorDeliveryOtpService::class)->confirmWithOtp($mapping, $otp, $user);
+
+        return $this->findMappingForVendorById((int) $mapping->vendor_id, (int) $mapping->id, 'detail')
+            ?? $mapping;
     }
 
     public function formatListItem(VendorOrderMapping $mapping): array
@@ -593,6 +617,7 @@ class VendorOrderService
         $base = OrderTrackingTimeline::forOrder($order);
         $shopStatus = OrderTrackingTimeline::normalize((string) ($order->order_status ?? 'pending'));
         $isCancelled = $shopStatus === 'cancelled';
+        $isProductFlow = OrderFulfillmentType::usesVendorProductWorkflow($order);
 
         $icons = [
             'pending' => 'clock',
@@ -601,6 +626,7 @@ class VendorOrderService
             'assigned' => 'user',
             'in_progress' => 'wrench',
             'completed' => 'check',
+            'shipped' => 'truck',
             'delivered' => 'check-circle',
             'cancel_order' => 'x',
             'refund_processing' => 'clock',
@@ -613,15 +639,27 @@ class VendorOrderService
             'assigned' => 'blue',
             'in_progress' => 'gold',
             'completed' => 'green',
+            'shipped' => 'gold',
             'delivered' => 'green',
             'cancel_order' => 'red',
             'refund_processing' => 'gold',
             'refund_complete' => 'green',
         ];
 
-        $currentKey = $isCancelled
-            ? (collect($base)->last(fn (array $step) => $step['completed'])['key'] ?? 'cancel_order')
-            : $shopStatus;
+        if ($isProductFlow && ! $isCancelled) {
+            $vendorStatus = strtolower((string) $mapping->status);
+            $currentKey = match ($vendorStatus) {
+                'pending' => 'processing',
+                'confirmed', 'processing' => 'confirmed',
+                'shipped' => 'shipped',
+                'delivered' => 'delivered',
+                default => 'processing',
+            };
+        } else {
+            $currentKey = $isCancelled
+                ? (collect($base)->last(fn (array $step) => $step['completed'])['key'] ?? 'cancel_order')
+                : $shopStatus;
+        }
 
         $timeline = [];
         foreach ($base as $step) {
@@ -684,8 +722,8 @@ class VendorOrderService
             $primaryAction = 'ship';
             $primaryActionLabel = 'Ship';
         } elseif ($canMarkDelivered) {
-            $primaryAction = 'mark_delivered';
-            $primaryActionLabel = 'Mark Delivered';
+            $primaryAction = 'confirm_delivery_otp';
+            $primaryActionLabel = 'Confirm delivery (OTP)';
         }
 
         return [
@@ -693,9 +731,13 @@ class VendorOrderService
             'can_confirm' => $canConfirm,
             'can_ship' => $canShip,
             'can_mark_delivered' => $canMarkDelivered,
+            'can_confirm_delivery_otp' => $canMarkDelivered,
             'can_cancel' => $canCancel,
             'primary_action' => $primaryAction,
             'primary_action_label' => $primaryActionLabel,
+            'confirm_delivery_endpoint' => $canMarkDelivered
+                ? '/api/vendor/orders/{id}/confirm-delivery'
+                : null,
         ];
     }
 

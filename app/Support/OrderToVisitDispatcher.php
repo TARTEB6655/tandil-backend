@@ -159,7 +159,11 @@ final class OrderToVisitDispatcher
                 return collect();
             }
 
-            $items = $order->items()->with('product:id,name,job_duration')->get();
+            $items = $order->items()->with('product:id,name,job_duration,type', 'product.services')->get();
+            // Only service lines create supervisor/technician Visits.
+            $items = $items->filter(
+                fn (OrderItem $item) => OrderFulfillmentType::forOrderItem($item) === OrderFulfillmentType::SERVICE
+            )->values();
             if ($items->isEmpty()) {
                 return collect();
             }
