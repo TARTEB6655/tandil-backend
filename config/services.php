@@ -78,15 +78,4 @@ return [
         'client_ids' => env('APPLE_CLIENT_IDS', env('PUBLIC_APPLE_BUNDLE_IDS')),
     ],
 
-    /*
-    | Delivery OTP SMS. Default driver `log` records outbound messages.
-    | Set SMS_DRIVER=http and SMS_HTTP_URL to POST JSON {to,message,context} to a gateway.
-    */
-    'sms' => [
-        'driver' => env('SMS_DRIVER', 'log'),
-        'http_url' => env('SMS_HTTP_URL'),
-        'http_token' => env('SMS_HTTP_TOKEN'),
-        'sender_id' => env('SMS_SENDER_ID', 'Tandil'),
-    ],
-
 ];

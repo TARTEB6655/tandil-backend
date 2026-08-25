@@ -289,12 +289,13 @@ class VendorOrderApiTest extends TestCase
         $ship->assertOk()
             ->assertJsonPath('data.order.status', 'shipped')
             ->assertJsonPath('data.order.delivery_otp.has_active_otp', true)
+            ->assertJsonPath('data.order.delivery_otp.delivery_channel', 'in_app')
             ->assertJsonPath('data.order.delivery_otp.ttl_minutes', 5)
             ->assertJsonPath('data.order.actions.can_resend_delivery_otp', false);
 
         $mapping->refresh();
         $this->assertNotEmpty($mapping->delivery_otp);
-        $this->assertSame('+971500000001', $mapping->delivery_otp_sent_to);
+        $this->assertSame('in_app', $mapping->delivery_otp_sent_to);
         $this->assertNotNull($mapping->delivery_otp_expires_at);
         $this->assertTrue($mapping->delivery_otp_expires_at->lessThanOrEqualTo(now()->addMinutes(5)->addSecond()));
         $this->assertSame('shipped', $mapping->order->fresh()->order_status);

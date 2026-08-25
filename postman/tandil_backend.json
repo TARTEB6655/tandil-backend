@@ -25991,7 +25991,7 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\nCustomer gives OTP (SMS / Track `delivery_otp`, 5 min TTL) to vendor. Vendor submits it here to complete delivery.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP is single-use and cleared after success.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\nCustomer gives OTP (shown in Tandil app notification + Track `delivery_otp`, 5 min TTL) to supplier. Supplier submits it here to complete delivery.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP is single-use and cleared after success.\n\n**Token:** `{{vendor_token}}`."
                             }
                         },
                         {
@@ -26021,7 +26021,7 @@
                                         "resend-delivery-otp"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates the previous OTP, sends a new 6-digit code to the customer mobile (SMS + in-app), 5 min expiry, 60s cooldown between sends.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates the previous OTP and sends a new 6-digit code to the customer **inside the Tandil app** (notification + track screen). 5 min expiry, 60s cooldown between sends. No SMS.\n\n**Token:** `{{vendor_token}}`."
                             }
                         }
                     ]

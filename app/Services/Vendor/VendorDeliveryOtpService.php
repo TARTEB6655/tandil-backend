@@ -7,15 +7,14 @@ use App\Models\Order;
 use App\Models\User;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorOrderStatusLog;
-use App\Notifications\AdminNotification;
-use App\Services\Sms\OutboundSmsService;
+use App\Notifications\DeliveryOtpNotification;
 use App\Support\OrderFulfillmentType;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Product-order delivery OTP: sent to the customer when the vendor ships / resends;
- * customer shares the code with the vendor to complete delivery.
+ * Product-order delivery OTP: shown in the Tandil app to the customer when the vendor ships;
+ * customer shares the code with the vendor to complete delivery. No external SMS.
  */
 class VendorDeliveryOtpService
 {
@@ -26,13 +25,6 @@ class VendorDeliveryOtpService
     public const MAX_ATTEMPTS = 5;
 
     public const LOCKOUT_MINUTES = 15;
-
-    /** @deprecated Use OTP_TTL_MINUTES */
-    public const OTP_TTL_HOURS = 0;
-
-    public function __construct(
-        private readonly OutboundSmsService $sms
-    ) {}
 
     public function ensureOtpForShipped(VendorOrderMapping $mapping): VendorOrderMapping
     {
@@ -69,13 +61,13 @@ class VendorDeliveryOtpService
             ]);
         }
 
-        $mapping = $this->issueOtp($mapping, force: true);
+        $mapping = $this->issueOtp($mapping, force: true, isResend: true);
 
         VendorOrderStatusLog::create([
             'vendor_order_mapping_id' => $mapping->id,
             'status' => VendorOrderStatus::Shipped->value,
             'changed_by' => $vendorUser->id,
-            'note' => 'Delivery OTP resent to customer.',
+            'note' => 'Delivery OTP resent to customer in app.',
         ]);
 
         return $mapping->fresh(['order.user', 'order.shippingAddress', 'statusLogs']) ?? $mapping;
@@ -103,13 +95,13 @@ class VendorDeliveryOtpService
 
         if (! filled($mapping->delivery_otp)) {
             throw ValidationException::withMessages([
-                'otp' => ['No active delivery OTP. Use Resend OTP to send a new code to the customer.'],
+                'otp' => ['No active delivery OTP. Use Resend OTP to generate a new code for the customer.'],
             ]);
         }
 
         if ($mapping->delivery_otp_expires_at !== null && $mapping->delivery_otp_expires_at->isPast()) {
             throw ValidationException::withMessages([
-                'otp' => ['Delivery OTP has expired. Use Resend OTP to send a new code.'],
+                'otp' => ['Delivery OTP has expired. Use Resend OTP to generate a new code.'],
             ]);
         }
 
@@ -178,7 +170,7 @@ class VendorDeliveryOtpService
     }
 
     /**
-     * OTP visible to the customer (and admin) while awaiting vendor confirmation.
+     * OTP visible to the customer on the track screen while awaiting vendor confirmation.
      *
      * @return array<string, mixed>|null
      */
@@ -200,18 +192,19 @@ class VendorDeliveryOtpService
             return [
                 'code' => null,
                 'expired' => true,
+                'delivery_channel' => 'in_app',
                 'expires_at' => $mapping->delivery_otp_expires_at->format('c'),
-                'sent_to_phone_masked' => $this->maskPhone((string) ($mapping->delivery_otp_sent_to ?? '')),
-                'instruction' => 'Your delivery OTP has expired. Ask the vendor to resend a new code.',
+                'instruction' => 'Your delivery OTP has expired. Ask the supplier to resend a new code in the app.',
             ];
         }
 
         return [
             'code' => (string) $mapping->delivery_otp,
             'expired' => false,
+            'delivery_channel' => 'in_app',
             'expires_at' => $mapping->delivery_otp_expires_at?->format('c'),
-            'sent_to_phone_masked' => $this->maskPhone((string) ($mapping->delivery_otp_sent_to ?? '')),
-            'instruction' => 'Give this OTP to the vendor when your order arrives to confirm delivery.',
+            'sent_at' => $mapping->delivery_otp_sent_at?->format('c'),
+            'instruction' => 'Give this OTP to the supplier when your order arrives to confirm delivery.',
         ];
     }
 
@@ -237,10 +230,10 @@ class VendorDeliveryOtpService
 
         return [
             'required' => true,
+            'delivery_channel' => 'in_app',
             'has_active_otp' => $this->hasActiveOtp($mapping),
             'expires_at' => $mapping->delivery_otp_expires_at?->format('c'),
             'sent_at' => $mapping->delivery_otp_sent_at?->format('c'),
-            'sent_to_phone_masked' => $this->maskPhone((string) ($mapping->delivery_otp_sent_to ?? '')),
             'attempts' => $attempts,
             'attempts_remaining' => max(0, self::MAX_ATTEMPTS - $attempts),
             'max_attempts' => self::MAX_ATTEMPTS,
@@ -250,6 +243,7 @@ class VendorDeliveryOtpService
             'can_resend' => $cooldown === 0,
             'ttl_minutes' => self::OTP_TTL_MINUTES,
             'resend_cooldown_seconds' => self::RESEND_COOLDOWN_SECONDS,
+            'instruction' => 'Customer sees the OTP in the Tandil app. Ask them to share it when the order arrives.',
         ];
     }
 
@@ -272,21 +266,15 @@ class VendorDeliveryOtpService
             && ($mapping->delivery_otp_expires_at === null || $mapping->delivery_otp_expires_at->isFuture());
     }
 
-    private function issueOtp(VendorOrderMapping $mapping, bool $force = false): VendorOrderMapping
+    private function issueOtp(VendorOrderMapping $mapping, bool $force = false, bool $isResend = false): VendorOrderMapping
     {
         if (! $force && $this->hasActiveOtp($mapping)) {
             return $mapping;
         }
 
-        $mapping = $mapping->relationLoaded('order')
-            ? $mapping
-            : ($mapping->fresh(['order.user', 'order.shippingAddress']) ?? $mapping);
-
-        $phone = $this->resolveCustomerPhone($mapping);
-        if ($phone === null || $phone === '') {
-            throw ValidationException::withMessages([
-                'otp' => ['Customer has no registered mobile number to receive the delivery OTP.'],
-            ]);
+        $mapping->loadMissing(['order.user', 'order.shippingAddress']);
+        if ($mapping->order === null) {
+            $mapping = $mapping->fresh(['order.user', 'order.shippingAddress']) ?? $mapping;
         }
 
         $otp = (string) random_int(100000, 999999);
@@ -295,13 +283,13 @@ class VendorDeliveryOtpService
             'delivery_otp_expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
             'delivery_otp_confirmed_at' => null,
             'delivery_otp_sent_at' => now(),
-            'delivery_otp_sent_to' => $phone,
+            'delivery_otp_sent_to' => 'in_app',
             'delivery_otp_attempts' => 0,
             'delivery_otp_locked_until' => null,
         ]);
 
         $fresh = $mapping->fresh(['order.user', 'order.shippingAddress']) ?? $mapping;
-        $this->notifyCustomerOtp($fresh, $otp, $phone);
+        $this->notifyCustomerInApp((int) $fresh->order_id, $otp, $isResend);
 
         return $fresh;
     }
@@ -318,79 +306,44 @@ class VendorDeliveryOtpService
         $mapping->update($updates);
     }
 
-    private function resolveCustomerPhone(VendorOrderMapping $mapping): ?string
+    private function notifyCustomerInApp(int $orderId, string $otp, bool $isResend = false): void
     {
-        $order = $mapping->order ?? Order::query()->with(['user', 'shippingAddress'])->find($mapping->order_id);
-        if (! $order instanceof Order) {
-            return null;
-        }
-
-        $candidates = [
-            $order->payerPhone(),
-            $order->guest_phone,
-            $order->user?->phone,
-            $order->shippingAddress?->phone_number,
-        ];
-
-        foreach ($candidates as $candidate) {
-            $phone = trim((string) ($candidate ?? ''));
-            if ($phone !== '') {
-                return $phone;
+        $deliver = function () use ($orderId, $otp, $isResend): void {
+            $order = Order::query()->find($orderId);
+            if (! $order instanceof Order || $order->user_id === null) {
+                return;
             }
-        }
 
-        return null;
-    }
+            $user = User::query()->find($order->user_id);
+            if (! $user instanceof User) {
+                return;
+            }
 
-    private function maskPhone(string $phone): ?string
-    {
-        $digits = preg_replace('/\D+/', '', $phone) ?? '';
-        if ($digits === '') {
-            return null;
-        }
+            $mapping = VendorOrderMapping::query()
+                ->where('order_id', $orderId)
+                ->where('status', VendorOrderStatus::Shipped->value)
+                ->latest('id')
+                ->first();
 
-        if (strlen($digits) <= 4) {
-            return str_repeat('*', strlen($digits));
-        }
+            if ($mapping === null) {
+                return;
+            }
 
-        return str_repeat('*', max(0, strlen($digits) - 4)).substr($digits, -4);
-    }
+            $user->notify(new DeliveryOtpNotification(
+                $order,
+                $mapping,
+                $otp,
+                self::OTP_TTL_MINUTES,
+                $isResend
+            ));
+        };
 
-    private function notifyCustomerOtp(VendorOrderMapping $mapping, string $otp, string $phone): void
-    {
-        $order = $mapping->order;
-        $user = $order?->user;
-        $message = "Your Tandil delivery OTP is {$otp}. It expires in ".self::OTP_TTL_MINUTES
-            .' minutes. Share it with the vendor only when your order arrives.';
+        if (DB::transactionLevel() > 0 && ! app()->runningUnitTests()) {
+            DB::afterCommit($deliver);
 
-        try {
-            $this->sms->send($phone, $message, [
-                'type' => 'delivery_otp',
-                'order_id' => $order?->id,
-                'vendor_order_mapping_id' => $mapping->id,
-            ]);
-        } catch (\Throwable) {
-            // Non-fatal — in-app notification / track API still expose the OTP.
-        }
-
-        if (! $user instanceof User) {
             return;
         }
 
-        try {
-            $user->notify(new AdminNotification(
-                'Delivery OTP for Order #'.($order?->id ?? $mapping->order_id),
-                $message,
-                [
-                    'type' => 'delivery_otp',
-                    'order_id' => $order?->id,
-                    'vendor_order_mapping_id' => $mapping->id,
-                    'sent_to_phone_masked' => $this->maskPhone($phone),
-                    'expires_at' => $mapping->delivery_otp_expires_at?->format('c'),
-                ]
-            ));
-        } catch (\Throwable) {
-            // Non-fatal — OTP still available on track API / SMS log.
-        }
+        $deliver();
     }
 }

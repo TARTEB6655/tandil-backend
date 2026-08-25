@@ -14,6 +14,7 @@ use App\Models\Vendor;
 use App\Models\VendorOrderMapping;
 use App\Models\VendorProfile;
 use App\Models\Visit;
+use App\Notifications\DeliveryOtpNotification;
 use App\Support\OrderPaidSideEffects;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -166,13 +167,20 @@ class VendorDualProductFulfillmentSmokeTest extends TestCase
 
         $mapping->refresh();
         $this->assertNotEmpty($mapping->delivery_otp);
+        $this->assertSame('in_app', $mapping->delivery_otp_sent_to);
         $this->assertSame('shipped', $mapping->order->fresh()->order_status);
+
+        Notification::assertSentTo($client, DeliveryOtpNotification::class, function (DeliveryOtpNotification $notification) use ($mapping): bool {
+            return $notification->otp === $mapping->delivery_otp
+                && $notification->ttlMinutes === 5;
+        });
 
         $this->actingAs($client, 'sanctum');
         $this->getJson('/api/orders/'.$simpleOrder->id.'/track')
             ->assertOk()
             ->assertJsonPath('data.status', 'shipped')
             ->assertJsonPath('data.delivery_otp.code', $mapping->delivery_otp)
+            ->assertJsonPath('data.delivery_otp.delivery_channel', 'in_app')
             ->assertJsonPath('data.tracking.timeline.3.current', true);
 
         $this->actingAs($vendorUser, 'sanctum');
