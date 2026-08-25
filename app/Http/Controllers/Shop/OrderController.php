@@ -123,17 +123,23 @@ class OrderController extends Controller
         try {
             if ($oldPaymentStatus !== 'paid' && $order->user) {
                 $order = $order->fresh(['items.product.services']) ?? $order;
-                $isProductOrder = OrderFulfillmentType::usesVendorProductWorkflow($order);
-                $message = $isProductOrder
-                    ? "Your order #{$order->id} payment is confirmed (AED {$order->total_amount}). The supplier will prepare and deliver your items. You will receive a delivery OTP in the app when your order is shipped."
-                    : "Your order #{$order->id} payment has been confirmed. Amount: AED {$order->total_amount}. Our team will assign a supervisor shortly.";
+                $fulfillment = OrderFulfillmentType::usesVendorProductWorkflow($order)
+                    ? OrderFulfillmentType::PRODUCT
+                    : (OrderFulfillmentType::usesPlatformCheckoutWorkflow($order)
+                        ? OrderFulfillmentType::PLATFORM
+                        : OrderFulfillmentType::SERVICE);
+                $message = match ($fulfillment) {
+                    OrderFulfillmentType::PRODUCT => "Your order #{$order->id} payment is confirmed (AED {$order->total_amount}). The supplier will prepare and deliver your items. You will receive a delivery OTP in the app when your order is shipped.",
+                    OrderFulfillmentType::PLATFORM => "Your order #{$order->id} payment is confirmed (AED {$order->total_amount}). Thank you for your purchase.",
+                    default => "Your order #{$order->id} payment has been confirmed. Amount: AED {$order->total_amount}. Our team will assign a supervisor shortly.",
+                };
 
                 $order->user->notify(new AdminNotification(
                     'Order Payment Confirmed',
                     $message,
                     [
                         'type' => 'order_payment_confirmed',
-                        'fulfillment_type' => $isProductOrder ? OrderFulfillmentType::PRODUCT : OrderFulfillmentType::SERVICE,
+                        'fulfillment_type' => $fulfillment,
                         'order_id' => $order->id,
                         'track_endpoint' => '/api/orders/'.$order->id.'/track',
                     ]
@@ -375,6 +381,22 @@ class OrderController extends Controller
             if ($orderEmail === '' || $orderEmail !== $userEmail) {
                 return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
             }
+        }
+
+        if (OrderFulfillmentType::usesPlatformCheckoutWorkflow($order)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This is a checkout-only platform order. No delivery confirmation is required from your side.',
+                'data' => [
+                    'order_id' => $order->id,
+                    'order_status' => $order->order_status,
+                    'fulfillment_type' => OrderFulfillmentType::PLATFORM,
+                    'tracking' => [
+                        'status' => $order->order_status,
+                        'timeline' => OrderTrackingTimeline::forOrder($order),
+                    ],
+                ],
+            ], 422);
         }
 
         if (OrderFulfillmentType::usesVendorProductWorkflow($order)) {

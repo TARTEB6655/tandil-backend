@@ -187,24 +187,37 @@ class AdminCatalogApiTest extends TestCase
 
     public function test_admin_products_create_and_show(): void
     {
-        ['vendor' => $vendor] = $this->seedFulfillmentVendor();
         $category = Category::factory()->create();
 
         $response = $this->postJson('/api/admin/products', [
             'name' => 'Test Product',
             'price' => 10.50,
             'category_id' => $category->id,
-            'vendor_id' => $vendor->id,
             'type' => 'product',
         ], $this->authJson());
         $response->assertStatus(201);
         $response->assertJsonPath('status', true);
         $id = $response->json('data.id');
         $this->assertNotNull($id);
+        $this->assertNull(Product::find($id)?->vendor_id);
 
         $show = $this->getJson("/api/admin/products/{$id}", $this->authJson());
         $show->assertStatus(200);
         $show->assertJsonPath('data.name', 'Test Product');
+    }
+
+    public function test_admin_platform_products_reject_vendor_id(): void
+    {
+        ['vendor' => $vendor] = $this->seedFulfillmentVendor();
+        $category = Category::factory()->create();
+
+        $this->postJson('/api/admin/products', [
+            'name' => 'Bad',
+            'price' => 10,
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'product',
+        ], $this->authJson())->assertStatus(422)->assertJsonValidationErrors(['vendor_id']);
     }
 
     public function test_admin_products_create_with_estimated_arrival_and_job_duration(): void
@@ -234,19 +247,17 @@ class AdminCatalogApiTest extends TestCase
 
     public function test_admin_products_update_and_delete(): void
     {
-        ['vendor' => $vendor] = $this->seedFulfillmentVendor();
         $category = Category::factory()->create();
         $product = Product::factory()->create([
             'name' => 'Original Product',
             'price' => 5,
             'category_id' => $category->id,
-            'vendor_id' => $vendor->id,
+            'vendor_id' => null,
             'type' => 'product',
         ]);
         $response = $this->putJson("/api/admin/products/{$product->id}", [
             'name' => 'Updated Product',
             'price' => 15,
-            'vendor_id' => $vendor->id,
             'category_id' => $category->id,
             'type' => 'product',
         ], $this->authJson());
@@ -320,13 +331,11 @@ class AdminCatalogApiTest extends TestCase
 
     public function test_admin_products_create_with_is_featured_and_public_featured_api(): void
     {
-        ['vendor' => $vendor] = $this->seedFulfillmentVendor();
         $category = Category::factory()->create();
         $response = $this->postJson('/api/admin/products', [
             'name' => 'Featured Product',
             'price' => 29.99,
             'category_id' => $category->id,
-            'vendor_id' => $vendor->id,
             'type' => 'product',
             'status' => 'active',
             'is_featured' => true,

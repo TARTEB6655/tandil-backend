@@ -15,6 +15,7 @@ use App\Models\VendorOrderMapping;
 use App\Models\VendorProfile;
 use App\Models\Visit;
 use App\Notifications\DeliveryOtpNotification;
+use App\Support\OrderFulfillmentType;
 use App\Support\OrderPaidSideEffects;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -23,8 +24,8 @@ use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
- * Admin/platform catalog products (vendor_id on simple SKUs) follow the same
- * product vs service fulfillment split as vendor-owned catalog rows.
+ * Admin platform catalog: simple products = checkout only (no vendor/OTP).
+ * Service products = supervisor flow.
  */
 class AdminCatalogProductFulfillmentSmokeTest extends TestCase
 {
@@ -53,18 +54,27 @@ class AdminCatalogProductFulfillmentSmokeTest extends TestCase
         $category = Category::factory()->create();
         $service = Service::factory()->create(['category_id' => $category->id]);
 
-        // --- Admin creates simple platform product (fulfillment vendor required) ---
+        // --- Admin creates simple platform product (checkout only — no vendor_id) ---
         $simpleCreate = $this->withToken($this->adminToken)->postJson('/api/admin/products', [
             'name' => 'Platform Fruit Box',
             'price' => 40,
             'stock' => 20,
             'category_id' => $category->id,
-            'vendor_id' => $vendor->id,
             'type' => 'product',
         ]);
         $simpleCreate->assertCreated()->assertJsonPath('data.name', 'Platform Fruit Box');
         $simpleProductId = (int) $simpleCreate->json('data.id');
         $this->assertSame('product', Product::find($simpleProductId)?->type);
+        $this->assertNull(Product::find($simpleProductId)?->vendor_id);
+
+        // vendor_id prohibited on platform catalog
+        $this->withToken($this->adminToken)->postJson('/api/admin/products', [
+            'name' => 'Bad Product',
+            'price' => 10,
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'product',
+        ])->assertStatus(422)->assertJsonValidationErrors(['vendor_id']);
 
         // --- Admin creates service platform product ---
         $serviceCreate = $this->withToken($this->adminToken)->postJson('/api/admin/products', [
@@ -84,7 +94,6 @@ class AdminCatalogProductFulfillmentSmokeTest extends TestCase
             'name' => 'Delete Me',
             'price' => 5,
             'category_id' => $category->id,
-            'vendor_id' => $vendor->id,
             'type' => 'product',
         ]);
         $deleteOnly->assertCreated();
@@ -94,7 +103,6 @@ class AdminCatalogProductFulfillmentSmokeTest extends TestCase
         $this->withToken($this->adminToken)->putJson("/api/admin/products/{$simpleProductId}", [
             'name' => 'Platform Fruit Box XL',
             'price' => 45,
-            'vendor_id' => $vendor->id,
             'category_id' => $category->id,
             'type' => 'product',
         ])->assertOk()->assertJsonPath('data.name', 'Platform Fruit Box XL');
@@ -110,40 +118,34 @@ class AdminCatalogProductFulfillmentSmokeTest extends TestCase
         $client = User::factory()->create(['role' => 'client']);
         $client->assignRole('client');
 
-        // --- Paid SIMPLE admin-catalog product: vendor path, no supervisor visit ---
+        // --- Paid SIMPLE platform product: checkout only, no vendor mapping / OTP ---
         $simpleOrder = $this->placePaidOrder($client, Product::findOrFail($simpleProductId), 45);
         OrderPaidSideEffects::run($simpleOrder->fresh(['items.product.services']), 'Stripe (admin smoke)');
 
         $this->assertNull(Visit::query()->where('order_id', $simpleOrder->id)->first());
-        $mapping = VendorOrderMapping::where('order_id', $simpleOrder->id)->where('vendor_id', $vendor->id)->first();
-        $this->assertNotNull($mapping);
-        $this->assertSame('pending', $simpleOrder->fresh()->order_status);
+        $this->assertNull(VendorOrderMapping::where('order_id', $simpleOrder->id)->first());
+        $this->assertSame('processing', $simpleOrder->fresh()->order_status);
 
         $this->actingAs($client, 'sanctum');
         $this->getJson('/api/orders/'.$simpleOrder->id.'/track')
             ->assertOk()
-            ->assertJsonPath('data.fulfillment_type', 'product')
+            ->assertJsonPath('data.fulfillment_type', OrderFulfillmentType::PLATFORM)
             ->assertJsonPath('data.tracking_layout', 'horizontal')
-            ->assertJsonPath('data.tracking.timeline.3.key', 'shipped')
-            ->assertJsonPath('data.tracking.timeline.1.description', 'Vendor confirmed your order');
+            ->assertJsonPath('data.tracking.timeline.1.key', 'processing')
+            ->assertJsonPath('data.tracking.timeline.1.description', 'Your payment was received')
+            ->assertJsonPath('data.delivery_otp', null);
         $this->assertFalse(
             collect($this->getJson('/api/orders/'.$simpleOrder->id.'/track')->json('data.tracking.timeline'))
-                ->contains(fn ($s) => str_contains(strtolower((string) ($s['description'] ?? '')), 'supervisor'))
+                ->contains(fn ($s) => str_contains(strtolower((string) ($s['description'] ?? '')), 'supervisor')
+                    || str_contains(strtolower((string) ($s['description'] ?? '')), 'vendor')
+                    || str_contains(strtolower((string) ($s['description'] ?? '')), 'otp'))
         );
 
-        $this->actingAs($vendorUser, 'sanctum');
-        $this->postJson('/api/vendor/orders/'.$mapping->id.'/status', ['status' => 'confirmed'])->assertOk();
-        $this->postJson('/api/vendor/orders/'.$mapping->id.'/status', ['status' => 'processing'])->assertOk();
-        $this->postJson('/api/vendor/orders/'.$mapping->id.'/status', ['status' => 'shipped'])->assertOk();
+        Notification::assertNotSentTo($client, DeliveryOtpNotification::class);
 
-        $mapping->refresh();
-        Notification::assertSentTo($client, DeliveryOtpNotification::class);
-
-        $this->actingAs($client, 'sanctum');
-        $this->getJson('/api/orders/'.$simpleOrder->id.'/track')
-            ->assertOk()
-            ->assertJsonPath('data.delivery_otp.code', $mapping->delivery_otp)
-            ->assertJsonPath('data.delivery_otp.delivery_channel', 'in_app');
+        $this->postJson('/api/orders/'.$simpleOrder->id.'/mark-delivered')
+            ->assertStatus(422)
+            ->assertJsonPath('data.fulfillment_type', OrderFulfillmentType::PLATFORM);
 
         // --- Paid SERVICE admin-catalog product: supervisor visit + service track ---
         $area = Area::factory()->create(['name' => 'Dubai', 'location' => 'Dubai', 'country' => 'UAE', 'is_active' => true]);

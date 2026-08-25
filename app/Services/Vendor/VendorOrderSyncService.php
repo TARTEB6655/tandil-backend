@@ -26,12 +26,11 @@ class VendorOrderSyncService
 
         $byVendor = [];
         foreach ($order->items as $item) {
-            // Service lines stay on the supervisor path — do not map to vendor fulfillment.
-            if (! OrderFulfillmentType::isProductLine($item->product)) {
+            if (! OrderFulfillmentType::isVendorFulfillmentProduct($item->product)) {
                 continue;
             }
-            $vendorId = $item->product?->vendor_id;
-            if (! $vendorId) {
+            $vendorId = (int) $item->product->vendor_id;
+            if ($vendorId <= 0) {
                 continue;
             }
             if (! isset($byVendor[$vendorId])) {

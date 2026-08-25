@@ -31,6 +31,10 @@ final class OrderTrackingTimeline
             return self::productTimeline($order);
         }
 
+        if (OrderFulfillmentType::usesPlatformCheckoutWorkflow($order)) {
+            return self::platformCheckoutTimeline($order);
+        }
+
         return self::serviceTimeline($order);
     }
 
@@ -40,21 +44,25 @@ final class OrderTrackingTimeline
             return OrderFulfillmentType::PRODUCT;
         }
 
+        if (OrderFulfillmentType::usesPlatformCheckoutWorkflow($order)) {
+            return OrderFulfillmentType::PLATFORM;
+        }
+
         if (OrderFulfillmentType::hasServiceLines($order)) {
             return OrderFulfillmentType::SERVICE;
         }
 
-        return OrderFulfillmentType::PRODUCT;
+        return OrderFulfillmentType::PLATFORM;
     }
 
     /**
-     * Mobile layout hint: product = horizontal stepper, service = vertical list.
+     * Mobile layout hint: product/platform = horizontal stepper, service = vertical list.
      */
     public static function trackingLayout(Order $order): string
     {
-        return self::fulfillmentType($order) === OrderFulfillmentType::PRODUCT
-            ? 'horizontal'
-            : 'vertical';
+        return self::fulfillmentType($order) === OrderFulfillmentType::SERVICE
+            ? 'vertical'
+            : 'horizontal';
     }
 
     /**
@@ -186,6 +194,59 @@ final class OrderTrackingTimeline
             if ($step['key'] === 'pending') {
                 $at = $createdAt;
             }
+
+            $out[] = self::step(
+                $step['key'],
+                $step['label'],
+                $step['description'],
+                $step['icon'],
+                $completed,
+                $step['key'] === $currentKey,
+                $at
+            );
+        }
+
+        return $out;
+    }
+
+    /**
+     * Admin platform catalog simple product — checkout only (no vendor OTP / supervisor).
+     *
+     * @return list<array{key: string, label: string, description: string, icon: string, completed: bool, current: bool, timestamp: ?string}>
+     */
+    private static function platformCheckoutTimeline(Order $order): array
+    {
+        $status = self::normalize((string) ($order->order_status ?? 'pending'));
+        $rank = match ($status) {
+            'pending' => 0,
+            'processing', 'confirmed', 'paid' => 1,
+            'delivered', 'completed' => 2,
+            default => 0,
+        };
+        $createdAt = $order->created_at;
+        $paidAt = $order->paid_at;
+        $updatedAt = $order->updated_at;
+
+        $currentKey = match (true) {
+            $rank >= 2 => 'delivered',
+            $rank >= 1 => 'processing',
+            default => 'pending',
+        };
+
+        $steps = [
+            ['key' => 'pending', 'label' => 'Pending', 'description' => 'Order placed successfully', 'icon' => 'clock', 'min' => 0],
+            ['key' => 'processing', 'label' => 'Payment confirmed', 'description' => 'Your payment was received', 'icon' => 'check', 'min' => 1],
+            ['key' => 'delivered', 'label' => 'Complete', 'description' => 'Your order is complete', 'icon' => 'check-double', 'min' => 2],
+        ];
+
+        $out = [];
+        foreach ($steps as $step) {
+            $completed = $rank >= $step['min'];
+            $at = match ($step['key']) {
+                'pending' => $createdAt,
+                'processing' => $completed ? ($paidAt ?? $updatedAt) : null,
+                default => $completed ? $updatedAt : null,
+            };
 
             $out[] = self::step(
                 $step['key'],

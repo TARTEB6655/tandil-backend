@@ -338,28 +338,16 @@ class ProductController extends Controller
     }
 
     /**
-     * Regular (non-service) marketplace products must be owned/fulfilled by a vendor.
-     * Admin manages the catalog; the linked vendor fulfills stock and delivery.
+     * Regular (non-service) platform catalog products are checkout-only on /api/admin/products.
+     * Vendor-owned listings use /api/admin/vendors/{id}/products — vendor_id is prohibited here.
      *
      * @param  array<string, mixed>  $validated
      */
-    private function assertFulfillmentVendorForPhysicalProduct(
-        Request $request,
-        array $validated,
-        ?Product $existing = null
-    ): void {
-        if ($this->requestLooksLikeServiceProduct($request, $existing)) {
-            return;
-        }
-
-        $vendorId = $request->input('vendor_id', $validated['vendor_id'] ?? null);
-        if (($vendorId === null || $vendorId === '') && $existing !== null && ! $request->exists('vendor_id')) {
-            $vendorId = $existing->vendor_id;
-        }
-
-        if ($vendorId === null || $vendorId === '' || (int) $vendorId <= 0) {
+    private function assertNoVendorIdOnPlatformCatalog(Request $request): void
+    {
+        if ($request->filled('vendor_id')) {
             throw ValidationException::withMessages([
-                'vendor_id' => ['Assign a vendor who owns stock and fulfills this product order.'],
+                'vendor_id' => ['Platform catalog products cannot set vendor_id. Create vendor listings via POST /api/admin/vendors/{vendor_id}/products.'],
             ]);
         }
     }
@@ -1374,7 +1362,7 @@ class ProductController extends Controller
             'is_featured' => 'nullable|boolean',
             'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
-            'vendor_id'   => 'nullable|integer|exists:vendors,id',
+            'vendor_id'   => 'prohibited',
             'type'        => 'nullable|in:product,service',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku',
@@ -1399,10 +1387,10 @@ class ProductController extends Controller
         ], [
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
-            'vendor_id.exists' => 'Select an approved vendor who will fulfill this product.',
+            'vendor_id.prohibited' => 'Platform catalog products cannot set vendor_id. Use POST /api/admin/vendors/{vendor_id}/products for vendor listings.',
         ]);
 
-        $this->assertFulfillmentVendorForPhysicalProduct($request, $validated);
+        $this->assertNoVendorIdOnPlatformCatalog($request);
 
         // Build create data from allowed fields only (no extra fields)
         $createData = [];
@@ -1422,9 +1410,7 @@ class ProductController extends Controller
         $createData['weight_unit'] = $createData['weight_unit'] ?? $validated['weight_unit'] ?? 'kg';
         $createData['stock'] = $createData['stock'] ?? $validated['stock'] ?? 0;
         $createData['product_type'] = $request->input('product_type', 'simple');
-        if ($request->filled('vendor_id') || isset($createData['vendor_id'])) {
-            $createData['vendor_id'] = (int) ($request->input('vendor_id') ?? $createData['vendor_id']);
-        }
+        $createData['vendor_id'] = null;
         if (empty($createData['type'])) {
             $createData['type'] = $this->requestLooksLikeServiceProduct($request) ? 'service' : 'product';
         }
@@ -1722,7 +1708,7 @@ class ProductController extends Controller
             'is_featured' => 'nullable|boolean',
             'sort_order'  => 'nullable|integer|min:0',
             'category_id' => 'nullable|integer',
-            'vendor_id'   => 'nullable|integer|exists:vendors,id',
+            'vendor_id'   => 'prohibited',
             'type'        => 'nullable|in:product,service',
             'weight_unit' => 'nullable|in:kg,g,lb,oz',
             'sku'         => 'nullable|string|max:255|unique:products,sku,' . $id,
@@ -1747,10 +1733,10 @@ class ProductController extends Controller
         ], [
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
-            'vendor_id.exists' => 'Select an approved vendor who will fulfill this product.',
+            'vendor_id.prohibited' => 'Platform catalog products cannot set vendor_id. Use POST /api/admin/vendors/{vendor_id}/products for vendor listings.',
         ]);
 
-        $this->assertFulfillmentVendorForPhysicalProduct($request, $validated, $product);
+        $this->assertNoVendorIdOnPlatformCatalog($request);
 
         // Build update payload from allowed fields only (no extra fields)
         $updateData = [];
