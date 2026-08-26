@@ -33,10 +33,12 @@ class DeliveryOtpNotification extends Notification
         $order = $this->order;
         $orderNumber = $order->publicOrderNumber();
         $trackPath = '/orders/'.$order->id.'/track';
-        $title = $this->isResend ? 'New delivery OTP' : 'Delivery OTP ready';
+        $title = $this->isResend
+            ? 'New delivery confirmation code'
+            : 'Delivery confirmation code';
         $message = $this->isResend
-            ? "A new delivery OTP ({$this->otp}) was generated for order {$orderNumber}. Share it with the supplier when your order arrives. Valid for {$this->ttlMinutes} minutes."
-            : "Your delivery OTP is {$this->otp} for order {$orderNumber}. Share it with the supplier when your order arrives. Valid for {$this->ttlMinutes} minutes.";
+            ? "A new OTP has been generated for order {$orderNumber}. To confirm delivery, share this code with the supplier when they arrive: {$this->otp}. Valid for {$this->ttlMinutes} minutes. You can also view it on Order Tracking in the Tandil app."
+            : "Your order {$orderNumber} is out for delivery. To confirm delivery, share this OTP with the supplier when they arrive: {$this->otp}. Valid for {$this->ttlMinutes} minutes. Open Order Tracking in the Tandil app to view the code anytime.";
 
         return NotificationAudiencePayload::merge($notifiable, [
             'title' => $title,

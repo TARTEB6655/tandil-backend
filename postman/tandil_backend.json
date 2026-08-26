@@ -4462,7 +4462,7 @@
                                                 "{{order_id}}"
                                             ]
                                         },
-                                        "description": "Get order details"
+                                        "description": "GET order details (also `GET /api/orders/{id}`).\n\n**Product orders (shipped):** response includes `delivery_otp` object — use **`delivery_otp.code`** (string) for the UI boxes. Do not render the whole object (avoids `[object Object]`).\n\nFields when active: `code`, `expired`, `expires_at`, `instruction`, `delivery_channel: in_app`.\nAlso: `fulfillment_type`, `uses_delivery_otp`."
                                     }
                                 },
                                 {
@@ -4604,7 +4604,7 @@
                                                 "{{order_id}}"
                                             ]
                                         },
-                                        "description": "Get order details (Alternative route /api/orders/{id})"
+                                        "description": "GET `/api/orders/{id}` — same as shop order details. Product shipped: use **`delivery_otp.code`** (not the whole object) for OTP UI boxes + notifications field `otp`."
                                     }
                                 },
                                 {

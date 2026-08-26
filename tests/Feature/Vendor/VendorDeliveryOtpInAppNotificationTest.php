@@ -87,6 +87,16 @@ class VendorDeliveryOtpInAppNotificationTest extends TestCase
         $this->assertSame($mapping->delivery_otp, $notification->data['otp'] ?? null);
         $this->assertSame('in_app', $notification->data['delivery_channel'] ?? null);
         $this->assertSame('/api/orders/'.$order->id.'/track', $notification->data['track_endpoint'] ?? null);
+        $this->assertSame('Delivery confirmation code', $notification->data['title'] ?? null);
+        $this->assertStringContainsString('confirm delivery', strtolower((string) ($notification->data['message'] ?? '')));
+        $this->assertStringContainsString((string) $mapping->delivery_otp, (string) ($notification->data['message'] ?? ''));
+
+        $token = $client->createToken('client')->plainTextToken;
+        $this->withToken($token)
+            ->getJson('/api/orders/'.$order->id)
+            ->assertOk()
+            ->assertJsonPath('delivery_otp.code', $mapping->delivery_otp)
+            ->assertJsonPath('data.delivery_otp.code', $mapping->delivery_otp);
     }
 
     public function test_vendor_ship_api_sends_in_app_delivery_otp_notification(): void

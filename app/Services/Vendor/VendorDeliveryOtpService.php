@@ -204,7 +204,8 @@ class VendorDeliveryOtpService
             'delivery_channel' => 'in_app',
             'expires_at' => $mapping->delivery_otp_expires_at?->format('c'),
             'sent_at' => $mapping->delivery_otp_sent_at?->format('c'),
-            'instruction' => 'Give this OTP to the supplier when your order arrives to confirm delivery.',
+            'ttl_minutes' => self::OTP_TTL_MINUTES,
+            'instruction' => 'Share this code with the supplier when they arrive so they can confirm delivery in the app. No SMS is sent.',
         ];
     }
 

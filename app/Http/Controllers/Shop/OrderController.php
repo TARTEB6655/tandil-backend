@@ -82,7 +82,14 @@ class OrderController extends Controller
     public function show(Request $request, $id)
     {
         $user = $request->user();
-        $order = Order::with(['items.product.category', 'user', 'transactions', 'shippingAddress'])->find($id);
+        $order = Order::with([
+            'items.product.category',
+            'items.product.services',
+            'user',
+            'transactions',
+            'shippingAddress',
+            'vendorMappings',
+        ])->find($id);
 
         if (! $order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
@@ -92,13 +99,32 @@ class OrderController extends Controller
             return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
         }
 
+        $fulfillmentType = OrderTrackingTimeline::fulfillmentType($order);
+        $deliveryOtp = null;
+        if ($fulfillmentType === OrderFulfillmentType::PRODUCT) {
+            $mapping = $order->vendorMappings->sortByDesc('id')->first()
+                ?? $order->vendorMappings()->latest('id')->first();
+            $deliveryOtp = app(\App\Services\Vendor\VendorDeliveryOtpService::class)
+                ->otpPayloadForCustomer($mapping);
+        }
+
+        $data = $order->toArray();
+        $data['shipping_address'] = $order->getShippingAddressForApi();
+        $data['order_number'] = $order->publicOrderNumber();
+        $data['fulfillment_type'] = $fulfillmentType;
+        $data['uses_delivery_otp'] = $fulfillmentType === OrderFulfillmentType::PRODUCT;
+        $data['delivery_otp'] = $deliveryOtp;
+
         return response()->json([
             'success' => true,
             'message' => 'Order retrieved successfully',
-            'data' => $order,
+            'data' => $data,
             'order_number' => $order->publicOrderNumber(),
             'order_number_short' => $order->publicOrderNumberDigits(),
             'order_summary' => $this->orderSummaryForApi($order),
+            'fulfillment_type' => $fulfillmentType,
+            'uses_delivery_otp' => $fulfillmentType === OrderFulfillmentType::PRODUCT,
+            'delivery_otp' => $deliveryOtp,
         ], 200);
     }
 
