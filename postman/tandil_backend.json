@@ -26207,7 +26207,7 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`; single-use, no time expiry) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\n**`{id}` must be `vendor_order_mapping_id`** = list/detail field `id` (NOT shop `order_id`, NOT `order_0061`). Wrong id → **404**.\n\nBody: `otp` (customer in-app code). Single-use; already delivered → 422.\n\n**Token:** `{{vendor_token}}`."
                             }
                         },
                         {

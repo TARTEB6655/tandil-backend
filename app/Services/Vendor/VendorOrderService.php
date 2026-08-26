@@ -849,6 +849,33 @@ class VendorOrderService
     }
 
     /**
+     * Strict lookup: only vendor_order_mappings.id for this vendor (no shop order_id fallback).
+     * Use for confirm-delivery / resend-delivery-otp so a wrong id always 404s.
+     *
+     * @param  'detail'|'contact'|'pdf'  $mode
+     */
+    public function findMappingForVendorByMappingIdOnly(
+        Vendor $vendor,
+        int|string $id,
+        string $mode = 'detail'
+    ): ?VendorOrderMapping {
+        if (is_string($id)) {
+            $id = trim($id);
+        }
+
+        if (! is_int($id) && ! (is_string($id) && ctype_digit($id))) {
+            return null;
+        }
+
+        $mappingId = (int) $id;
+        if ($mappingId < 1) {
+            return null;
+        }
+
+        return $this->findMappingForVendorById((int) $vendor->id, $mappingId, $mode, mappingIdOnly: true);
+    }
+
+    /**
      * Accept numeric mapping/order id, or public refs like order_0061 / VND-2026-0009.
      */
     public function resolveVendorOrderRouteId(int|string $id): ?int
@@ -874,13 +901,16 @@ class VendorOrderService
     }
 
     /**
-     * Resolve vendor order by mapping id first, then shop order_id.
-     * Mapping primary key wins when both could match different rows.
+     * Resolve vendor order by mapping id, optionally also shop order_id.
      *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
-    public function findMappingForVendorById(int $vendorId, int $id, string $mode = 'detail'): ?VendorOrderMapping
-    {
+    public function findMappingForVendorById(
+        int $vendorId,
+        int $id,
+        string $mode = 'detail',
+        bool $mappingIdOnly = false
+    ): ?VendorOrderMapping {
         $with = match ($mode) {
             'contact' => [
                 'order' => fn ($query) => $query->select($this->orderColumnsForApi()),
@@ -904,9 +934,10 @@ class VendorOrderService
 
         $base = fn () => VendorOrderMapping::with($with)->where('vendor_id', $vendorId);
 
-        // Prefer mapping PK, then shop order_id (list card `order_id` / order_0061 digits).
-        $mapping = $base()->where('id', $id)->first()
-            ?? $base()->where('order_id', $id)->first();
+        $mapping = $base()->where('id', $id)->first();
+        if ($mapping === null && ! $mappingIdOnly) {
+            $mapping = $base()->where('order_id', $id)->first();
+        }
 
         if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null
             && $mapping->order->relationLoaded('items')) {

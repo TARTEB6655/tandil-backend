@@ -180,13 +180,14 @@ class VendorOrderController extends Controller
 
     /**
      * Product orders: customer gives OTP to vendor; vendor confirms delivery here.
+     * Path id must be vendor_order_mapping_id (list item `id`) — not shop order_id / order_XXXX.
      */
     public function confirmDelivery(Request $request, string|int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
+        $mapping = $this->orders->findMappingForVendorByMappingIdOnly($vendor, $id, 'detail');
         if ($mapping === null) {
-            return ApiResponse::error('Order not found.', 404);
+            return ApiResponse::error('Order not found. Use vendor_order_mapping_id from GET /api/vendor/orders (field: id).', 404);
         }
 
         $otp = $request->input('otp');
@@ -212,13 +213,14 @@ class VendorOrderController extends Controller
 
     /**
      * Product orders: invalidate the current delivery OTP and send a new one to the customer.
+     * Path id must be vendor_order_mapping_id (list item `id`) — not shop order_id / order_XXXX.
      */
     public function resendDeliveryOtp(Request $request, string|int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
+        $mapping = $this->orders->findMappingForVendorByMappingIdOnly($vendor, $id, 'detail');
         if ($mapping === null) {
-            return ApiResponse::error('Order not found.', 404);
+            return ApiResponse::error('Order not found. Use vendor_order_mapping_id from GET /api/vendor/orders (field: id).', 404);
         }
 
         $mapping = $this->orders->resendDeliveryOtp($mapping, $request->user());

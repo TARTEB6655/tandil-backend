@@ -372,28 +372,40 @@ class VendorOrderApiTest extends TestCase
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
         $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
 
-        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->order_id.'/status', [
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/status', [
             'status' => 'shipped',
         ])->assertOk();
 
         $mapping->refresh();
         $publicNumber = $mapping->order->publicOrderNumber();
-        $this->assertStringStartsWith('order_', $publicNumber);
 
+        // confirm/resend require mapping id only — shop order_id / order_XXXX must 404.
         $this->withToken($token)
             ->postJson('/api/vendor/orders/'.$publicNumber.'/resend-delivery-otp')
-            ->assertOk()
-            ->assertJsonPath('data.order.delivery_otp.has_active_otp', true);
+            ->assertStatus(404);
+
+        if ((int) $mapping->order_id !== (int) $mapping->id) {
+            $this->withToken($token)
+                ->postJson('/api/vendor/orders/'.$mapping->order_id.'/confirm-delivery', [
+                    'otp' => '123456',
+                ])
+                ->assertStatus(404);
+        }
+
+        $this->withToken($token)
+            ->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')
+            ->assertOk();
 
         $mapping->refresh();
         $otp = (int) $mapping->delivery_otp;
 
         $this->withToken($token)
-            ->postJson('/api/vendor/orders/'.$publicNumber.'/confirm-delivery', [
+            ->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
                 'otp' => $otp,
             ])
             ->assertOk()
-            ->assertJsonPath('data.order.status', 'delivered');
+            ->assertJsonPath('data.order.status', 'delivered')
+            ->assertJsonPath('data.order.id', $mapping->id);
     }
 
     public function test_vendor_track_product_timeline_follows_vendor_fulfillment(): void
