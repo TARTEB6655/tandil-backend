@@ -95,8 +95,17 @@ class VendorDeliveryOtpInAppNotificationTest extends TestCase
         $this->withToken($token)
             ->getJson('/api/orders/'.$order->id)
             ->assertOk()
+            ->assertJsonPath('otp', $mapping->delivery_otp)
+            ->assertJsonPath('data.otp', $mapping->delivery_otp)
+            ->assertJsonPath('delivery_otp.otp', $mapping->delivery_otp)
             ->assertJsonPath('delivery_otp.code', $mapping->delivery_otp)
             ->assertJsonPath('data.delivery_otp.code', $mapping->delivery_otp);
+
+        $this->withToken($token)
+            ->getJson('/api/orders/'.$order->id.'/track')
+            ->assertOk()
+            ->assertJsonPath('data.otp', $mapping->delivery_otp)
+            ->assertJsonPath('data.delivery_otp.otp', $mapping->delivery_otp);
     }
 
     public function test_vendor_ship_api_sends_in_app_delivery_otp_notification(): void

@@ -190,6 +190,7 @@ class VendorDeliveryOtpService
 
         if ($mapping->delivery_otp_expires_at !== null && $mapping->delivery_otp_expires_at->isPast()) {
             return [
+                'otp' => null,
                 'code' => null,
                 'expired' => true,
                 'delivery_channel' => 'in_app',
@@ -198,8 +199,11 @@ class VendorDeliveryOtpService
             ];
         }
 
+        $code = (string) $mapping->delivery_otp;
+
         return [
-            'code' => (string) $mapping->delivery_otp,
+            'otp' => $code,
+            'code' => $code,
             'expired' => false,
             'delivery_channel' => 'in_app',
             'expires_at' => $mapping->delivery_otp_expires_at?->format('c'),

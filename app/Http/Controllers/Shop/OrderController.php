@@ -107,6 +107,7 @@ class OrderController extends Controller
             $deliveryOtp = app(\App\Services\Vendor\VendorDeliveryOtpService::class)
                 ->otpPayloadForCustomer($mapping);
         }
+        $otpCode = is_array($deliveryOtp) ? ($deliveryOtp['otp'] ?? $deliveryOtp['code'] ?? null) : null;
 
         $data = $order->toArray();
         $data['shipping_address'] = $order->getShippingAddressForApi();
@@ -114,6 +115,7 @@ class OrderController extends Controller
         $data['fulfillment_type'] = $fulfillmentType;
         $data['uses_delivery_otp'] = $fulfillmentType === OrderFulfillmentType::PRODUCT;
         $data['delivery_otp'] = $deliveryOtp;
+        $data['otp'] = $otpCode;
 
         return response()->json([
             'success' => true,
@@ -125,6 +127,7 @@ class OrderController extends Controller
             'fulfillment_type' => $fulfillmentType,
             'uses_delivery_otp' => $fulfillmentType === OrderFulfillmentType::PRODUCT,
             'delivery_otp' => $deliveryOtp,
+            'otp' => $otpCode,
         ], 200);
     }
 
@@ -313,6 +316,7 @@ class OrderController extends Controller
                 ->otpPayloadForCustomer($mapping);
             $display = OrderTrackingTimeline::displayStatus($order, $mapping);
         }
+        $otpCode = is_array($deliveryOtp) ? ($deliveryOtp['otp'] ?? $deliveryOtp['code'] ?? null) : null;
 
         return response()->json([
             'success' => true,
@@ -329,6 +333,7 @@ class OrderController extends Controller
                 'status_label' => $display['status_label'],
                 'status_icon' => $display['status_icon'],
                 'current_status' => $display['status_label'],
+                'otp' => $otpCode,
                 'delivery_otp' => $deliveryOtp,
                 'tracking' => [
                     'fulfillment_type' => $fulfillmentType,
@@ -671,6 +676,7 @@ class OrderController extends Controller
                 ->otpPayloadForCustomer($mapping);
             $display = OrderTrackingTimeline::displayStatus($order, $mapping);
         }
+        $otpCode = is_array($deliveryOtp) ? ($deliveryOtp['otp'] ?? $deliveryOtp['code'] ?? null) : null;
 
         return response()->json([
             'success' => true,
@@ -687,6 +693,7 @@ class OrderController extends Controller
                 'status_label' => $display['status_label'],
                 'status_icon' => $display['status_icon'],
                 'current_status' => $display['status_label'],
+                'otp' => $otpCode,
                 'delivery_otp' => $deliveryOtp,
                 'tracking' => [
                     'fulfillment_type' => $fulfillmentType,
