@@ -362,6 +362,35 @@ class VendorOrderApiTest extends TestCase
         $this->assertNotNull($mapping->delivery_otp_confirmed_at);
     }
 
+    public function test_vendor_confirm_and_resend_accept_public_order_number_and_numeric_otp(): void
+    {
+        ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
+        $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
+
+        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->order_id.'/status', [
+            'status' => 'shipped',
+        ])->assertOk();
+
+        $mapping->refresh();
+        $publicNumber = $mapping->order->publicOrderNumber();
+        $this->assertStringStartsWith('order_', $publicNumber);
+
+        $this->withToken($token)
+            ->postJson('/api/vendor/orders/'.$publicNumber.'/resend-delivery-otp')
+            ->assertOk()
+            ->assertJsonPath('data.order.delivery_otp.has_active_otp', true);
+
+        $mapping->refresh();
+        $otp = (int) $mapping->delivery_otp;
+
+        $this->withToken($token)
+            ->postJson('/api/vendor/orders/'.$publicNumber.'/confirm-delivery', [
+                'otp' => $otp,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order.status', 'delivered');
+    }
+
     public function test_vendor_track_product_timeline_follows_vendor_fulfillment(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();

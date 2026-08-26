@@ -838,9 +838,39 @@ class VendorOrderService
             : OrderFulfillmentType::PRODUCT;
     }
 
-    public function findMappingForVendor(Vendor $vendor, int $id, string $mode = 'detail'): ?VendorOrderMapping
+    public function findMappingForVendor(Vendor $vendor, int|string $id, string $mode = 'detail'): ?VendorOrderMapping
     {
-        return $this->findMappingForVendorById((int) $vendor->id, $id, $mode);
+        $resolved = $this->resolveVendorOrderRouteId($id);
+        if ($resolved === null) {
+            return null;
+        }
+
+        return $this->findMappingForVendorById((int) $vendor->id, $resolved, $mode);
+    }
+
+    /**
+     * Accept numeric mapping/order id, or public refs like order_0061 / VND-2026-0009.
+     */
+    public function resolveVendorOrderRouteId(int|string $id): ?int
+    {
+        if (is_int($id) || (is_string($id) && is_numeric($id))) {
+            return (int) $id;
+        }
+
+        $raw = trim((string) $id);
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/^order_0*(\d+)$/i', $raw, $matches) === 1) {
+            return (int) $matches[1];
+        }
+
+        if (preg_match('/^VND-\d+-0*(\d+)$/i', $raw, $matches) === 1) {
+            return (int) $matches[1];
+        }
+
+        return null;
     }
 
     /**

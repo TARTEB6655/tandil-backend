@@ -66,7 +66,7 @@ class VendorOrderController extends Controller
         ]);
     }
 
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request, string|int $id): JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'detail');
 
@@ -79,7 +79,7 @@ class VendorOrderController extends Controller
         ]);
     }
 
-    public function track(Request $request, int $id): JsonResponse
+    public function track(Request $request, string|int $id): JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'detail');
 
@@ -93,7 +93,7 @@ class VendorOrderController extends Controller
         );
     }
 
-    public function contact(Request $request, int $id): JsonResponse
+    public function contact(Request $request, string|int $id): JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'contact');
 
@@ -106,7 +106,7 @@ class VendorOrderController extends Controller
         ]);
     }
 
-    public function invoice(Request $request, int $id): Response|JsonResponse
+    public function invoice(Request $request, string|int $id): Response|JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'pdf');
 
@@ -126,7 +126,7 @@ class VendorOrderController extends Controller
         ]);
     }
 
-    public function download(Request $request, int $id): Response|JsonResponse
+    public function download(Request $request, string|int $id): Response|JsonResponse
     {
         $mapping = $this->orders->findMappingForVendor($request->attributes->get('vendor'), $id, 'pdf');
 
@@ -142,7 +142,7 @@ class VendorOrderController extends Controller
         ]);
     }
 
-    public function updateStatus(Request $request, int $id): JsonResponse
+    public function updateStatus(Request $request, string|int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
         $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
@@ -181,7 +181,7 @@ class VendorOrderController extends Controller
     /**
      * Product orders: customer gives OTP to vendor; vendor confirms delivery here.
      */
-    public function confirmDelivery(Request $request, int $id): JsonResponse
+    public function confirmDelivery(Request $request, string|int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
         $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');
@@ -189,8 +189,13 @@ class VendorOrderController extends Controller
             return ApiResponse::error('Order not found.', 404);
         }
 
+        $otp = $request->input('otp');
+        if (is_scalar($otp)) {
+            $request->merge(['otp' => trim((string) $otp)]);
+        }
+
         $data = $request->validate([
-            'otp' => 'required|string|max:10',
+            'otp' => 'required|string|min:4|max:10',
             'note' => 'nullable|string|max:500',
         ]);
 
@@ -208,7 +213,7 @@ class VendorOrderController extends Controller
     /**
      * Product orders: invalidate the current delivery OTP and send a new one to the customer.
      */
-    public function resendDeliveryOtp(Request $request, int $id): JsonResponse
+    public function resendDeliveryOtp(Request $request, string|int $id): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
         $mapping = $this->orders->findMappingForVendor($vendor, $id, 'detail');

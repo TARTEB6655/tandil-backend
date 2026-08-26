@@ -11,6 +11,7 @@ use App\Notifications\DeliveryOtpNotification;
 use App\Notifications\VendorDeliveryOtpIssuedNotification;
 use App\Support\OrderFulfillmentType;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -257,11 +258,19 @@ class VendorDeliveryOtpService
                 return;
             }
 
-            $vendorUser->notify(new VendorDeliveryOtpIssuedNotification(
-                $fresh->order,
-                $fresh,
-                $isResend
-            ));
+            try {
+                $vendorUser->notify(new VendorDeliveryOtpIssuedNotification(
+                    $fresh->order,
+                    $fresh,
+                    $isResend
+                ));
+            } catch (\Throwable $e) {
+                Log::warning('vendor.delivery_otp.notify_vendor_failed', [
+                    'order_id' => $fresh->order_id,
+                    'mapping_id' => $fresh->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         };
 
         if (DB::transactionLevel() > 0 && ! app()->runningUnitTests()) {
@@ -296,12 +305,20 @@ class VendorDeliveryOtpService
                 return;
             }
 
-            $user->notify(new DeliveryOtpNotification(
-                $order,
-                $mapping,
-                $otp,
-                $isResend
-            ));
+            try {
+                $user->notify(new DeliveryOtpNotification(
+                    $order,
+                    $mapping,
+                    $otp,
+                    $isResend
+                ));
+            } catch (\Throwable $e) {
+                Log::warning('vendor.delivery_otp.notify_customer_failed', [
+                    'order_id' => $orderId,
+                    'mapping_id' => $mapping->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         };
 
         if (DB::transactionLevel() > 0 && ! app()->runningUnitTests()) {
