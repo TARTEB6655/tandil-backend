@@ -22,7 +22,7 @@ $fulfillmentDoc = <<<'MD'
 
 | Catalog type | How to create | After payment | Client Track timeline | Notifications |
 |--------------|---------------|---------------|----------------------|---------------|
-| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |
+| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, single-use) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |
 | **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |
 
 **Where to test in Postman:**
@@ -117,7 +117,7 @@ GET /api/orders/{id}/track – Timeline + order_summary + fulfillment-aware fiel
 ### Product / simple order (`fulfillment_type` = `product`)
 - **Horizontal** delivery timeline (pending → confirmed → processing → shipped → delivered).
 - **No** supervisor steps / “goes to supervisor” messaging.
-- When status is `shipped`: `delivery_otp` (6-digit, 5 min TTL) shown here + **in-app** Delivery OTP notification (no SMS).
+- When status is `shipped`: `delivery_otp` (6-digit, single-use) shown here + **in-app** Delivery OTP notification (no SMS).
 - Vendor confirms with `POST /api/vendor/orders/{id}/confirm-delivery`.
 
 ### Service order (`fulfillment_type` = `service`)
@@ -405,13 +405,13 @@ if ($adminFolder !== null && isset($adminFolder['item'])) {
 setRequestDescription(
     $j,
     ['12. Vendor Dashboard – All APIs', 'L. Orders (approved only)', '8. Confirm delivery (OTP)'],
-    "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`, 5 min TTL) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
+    "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`; single-use, no time expiry) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
 );
 
 setRequestDescription(
     $j,
     ['12. Vendor Dashboard – All APIs', 'L. Orders (approved only)', '12. Resend delivery OTP'],
-    "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates previous OTP and sends a new 6-digit code **inside the Tandil app** (notification + track). 5 min expiry, 60s cooldown. No SMS.\n\nWorks for vendor-created and admin-catalog simple products fulfilled by this vendor.\n\n**Token:** `{{vendor_token}}`."
+    "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates previous OTP and sends a new 6-digit code **inside the Tandil app** (notification + track). Single-use only — no time expiry, no cooldown. No SMS.\n\nWorks for vendor-created and admin-catalog simple products fulfilled by this vendor.\n\n**Token:** `{{vendor_token}}`."
 );
 
 $json = json_encode($j, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

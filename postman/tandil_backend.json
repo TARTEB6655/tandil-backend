@@ -4462,7 +4462,7 @@
                                                 "{{order_id}}"
                                             ]
                                         },
-                                        "description": "GET order details (also `GET /api/orders/{id}`).\n\n**Product orders (shipped):** response includes `delivery_otp` object — use **`delivery_otp.code`** (string) for the UI boxes. Do not render the whole object (avoids `[object Object]`).\n\nFields when active: `code`, `expired`, `expires_at`, `instruction`, `delivery_channel: in_app`.\nAlso: `fulfillment_type`, `uses_delivery_otp`."
+                                        "description": "GET order details (also `GET /api/orders/{id}`).\n\n**Product orders (shipped):** response includes `delivery_otp` object — use **`delivery_otp.code`** (string) for the UI boxes. Do not render the whole object (avoids `[object Object]`).\n\nFields when active: `otp`/`code` (string), `single_use`, `expires: false`, `instruction`, `delivery_channel: in_app`.\nAlso: `fulfillment_type`, `uses_delivery_otp`."
                                     }
                                 },
                                 {
@@ -26207,7 +26207,7 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`, 5 min TTL) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only** (vendor OR admin-catalog simple products assigned to this vendor).\n\nCustomer gives OTP (Tandil **in-app** notification + Track `delivery_otp`; single-use, no time expiry) to supplier. Body: `otp`.\n\nSets mapping `delivered` + shop `order_status=delivered`. OTP single-use.\n\n**Not used for service orders** (those use supervisor / mark-delivered).\n\n**Token:** `{{vendor_token}}`."
                             }
                         },
                         {
@@ -26237,7 +26237,7 @@
                                         "resend-delivery-otp"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates previous OTP and sends a new 6-digit code **inside the Tandil app** (notification + track). 5 min expiry, 60s cooldown. No SMS.\n\nWorks for vendor-created and admin-catalog simple products fulfilled by this vendor.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/resend-delivery-otp` — **product orders only**, status `shipped`.\n\nInvalidates previous OTP and sends a new 6-digit code **inside the Tandil app** (notification + track). Single-use only — no time expiry, no cooldown. No SMS.\n\nWorks for vendor-created and admin-catalog simple products fulfilled by this vendor.\n\n**Token:** `{{vendor_token}}`."
                             }
                         }
                     ]

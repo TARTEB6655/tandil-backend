@@ -14,19 +14,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Product-order delivery OTP: shown in the Tandil app to the customer when the vendor ships;
- * customer shares the code with the vendor to complete delivery. No external SMS.
+ * Product-order delivery OTP: shown in the Tandil app when the vendor ships.
+ * Single-use only — no time expiry and no resend cooldown. Invalidated after confirm.
  */
 class VendorDeliveryOtpService
 {
-    public const OTP_TTL_MINUTES = 5;
-
-    public const RESEND_COOLDOWN_SECONDS = 60;
-
-    public const MAX_ATTEMPTS = 5;
-
-    public const LOCKOUT_MINUTES = 15;
-
     public function ensureOtpForShipped(VendorOrderMapping $mapping): VendorOrderMapping
     {
         if ($mapping->statusEnum() !== VendorOrderStatus::Shipped) {
@@ -55,13 +47,6 @@ class VendorDeliveryOtpService
             ]);
         }
 
-        $wait = $this->resendCooldownRemainingSeconds($mapping);
-        if ($wait > 0) {
-            throw ValidationException::withMessages([
-                'otp' => ["Please wait {$wait} seconds before requesting a new delivery OTP."],
-            ]);
-        }
-
         $mapping = $this->issueOtp($mapping, force: true, isResend: true);
 
         VendorOrderStatusLog::create([
@@ -87,30 +72,15 @@ class VendorDeliveryOtpService
             ]);
         }
 
-        if ($mapping->delivery_otp_locked_until !== null && $mapping->delivery_otp_locked_until->isFuture()) {
-            $seconds = max(1, (int) now()->diffInSeconds($mapping->delivery_otp_locked_until));
-            throw ValidationException::withMessages([
-                'otp' => ["Too many incorrect OTP attempts. Try again in {$seconds} seconds or resend a new OTP."],
-            ]);
-        }
-
         if (! filled($mapping->delivery_otp)) {
             throw ValidationException::withMessages([
                 'otp' => ['No active delivery OTP. Use Resend OTP to generate a new code for the customer.'],
             ]);
         }
 
-        if ($mapping->delivery_otp_expires_at !== null && $mapping->delivery_otp_expires_at->isPast()) {
-            throw ValidationException::withMessages([
-                'otp' => ['Delivery OTP has expired. Use Resend OTP to generate a new code.'],
-            ]);
-        }
-
         $expected = trim((string) $mapping->delivery_otp);
         $given = trim($otp);
         if ($expected === '' || $given === '' || ! hash_equals($expected, $given)) {
-            $this->registerFailedAttempt($mapping);
-
             throw ValidationException::withMessages([
                 'otp' => ['Invalid delivery OTP.'],
             ]);
@@ -171,7 +141,7 @@ class VendorDeliveryOtpService
     }
 
     /**
-     * OTP visible to the customer on the track screen while awaiting vendor confirmation.
+     * OTP visible to the customer while awaiting vendor confirmation (single-use, no time expiry).
      *
      * @return array<string, mixed>|null
      */
@@ -189,37 +159,16 @@ class VendorDeliveryOtpService
             return null;
         }
 
-        if ($mapping->delivery_otp_expires_at !== null && $mapping->delivery_otp_expires_at->isPast()) {
-            return [
-                'otp' => null,
-                'code' => null,
-                'expired' => true,
-                'ttl_minutes' => self::OTP_TTL_MINUTES,
-                'expires_at' => $mapping->delivery_otp_expires_at->format('c'),
-                'expires_at_label' => $mapping->delivery_otp_expires_at->timezone(config('app.timezone'))->format('g:i A'),
-                'expires_in_seconds' => 0,
-                'expires_in_minutes' => 0,
-                'delivery_channel' => 'in_app',
-                'instruction' => 'Your delivery OTP has expired. Ask the supplier to resend a new code in the app.',
-            ];
-        }
-
         $code = (string) $mapping->delivery_otp;
-        $expiresAt = $mapping->delivery_otp_expires_at;
-        $expiresInSeconds = $expiresAt !== null ? max(0, (int) now()->diffInSeconds($expiresAt, false)) : null;
 
         return [
             'otp' => $code,
             'code' => $code,
-            'expired' => false,
+            'single_use' => true,
+            'expires' => false,
             'delivery_channel' => 'in_app',
-            'expires_at' => $expiresAt?->format('c'),
-            'expires_at_label' => $expiresAt?->timezone(config('app.timezone'))->format('g:i A'),
-            'expires_in_seconds' => $expiresInSeconds,
-            'expires_in_minutes' => $expiresInSeconds !== null ? (int) ceil($expiresInSeconds / 60) : self::OTP_TTL_MINUTES,
             'sent_at' => $mapping->delivery_otp_sent_at?->format('c'),
-            'ttl_minutes' => self::OTP_TTL_MINUTES,
-            'instruction' => 'Share this code with the supplier when they arrive so they can confirm delivery in the app. Valid for '.self::OTP_TTL_MINUTES.' minutes. No SMS is sent.',
+            'instruction' => 'Share this code with the supplier when they arrive so they can confirm delivery. It can only be used once. No SMS is sent.',
         ];
     }
 
@@ -238,62 +187,29 @@ class VendorDeliveryOtpService
             return null;
         }
 
-        $cooldown = $this->resendCooldownRemainingSeconds($mapping);
-        $lockedUntil = $mapping->delivery_otp_locked_until;
-        $locked = $lockedUntil !== null && $lockedUntil->isFuture();
-        $attempts = (int) ($mapping->delivery_otp_attempts ?? 0);
-        $expiresAt = $mapping->delivery_otp_expires_at;
-        $expired = $expiresAt !== null && $expiresAt->isPast();
-        $expiresInSeconds = $expiresAt !== null
-            ? max(0, (int) now()->diffInSeconds($expiresAt, false))
-            : null;
-        $hasActive = $this->hasActiveOtp($mapping);
-
         return [
             'required' => true,
             'delivery_channel' => 'in_app',
-            'has_active_otp' => $hasActive,
-            'expired' => $expired,
-            'ttl_minutes' => self::OTP_TTL_MINUTES,
-            'expires_at' => $expiresAt?->format('c'),
-            'expires_at_label' => $expiresAt?->timezone(config('app.timezone'))->format('g:i A'),
-            'expires_in_seconds' => $expired ? 0 : $expiresInSeconds,
-            'expires_in_minutes' => $expired
-                ? 0
-                : ($expiresInSeconds !== null ? (int) ceil($expiresInSeconds / 60) : self::OTP_TTL_MINUTES),
+            'has_active_otp' => $this->hasActiveOtp($mapping),
+            'single_use' => true,
+            'expires' => false,
             'sent_at' => $mapping->delivery_otp_sent_at?->format('c'),
-            'attempts' => $attempts,
-            'attempts_remaining' => max(0, self::MAX_ATTEMPTS - $attempts),
-            'max_attempts' => self::MAX_ATTEMPTS,
-            'locked' => $locked,
-            'locked_until' => $locked ? $lockedUntil->format('c') : null,
-            'resend_available_in_seconds' => $cooldown,
-            'can_resend' => $cooldown === 0,
-            'resend_cooldown_seconds' => self::RESEND_COOLDOWN_SECONDS,
+            'can_resend' => true,
             'resend_endpoint' => '/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp',
-            'instruction' => $expired
-                ? 'Delivery OTP expired after '.self::OTP_TTL_MINUTES.' minutes. Tap Resend OTP to create a new code for the customer.'
-                : 'Customer sees the OTP in the Tandil app for '.self::OTP_TTL_MINUTES.' minutes. Ask them to share it when the order arrives. If it expires, tap Resend OTP.',
+            'instruction' => 'Customer sees the OTP in the Tandil app. Ask them to share it when the order arrives. The code works once, then it is invalidated.',
         ];
     }
 
+    /** @deprecated No cooldown — always 0. Kept for older callers. */
     public function resendCooldownRemainingSeconds(VendorOrderMapping $mapping): int
     {
-        if ($mapping->delivery_otp_sent_at === null) {
-            return 0;
-        }
-
-        $elapsed = $mapping->delivery_otp_sent_at->diffInSeconds(now());
-        $remaining = self::RESEND_COOLDOWN_SECONDS - (int) $elapsed;
-
-        return max(0, $remaining);
+        return 0;
     }
 
     private function hasActiveOtp(VendorOrderMapping $mapping): bool
     {
         return filled($mapping->delivery_otp)
-            && $mapping->delivery_otp_confirmed_at === null
-            && ($mapping->delivery_otp_expires_at === null || $mapping->delivery_otp_expires_at->isFuture());
+            && $mapping->delivery_otp_confirmed_at === null;
     }
 
     private function issueOtp(VendorOrderMapping $mapping, bool $force = false, bool $isResend = false): VendorOrderMapping
@@ -310,7 +226,7 @@ class VendorDeliveryOtpService
         $otp = (string) random_int(100000, 999999);
         $mapping->update([
             'delivery_otp' => $otp,
-            'delivery_otp_expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
+            'delivery_otp_expires_at' => null,
             'delivery_otp_confirmed_at' => null,
             'delivery_otp_sent_at' => now(),
             'delivery_otp_sent_to' => 'in_app',
@@ -323,18 +239,6 @@ class VendorDeliveryOtpService
         $this->notifyVendorInApp($fresh, $isResend);
 
         return $fresh;
-    }
-
-    private function registerFailedAttempt(VendorOrderMapping $mapping): void
-    {
-        $attempts = (int) $mapping->delivery_otp_attempts + 1;
-        $updates = ['delivery_otp_attempts' => $attempts];
-
-        if ($attempts >= self::MAX_ATTEMPTS) {
-            $updates['delivery_otp_locked_until'] = now()->addMinutes(self::LOCKOUT_MINUTES);
-        }
-
-        $mapping->update($updates);
     }
 
     private function notifyVendorInApp(VendorOrderMapping $mapping, bool $isResend = false): void
@@ -356,7 +260,6 @@ class VendorDeliveryOtpService
             $vendorUser->notify(new VendorDeliveryOtpIssuedNotification(
                 $fresh->order,
                 $fresh,
-                self::OTP_TTL_MINUTES,
                 $isResend
             ));
         };
@@ -397,7 +300,6 @@ class VendorDeliveryOtpService
                 $order,
                 $mapping,
                 $otp,
-                self::OTP_TTL_MINUTES,
                 $isResend
             ));
         };

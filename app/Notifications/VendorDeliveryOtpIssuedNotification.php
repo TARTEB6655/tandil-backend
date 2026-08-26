@@ -9,8 +9,8 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
- * In-app alert for the vendor when a delivery OTP is issued or resent to the customer.
- * Does not include the OTP code (customer shares it verbally).
+ * Vendor alert when a delivery OTP is issued/resent to the customer.
+ * Does not include the OTP code. Single-use, no time expiry.
  */
 class VendorDeliveryOtpIssuedNotification extends Notification
 {
@@ -19,7 +19,6 @@ class VendorDeliveryOtpIssuedNotification extends Notification
     public function __construct(
         public Order $order,
         public VendorOrderMapping $mapping,
-        public int $ttlMinutes,
         public bool $isResend = false
     ) {}
 
@@ -32,15 +31,13 @@ class VendorDeliveryOtpIssuedNotification extends Notification
     {
         $order = $this->order;
         $orderNumber = $order->publicOrderNumber();
-        $expiresAt = $this->mapping->delivery_otp_expires_at;
-        $expiresLabel = $expiresAt?->timezone(config('app.timezone'))->format('g:i A');
         $detailUrl = '/vendor/orders/'.$this->mapping->id;
         $title = $this->isResend
             ? 'New delivery OTP sent to customer'
             : 'Delivery OTP sent to customer';
         $message = $this->isResend
-            ? "A new delivery OTP was sent in-app for order {$orderNumber}. It expires in {$this->ttlMinutes} minutes".($expiresLabel ? " (at {$expiresLabel})" : '').'. Ask the customer for the code, or tap Resend OTP if it expires.'
-            : "Delivery OTP was sent in-app for order {$orderNumber}. Valid for {$this->ttlMinutes} minutes".($expiresLabel ? " (expires at {$expiresLabel})" : '').'. Ask the customer for the code when you arrive. If it expires, tap Resend OTP to create a new one.';
+            ? "A new delivery OTP was sent in-app for order {$orderNumber}. Ask the customer for the code to confirm delivery. The code works only once."
+            : "Delivery OTP was sent in-app for order {$orderNumber}. Ask the customer for the code when you arrive. The code works only once.";
 
         return NotificationAudiencePayload::merge($notifiable, [
             'title' => $title,
@@ -52,9 +49,8 @@ class VendorDeliveryOtpIssuedNotification extends Notification
             'order_number' => $orderNumber,
             'vendor_order_id' => $this->mapping->id,
             'vendor_order_mapping_id' => $this->mapping->id,
-            'ttl_minutes' => $this->ttlMinutes,
-            'expires_at' => $expiresAt?->format('c'),
-            'expires_at_label' => $expiresLabel,
+            'single_use' => true,
+            'expires' => false,
             'is_resend' => $this->isResend,
             'resend_endpoint' => '/api/vendor/orders/'.$this->mapping->id.'/resend-delivery-otp',
             'confirm_endpoint' => '/api/vendor/orders/'.$this->mapping->id.'/confirm-delivery',
@@ -64,9 +60,8 @@ class VendorDeliveryOtpIssuedNotification extends Notification
                 'order_id' => $order->id,
                 'order_number' => $orderNumber,
                 'vendor_order_mapping_id' => $this->mapping->id,
-                'ttl_minutes' => $this->ttlMinutes,
-                'expires_at' => $expiresAt?->format('c'),
-                'expires_at_label' => $expiresLabel,
+                'single_use' => true,
+                'expires' => false,
                 'is_resend' => $this->isResend,
                 'action_url' => $detailUrl,
                 'resend_endpoint' => '/api/vendor/orders/'.$this->mapping->id.'/resend-delivery-otp',

@@ -772,23 +772,19 @@ class VendorOrderService
             VendorOrderStatus::Processing,
         ], true);
 
-        $otpService = app(VendorDeliveryOtpService::class);
-        $resendCooldown = $mapping instanceof VendorOrderMapping
-            ? $otpService->resendCooldownRemainingSeconds($mapping)
-            : 0;
-        $canResendOtp = $canMarkDelivered && $resendCooldown === 0;
-
+        $canResendOtp = $canMarkDelivered;
         $primaryAction = null;
         $primaryActionLabel = null;
+
         if ($canConfirm) {
             $primaryAction = 'confirm';
-            $primaryActionLabel = 'Confirm';
+            $primaryActionLabel = 'Confirm order';
         } elseif ($canShip) {
             $primaryAction = 'ship';
-            $primaryActionLabel = 'Ship';
+            $primaryActionLabel = 'Mark as shipped';
         } elseif ($canMarkDelivered) {
             $primaryAction = 'confirm_delivery_otp';
-            $primaryActionLabel = 'Confirm delivery (OTP)';
+            $primaryActionLabel = 'Confirm delivery with OTP';
         }
 
         return [
@@ -798,7 +794,7 @@ class VendorOrderService
             'can_mark_delivered' => $canMarkDelivered,
             'can_confirm_delivery_otp' => $canMarkDelivered,
             'can_resend_delivery_otp' => $canResendOtp,
-            'resend_delivery_otp_available_in_seconds' => $canMarkDelivered ? $resendCooldown : 0,
+            'resend_delivery_otp_available_in_seconds' => 0,
             'can_cancel' => $canCancel,
             'primary_action' => $primaryAction,
             'primary_action_label' => $primaryActionLabel,

@@ -89,18 +89,22 @@ class VendorDeliveryOtpInAppNotificationTest extends TestCase
         $this->assertSame('in_app', $notification->data['delivery_channel'] ?? null);
         $this->assertSame('/api/orders/'.$order->id.'/track', $notification->data['track_endpoint'] ?? null);
         $this->assertSame('Delivery confirmation code', $notification->data['title'] ?? null);
-        $this->assertSame(VendorDeliveryOtpService::OTP_TTL_MINUTES, $notification->data['ttl_minutes'] ?? null);
-        $this->assertNotEmpty($notification->data['expires_at'] ?? null);
+        $this->assertTrue($notification->data['single_use'] ?? false);
+        $this->assertFalse($notification->data['expires'] ?? true);
+        $this->assertArrayNotHasKey('ttl_minutes', $notification->data);
+        $this->assertArrayNotHasKey('expires_at', $notification->data);
         $this->assertStringContainsString('confirm delivery', strtolower((string) ($notification->data['message'] ?? '')));
-        $this->assertStringContainsString((string) VendorDeliveryOtpService::OTP_TTL_MINUTES, (string) ($notification->data['message'] ?? ''));
+        $this->assertStringContainsString('only be used once', strtolower((string) ($notification->data['message'] ?? '')));
         $this->assertStringContainsString((string) $mapping->delivery_otp, (string) ($notification->data['message'] ?? ''));
 
         $vendorNotification = $vendorUser->fresh()->notifications()->latest()->first();
         $this->assertNotNull($vendorNotification);
         $this->assertSame('vendor_delivery_otp_issued', $vendorNotification->data['type'] ?? null);
-        $this->assertSame(VendorDeliveryOtpService::OTP_TTL_MINUTES, $vendorNotification->data['ttl_minutes'] ?? null);
-        $this->assertNotEmpty($vendorNotification->data['expires_at'] ?? null);
-        $this->assertStringContainsString('Resend OTP', (string) ($vendorNotification->data['message'] ?? ''));
+        $this->assertTrue($vendorNotification->data['single_use'] ?? false);
+        $this->assertFalse($vendorNotification->data['expires'] ?? true);
+        $this->assertArrayNotHasKey('ttl_minutes', $vendorNotification->data);
+        $this->assertArrayNotHasKey('expires_at', $vendorNotification->data);
+        $this->assertStringContainsString('only once', strtolower((string) ($vendorNotification->data['message'] ?? '')));
         $this->assertArrayNotHasKey('otp', $vendorNotification->data);
 
         $token = $client->createToken('client')->plainTextToken;

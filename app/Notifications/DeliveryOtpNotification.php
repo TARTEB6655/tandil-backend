@@ -9,7 +9,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
 /**
- * In-app delivery OTP for product orders (no external SMS).
+ * In-app delivery OTP for product orders (no external SMS). Single-use, no time expiry.
  */
 class DeliveryOtpNotification extends Notification
 {
@@ -19,7 +19,6 @@ class DeliveryOtpNotification extends Notification
         public Order $order,
         public VendorOrderMapping $mapping,
         public string $otp,
-        public int $ttlMinutes,
         public bool $isResend = false
     ) {}
 
@@ -33,14 +32,12 @@ class DeliveryOtpNotification extends Notification
         $order = $this->order;
         $orderNumber = $order->publicOrderNumber();
         $trackPath = '/orders/'.$order->id.'/track';
-        $expiresAt = $this->mapping->delivery_otp_expires_at;
-        $expiresLabel = $expiresAt?->timezone(config('app.timezone'))->format('g:i A');
         $title = $this->isResend
             ? 'New delivery confirmation code'
             : 'Delivery confirmation code';
         $message = $this->isResend
-            ? "A new OTP for order {$orderNumber} is {$this->otp}. Valid for {$this->ttlMinutes} minutes".($expiresLabel ? " (expires at {$expiresLabel})" : '').'. Share it with the supplier to confirm delivery. Open Order Tracking in Tandil to view it anytime.'
-            : "Your order {$orderNumber} is out for delivery. Your OTP is {$this->otp}. Valid for {$this->ttlMinutes} minutes".($expiresLabel ? " (expires at {$expiresLabel})" : '').'. Share it with the supplier when they arrive to confirm delivery. Open Order Tracking in Tandil to view the code anytime.';
+            ? "A new OTP for order {$orderNumber} is {$this->otp}. Share it with the supplier to confirm delivery. This code can only be used once."
+            : "Your order {$orderNumber} is out for delivery. Your OTP is {$this->otp}. Share it with the supplier when they arrive to confirm delivery. This code can only be used once.";
 
         return NotificationAudiencePayload::merge($notifiable, [
             'title' => $title,
@@ -52,9 +49,8 @@ class DeliveryOtpNotification extends Notification
             'order_id' => $order->id,
             'order_number' => $orderNumber,
             'otp' => $this->otp,
-            'ttl_minutes' => $this->ttlMinutes,
-            'expires_at' => $expiresAt?->format('c'),
-            'expires_at_label' => $expiresLabel,
+            'single_use' => true,
+            'expires' => false,
             'vendor_order_mapping_id' => $this->mapping->id,
             'meta' => [
                 'entity' => 'shop_order',
@@ -64,9 +60,8 @@ class DeliveryOtpNotification extends Notification
                 'order_number' => $orderNumber,
                 'vendor_order_mapping_id' => $this->mapping->id,
                 'otp' => $this->otp,
-                'ttl_minutes' => $this->ttlMinutes,
-                'expires_at' => $expiresAt?->format('c'),
-                'expires_at_label' => $expiresLabel,
+                'single_use' => true,
+                'expires' => false,
                 'action_url' => $trackPath,
                 'track_endpoint' => '/api/orders/'.$order->id.'/track',
             ],
