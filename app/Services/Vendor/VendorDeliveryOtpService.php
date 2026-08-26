@@ -64,7 +64,9 @@ class VendorDeliveryOtpService
     {
         if ($mapping->statusEnum() === VendorOrderStatus::Delivered
             && $mapping->delivery_otp_confirmed_at !== null) {
-            return $mapping;
+            throw ValidationException::withMessages([
+                'otp' => ['Delivery is already confirmed for this order.'],
+            ]);
         }
 
         if ($mapping->statusEnum() !== VendorOrderStatus::Shipped) {

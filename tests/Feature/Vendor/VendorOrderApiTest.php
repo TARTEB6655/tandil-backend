@@ -316,10 +316,15 @@ class VendorOrderApiTest extends TestCase
         $this->assertNotNull($mapping->delivery_otp_confirmed_at);
         $this->assertNull($mapping->delivery_otp);
 
-        // Single-use: previous OTP cannot complete delivery again.
+        // Already confirmed — do not accept OTP again (even the previous code).
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
             'otp' => $otp,
-        ])->assertOk()->assertJsonPath('data.order.status', 'delivered');
+        ])->assertStatus(422)->assertJsonValidationErrors(['otp']);
+
+        // Unknown id must 404 (not silently resolve another order).
+        $this->withToken($token)->postJson('/api/vendor/orders/999999/confirm-delivery', [
+            'otp' => '123456',
+        ])->assertStatus(404);
     }
 
     public function test_vendor_delivery_otp_resend_replaces_code_and_is_single_use(): void
@@ -550,7 +555,7 @@ class VendorOrderApiTest extends TestCase
     {
         $category = Category::create([
             'name' => 'Produce',
-            'slug' => 'produce-orders',
+            'slug' => 'produce-orders-'.uniqid(),
             'is_active' => true,
             'shipping_cost' => 0,
             'tax_percentage' => 0,

@@ -874,7 +874,8 @@ class VendorOrderService
     }
 
     /**
-     * Resolve by shop/vendor order id first (`order_id` from GET /orders), then mapping id.
+     * Resolve vendor order by mapping id first, then shop order_id.
+     * Mapping primary key wins when both could match different rows.
      *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
@@ -903,8 +904,9 @@ class VendorOrderService
 
         $base = fn () => VendorOrderMapping::with($with)->where('vendor_id', $vendorId);
 
-        $mapping = $base()->where('order_id', $id)->first()
-            ?? $base()->where('id', $id)->first();
+        // Prefer mapping PK, then shop order_id (list card `order_id` / order_0061 digits).
+        $mapping = $base()->where('id', $id)->first()
+            ?? $base()->where('order_id', $id)->first();
 
         if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null
             && $mapping->order->relationLoaded('items')) {
