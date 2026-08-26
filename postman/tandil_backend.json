@@ -26207,7 +26207,7 @@
                                         "confirm-delivery"
                                     ]
                                 },
-                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\n**`{id}` must be `vendor_order_mapping_id`** = list/detail field `id` (NOT shop `order_id`, NOT `order_0061`). Wrong id → **404**.\n\nBody: `otp` (customer in-app code). Single-use; already delivered → 422.\n\n**Token:** `{{vendor_token}}`."
+                                "description": "POST `/api/vendor/orders/{id}/confirm-delivery` — **product orders only**.\n\n**`{id}`** = this order's mapping `id` OR shop `order_id` (or `order_0061` / `VND-…`). Must belong to the logged-in vendor. Wrong id → **404**.\n\nBody: `otp`. Single-use; already delivered → 422.\n\n**Token:** `{{vendor_token}}`."
                             }
                         },
                         {

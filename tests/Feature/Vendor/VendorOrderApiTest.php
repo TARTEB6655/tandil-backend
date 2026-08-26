@@ -367,7 +367,7 @@ class VendorOrderApiTest extends TestCase
         $this->assertNotNull($mapping->delivery_otp_confirmed_at);
     }
 
-    public function test_vendor_confirm_and_resend_accept_public_order_number_and_numeric_otp(): void
+    public function test_vendor_confirm_and_resend_accept_order_id_and_mapping_id(): void
     {
         ['token' => $token, 'vendor' => $vendor] = $this->makeVendorUser();
         $mapping = $this->seedVendorOrder($vendor, VendorOrderStatus::Confirmed);
@@ -379,33 +379,30 @@ class VendorOrderApiTest extends TestCase
         $mapping->refresh();
         $publicNumber = $mapping->order->publicOrderNumber();
 
-        // confirm/resend require mapping id only — shop order_id / order_XXXX must 404.
+        // Wrong id → 404
         $this->withToken($token)
-            ->postJson('/api/vendor/orders/'.$publicNumber.'/resend-delivery-otp')
+            ->postJson('/api/vendor/orders/999999/resend-delivery-otp')
             ->assertStatus(404);
 
-        if ((int) $mapping->order_id !== (int) $mapping->id) {
-            $this->withToken($token)
-                ->postJson('/api/vendor/orders/'.$mapping->order_id.'/confirm-delivery', [
-                    'otp' => '123456',
-                ])
-                ->assertStatus(404);
-        }
-
+        // Correct shop order public number → same order
         $this->withToken($token)
-            ->postJson('/api/vendor/orders/'.$mapping->id.'/resend-delivery-otp')
-            ->assertOk();
+            ->postJson('/api/vendor/orders/'.$publicNumber.'/resend-delivery-otp')
+            ->assertOk()
+            ->assertJsonPath('data.order.id', $mapping->id)
+            ->assertJsonPath('data.order.order_id', $mapping->order_id);
 
         $mapping->refresh();
         $otp = (int) $mapping->delivery_otp;
 
+        // Correct mapping id → confirm that same order
         $this->withToken($token)
             ->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
                 'otp' => $otp,
             ])
             ->assertOk()
             ->assertJsonPath('data.order.status', 'delivered')
-            ->assertJsonPath('data.order.id', $mapping->id);
+            ->assertJsonPath('data.order.id', $mapping->id)
+            ->assertJsonPath('data.order.order_id', $mapping->order_id);
     }
 
     public function test_vendor_track_product_timeline_follows_vendor_fulfillment(): void

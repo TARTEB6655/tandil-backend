@@ -849,30 +849,63 @@ class VendorOrderService
     }
 
     /**
-     * Strict lookup: only vendor_order_mappings.id for this vendor (no shop order_id fallback).
-     * Use for confirm-delivery / resend-delivery-otp so a wrong id always 404s.
+     * OTP confirm/resend lookup: accept this vendor's mapping id OR shop order_id
+     * (also order_XXXX / VND-YYYY-NNNN). Any other id → null (404).
      *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
-    public function findMappingForVendorByMappingIdOnly(
+    public function findMappingForVendorForOtpActions(
         Vendor $vendor,
         int|string $id,
         string $mode = 'detail'
     ): ?VendorOrderMapping {
-        if (is_string($id)) {
-            $id = trim($id);
+        $vendorId = (int) $vendor->id;
+        $raw = is_string($id) ? trim($id) : $id;
+
+        // order_0061 → shop order_id only
+        if (is_string($raw) && preg_match('/^order_0*(\d+)$/i', $raw, $matches) === 1) {
+            return $this->loadVendorMapping($vendorId, orderId: (int) $matches[1], mode: $mode);
         }
 
-        if (! is_int($id) && ! (is_string($id) && ctype_digit($id))) {
+        // VND-2026-0011 → mapping id only
+        if (is_string($raw) && preg_match('/^VND-\d+-0*(\d+)$/i', $raw, $matches) === 1) {
+            return $this->loadVendorMapping($vendorId, mappingId: (int) $matches[1], mode: $mode);
+        }
+
+        if (! is_int($raw) && ! (is_string($raw) && ctype_digit($raw))) {
             return null;
         }
 
-        $mappingId = (int) $id;
-        if ($mappingId < 1) {
+        $numericId = (int) $raw;
+        if ($numericId < 1) {
             return null;
         }
 
-        return $this->findMappingForVendorById((int) $vendor->id, $mappingId, $mode, mappingIdOnly: true);
+        // Prefer exact mapping PK, else exact shop order_id for this vendor.
+        return $this->loadVendorMapping($vendorId, mappingId: $numericId, mode: $mode)
+            ?? $this->loadVendorMapping($vendorId, orderId: $numericId, mode: $mode);
+    }
+
+    /**
+     * @param  'detail'|'contact'|'pdf'  $mode
+     */
+    private function loadVendorMapping(
+        int $vendorId,
+        string $mode = 'detail',
+        ?int $mappingId = null,
+        ?int $orderId = null
+    ): ?VendorOrderMapping {
+        if ($mappingId === null && $orderId === null) {
+            return null;
+        }
+
+        return $this->findMappingForVendorById(
+            $vendorId,
+            $mappingId ?? $orderId,
+            $mode,
+            mappingIdOnly: $mappingId !== null && $orderId === null,
+            orderIdOnly: $orderId !== null && $mappingId === null
+        );
     }
 
     /**
@@ -901,7 +934,7 @@ class VendorOrderService
     }
 
     /**
-     * Resolve vendor order by mapping id, optionally also shop order_id.
+     * Resolve vendor order by mapping id and/or shop order_id.
      *
      * @param  'detail'|'contact'|'pdf'  $mode
      */
@@ -909,7 +942,8 @@ class VendorOrderService
         int $vendorId,
         int $id,
         string $mode = 'detail',
-        bool $mappingIdOnly = false
+        bool $mappingIdOnly = false,
+        bool $orderIdOnly = false
     ): ?VendorOrderMapping {
         $with = match ($mode) {
             'contact' => [
@@ -934,9 +968,13 @@ class VendorOrderService
 
         $base = fn () => VendorOrderMapping::with($with)->where('vendor_id', $vendorId);
 
-        $mapping = $base()->where('id', $id)->first();
-        if ($mapping === null && ! $mappingIdOnly) {
+        if ($orderIdOnly) {
             $mapping = $base()->where('order_id', $id)->first();
+        } elseif ($mappingIdOnly) {
+            $mapping = $base()->where('id', $id)->first();
+        } else {
+            $mapping = $base()->where('id', $id)->first()
+                ?? $base()->where('order_id', $id)->first();
         }
 
         if ($mapping !== null && $mapping->relationLoaded('order') && $mapping->order !== null
