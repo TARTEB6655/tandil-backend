@@ -14,6 +14,7 @@ use App\Models\VendorOrderMapping;
 use App\Models\VendorProduct;
 use App\Models\VendorProfile;
 use App\Notifications\DeliveryOtpNotification;
+use App\Notifications\VendorDeliveryOtpIssuedNotification;
 use App\Services\Vendor\VendorDeliveryOtpService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -88,8 +89,19 @@ class VendorDeliveryOtpInAppNotificationTest extends TestCase
         $this->assertSame('in_app', $notification->data['delivery_channel'] ?? null);
         $this->assertSame('/api/orders/'.$order->id.'/track', $notification->data['track_endpoint'] ?? null);
         $this->assertSame('Delivery confirmation code', $notification->data['title'] ?? null);
+        $this->assertSame(VendorDeliveryOtpService::OTP_TTL_MINUTES, $notification->data['ttl_minutes'] ?? null);
+        $this->assertNotEmpty($notification->data['expires_at'] ?? null);
         $this->assertStringContainsString('confirm delivery', strtolower((string) ($notification->data['message'] ?? '')));
+        $this->assertStringContainsString((string) VendorDeliveryOtpService::OTP_TTL_MINUTES, (string) ($notification->data['message'] ?? ''));
         $this->assertStringContainsString((string) $mapping->delivery_otp, (string) ($notification->data['message'] ?? ''));
+
+        $vendorNotification = $vendorUser->fresh()->notifications()->latest()->first();
+        $this->assertNotNull($vendorNotification);
+        $this->assertSame('vendor_delivery_otp_issued', $vendorNotification->data['type'] ?? null);
+        $this->assertSame(VendorDeliveryOtpService::OTP_TTL_MINUTES, $vendorNotification->data['ttl_minutes'] ?? null);
+        $this->assertNotEmpty($vendorNotification->data['expires_at'] ?? null);
+        $this->assertStringContainsString('Resend OTP', (string) ($vendorNotification->data['message'] ?? ''));
+        $this->assertArrayNotHasKey('otp', $vendorNotification->data);
 
         $token = $client->createToken('client')->plainTextToken;
         $this->withToken($token)
@@ -157,6 +169,12 @@ class VendorDeliveryOtpInAppNotificationTest extends TestCase
             'notifiable_id' => $client->id,
             'notifiable_type' => User::class,
             'type' => DeliveryOtpNotification::class,
+        ]);
+
+        $this->assertDatabaseHas('notifications', [
+            'notifiable_id' => $vendorUser->id,
+            'notifiable_type' => User::class,
+            'type' => VendorDeliveryOtpIssuedNotification::class,
         ]);
     }
 }
