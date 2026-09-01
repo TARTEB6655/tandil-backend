@@ -7,6 +7,10 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Models\VendorProduct;
+use App\Models\VendorProfile;
+use App\Enums\VendorStatus;
 use App\Support\InstantOrderFee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -124,5 +128,199 @@ class InstantOrderFeeTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.instant_order_fee_amount', 15);
+    }
+
+    public function test_vendor_product_direct_checkout_includes_instant_fee(): void
+    {
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Vendor Instant LLC',
+            'owner_name' => 'Owner',
+            'email' => $vendorUser->email,
+        ]);
+
+        $category = Category::factory()->create(['shipping_cost' => 12, 'tax_percentage' => 0]);
+        $vendorProduct = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'physical',
+            'price' => 80,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+        VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $vendorProduct->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+        ]);
+
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $vendorProduct->id,
+            'quantity' => 2,
+        ]);
+
+        $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
+
+        $response->assertOk()
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 15)
+            ->assertJsonPath('data.subtotal', 160)
+            ->assertJsonPath('data.shipping', 12)
+            ->assertJsonPath('data.total', 187);
+    }
+
+    public function test_vendor_product_buy_now_summary_includes_instant_fee(): void
+    {
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Buy Now Vendor',
+            'owner_name' => 'Owner',
+            'email' => $vendorUser->email,
+        ]);
+
+        $category = Category::factory()->create(['shipping_cost' => 0, 'tax_percentage' => 0]);
+        $vendorProduct = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'product',
+            'price' => 50,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+        VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $vendorProduct->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+        ]);
+
+        $response = $this->getJson(
+            '/api/shop/order-summary?product_id='.$vendorProduct->id.'&quantity=1',
+            $this->clientHeaders()
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 15)
+            ->assertJsonPath('data.subtotal', 50)
+            ->assertJsonPath('data.total', 65);
+    }
+
+    public function test_vendor_owned_booking_service_does_not_include_instant_fee(): void
+    {
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Service Vendor',
+            'owner_name' => 'Owner',
+            'email' => $vendorUser->email,
+        ]);
+
+        $category = Category::factory()->create(['shipping_cost' => 8, 'tax_percentage' => 0]);
+        $vendorService = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'service',
+            'price' => 120,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+        VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $vendorService->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+        ]);
+
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $vendorService->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
+
+        $response->assertOk()
+            ->assertJsonPath('data.is_instant_order', false)
+            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.subtotal', 120)
+            ->assertJsonPath('data.shipping', 8)
+            ->assertJsonPath('data.total', 128);
+    }
+
+    public function test_mixed_vendor_product_and_booking_service_excludes_instant_fee(): void
+    {
+        $category = Category::factory()->create(['shipping_cost' => 5, 'tax_percentage' => 0]);
+
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Mixed Vendor',
+            'owner_name' => 'Owner',
+            'email' => $vendorUser->email,
+        ]);
+
+        $vendorProduct = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'physical',
+            'price' => 40,
+            'status' => 'active',
+        ]);
+        VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $vendorProduct->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+        ]);
+
+        $service = Product::factory()->create([
+            'category_id' => $category->id,
+            'type' => 'service',
+            'price' => 60,
+            'status' => 'active',
+        ]);
+
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $vendorProduct->id,
+            'quantity' => 1,
+        ]);
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $service->id,
+            'quantity' => 1,
+        ]);
+
+        $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
+
+        $response->assertOk()
+            ->assertJsonPath('data.is_instant_order', false)
+            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.subtotal', 100);
     }
 }
