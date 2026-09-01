@@ -37,6 +37,7 @@
 
             <form method="POST" action="{{ route('admin.shop-settings.update-global') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 @csrf
+                <input type="hidden" name="instant_order_fee_amount" value="{{ old('instant_order_fee_amount', $instantOrderFee) }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default shipping ({{ $currency }})</label>
                     <input type="number" name="shipping_amount" step="0.01" min="0"
@@ -53,6 +54,33 @@
                 <div>
                     <button type="submit" class="w-full md:w-auto px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
                         Save global settings
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">Instant order fee</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                Extra charge added automatically to <strong>Instant Orders</strong> (product checkout).
+                Not applied to booking/service orders. Mobile admin API:
+                <code class="text-xs bg-gray-100 dark:bg-gray-900 px-1 rounded">PUT /api/admin/settings/shop</code>
+            </p>
+
+            <form method="POST" action="{{ route('admin.shop-settings.update-global') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                @csrf
+                <input type="hidden" name="shipping_amount" value="{{ old('shipping_amount', $globalShipping) }}">
+                <input type="hidden" name="tax_percent" value="{{ old('tax_percent', $taxPercent) }}">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Instant order fee ({{ $currency }})</label>
+                    <input type="number" name="instant_order_fee_amount" step="0.01" min="0"
+                           value="{{ old('instant_order_fee_amount', $instantOrderFee) }}"
+                           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <p class="mt-1 text-xs text-gray-500">0 = disabled</p>
+                </div>
+                <div>
+                    <button type="submit" class="w-full md:w-auto px-5 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700">
+                        Save instant order fee
                     </button>
                 </div>
             </form>

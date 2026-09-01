@@ -33,6 +33,7 @@ class Order extends Model
         'tax_amount',
         'tax_percent',
         'shipping_amount',
+        'instant_order_fee',
 
         'payment_status',
         'payment_reference',
@@ -67,6 +68,7 @@ class Order extends Model
         'tax_amount' => 'decimal:2',
         'tax_percent' => 'decimal:2',
         'shipping_amount' => 'decimal:2',
+        'instant_order_fee' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'coupon_discount_amount' => 'decimal:2',
 

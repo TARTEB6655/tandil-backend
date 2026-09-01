@@ -233,6 +233,7 @@ class ShopCheckoutOrderService
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
+        $instantOrderFee = (float) ($summary['instant_order_fee'] ?? 0);
 
         /*
          * Special instructions.
@@ -348,6 +349,7 @@ class ShopCheckoutOrderService
             'tax_amount' => $taxAmount,
             'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
+            'instant_order_fee' => $instantOrderFee,
 
             'order_status' => 'pending',
             'payment_status' => 'pending',
@@ -601,6 +603,7 @@ class ShopCheckoutOrderService
         $shippingAmount = $summary['shipping'];
         $taxAmount = $summary['tax'];
         $taxPercent = $summary['tax_percent'];
+        $instantOrderFee = (float) ($summary['instant_order_fee'] ?? 0);
 
         /*
          * Special instructions.
@@ -673,6 +676,7 @@ class ShopCheckoutOrderService
             'tax_amount' => $taxAmount,
             'tax_percent' => $taxPercent,
             'shipping_amount' => $shippingAmount,
+            'instant_order_fee' => $instantOrderFee,
 
             'order_status' => 'pending',
             'payment_status' => 'pending',

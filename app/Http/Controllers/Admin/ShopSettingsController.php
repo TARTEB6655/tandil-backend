@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Shop\CartController;
 use App\Models\Setting;
 use App\Services\CategoryShippingService;
+use App\Support\InstantOrderFee;
 use Illuminate\Http\Request;
 
 class ShopSettingsController extends Controller
@@ -24,6 +25,7 @@ class ShopSettingsController extends Controller
         return view('admin.shop-settings.index', [
             'globalShipping' => $globalShipping,
             'taxPercent' => $taxPercent,
+            'instantOrderFee' => InstantOrderFee::amount(),
             'currency' => config('shop.currency', 'AED'),
             'categoryRates' => $categoryRates,
         ]);
@@ -34,6 +36,7 @@ class ShopSettingsController extends Controller
         $request->validate([
             'shipping_amount' => 'nullable|numeric|min:0',
             'tax_percent' => 'nullable|numeric|min:0|max:100',
+            'instant_order_fee_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->has('shipping_amount')) {
@@ -41,6 +44,9 @@ class ShopSettingsController extends Controller
         }
         if ($request->has('tax_percent')) {
             Setting::set('shop_tax_percent', (string) $request->input('tax_percent'), 'text', 'shop');
+        }
+        if ($request->has('instant_order_fee_amount')) {
+            Setting::set(InstantOrderFee::SETTING_KEY, (string) $request->input('instant_order_fee_amount'), 'text', 'shop');
         }
 
         return redirect()

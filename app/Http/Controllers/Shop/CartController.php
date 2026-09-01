@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\CategoryShippingService;
 use App\Services\CategoryTaxService;
 use App\Services\ShopCouponService;
+use App\Support\InstantOrderFee;
 use App\Support\ShopBookingSlotHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -59,8 +60,9 @@ class CartController extends Controller
 
         $summary = self::buildOrderSummaryWithAdjustments($subtotal, $discount, 0, $shippingAmount);
         $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
+        $summary = self::mergeCategoryShippingIntoSummary($summary, $cartItems);
 
-        return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+        return InstantOrderFee::applyToSummary($summary, $cartItems);
     }
 
     /**
@@ -182,8 +184,9 @@ class CartController extends Controller
         );
 
         $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
+        $summary = self::mergeCategoryShippingIntoSummary($summary, $cartItems);
 
-        return self::mergeCategoryShippingIntoSummary($summary, $cartItems);
+        return InstantOrderFee::applyToSummary($summary, $cartItems);
     }
 
     /**
@@ -1367,6 +1370,8 @@ class CartController extends Controller
         }
 
         $summary = self::mergeCategoryShippingIntoSummary($r['order_summary'], $cartItems);
+        $summary = self::applyCategoryTaxToSummary($summary, $cartItems);
+        $summary = InstantOrderFee::applyToSummary($summary, $cartItems);
         self::finalizeOrderSummaryCouponState($summary, $r['code'] ?? null);
         self::normalizeOrderSummaryNumericTypes($summary);
         $summary['coupon'] = $r['coupon'];
@@ -1405,6 +1410,9 @@ class CartController extends Controller
         $summary['tax_percent'] = (float) $summary['tax_percent'];
         $summary['tax'] = (float) $summary['tax'];
         $summary['total'] = (float) $summary['total'];
+        if (array_key_exists('instant_order_fee', $summary)) {
+            $summary['instant_order_fee'] = (float) $summary['instant_order_fee'];
+        }
     }
 
     /**
@@ -1453,21 +1461,23 @@ class CartController extends Controller
         $couponDiscount = round((float) ($summary['coupon_discount'] ?? 0), 2);
         $shipping = round((float) ($summary['shipping'] ?? 0), 2);
         $tax = round((float) ($summary['tax'] ?? 0), 2);
+        $instantFee = round((float) ($summary['instant_order_fee'] ?? 0), 2);
         $total = round((float) ($summary['total'] ?? 0), 2);
 
         $taxable = round(max(0, $subtotal - $catalogDiscount - $couponDiscount), 2);
-        $expected = round($taxable + $tax + $shipping, 2);
+        $expected = round($taxable + $tax + $shipping + $instantFee, 2);
 
         if (abs($expected - $total) > 0.02) {
             throw new \InvalidArgumentException(sprintf(
-                'Order summary math mismatch: expected total %.2f, got %.2f (subtotal=%.2f, catalog=%.2f, coupon=%.2f, tax=%.2f, shipping=%.2f)',
+                'Order summary math mismatch: expected total %.2f, got %.2f (subtotal=%.2f, catalog=%.2f, coupon=%.2f, tax=%.2f, shipping=%.2f, instant_fee=%.2f)',
                 $expected,
                 $total,
                 $subtotal,
                 $catalogDiscount,
                 $couponDiscount,
                 $tax,
-                $shipping
+                $shipping,
+                $instantFee
             ));
         }
     }

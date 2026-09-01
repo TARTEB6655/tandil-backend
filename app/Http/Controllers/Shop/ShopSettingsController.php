@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Shop;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\CategoryShippingService;
+use App\Support\InstantOrderFee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -59,6 +60,7 @@ class ShopSettingsController extends Controller
         return [
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
+            'instant_order_fee_amount' => InstantOrderFee::amount(),
             'currency' => config('shop.currency', 'AED'),
             'category_shipping_rates' => CategoryShippingService::allCategoryRatesForAdmin(),
             // Store checkout has no backend minimum-order gate (enforce in app only if needed).
