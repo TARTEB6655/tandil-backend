@@ -36,7 +36,6 @@ class ShopSettingsController extends Controller
         $request->validate([
             'shipping_amount' => 'nullable|numeric|min:0',
             'tax_percent' => 'nullable|numeric|min:0|max:100',
-            'instant_order_fee_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->has('shipping_amount')) {
@@ -45,13 +44,28 @@ class ShopSettingsController extends Controller
         if ($request->has('tax_percent')) {
             Setting::set('shop_tax_percent', (string) $request->input('tax_percent'), 'text', 'shop');
         }
-        if ($request->has('instant_order_fee_amount')) {
-            Setting::set(InstantOrderFee::SETTING_KEY, (string) $request->input('instant_order_fee_amount'), 'text', 'shop');
-        }
 
         return redirect()
             ->route('admin.shop-settings.index')
             ->with('success', 'Global shop settings saved.');
+    }
+
+    public function updateInstantOrderFee(Request $request)
+    {
+        $request->validate([
+            'instant_order_fee_amount' => 'required|numeric|min:0',
+        ]);
+
+        Setting::set(
+            InstantOrderFee::SETTING_KEY,
+            (string) $request->input('instant_order_fee_amount'),
+            'text',
+            'shop'
+        );
+
+        return redirect()
+            ->route('admin.shop-settings.index')
+            ->with('success', 'Instant order fee saved.');
     }
 
     public function updateCategoryShipping(Request $request)

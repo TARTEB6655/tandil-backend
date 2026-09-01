@@ -60,14 +60,35 @@ class InstantOrderFeeTest extends TestCase
 
     public function test_admin_can_update_instant_order_fee_setting(): void
     {
-        $response = $this->putJson('/api/admin/settings/shop', [
+        $response = $this->putJson('/api/admin/settings/instant-order-fee', [
             'instant_order_fee_amount' => 25,
         ], $this->adminHeaders());
 
         $response->assertOk()
-            ->assertJsonPath('data.instant_order_fee_amount', 25);
+            ->assertJsonPath('data.instant_order_fee_amount', 25)
+            ->assertJsonPath('data.enabled', true);
 
         $this->assertSame(25.0, InstantOrderFee::amount());
+    }
+
+    public function test_shop_settings_api_does_not_update_instant_order_fee(): void
+    {
+        $response = $this->putJson('/api/admin/settings/shop', [
+            'instant_order_fee_amount' => 99,
+        ], $this->adminHeaders());
+
+        $response->assertOk();
+        $this->assertSame(15.0, InstantOrderFee::amount());
+    }
+
+    public function test_admin_can_get_instant_order_fee_setting(): void
+    {
+        $response = $this->getJson('/api/admin/settings/instant-order-fee', $this->adminHeaders());
+
+        $response->assertOk()
+            ->assertJsonPath('data.instant_order_fee_amount', 15)
+            ->assertJsonPath('data.enabled', true)
+            ->assertJsonPath('data.applies_to', 'instant_orders');
     }
 
     public function test_instant_product_order_summary_includes_fee_in_total(): void

@@ -330,6 +330,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
         Route::get('payments/settings', [PaymentController::class, 'settings'])->name('payments.settings');
         Route::get('shop-settings', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'index'])->name('shop-settings.index');
         Route::post('shop-settings/global', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'updateGlobal'])->name('shop-settings.update-global');
+        Route::post('shop-settings/instant-order-fee', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'updateInstantOrderFee'])->name('shop-settings.update-instant-order-fee');
         Route::post('shop-settings/category-shipping', [\App\Http\Controllers\Admin\ShopSettingsController::class, 'updateCategoryShipping'])->name('shop-settings.update-category-shipping');
         Route::get('wallet/users/{user}', [AdminWalletController::class, 'show'])->name('wallet.user');
         Route::get('wallet', [AdminWalletController::class, 'index'])->name('wallet.index');

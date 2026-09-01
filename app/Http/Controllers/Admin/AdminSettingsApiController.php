@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\CategoryShippingService;
-use App\Support\InstantOrderFee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -67,11 +66,9 @@ class AdminSettingsApiController extends Controller
         return [
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
-            'instant_order_fee_amount' => InstantOrderFee::amount(),
             'currency' => config('shop.currency', 'AED'),
             'category_shipping_rates' => CategoryShippingService::allCategoryRatesForAdmin(),
             'shipping_note' => 'Set per-category shipping_cost and tax_percentage. Checkout adds one shipping fee per category in the cart. Categories without a fee use global shipping_amount once per order.',
-            'instant_order_fee_note' => 'Flat AED surcharge added to Instant Orders (product checkout). Not applied to booking/service orders.',
         ];
     }
 
@@ -118,7 +115,6 @@ class AdminSettingsApiController extends Controller
         $request->validate([
             'shipping_amount' => 'nullable|numeric|min:0',
             'tax_percent' => 'nullable|numeric|min:0|max:100',
-            'instant_order_fee_amount' => 'nullable|numeric|min:0',
         ]);
 
         if ($request->has('shipping_amount')) {
@@ -126,9 +122,6 @@ class AdminSettingsApiController extends Controller
         }
         if ($request->has('tax_percent')) {
             Setting::set('shop_tax_percent', (string) $request->input('tax_percent'), 'text', 'shop');
-        }
-        if ($request->has('instant_order_fee_amount')) {
-            Setting::set(InstantOrderFee::SETTING_KEY, (string) $request->input('instant_order_fee_amount'), 'text', 'shop');
         }
 
         return $this->getShop();

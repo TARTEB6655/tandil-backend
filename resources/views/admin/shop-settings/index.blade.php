@@ -37,7 +37,6 @@
 
             <form method="POST" action="{{ route('admin.shop-settings.update-global') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 @csrf
-                <input type="hidden" name="instant_order_fee_amount" value="{{ old('instant_order_fee_amount', $instantOrderFee) }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Default shipping ({{ $currency }})</label>
                     <input type="number" name="shipping_amount" step="0.01" min="0"
@@ -64,13 +63,11 @@
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 Extra charge added automatically to <strong>Instant Orders</strong> (product checkout).
                 Not applied to booking/service orders. Mobile admin API:
-                <code class="text-xs bg-gray-100 dark:bg-gray-900 px-1 rounded">PUT /api/admin/settings/shop</code>
+                <code class="text-xs bg-gray-100 dark:bg-gray-900 px-1 rounded">PUT /api/admin/settings/instant-order-fee</code>
             </p>
 
-            <form method="POST" action="{{ route('admin.shop-settings.update-global') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <form method="POST" action="{{ route('admin.shop-settings.update-instant-order-fee') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                 @csrf
-                <input type="hidden" name="shipping_amount" value="{{ old('shipping_amount', $globalShipping) }}">
-                <input type="hidden" name="tax_percent" value="{{ old('tax_percent', $taxPercent) }}">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Instant order fee ({{ $currency }})</label>
                     <input type="number" name="instant_order_fee_amount" step="0.01" min="0"

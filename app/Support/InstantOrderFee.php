@@ -25,6 +25,22 @@ final class InstantOrderFee
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public static function adminApiPayload(): array
+    {
+        $amount = self::amount();
+
+        return [
+            'instant_order_fee_amount' => $amount,
+            'currency' => config('shop.currency', 'AED'),
+            'enabled' => $amount > 0,
+            'applies_to' => 'instant_orders',
+            'note' => 'Flat surcharge added to direct product checkout (vendor/platform). Not applied to booking/service orders.',
+        ];
+    }
+
+    /**
      * Instant = at least one product line and no service/booking lines.
      */
     public static function cartIsInstant(?iterable $cartItems): bool

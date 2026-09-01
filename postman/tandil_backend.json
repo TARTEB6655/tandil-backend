@@ -1,10 +1,10 @@
 {
     "info": {
-        "name": "Tandil Backend - Flow-Based Collection (v3.6.31)",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** `PUT /api/admin/settings/shop` body `instant_order_fee_amount` (AED, `0` = off). Applies to **direct product checkout** (vendor/platform simple products). **Not** applied to booking/service orders. Checkout totals return `instant_order_fee`, `instant_order_fee_label`, `is_instant_order` in `order_summary` / `GET /api/shop/order-summary`. Admin: **5 → D. Settings (Mobile)** → Get/Update Shop Settings.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n",
+        "name": "Tandil Backend - Flow-Based Collection (v3.6.32)",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** dedicated API — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to direct product checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.31"
+        "version": "3.6.32"
     },
     "item": [
         {
@@ -4053,7 +4053,7 @@
                     "item": [
                         {
                             "name": "A. Shop settings & order totals",
-                            "description": "GET/PUT shop tax & shipping defaults + **instant_order_fee_amount** (admin: `PUT /api/admin/settings/shop`). **GET order-summary** and **POST buy-now/summary** for checkout totals. Totals include `instant_order_fee`, `is_instant_order` (true = product direct checkout; false = booking/service). **Order summary `data.items[]`:** each cart line includes `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`**, **`booking_slot`**. **Coupons:** folder **K**. **Wallet:** when `wallet_available` is **true**, show wallet UI. **Payment (folder I):** Cart = `is_buy_now: false` + shipping only; Buy Now = `is_buy_now: true` + product + booking. **Do not send `items[]` on payment-intent.** Full slot → **422**.",
+                            "description": "GET/PUT shop tax & shipping defaults (`PUT /api/admin/settings/shop`). **Instant order fee:** separate API `GET/PUT /api/admin/settings/instant-order-fee` (not shop settings). **GET order-summary** and **POST buy-now/summary** for checkout totals. Totals include `instant_order_fee`, `is_instant_order` (true = product direct checkout; false = booking/service). **Order summary `data.items[]`:** each cart line includes `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`**, **`booking_slot`**. **Coupons:** folder **K**. **Wallet:** when `wallet_available` is **true**, show wallet UI. **Payment (folder I):** Cart = `is_buy_now: false` + shipping only; Buy Now = `is_buy_now: true` + product + booking. **Do not send `items[]` on payment-intent.** Full slot → **422**.",
                             "item": [
                                 {
                                     "name": "1. Shop settings (GET)",
@@ -4099,7 +4099,7 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5,\n  \"instant_order_fee_amount\": 15\n}"
+                                            "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/shop/settings",
@@ -4112,7 +4112,7 @@
                                                 "settings"
                                             ]
                                         },
-                                        "description": "PUT /api/shop/settings – Client can update shop settings. Body (all optional): `shipping_amount`, `tax_percent`, `instant_order_fee_amount`. Auth: Bearer token with client role. Prefer admin `PUT /api/admin/settings/shop` for fee changes."
+                                        "description": "PUT /api/shop/settings – Client can update shop settings. Body (optional): `shipping_amount`, `tax_percent` only. Auth: Bearer token with client role."
                                     }
                                 },
                                 {
@@ -8142,7 +8142,7 @@
                                         "settings"
                                     ]
                                 },
-                                "description": "GET /api/admin/settings - All settings for React Native Settings screen (system, app_config, payment, **shop** incl. `instant_order_fee_amount`, legal)."
+                                "description": "GET /api/admin/settings - All settings for React Native Settings screen (system, app_config, payment, shop shipping/tax, legal). Instant order fee: GET /api/admin/settings/instant-order-fee."
                             }
                         },
                         {
@@ -8410,7 +8410,7 @@
                             }
                         },
                         {
-                            "name": "Get Shop Settings (Shipping, Tax & Instant Order Fee)",
+                            "name": "Get Shop Settings (Shipping & Tax)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8435,11 +8435,11 @@
                                         "shop"
                                     ]
                                 },
-                                "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, instant_order_fee_amount (flat AED surcharge for Instant Orders / direct product checkout; 0 = disabled), currency, category_shipping_rates. Used in cart/checkout order_summary."
+                                "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, currency, category_shipping_rates. Instant order fee: use GET /api/admin/settings/instant-order-fee instead."
                             }
                         },
                         {
-                            "name": "Update Shop Settings (Shipping, Tax & Instant Order Fee)",
+                            "name": "Update Shop Settings (Shipping & Tax)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8458,7 +8458,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5,\n  \"instant_order_fee_amount\": 15\n}"
+                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/settings/shop",
@@ -8472,11 +8472,40 @@
                                         "shop"
                                     ]
                                 },
-                                "description": "PUT /api/admin/settings/shop - Update shop checkout defaults. All fields optional.\n\n**Body:**\n- `shipping_amount` (number, 0 = free)\n- `tax_percent` (number, e.g. 5 for 5%)\n- `instant_order_fee_amount` (number, AED) — flat surcharge added to **Instant Orders** (vendor/platform product direct checkout). **Not** applied to booking/service orders. Use `0` to disable.\n\n**Response `data`:** includes `instant_order_fee_amount`, `instant_order_fee_note`.\n\nCheckout APIs return `instant_order_fee`, `instant_order_fee_label`, `is_instant_order` inside order summary totals."
+                                "description": "PUT /api/admin/settings/shop - Update shipping_amount (0 = free) and/or tax_percent (e.g. 5). Both optional. **Does not** change instant order fee — use PUT /api/admin/settings/instant-order-fee."
                             }
                         },
                         {
-                            "name": "Update Instant Order Fee only",
+                            "name": "Get Instant Order Fee",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/settings/instant-order-fee",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "settings",
+                                        "instant-order-fee"
+                                    ]
+                                },
+                                "description": "GET /api/admin/settings/instant-order-fee — Read flat AED surcharge for Instant Orders (direct product checkout).\n\n**Response `data`:** `instant_order_fee_amount`, `currency`, `enabled`, `applies_to`, `note`."
+                            }
+                        },
+                        {
+                            "name": "Update Instant Order Fee",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8498,7 +8527,7 @@
                                     "raw": "{\n  \"instant_order_fee_amount\": 15\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}/api/admin/settings/shop",
+                                    "raw": "{{base_url}}/api/admin/settings/instant-order-fee",
                                     "host": [
                                         "{{base_url}}"
                                     ],
@@ -8506,10 +8535,10 @@
                                         "api",
                                         "admin",
                                         "settings",
-                                        "shop"
+                                        "instant-order-fee"
                                     ]
                                 },
-                                "description": "PUT /api/admin/settings/shop — **Instant Order fee only.**\n\n**Body:** `{ \"instant_order_fee_amount\": 15 }` (AED). Use `0` to disable.\n\n**When applied:** vendor/platform **product** direct checkout (cart or buy-now). **Not** booking/service orders.\n\n**Verify:** `GET /api/shop/order-summary` with vendor product in cart → `data.instant_order_fee`, `data.is_instant_order: true`, `data.total` includes fee."
+                                "description": "PUT /api/admin/settings/instant-order-fee — **Dedicated API** for Instant Order surcharge.\n\n**Body (required):** `{ \"instant_order_fee_amount\": 15 }` (AED). Use `0` to disable.\n\n**When applied:** vendor/platform **product** direct checkout. **Not** booking/service orders.\n\n**Verify:** `GET /api/shop/order-summary` with vendor product in cart → `data.instant_order_fee`, `data.is_instant_order: true`."
                             }
                         },
                         {
