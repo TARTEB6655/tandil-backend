@@ -4076,7 +4076,7 @@
                                                 "settings"
                                             ]
                                         },
-                                        "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, currency). No auth. Use in cart/checkout UI."
+                                        "description": "GET /api/shop/settings – Shop settings for client (shipping_amount, tax_percent, instant_order_fee_amount, currency). No auth. Use in cart/checkout UI."
                                     }
                                 },
                                 {
@@ -4158,7 +4158,7 @@
                                                 }
                                             ]
                                         },
-                                        "description": "GET /api/shop/order-summary – Optional `coupon_code` (enable query). Invalid → 422.\n\n**Totals:** `subtotal`, `discount` (catalog/offers), `coupon_discount`, `coupon_code`, `shipping`, `tax`, `total`. Tax on (subtotal − catalog − coupon).\n\n**Per-product booking:** `data.items[]` includes each cart line with `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`** (Y-m-d), **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\"). Different products can have different slots.\n\n**Wallet:** optional `use_wallet`, `wallet_amount` when balance > 0."
+                                        "description": "GET /api/shop/order-summary – Optional `coupon_code` (enable query). Invalid → 422.\n\n**Totals:** `subtotal`, `discount` (catalog/offers), `coupon_discount`, `coupon_code`, `shipping`, `tax`, `instant_order_fee`, `instant_order_fee_label`, `is_instant_order`, `total`. Tax on (subtotal − catalog − coupon). `instant_order_fee` is added to `total` for Instant Orders (product checkout only; not booking/service).\n\n**Per-product booking:** `data.items[]` includes each cart line with `product_id`, `name`, `quantity`, `unit_price`, `line_total`, **`booking_date`** (Y-m-d), **`booking_slot`** (e.g. \"10:00 AM - 12:00 PM\"). Different products can have different slots.\n\n**Wallet:** optional `use_wallet`, `wallet_amount` when balance > 0."
                                     }
                                 },
                                 {
@@ -8435,7 +8435,7 @@
                                         "shop"
                                     ]
                                 },
-                                "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, currency. Used in cart/checkout order_summary."
+                                "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, instant_order_fee_amount (flat AED surcharge for Instant Orders / direct product checkout; 0 = disabled), currency, category_shipping_rates. Used in cart/checkout order_summary."
                             }
                         },
                         {
@@ -8458,7 +8458,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
+                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5,\n  \"instant_order_fee_amount\": 15\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/settings/shop",
@@ -8472,7 +8472,7 @@
                                         "shop"
                                     ]
                                 },
-                                "description": "PUT /api/admin/settings/shop - Update shipping_amount (number, 0 = free) and/or tax_percent (e.g. 5 for 5%). Both optional. Values show in user cart/checkout order_summary."
+                                "description": "PUT /api/admin/settings/shop - Update shop checkout defaults. All fields optional.\n\n**Body:**\n- `shipping_amount` (number, 0 = free)\n- `tax_percent` (number, e.g. 5 for 5%)\n- `instant_order_fee_amount` (number, AED) — flat surcharge added to **Instant Orders** (vendor/platform product direct checkout). **Not** applied to booking/service orders. Use `0` to disable.\n\n**Response `data`:** includes `instant_order_fee_amount`, `instant_order_fee_note`.\n\nCheckout APIs return `instant_order_fee`, `instant_order_fee_label`, `is_instant_order` inside order summary totals."
                             }
                         },
                         {
