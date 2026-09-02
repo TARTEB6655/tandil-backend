@@ -30,24 +30,37 @@ class OptimizeVideoBannersCommand extends Command
 
         foreach ($banners as $banner) {
             $before = (string) $banner->video_path;
+            $changed = false;
             try {
                 $after = VideoCompressionService::compressIfNeededFromPublicPath($before);
                 if ($after !== $before) {
                     $banner->video_path = $after;
-                    $banner->save();
-                    $updated++;
+                    $changed = true;
                     $this->line("  #{$banner->id}: {$before} → {$after}");
                 } else {
                     // Still attempt faststart remux in place
                     $fast = VideoCompressionService::ensureFastStartFromPublicPath($before);
                     if ($fast !== $before) {
                         $banner->video_path = $fast;
-                        $banner->save();
-                        $updated++;
+                        $changed = true;
                         $this->line("  #{$banner->id}: faststart {$before} → {$fast}");
                     } else {
                         $this->line("  #{$banner->id}: ok ({$before})");
                     }
+                }
+
+                if (! $banner->poster_path) {
+                    $poster = VideoCompressionService::extractPosterFromPublicPath($banner->video_path);
+                    if ($poster) {
+                        $banner->poster_path = $poster;
+                        $changed = true;
+                        $this->line("  #{$banner->id}: poster → {$poster}");
+                    }
+                }
+
+                if ($changed) {
+                    $banner->save();
+                    $updated++;
                 }
             } catch (\Throwable $e) {
                 $this->error("  #{$banner->id}: ".$e->getMessage());

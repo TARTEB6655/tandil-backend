@@ -25,17 +25,8 @@ class VideoBannerController extends Controller
                 return VideoBanner::query()
                     ->active()
                     ->ordered()
-                    ->get(['id', 'title', 'video_path', 'badge_text', 'button_text', 'is_active'])
-                    ->map(static function (VideoBanner $videoBanner) {
-                        return [
-                            'id' => $videoBanner->id,
-                            'title' => $videoBanner->title,
-                            'video_url' => $videoBanner->video_url,
-                            'badge_text' => $videoBanner->badge_text,
-                            'button_text' => $videoBanner->button_text,
-                            'is_active' => (bool) $videoBanner->is_active,
-                        ];
-                    })
+                    ->get()
+                    ->map(static fn (VideoBanner $videoBanner) => $videoBanner->toPublicApiArray())
                     ->values()
                     ->all();
             }

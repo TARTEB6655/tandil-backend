@@ -53,10 +53,11 @@ class VideoBannerApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.title', 'See Tandil in action')
             ->assertJsonPath('data.badge_text', 'Watch now')
-            ->assertJsonMissingPath('data.poster_url')
             ->assertJsonMissingPath('data.button_link');
 
         $this->assertNotNull($response->json('data.video_url'));
+        $this->assertArrayHasKey('poster_url', $response->json('data'));
+        $this->assertArrayHasKey('video_size_bytes', $response->json('data'));
         $this->assertDatabaseHas('video_banners', ['title' => 'See Tandil in action', 'is_active' => true]);
     }
 
@@ -76,7 +77,7 @@ class VideoBannerApiTest extends TestCase
 
         $response->assertCreated();
         $this->assertSame(
-            ['id', 'title', 'video_url', 'badge_text', 'button_text', 'is_active'],
+            ['id', 'title', 'video_url', 'poster_url', 'video_size_bytes', 'badge_text', 'button_text', 'is_active'],
             array_keys($response->json('data'))
         );
     }
@@ -92,7 +93,7 @@ class VideoBannerApiTest extends TestCase
         $this->assertContains('Active', $titles);
         $this->assertNotContains('Hidden', $titles);
         $this->assertSame(
-            ['id', 'title', 'video_url', 'badge_text', 'button_text', 'is_active'],
+            ['id', 'title', 'video_url', 'poster_url', 'video_size_bytes', 'badge_text', 'button_text', 'is_active'],
             array_keys($response->json('data.0'))
         );
     }

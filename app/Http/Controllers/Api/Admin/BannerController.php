@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Helpers\ApiResponse;
 use App\Models\Banner;
+use App\Support\BannerCache;
 use App\Support\BannerLinkResolver;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
@@ -54,7 +55,7 @@ class BannerController extends Controller
         $imageFile = $this->getSingleImageFile($request, 'image');
         if ($imageFile && $imageFile->isValid()) {
             $imagePath = $imageFile->store('banners', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
+            ImageCompressionService::compressHomeBannerFromPublicPath($imagePath);
         }
 
         try {
@@ -76,6 +77,8 @@ class BannerController extends Controller
             Log::error('Banner create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;
         }
+
+        BannerCache::forgetPublicList();
 
         return ApiResponse::success('Banner created successfully.', $this->bannerToArray($banner), 201);
     }
@@ -258,7 +261,7 @@ class BannerController extends Controller
                 Storage::disk('public')->delete($banner->image);
             }
             $data['image'] = $imageFile->store('banners', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
+            ImageCompressionService::compressHomeBannerFromPublicPath($data['image']);
         }
 
         try {
@@ -267,6 +270,8 @@ class BannerController extends Controller
             Log::error('Banner update failed', ['banner_id' => $banner->id, 'error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;
         }
+
+        BannerCache::forgetPublicList();
 
         return ApiResponse::success('Banner updated successfully.', $this->bannerToArray($banner->fresh()));
     }
@@ -283,6 +288,8 @@ class BannerController extends Controller
         }
 
         $banner->delete();
+        BannerCache::forgetPublicList();
+
         return ApiResponse::success('Banner deleted successfully.');
     }
 
@@ -301,6 +308,8 @@ class BannerController extends Controller
             Banner::where('id', $item['id'])->update(['priority' => (int) $item['priority']]);
         }
 
+        BannerCache::forgetPublicList();
+
         $banners = Banner::ordered()->get()->map(fn ($b) => $this->bannerToArray($b));
         return ApiResponse::success('Banner order updated successfully.', $banners);
     }
@@ -313,6 +322,7 @@ class BannerController extends Controller
         $banner = Banner::findOrFail($id);
         $banner->is_active = !$banner->is_active;
         $banner->save();
+        BannerCache::forgetPublicList();
 
         return ApiResponse::success('Banner status updated successfully.', [
             'id' => $banner->id,

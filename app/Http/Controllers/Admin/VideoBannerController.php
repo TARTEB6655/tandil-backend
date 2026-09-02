@@ -46,21 +46,23 @@ class VideoBannerController extends Controller
             'video.mimetypes' => 'Video must be an MP4, MOV, WebM, OGG, or M4V file.',
         ]);
 
-        $videoPath = $this->storeVideo($request->file('video'));
-        if (! $videoPath) {
+        $stored = $this->storeVideoWithPoster($request->file('video'));
+        if (! $stored['video_path']) {
             return back()->withInput()->withErrors(['video' => 'Failed to store video file.']);
         }
 
         try {
             VideoBanner::create([
                 'title' => $request->input('title'),
-                'video_path' => $videoPath,
+                'video_path' => $stored['video_path'],
+                'poster_path' => $stored['poster_path'],
                 'badge_text' => $request->input('badge_text'),
                 'button_text' => $request->input('button_text'),
                 'is_active' => $request->boolean('is_active', true),
             ]);
         } catch (\Throwable $e) {
-            $this->deleteStoredFile($videoPath);
+            $this->deleteStoredFile($stored['video_path']);
+            $this->deleteStoredFile($stored['poster_path']);
             Log::error('Admin video banner create failed', ['error' => $e->getMessage()]);
 
             return back()->withInput()->withErrors(['video' => 'Could not create video banner. Please try again.']);
@@ -105,12 +107,14 @@ class VideoBannerController extends Controller
         ];
 
         if ($request->hasFile('video')) {
-            $newPath = $this->storeVideo($request->file('video'));
-            if (! $newPath) {
+            $newStored = $this->storeVideoWithPoster($request->file('video'));
+            if (! $newStored['video_path']) {
                 return back()->withInput()->withErrors(['video' => 'Failed to store video file.']);
             }
             $this->deleteStoredFile($videoBanner->video_path);
-            $data['video_path'] = $newPath;
+            $this->deleteStoredFile($videoBanner->poster_path);
+            $data['video_path'] = $newStored['video_path'];
+            $data['poster_path'] = $newStored['poster_path'];
         }
 
         $videoBanner->update($data);
@@ -124,6 +128,7 @@ class VideoBannerController extends Controller
     {
         $videoBanner = VideoBanner::findOrFail($id);
         $this->deleteStoredFile($videoBanner->video_path);
+        $this->deleteStoredFile($videoBanner->poster_path);
         $videoBanner->delete();
         VideoBannerCache::forgetPublicList();
 
@@ -145,23 +150,29 @@ class VideoBannerController extends Controller
         ]);
     }
 
-    private function storeVideo($file): ?string
+    /**
+     * @return array{video_path: ?string, poster_path: ?string}
+     */
+    private function storeVideoWithPoster($file): array
     {
         if (! $file || ! $file->isValid()) {
-            return null;
+            return ['video_path' => null, 'poster_path' => null];
         }
 
         $path = $file->store('video_banners', 'public');
 
         try {
-            return VideoCompressionService::compressIfNeededFromPublicPath($path);
+            $videoPath = VideoCompressionService::compressIfNeededFromPublicPath($path);
+            $posterPath = VideoCompressionService::extractPosterFromPublicPath($videoPath);
+
+            return ['video_path' => $videoPath, 'poster_path' => $posterPath];
         } catch (\Throwable $e) {
             Log::warning('Admin video banner: compression skipped', [
                 'path' => $path,
                 'error' => $e->getMessage(),
             ]);
 
-            return $path;
+            return ['video_path' => $path, 'poster_path' => null];
         }
     }
 

@@ -52,6 +52,11 @@ class ImageCompressionService
 
     public const VIDEO_BANNER_POSTER_MAX_DIMENSION = 1280;
 
+    /** Home carousel banners — same targets as video poster for fast mobile loads. */
+    public const HOME_BANNER_MAX_BYTES = self::VIDEO_BANNER_POSTER_MAX_BYTES;
+
+    public const HOME_BANNER_MAX_DIMENSION = self::VIDEO_BANNER_POSTER_MAX_DIMENSION;
+
     /**
      * Compress image at the given path in place if it exceeds maxBytes.
      * Optionally resize to maxDimension (longest side) first for faster compression and smaller files.
@@ -180,6 +185,18 @@ class ImageCompressionService
             $relativePath,
             self::VIDEO_BANNER_POSTER_MAX_BYTES,
             self::VIDEO_BANNER_POSTER_MAX_DIMENSION
+        );
+    }
+
+    /**
+     * Compress home carousel banner images for fast client dashboard loads.
+     */
+    public static function compressHomeBannerFromPublicPath(string $relativePath): bool
+    {
+        return self::compressIfNeededFromPublicPath(
+            $relativePath,
+            self::HOME_BANNER_MAX_BYTES,
+            self::HOME_BANNER_MAX_DIMENSION
         );
     }
 

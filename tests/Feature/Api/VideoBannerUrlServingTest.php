@@ -57,7 +57,7 @@ class VideoBannerUrlServingTest extends TestCase
         $this->assertIsString($videoUrl);
         $this->assertStringContainsString('/media/video_banners/', $videoUrl);
         $this->assertStringEndsWith('.mp4', parse_url($videoUrl, PHP_URL_PATH));
-        $this->assertArrayNotHasKey('poster_url', $create->json('data'));
+        $this->assertArrayHasKey('poster_url', $create->json('data'));
         $this->assertArrayNotHasKey('button_link', $create->json('data'));
 
         $videoRel = $this->mediaPathFromUrl($videoUrl);

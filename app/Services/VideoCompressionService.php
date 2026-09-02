@@ -209,6 +209,65 @@ class VideoCompressionService
     }
 
     /**
+     * Extract a JPEG poster frame from a video on the public disk for instant home-screen preview.
+     * Returns relative poster path, or null when ffmpeg is unavailable.
+     */
+    public static function extractPosterFromPublicPath(string $relativePath): ?string
+    {
+        $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
+        $disk = Storage::disk('public');
+
+        if (! $disk->exists($relativePath)) {
+            return null;
+        }
+
+        if (! self::canRunExternalProcess()) {
+            return null;
+        }
+
+        $ffmpeg = self::resolveFfmpegBinary();
+        if ($ffmpeg === null) {
+            return null;
+        }
+
+        $fullPath = $disk->path($relativePath);
+        $posterRelative = 'video_banners/posters/'.pathinfo($relativePath, PATHINFO_FILENAME).'_'.uniqid('', true).'.jpg';
+        $posterFull = $disk->path($posterRelative);
+        $posterDir = dirname($posterFull);
+        if (! is_dir($posterDir)) {
+            @mkdir($posterDir, 0777, true);
+        }
+
+        $maxDim = ImageCompressionService::VIDEO_BANNER_POSTER_MAX_DIMENSION;
+        $args = [
+            $ffmpeg,
+            '-y',
+            '-ss', '0.5',
+            '-i', $fullPath,
+            '-vframes', '1',
+            '-q:v', '2',
+            '-vf', "scale='min({$maxDim},iw)':-2",
+            $posterFull,
+        ];
+
+        $ran = self::runCommand($args, 20);
+        if (! $ran['ok'] || ! is_file($posterFull) || filesize($posterFull) === 0) {
+            @unlink($posterFull);
+
+            return null;
+        }
+
+        ImageCompressionService::compressVideoBannerPosterFromPublicPath($posterRelative);
+
+        Log::info('VideoCompressionService: extracted poster', [
+            'video' => $relativePath,
+            'poster' => $posterRelative,
+        ]);
+
+        return $posterRelative;
+    }
+
+    /**
      * Locate ffmpeg binary without requiring proc_open (check known paths first).
      */
     public static function resolveFfmpegBinary(): ?string

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Banner;
+use App\Support\BannerCache;
 use App\Support\BannerLinkResolver;
 use App\Services\ImageCompressionService;
 use Illuminate\Http\Request;
@@ -41,7 +42,7 @@ class BannerController extends Controller
 
         $linkFields = BannerLinkResolver::parseAdminButtonLink($request->button_link);
         $imagePath = $request->file('image')->store('banners', 'public');
-        ImageCompressionService::compressIfNeededFromPublicPath($imagePath);
+        ImageCompressionService::compressHomeBannerFromPublicPath($imagePath);
 
         $banner = Banner::create([
             'title' => $request->title,
@@ -54,6 +55,8 @@ class BannerController extends Controller
             'priority' => $request->priority ?? 0,
             'is_active' => $request->has('is_active') ? (bool)$request->is_active : true,
         ]);
+
+        BannerCache::forgetPublicList();
 
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner created successfully');
@@ -103,10 +106,11 @@ class BannerController extends Controller
                 Storage::disk('public')->delete($banner->image);
             }
             $data['image'] = $request->file('image')->store('banners', 'public');
-            ImageCompressionService::compressIfNeededFromPublicPath($data['image']);
+            ImageCompressionService::compressHomeBannerFromPublicPath($data['image']);
         }
 
         $banner->update($data);
+        BannerCache::forgetPublicList();
 
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner updated successfully');
@@ -122,6 +126,7 @@ class BannerController extends Controller
         }
         
         $banner->delete();
+        BannerCache::forgetPublicList();
         
         return redirect()->route('admin.banners.index')
             ->with('success', 'Banner deleted successfully');
@@ -143,6 +148,8 @@ class BannerController extends Controller
                 ->update(['priority' => $bannerData['priority']]);
         }
 
+        BannerCache::forgetPublicList();
+
         return response()->json([
             'success' => true,
             'message' => 'Banner order updated successfully'
@@ -157,6 +164,7 @@ class BannerController extends Controller
         $banner = Banner::findOrFail($id);
         $banner->is_active = !$banner->is_active;
         $banner->save();
+        BannerCache::forgetPublicList();
 
         return response()->json([
             'success' => true,

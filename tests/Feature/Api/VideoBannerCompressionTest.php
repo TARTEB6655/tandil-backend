@@ -126,9 +126,9 @@ class VideoBannerCompressionTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.title', 'See Tandil in action')
-            ->assertJsonMissingPath('data.poster_url')
             ->assertJsonMissingPath('data.button_link');
         $this->assertNotNull($response->json('data.video_url'));
+        $this->assertArrayHasKey('poster_url', $response->json('data'));
         $this->assertLessThan(20.0, $elapsed, "Create API took too long: {$elapsed}s");
     }
 }

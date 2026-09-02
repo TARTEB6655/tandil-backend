@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\ParsesMultipartPhoto;
 use App\Models\MaintenancePhoto;
 use App\Services\MaintenancePhotoService;
+use App\Support\MaintenancePhotoCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -68,6 +69,8 @@ class MaintenancePhotoController extends Controller
             $this->payloadFromRequest($request)
         );
 
+        MaintenancePhotoCache::bumpVersion();
+
         return ApiResponse::success('Maintenance photo created.', $this->photos->toApiItem($photo), 201);
     }
 
@@ -93,6 +96,8 @@ class MaintenancePhotoController extends Controller
             $this->payloadFromRequest($request, true)
         );
 
+        MaintenancePhotoCache::bumpVersion();
+
         return ApiResponse::success('Maintenance photo updated.', $this->photos->toApiItem($photo));
     }
 
@@ -104,6 +109,7 @@ class MaintenancePhotoController extends Controller
         }
 
         $this->photos->delete($photo);
+        MaintenancePhotoCache::bumpVersion();
 
         return ApiResponse::success('Maintenance photo deleted.');
     }

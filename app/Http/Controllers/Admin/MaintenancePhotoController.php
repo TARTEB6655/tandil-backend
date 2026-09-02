@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\MaintenancePhoto;
 use App\Services\MaintenancePhotoService;
+use App\Support\MaintenancePhotoCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -51,6 +52,8 @@ class MaintenancePhotoController extends Controller
             ]
         );
 
+        MaintenancePhotoCache::bumpVersion();
+
         return redirect()
             ->route('admin.maintenance-photos.index')
             ->with('success', 'Maintenance photo saved.');
@@ -86,6 +89,8 @@ class MaintenancePhotoController extends Controller
             ]
         );
 
+        MaintenancePhotoCache::bumpVersion();
+
         return redirect()
             ->route('admin.maintenance-photos.index')
             ->with('success', 'Maintenance photo updated.');
@@ -95,6 +100,7 @@ class MaintenancePhotoController extends Controller
     {
         $photo = MaintenancePhoto::findOrFail($id);
         $this->photos->delete($photo);
+        MaintenancePhotoCache::bumpVersion();
 
         return redirect()
             ->route('admin.maintenance-photos.index')

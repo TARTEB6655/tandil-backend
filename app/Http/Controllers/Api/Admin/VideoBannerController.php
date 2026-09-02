@@ -44,21 +44,23 @@ class VideoBannerController extends Controller
             return ApiResponse::error('A video file is required.', 422);
         }
 
-        $videoPath = $this->storeVideo($videoFile);
-        if (! $videoPath) {
+        $stored = $this->storeVideo($videoFile);
+        if (! $stored['video_path']) {
             return ApiResponse::error('Failed to store video file.', 500);
         }
 
         try {
             $videoBanner = VideoBanner::create([
                 'title' => $request->input('title'),
-                'video_path' => $videoPath,
+                'video_path' => $stored['video_path'],
+                'poster_path' => $stored['poster_path'],
                 'badge_text' => $request->input('badge_text'),
                 'button_text' => $request->input('button_text'),
                 'is_active' => $request->has('is_active') ? filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) : true,
             ]);
         } catch (\Throwable $e) {
-            $this->deleteStoredFile($videoPath);
+            $this->deleteStoredFile($stored['video_path']);
+            $this->deleteStoredFile($stored['poster_path']);
             Log::error('Video banner create failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;
         }
@@ -104,7 +106,10 @@ class VideoBannerController extends Controller
         $videoFile = $this->getSingleFile($request, 'video');
         if ($videoFile) {
             $this->deleteStoredFile($videoBanner->video_path);
-            $data['video_path'] = $this->storeVideo($videoFile);
+            $this->deleteStoredFile($videoBanner->poster_path);
+            $stored = $this->storeVideo($videoFile);
+            $data['video_path'] = $stored['video_path'];
+            $data['poster_path'] = $stored['poster_path'];
         }
 
         try {
@@ -127,6 +132,7 @@ class VideoBannerController extends Controller
         $videoBanner = VideoBanner::findOrFail($id);
 
         $this->deleteStoredFile($videoBanner->video_path);
+        $this->deleteStoredFile($videoBanner->poster_path);
         $videoBanner->delete();
 
         VideoBannerCache::forgetPublicList();
@@ -166,16 +172,22 @@ class VideoBannerController extends Controller
         ]);
     }
 
-    private function storeVideo(?UploadedFile $file): ?string
+    /**
+     * @return array{video_path: ?string, poster_path: ?string}
+     */
+    private function storeVideo(?UploadedFile $file): array
     {
         if (! $file || ! $file->isValid()) {
-            return null;
+            return ['video_path' => null, 'poster_path' => null];
         }
 
         $path = $file->store('video_banners', 'public');
 
         try {
-            return VideoCompressionService::compressIfNeededFromPublicPath($path);
+            $videoPath = VideoCompressionService::compressIfNeededFromPublicPath($path);
+            $posterPath = VideoCompressionService::extractPosterFromPublicPath($videoPath);
+
+            return ['video_path' => $videoPath, 'poster_path' => $posterPath];
         } catch (\Throwable $e) {
             // Shared hosts often disable proc_open; never fail create because of compression.
             Log::warning('Video banner: compression skipped', [
@@ -183,7 +195,7 @@ class VideoBannerController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            return $path;
+            return ['video_path' => $path, 'poster_path' => null];
         }
     }
 
@@ -322,6 +334,8 @@ class VideoBannerController extends Controller
             'id' => $videoBanner->id,
             'title' => $videoBanner->title,
             'video_url' => $videoBanner->video_url,
+            'poster_url' => $videoBanner->poster_url,
+            'video_size_bytes' => $videoBanner->video_size_bytes,
             'badge_text' => $videoBanner->badge_text,
             'button_text' => $videoBanner->button_text,
             'is_active' => $videoBanner->is_active,
