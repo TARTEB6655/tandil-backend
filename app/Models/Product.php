@@ -12,7 +12,7 @@ class Product extends Model
 
     protected $fillable = [
         'category_id', 'vendor_id', 'name', 'vendor', 'type', 'product_type', 'sku', 'barcode', 'description',
-        'price', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured', 'sort_order',
+        'price', 'pricing_type', 'price_includes', 'compare_at_price', 'cost_per_item', 'stock', 'status', 'is_featured', 'sort_order',
         'track_quantity', 'allow_backorder', 'weight', 'weight_unit', 'tags',
         'meta_title', 'meta_description', 'handle', 'requires_shipping', 'taxable', 'image',
         'estimated_arrival', 'job_duration', 'rating_average', 'rating_count',
@@ -32,6 +32,7 @@ class Product extends Model
         'stock' => 'integer',
         'sort_order' => 'integer',
         'price' => 'float',
+        'price_includes' => 'array',
         'compare_at_price' => 'float',
         'cost_per_item' => 'float',
         'rating_average' => 'float',

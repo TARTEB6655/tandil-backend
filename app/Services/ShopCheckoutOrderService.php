@@ -194,12 +194,15 @@ class ShopCheckoutOrderService
             );
 
             if ($product) {
-                $subtotal +=
-                    $this->resolveItemUnitPrice(
-                        $item,
-                        $product
-                    )
-                    * (int) ($item['qty'] ?? 1);
+                $unit = $this->resolveItemUnitPrice($item, $product);
+                $area = isset($item['required_area'])
+                    ? \App\Support\ServiceAreaPricing::normalizeArea($item['required_area'])
+                    : (isset($item['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($item['area']) : null);
+                $qty = \App\Support\ServiceAreaPricing::effectiveQuantity(
+                    $product,
+                    (int) ($item['qty'] ?? $item['quantity'] ?? 1)
+                );
+                $subtotal += \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $area);
             }
         }
 
@@ -392,15 +395,22 @@ class ShopCheckoutOrderService
                 $product
             );
 
+            $requiredArea = isset($item['required_area'])
+                ? \App\Support\ServiceAreaPricing::normalizeArea($item['required_area'])
+                : (isset($item['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($item['area']) : null);
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $subtotal = \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $requiredArea);
+
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => $qty,
+                'pricing_type' => $snapshot['pricing_type'],
+                'required_area' => $snapshot['required_area'],
+                'price_includes' => $snapshot['price_includes'],
                 'price' => $unit,
-                'subtotal' => round(
-                    $unit * $qty,
-                    2
-                ),
+                'subtotal' => $subtotal,
                 // Per-item booking wins; if missing, fall back to the
                 // order-level booking payload.
                 'booking_date' => self::itemBookingDate($item) ?? $bookingDate,
@@ -516,11 +526,7 @@ class ShopCheckoutOrderService
             }
 
             $subtotal = round(
-                $validCart->sum(
-                    fn ($cart) =>
-                        $cart->quantity
-                        * $cart->lineUnitPrice()
-                ),
+                $validCart->sum(fn ($cart) => $cart->lineTotalAmount()),
                 2
             );
 
@@ -529,6 +535,7 @@ class ShopCheckoutOrderService
                     'product_id' => $cart->product_id,
                     'qty' => $cart->quantity,
                     'unit_price' => $cart->lineUnitPrice(),
+                    'required_area' => $cart->required_area !== null ? (float) $cart->required_area : null,
                     'selected_options' =>
                         Cart::normalizeSelectedOptionIds(
                             $cart->selected_options
@@ -551,12 +558,15 @@ class ShopCheckoutOrderService
                 );
 
                 if ($product) {
-                    $subtotal +=
-                        $this->resolveItemUnitPrice(
-                            $item,
-                            $product
-                        )
-                        * (int) ($item['qty'] ?? 1);
+                    $unit = $this->resolveItemUnitPrice($item, $product);
+                    $area = isset($item['required_area'])
+                        ? \App\Support\ServiceAreaPricing::normalizeArea($item['required_area'])
+                        : (isset($item['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($item['area']) : null);
+                    $qty = \App\Support\ServiceAreaPricing::effectiveQuantity(
+                        $product,
+                        (int) ($item['qty'] ?? $item['quantity'] ?? 1)
+                    );
+                    $subtotal += \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $area);
                 }
             }
 
@@ -718,15 +728,22 @@ class ShopCheckoutOrderService
                 $product
             );
 
+            $requiredArea = isset($item['required_area'])
+                ? \App\Support\ServiceAreaPricing::normalizeArea($item['required_area'])
+                : (isset($item['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($item['area']) : null);
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $subtotal = \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $requiredArea);
+
             OrderItem::create([
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => $qty,
+                'pricing_type' => $snapshot['pricing_type'],
+                'required_area' => $snapshot['required_area'],
+                'price_includes' => $snapshot['price_includes'],
                 'price' => $unit,
-                'subtotal' => round(
-                    $unit * $qty,
-                    2
-                ),
+                'subtotal' => $subtotal,
                 // Per-item booking wins; if missing, fall back to
                 // order-level booking values.
                 'booking_date' => self::itemBookingDate($item) ?? $bookingDate,

@@ -15,6 +15,7 @@ use App\Services\CategoryShippingService;
 use App\Services\CategoryTaxService;
 use App\Services\ShopCouponService;
 use App\Support\InstantOrderFee;
+use App\Support\ServiceAreaPricing;
 use App\Support\ShopBookingSlotHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -442,13 +443,15 @@ class CartController extends Controller
         $product = $item->product;
         $price = $item->lineUnitPrice();
         $compareAt = $product->compare_at_price !== null ? (float) $product->compare_at_price : null;
-        $lineTotal = round($item->quantity * $price, 2);
+        $area = $item->required_area !== null ? (float) $item->required_area : null;
+        $lineTotal = $item->lineTotalAmount();
         $selectedOptionIds = Cart::normalizeSelectedOptionIds($item->selected_options);
         $basePrice = round((float) $product->price, 2);
         $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
+        $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
 
-        return [
+        return array_merge([
             'id' => $item->id,
             'product_id' => $product->id,
             'name' => $product->name,
@@ -471,7 +474,7 @@ class CartController extends Controller
             'booking_date' => $item->booking_date?->toDateString(),
             'booking_slot' => $item->booking_slot,
             'currency' => self::CURRENCY,
-        ];
+        ], $pricingFields);
     }
 
     /**
@@ -557,7 +560,9 @@ class CartController extends Controller
     {
         $request->validate(array_merge([
             'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'nullable|integer|min:1',
+            'required_area' => 'nullable|numeric|min:0.01',
+            'area' => 'nullable|numeric|min:0.01',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -571,9 +576,21 @@ class CartController extends Controller
             return ApiResponse::error($optionError, 422);
         }
 
+        $areaRaw = $request->input('required_area', $request->input('area'));
+        $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+        if ($areaError !== null) {
+            return ApiResponse::error($areaError, 422);
+        }
+        $requiredArea = ServiceAreaPricing::isPerM2($product)
+            ? ServiceAreaPricing::normalizeArea($areaRaw)
+            : null;
+
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
-        $requestedQty = (int) $request->quantity;
+        $requestedQty = ServiceAreaPricing::effectiveQuantity(
+            $product,
+            (int) ($request->input('quantity') ?? 1)
+        );
         $existingQty = 0;
 
         // Each cart line can carry its own service date/time slot (different
@@ -603,17 +620,25 @@ class CartController extends Controller
                     && $row->booking_slot === $bookingSlot;
             });
 
-        if ($cartItem) {
+        if ($cartItem && ! ServiceAreaPricing::isPerM2($product)) {
             $existingQty = (int) $cartItem->quantity;
         }
 
-        $stockError = $product->quantityExceedsStockMessage($existingQty + $requestedQty);
-        if ($stockError !== null) {
-            return ApiResponse::error($stockError, 422);
+        if (! ServiceAreaPricing::isPerM2($product)) {
+            $stockError = $product->quantityExceedsStockMessage($existingQty + $requestedQty);
+            if ($stockError !== null) {
+                return ApiResponse::error($stockError, 422);
+            }
         }
 
         if ($cartItem) {
-            $cartItem->quantity += $requestedQty;
+            if (ServiceAreaPricing::isPerM2($product)) {
+                $cartItem->quantity = 1;
+                $cartItem->required_area = $requiredArea;
+            } else {
+                $cartItem->quantity += $requestedQty;
+                $cartItem->required_area = null;
+            }
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
             $cartItem->save();
@@ -624,6 +649,7 @@ class CartController extends Controller
                 'quantity' => $requestedQty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
+                'required_area' => $requiredArea,
                 'booking_date' => $bookingDate,
                 'booking_slot' => $bookingSlot,
             ]);
@@ -655,10 +681,20 @@ class CartController extends Controller
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'sometimes|integer|min:1',
                 'qty' => 'sometimes|integer|min:1',
+                'required_area' => 'nullable|numeric|min:0.01',
+                'area' => 'nullable|numeric|min:0.01',
             ], self::optionIdsValidationRules()));
-            $qty = self::resolveBuyNowQuantity($request);
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
+            $areaRaw = $request->input('required_area', $request->input('area'));
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            if ($areaError !== null) {
+                throw new \InvalidArgumentException($areaError);
+            }
+            $requiredArea = ServiceAreaPricing::isPerM2($product)
+                ? ServiceAreaPricing::normalizeArea($areaRaw)
+                : null;
+            $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
             $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
             $itemBooking = ShopBookingSlotHelper::resolveFromItemArray(
@@ -672,12 +708,13 @@ class CartController extends Controller
                 'quantity' => $qty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
+                'required_area' => $requiredArea,
                 'booking_date' => $itemBooking['booking_date'],
                 'booking_slot' => $itemBooking['booking_slot'],
             ]);
             $cart->setRelation('product', $product);
             $cart->id = 0;
-            $subtotal = round($qty * $unitPrice, 2);
+            $subtotal = $cart->lineTotalAmount();
 
             $items = collect([$cart]);
             $ctx = self::cartContextFromItems($items);
@@ -711,7 +748,7 @@ class CartController extends Controller
             })->values();
         }
 
-        $subtotal = round($validItems->sum(fn ($item) => $item->quantity * $item->lineUnitPrice()), 2);
+        $subtotal = round($validItems->sum(fn ($item) => $item->lineTotalAmount()), 2);
         $ctx = self::cartContextFromItems($validItems);
 
         return [
@@ -743,6 +780,8 @@ class CartController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'sometimes|integer|min:1',
             'items.*.qty' => 'sometimes|integer|min:1',
+            'items.*.required_area' => 'nullable|numeric|min:0.01',
+            'items.*.area' => 'nullable|numeric|min:0.01',
             'items.*.booking_date' => 'nullable|date',
             'items.*.booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -768,7 +807,18 @@ class CartController extends Controller
 
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $row['product_id']);
-            $qty = max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1));
+            $areaRaw = $row['required_area'] ?? $row['area'] ?? null;
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            if ($areaError !== null) {
+                throw new \InvalidArgumentException(((string) $product->name).': '.$areaError);
+            }
+            $requiredArea = ServiceAreaPricing::isPerM2($product)
+                ? ServiceAreaPricing::normalizeArea($areaRaw)
+                : null;
+            $qty = ServiceAreaPricing::effectiveQuantity(
+                $product,
+                max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1))
+            );
 
             $optionError = Cart::validateSelectedOptionsMessage($product, $optionIds);
             if ($optionError !== null) {
@@ -797,13 +847,14 @@ class CartController extends Controller
                 'quantity' => $qty,
                 'selected_options' => $optionIds,
                 'unit_price' => $unitPrice,
+                'required_area' => $requiredArea,
                 'booking_date' => $booking['booking_date'],
                 'booking_slot' => $booking['booking_slot'],
             ]);
             $cart->setRelation('product', $product);
             $cart->id = 0;
             $items->push($cart);
-            $subtotal += round($qty * $unitPrice, 2);
+            $subtotal += $cart->lineTotalAmount();
         }
 
         $subtotal = round($subtotal, 2);
@@ -1523,7 +1574,9 @@ class CartController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'quantity' => 'required|integer|min:1',
+            'quantity' => 'nullable|integer|min:1',
+            'required_area' => 'nullable|numeric|min:0.01',
+            'area' => 'nullable|numeric|min:0.01',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ]);
@@ -1534,12 +1587,30 @@ class CartController extends Controller
             ->firstOrFail();
 
         $cartItem->loadMissing('product');
-        $stockError = $cartItem->product?->quantityExceedsStockMessage((int) $request->quantity);
-        if ($stockError !== null) {
-            return ApiResponse::error($stockError, 422);
+        $product = $cartItem->product;
+
+        if ($product && ServiceAreaPricing::isPerM2($product)) {
+            $areaRaw = $request->has('required_area') || $request->has('area')
+                ? $request->input('required_area', $request->input('area'))
+                : $cartItem->required_area;
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            if ($areaError !== null) {
+                return ApiResponse::error($areaError, 422);
+            }
+            $cartItem->required_area = ServiceAreaPricing::normalizeArea($areaRaw);
+            $cartItem->quantity = 1;
+        } else {
+            if (! $request->filled('quantity')) {
+                return ApiResponse::error('Quantity is required.', 422);
+            }
+            $stockError = $product?->quantityExceedsStockMessage((int) $request->quantity);
+            if ($stockError !== null) {
+                return ApiResponse::error($stockError, 422);
+            }
+            $cartItem->quantity = $request->quantity;
+            $cartItem->required_area = null;
         }
 
-        $cartItem->quantity = $request->quantity;
         if ($request->has('booking_date') || $request->has('bookingDate')) {
             $cartItem->booking_date = self::normalizedBookingValue($request->input('booking_date') ?? $request->input('bookingDate'));
         }

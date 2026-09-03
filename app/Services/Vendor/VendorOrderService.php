@@ -1239,17 +1239,22 @@ class VendorOrderService
      */
     private function formatProductLine(OrderItem $item, string $currency): array
     {
-        return [
+        $pricing = \App\Support\ServiceAreaPricing::orderItemApiFields($item);
+        $isPerM2 = ($pricing['pricing_type'] ?? 'fixed') === 'per_m2';
+
+        return array_merge([
             'id' => $item->product_id,
             'name' => $item->product?->name ?? 'Product',
             'qty' => (int) $item->quantity,
-            'qty_label' => 'Qty '.(int) $item->quantity,
+            'qty_label' => $isPerM2 && ($pricing['required_area'] ?? null) !== null
+                ? ('Area '.$pricing['pricing_breakdown']['area_label'])
+                : ('Qty '.(int) $item->quantity),
             'price' => (float) $item->subtotal,
             'price_label' => $this->moneyLabel((float) $item->subtotal, $currency),
             'unit_price' => (float) $item->price,
             'currency' => $currency,
             'image_url' => $item->product?->image_url,
-        ];
+        ], $pricing);
     }
 
     /**

@@ -987,6 +987,12 @@ class ShopStripeMobilePaymentService
             }
             $qty = (int) ($line['quantity'] ?? 1);
             $unit = isset($line['unit_price']) ? (float) $line['unit_price'] : (float) $product->price;
+            $requiredArea = isset($line['required_area'])
+                ? \App\Support\ServiceAreaPricing::normalizeArea($line['required_area'])
+                : (isset($line['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($line['area']) : null);
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $subtotal = \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $requiredArea);
             $lineBookingDate = is_string($line['booking_date'] ?? null) && trim($line['booking_date']) !== ''
                 ? trim($line['booking_date'])
                 : ($row->booking_date?->toDateString());
@@ -997,8 +1003,11 @@ class ShopStripeMobilePaymentService
                 'order_id' => $order->id,
                 'product_id' => $product->id,
                 'quantity' => $qty,
+                'pricing_type' => $snapshot['pricing_type'],
+                'required_area' => $snapshot['required_area'],
+                'price_includes' => $snapshot['price_includes'],
                 'price' => $unit,
-                'subtotal' => round($unit * $qty, 2),
+                'subtotal' => $subtotal,
                 'booking_date' => $lineBookingDate,
                 'booking_slot' => $lineBookingSlot,
             ]);

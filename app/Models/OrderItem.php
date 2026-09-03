@@ -13,6 +13,9 @@ class OrderItem extends Model
         'order_id',
         'product_id',
         'quantity',
+        'pricing_type',
+        'required_area',
+        'price_includes',
         'price',
         'subtotal',
         'booking_date',
@@ -22,6 +25,8 @@ class OrderItem extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'required_area' => 'decimal:2',
+        'price_includes' => 'array',
         'booking_date' => 'date:Y-m-d',
     ];
 

@@ -7,11 +7,12 @@ use Illuminate\Support\Collection;
 
 class Cart extends Model
 {
-    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price', 'booking_date', 'booking_slot'];
+    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price', 'required_area', 'booking_date', 'booking_slot'];
 
     protected $casts = [
         'selected_options' => 'array',
         'unit_price' => 'float',
+        'required_area' => 'float',
         'booking_date' => 'date:Y-m-d',
     ];
 
@@ -198,7 +199,7 @@ class Cart extends Model
     /**
      * Line payload stored on ShopMobileCheckout / Stripe fingerprint.
      *
-     * @return array{product_id: int, quantity: int, unit_price: float, selected_options: array<int>}
+     * @return array{product_id: int, quantity: int, unit_price: float, required_area: ?float, selected_options: array<int>}
      */
     public function checkoutLinePayload(): array
     {
@@ -206,9 +207,28 @@ class Cart extends Model
             'product_id' => (int) $this->product_id,
             'quantity' => (int) $this->quantity,
             'unit_price' => $this->lineUnitPrice(),
+            'required_area' => $this->required_area !== null ? round((float) $this->required_area, 2) : null,
             'selected_options' => self::normalizeSelectedOptionIds($this->selected_options),
             'booking_date' => $this->booking_date?->toDateString(),
             'booking_slot' => $this->booking_slot,
         ];
+    }
+
+    /**
+     * Money total for this cart line (supports per-m² service pricing).
+     */
+    public function lineTotalAmount(): float
+    {
+        $product = $this->product;
+        if (! $product) {
+            return round((int) $this->quantity * $this->lineUnitPrice(), 2);
+        }
+
+        return \App\Support\ServiceAreaPricing::lineTotal(
+            $product,
+            $this->lineUnitPrice(),
+            (int) $this->quantity,
+            $this->required_area !== null ? (float) $this->required_area : null
+        );
     }
 }

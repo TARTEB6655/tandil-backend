@@ -1211,7 +1211,7 @@ class OrderController extends Controller
             'job_duration' => $jobDuration,
             'created_at' => $order->created_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
-            'items' => $order->items->map(fn (OrderItem $item) => [
+            'items' => $order->items->map(fn (OrderItem $item) => array_merge([
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
@@ -1220,7 +1220,7 @@ class OrderController extends Controller
                 'booking_date' => $item->booking_date?->toDateString(),
                 'booking_slot' => $item->booking_slot,
                 'product' => $this->mapOrderItemProductForApi($item),
-            ])->values()->all(),
+            ], \App\Support\ServiceAreaPricing::orderItemApiFields($item)))->values()->all(),
         ];
     }
 
@@ -1244,7 +1244,7 @@ class OrderController extends Controller
             'updated_at' => $order->updated_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
             'shipping_address' => $order->getShippingAddressForApi(),
-            'items' => $order->items->map(fn (OrderItem $item) => [
+            'items' => $order->items->map(fn (OrderItem $item) => array_merge([
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
@@ -1253,7 +1253,7 @@ class OrderController extends Controller
                 'booking_date' => $item->booking_date?->toDateString(),
                 'booking_slot' => $item->booking_slot,
                 'product' => $this->mapOrderItemProductForApi($item),
-            ])->values()->all(),
+            ], \App\Support\ServiceAreaPricing::orderItemApiFields($item)))->values()->all(),
         ];
     }
 }

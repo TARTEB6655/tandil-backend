@@ -10,6 +10,7 @@ use App\Models\ProductOption;
 use App\Models\ProductOptionGroup;
 use App\Models\Service;
 use App\Models\ProductImage;
+use App\Support\ServiceAreaPricing;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -21,13 +22,13 @@ class ProductController extends Controller
 {
     /** Product API allowed fields for create/update payload (plus images handled separately). */
     private const PRODUCT_API_FIELDS = [
-        'name', 'description', 'price', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle', 'product_type',
+        'name', 'description', 'price', 'pricing_type', 'stock', 'status', 'is_featured', 'sort_order', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle', 'product_type',
         'estimated_arrival', 'job_duration', 'type',
     ];
 
     /** Response keys for product API (allowed fields + id, image, image_url, main_image, gallery_images, category, timestamps). */
     private const PRODUCT_API_RESPONSE_KEYS = [
-        'id', 'name', 'description', 'price', 'stock', 'status', 'is_featured', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle',
+        'id', 'name', 'description', 'price', 'pricing_type', 'stock', 'status', 'is_featured', 'category_id', 'vendor_id', 'weight_unit', 'sku', 'handle',
         'estimated_arrival', 'job_duration', 'type',
         'image', 'image_url', 'main_image', 'gallery_images', 'category', 'created_at', 'updated_at',
     ];
@@ -119,7 +120,9 @@ class ProductController extends Controller
             'name' => $product->name,
             'description' => $product->description,
             'product_type' => $product->product_type ?? 'simple',
+            'type' => $product->type ?? 'product',
             'price' => $product->price,
+            ...ServiceAreaPricing::productApiFields($product),
             'stock' => $product->stock,
             'status' => $product->status,
             'is_featured' => (bool) ($product->is_featured ?? false),
@@ -1357,6 +1360,13 @@ class ProductController extends Controller
             'name'        => 'required|string|max:255',
             'description' => 'nullable|string',
             'price'       => 'required|numeric|min:0',
+            'pricing_type'=> 'nullable|in:fixed,per_m2',
+            'price_includes' => 'nullable',
+            'price_includes.materials' => 'nullable|boolean',
+            'price_includes.installation' => 'nullable|boolean',
+            'price_includes.labor' => 'nullable|boolean',
+            'price_includes.transportation' => 'nullable|boolean',
+            'price_includes.delivery' => 'nullable|boolean',
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
             'is_featured' => 'nullable|boolean',
@@ -1388,6 +1398,7 @@ class ProductController extends Controller
             'handle.unique' => 'The handle has already been taken. Please use a different handle or leave it blank to auto-generate.',
             'sku.unique'    => 'The SKU has already been taken. Please use a unique SKU.',
             'vendor_id.prohibited' => 'Platform catalog products cannot set vendor_id. Use POST /api/admin/vendors/{vendor_id}/products for vendor listings.',
+            'pricing_type.in' => 'Pricing type must be fixed or per_m2 (Price per Square Meter).',
         ]);
 
         $this->assertNoVendorIdOnPlatformCatalog($request);
@@ -1414,6 +1425,19 @@ class ProductController extends Controller
         if (empty($createData['type'])) {
             $createData['type'] = $this->requestLooksLikeServiceProduct($request) ? 'service' : 'product';
         }
+        $isService = ($createData['type'] ?? 'product') === 'service';
+        $rawPricingType = strtolower(trim((string) $request->input('pricing_type', $validated['pricing_type'] ?? 'fixed')));
+        if (! $isService && in_array($rawPricingType, ['per_m2', 'per_sqm', 'sqm', 'm2', 'area'], true)) {
+            throw ValidationException::withMessages([
+                'pricing_type' => ['Price per Square Meter (m²) is only available for services, not shop products.'],
+            ]);
+        }
+        $pricingType = ServiceAreaPricing::normalizeType($rawPricingType, $isService);
+        $createData['pricing_type'] = $pricingType;
+        $createData['price_includes'] = ServiceAreaPricing::normalizeIncludes(
+            $request->input('price_includes'),
+            $isService
+        );
         if (empty($createData['handle']) && ! empty($createData['name'])) {
             $createData['handle'] = Str::slug($createData['name']);
             $counter = 1;
@@ -1703,6 +1727,13 @@ class ProductController extends Controller
             'name'        => 'nullable|string|max:255',
             'description' => 'nullable|string',
             'price'       => 'nullable|numeric|min:0',
+            'pricing_type'=> 'nullable|in:fixed,per_m2',
+            'price_includes' => 'nullable',
+            'price_includes.materials' => 'nullable|boolean',
+            'price_includes.installation' => 'nullable|boolean',
+            'price_includes.labor' => 'nullable|boolean',
+            'price_includes.transportation' => 'nullable|boolean',
+            'price_includes.delivery' => 'nullable|boolean',
             'stock'       => 'nullable|integer|min:0',
             'status'      => 'nullable|in:draft,active,archived',
             'is_featured' => 'nullable|boolean',
@@ -1734,6 +1765,7 @@ class ProductController extends Controller
             'handle.unique' => 'The handle has already been taken.',
             'sku.unique'    => 'The SKU has already been taken.',
             'vendor_id.prohibited' => 'Platform catalog products cannot set vendor_id. Use POST /api/admin/vendors/{vendor_id}/products for vendor listings.',
+            'pricing_type.in' => 'Pricing type must be fixed or per_m2 (Price per Square Meter).',
         ]);
 
         $this->assertNoVendorIdOnPlatformCatalog($request);
@@ -1752,6 +1784,38 @@ class ProductController extends Controller
                 continue;
             }
             $updateData[$key] = $value;
+        }
+
+        $effectiveType = $updateData['type'] ?? $product->type ?? 'product';
+        $isService = $effectiveType === 'service';
+        if ($request->has('pricing_type') || $request->has('type')) {
+            $rawPricingType = strtolower(trim((string) $request->input(
+                'pricing_type',
+                $product->pricing_type ?? ServiceAreaPricing::TYPE_FIXED
+            )));
+            if (! $isService && in_array($rawPricingType, ['per_m2', 'per_sqm', 'sqm', 'm2', 'area'], true)) {
+                throw ValidationException::withMessages([
+                    'pricing_type' => ['Price per Square Meter (m²) is only available for services, not shop products.'],
+                ]);
+            }
+            $pricingType = ServiceAreaPricing::normalizeType($rawPricingType, $isService);
+            $updateData['pricing_type'] = $isService ? $pricingType : ServiceAreaPricing::TYPE_FIXED;
+            if (! $isService) {
+                $updateData['price_includes'] = null;
+            }
+        }
+        if ($request->has('price_includes')) {
+            if (! $isService) {
+                $updateData['price_includes'] = null;
+            } else {
+                $updateData['price_includes'] = ServiceAreaPricing::normalizeIncludes(
+                    $request->input('price_includes'),
+                    true
+                );
+            }
+        } elseif ($request->has('type') && ! $isService) {
+            $updateData['pricing_type'] = ServiceAreaPricing::TYPE_FIXED;
+            $updateData['price_includes'] = null;
         }
 
         foreach (['estimated_arrival', 'job_duration'] as $timingKey) {

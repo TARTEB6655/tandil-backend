@@ -291,17 +291,25 @@ final class ShopBookingSlotHelper
             $payload = self::checkoutLinePayloadWithFallback($cart, $fallbackDate, $fallbackSlot);
             $qty = (int) ($payload['quantity'] ?? 1);
             $unit = (float) ($payload['unit_price'] ?? 0);
+            $area = isset($payload['required_area']) ? (float) $payload['required_area'] : null;
+            $pricing = \App\Support\ServiceAreaPricing::lineApiFields(
+                $cart->product,
+                $unit,
+                $qty,
+                $area
+            );
 
-            $lines[] = [
+            $lines[] = array_merge([
                 'product_id' => (int) $payload['product_id'],
                 'name' => (string) $cart->product->name,
                 'quantity' => $qty,
                 'unit_price' => $unit,
-                'line_total' => round($unit * $qty, 2),
+                'required_area' => $area,
+                'line_total' => $pricing['line_total'],
                 'booking_date' => $payload['booking_date'] ?? null,
                 'booking_slot' => $payload['booking_slot'] ?? null,
                 'selected_option_ids' => $payload['selected_options'] ?? [],
-            ];
+            ], $pricing);
         }
 
         return $lines;
