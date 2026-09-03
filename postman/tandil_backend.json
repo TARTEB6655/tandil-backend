@@ -8459,7 +8459,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5\n}"
+                                    "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5,\n  \"instant_order_fee_amount\": 20,\n  \"instant_order_fee_enabled\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/settings/shop",
@@ -8473,7 +8473,7 @@
                                         "shop"
                                     ]
                                 },
-                                "description": "PUT /api/admin/settings/shop - Update shipping_amount (0 = free) and/or tax_percent (e.g. 5). Both optional. **Does not** change instant order fee — use PUT /api/admin/settings/instant-order-fee."
+                                "description": "PUT /api/admin/settings/shop — shipping_amount, tax_percent, and optional Instant Order Fee (`instant_order_fee_amount`, `instant_order_fee_enabled`). Fee also has dedicated GET/PUT `/api/admin/settings/instant-order-fee`."
                             }
                         },
                         {
@@ -8525,7 +8525,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"instant_order_fee_amount\": 15\n}"
+                                    "raw": "{\n  \"instant_order_fee_amount\": 20,\n  \"instant_order_fee_enabled\": true\n}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/settings/instant-order-fee",
@@ -8539,7 +8539,7 @@
                                         "instant-order-fee"
                                     ]
                                 },
-                                "description": "PUT /api/admin/settings/instant-order-fee — **Dedicated API** for Instant Order surcharge.\n\n**Body (required):** `{ \"instant_order_fee_amount\": 15 }` (AED). Use `0` to disable.\n\n**When applied:** vendor/platform **product** direct checkout. **Not** booking/service orders.\n\n**Verify:** `GET /api/shop/order-summary` with vendor product in cart → `data.instant_order_fee`, `data.is_instant_order: true`."
+                                "description": "PUT /api/admin/settings/instant-order-fee — save fee for Instant Orders.\n\n**Body:** `{ \"instant_order_fee_amount\": 20, \"instant_order_fee_enabled\": true }`\n\n**Cart verify:** `GET /api/shop/cart` → `data.order_summary.instant_order_fee` + `total` includes fee. Service carts stay `instant_order_fee: 0`."
                             }
                         },
                         {

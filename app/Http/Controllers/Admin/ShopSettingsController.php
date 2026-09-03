@@ -54,14 +54,10 @@ class ShopSettingsController extends Controller
     {
         $request->validate([
             'instant_order_fee_amount' => 'required|numeric|min:0',
+            'instant_order_fee_enabled' => 'nullable|boolean',
         ]);
 
-        Setting::set(
-            InstantOrderFee::SETTING_KEY,
-            (string) $request->input('instant_order_fee_amount'),
-            'text',
-            'shop'
-        );
+        InstantOrderFee::saveFromRequest($request->all());
 
         return redirect()
             ->route('admin.shop-settings.index')

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Services\CategoryShippingService;
+use App\Support\InstantOrderFee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -62,11 +63,14 @@ class AdminSettingsApiController extends Controller
     {
         $shipping = Setting::get('shop_shipping_amount');
         $tax = Setting::get('shop_tax_percent');
+        $fee = InstantOrderFee::adminApiPayload();
 
         return [
             'shipping_amount' => (float) ($shipping !== null && $shipping !== '' ? $shipping : config('shop.shipping_amount', 0)),
             'tax_percent' => (float) ($tax !== null && $tax !== '' ? $tax : config('shop.tax_percent', 5)),
             'currency' => config('shop.currency', 'AED'),
+            'instant_order_fee_amount' => $fee['instant_order_fee_amount'],
+            'instant_order_fee_enabled' => $fee['instant_order_fee_enabled'],
             'category_shipping_rates' => CategoryShippingService::allCategoryRatesForAdmin(),
             'shipping_note' => 'Set per-category shipping_cost and tax_percentage. Checkout adds one shipping fee per category in the cart. Categories without a fee use global shipping_amount once per order.',
         ];
@@ -108,13 +112,19 @@ class AdminSettingsApiController extends Controller
 
     /**
      * PUT /api/admin/settings/shop
-     * Update shipping amount (number, 0 = free) and/or tax_percent (e.g. 5 for 5%).
+     * Update shipping / tax and optionally Instant Order Fee (same fields as dedicated fee API).
      */
     public function updateShop(Request $request): JsonResponse
     {
         $request->validate([
             'shipping_amount' => 'nullable|numeric|min:0',
             'tax_percent' => 'nullable|numeric|min:0|max:100',
+            'instant_order_fee_amount' => 'nullable|numeric|min:0',
+            'extra_fee_amount' => 'nullable|numeric|min:0',
+            'amount' => 'nullable|numeric|min:0',
+            'instant_order_fee_enabled' => 'nullable|boolean',
+            'extra_fee_enabled' => 'nullable|boolean',
+            'enabled' => 'nullable|boolean',
         ]);
 
         if ($request->has('shipping_amount')) {
@@ -123,6 +133,8 @@ class AdminSettingsApiController extends Controller
         if ($request->has('tax_percent')) {
             Setting::set('shop_tax_percent', (string) $request->input('tax_percent'), 'text', 'shop');
         }
+
+        InstantOrderFee::saveFromRequest($request->all());
 
         return $this->getShop();
     }

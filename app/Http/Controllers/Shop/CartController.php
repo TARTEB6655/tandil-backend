@@ -1463,6 +1463,11 @@ class CartController extends Controller
         $summary['total'] = (float) $summary['total'];
         if (array_key_exists('instant_order_fee', $summary)) {
             $summary['instant_order_fee'] = (float) $summary['instant_order_fee'];
+        } else {
+            $summary['instant_order_fee'] = 0.0;
+        }
+        if (! array_key_exists('is_instant_order', $summary)) {
+            $summary['is_instant_order'] = false;
         }
     }
 
@@ -1561,6 +1566,7 @@ class CartController extends Controller
 
         $orderSummary = $pack['order_summary'];
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
+        self::addCheckoutUiAliases($orderSummary);
 
         return ApiResponse::success('Cart retrieved successfully.', [
             'items' => $items,

@@ -71,14 +71,50 @@ class InstantOrderFeeTest extends TestCase
         $this->assertSame(25.0, InstantOrderFee::amount());
     }
 
-    public function test_shop_settings_api_does_not_update_instant_order_fee(): void
+    public function test_shop_settings_api_can_update_instant_order_fee(): void
     {
         $response = $this->putJson('/api/admin/settings/shop', [
-            'instant_order_fee_amount' => 99,
+            'instant_order_fee_amount' => 20,
+            'instant_order_fee_enabled' => true,
         ], $this->adminHeaders());
 
-        $response->assertOk();
-        $this->assertSame(15.0, InstantOrderFee::amount());
+        $response->assertOk()
+            ->assertJsonPath('data.instant_order_fee_amount', 20)
+            ->assertJsonPath('data.instant_order_fee_enabled', true);
+
+        $this->assertSame(20.0, InstantOrderFee::amount());
+    }
+
+    public function test_cart_api_includes_instant_fee_in_order_summary(): void
+    {
+        Setting::set(InstantOrderFee::SETTING_KEY, '20', 'text', 'shop');
+        Setting::set(InstantOrderFee::ENABLED_KEY, '1', 'text', 'shop');
+
+        $category = Category::factory()->create(['shipping_cost' => 15, 'tax_percentage' => 5]);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'type' => 'product',
+            'name' => 'simple product',
+            'price' => 99,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        // Tax on 99 @ 5% = 4.95; shipping 15; fee 20 → total 138.95
+        $this->getJson('/api/shop/cart', $this->clientHeaders())
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.is_instant_order', true)
+            ->assertJsonPath('data.order_summary.instant_order_fee', 20)
+            ->assertJsonPath('data.order_summary.subtotal', 99)
+            ->assertJsonPath('data.order_summary.shipping', 15)
+            ->assertJsonPath('data.order_summary.tax', 4.95)
+            ->assertJsonPath('data.order_summary.total', 138.95);
     }
 
     public function test_admin_can_get_instant_order_fee_setting(): void
