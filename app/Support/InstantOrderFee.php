@@ -118,7 +118,29 @@ final class InstantOrderFee
     }
 
     /**
-     * Instant = at least one product line and no service/booking lines.
+     * Instant fee line classification — ONLY explicit products.type === 'service' is excluded.
+     *
+     * Important: OrderFulfillmentType also treats empty type + product_service pivot as "service"
+     * for supervisor routing. That heuristic must NOT zero Instant Order Fee for shop packages
+     * (e.g. باقة الاندسكيب الماسية / variable design packages) whose public API still shows type=product
+     * via `$product->type ?? 'product'`. Price amount never matters.
+     */
+    public static function productIsExplicitService(?Product $product): bool
+    {
+        if ($product === null) {
+            return false;
+        }
+
+        return strtolower(trim((string) ($product->type ?? ''))) === 'service';
+    }
+
+    public static function productIsInstantEligible(?Product $product): bool
+    {
+        return $product !== null && ! self::productIsExplicitService($product);
+    }
+
+    /**
+     * Instant = at least one non-service shop line and no explicit service lines.
      * Product price amount does NOT matter (AED 41 or AED 1500 — same rule).
      */
     public static function cartIsInstant(?iterable $cartItems): bool
@@ -149,9 +171,9 @@ final class InstantOrderFee
                 continue;
             }
 
-            if (OrderFulfillmentType::isServiceProduct($product)) {
+            if (self::productIsExplicitService($product)) {
                 $hasService = true;
-            } elseif (OrderFulfillmentType::isProductLine($product)) {
+            } else {
                 $hasProduct = true;
             }
         }

@@ -451,15 +451,21 @@ class CartController extends Controller
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
         $isService = \App\Support\OrderFulfillmentType::isServiceProduct($product);
+        $instantEligible = InstantOrderFee::productIsInstantEligible($product);
 
         return array_merge([
             'id' => $item->id,
             'product_id' => $product->id,
             'name' => $product->name,
             'type' => $product->type ?? 'product',
+            'type_raw' => $product->type,
+            'product_type' => $product->product_type ?? 'simple',
             'fulfillment_type' => \App\Support\OrderFulfillmentType::forProduct($product),
             'is_service' => $isService,
-            'is_instant_eligible' => ! $isService,
+            'is_instant_eligible' => $instantEligible,
+            'linked_service_count' => $product->relationLoaded('services')
+                ? $product->services->count()
+                : $product->services()->count(),
             'image_url' => $product->image_url,
             'category' => $product->relationLoaded('category') && $product->category
                 ? $product->category->name
