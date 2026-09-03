@@ -319,23 +319,25 @@ final class ServiceAreaPricing
         if ($type === self::TYPE_PER_M2) {
             return [
                 'pricing_type' => self::TYPE_PER_M2,
-                // Catalog / list card: keep product's own price
+                // Store/list card: each product's own catalog price (never the global m² rate).
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
-                // Checkout rate (admin global)
+                'price_label' => self::formatMoney($catalogPrice),
+                'list_price_label' => self::formatMoney($catalogPrice),
+                // Checkout: global admin rate × required area.
                 'price_per_m2' => $rate,
                 'unit_rate' => $rate,
+                'unit_rate_label' => self::formatMoney($rate).' / m²',
+                'checkout_rate_label' => self::formatMoney($rate).' / m²',
                 'currency' => 'AED',
                 'price_unit' => 'm²',
-                'price_label' => self::formatMoney($rate).' / m²',
-                'list_price_label' => self::formatMoney($catalogPrice),
                 'requires_area' => true,
                 'price_includes' => $includes,
                 'price_includes_labels' => self::includeLabels($includes),
                 'customer_preview' => [
-                    'price_display' => 'Price: '.self::formatMoney($rate).' / m²',
-                    'list_price_display' => 'Listed: '.self::formatMoney($catalogPrice),
-                    'note' => 'Show catalog price on store if needed. On detail/checkout show AED X / m², require Area (m²), Total = Area × rate. Order summary shows the calculated line total (like Instant Order Fee visibility).',
+                    'price_display' => 'Listed: '.self::formatMoney($catalogPrice),
+                    'checkout_rate_display' => 'Checkout rate: '.self::formatMoney($rate).' / m²',
+                    'note' => 'On the store list/detail card show price + price_label (catalog). On checkout use price_per_m2 × required_area. Do NOT show the global rate as every service list price.',
                     'example' => [
                         'area' => 100,
                         'price_per_m2' => $rate,

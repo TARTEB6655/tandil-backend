@@ -98,7 +98,80 @@ class ServiceAreaPricingTest extends TestCase
         $fields = ServiceAreaPricing::productApiFields($product->fresh());
         $this->assertSame(10.0, (float) $fields['price']);
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
+        $this->assertSame('AED 10', $fields['price_label']);
+        $this->assertSame('AED 70 / m²', $fields['unit_rate_label']);
         $this->assertTrue($fields['requires_area']);
+    }
+
+    public function test_per_service_settings_do_not_overwrite_linked_product_catalog_price(): void
+    {
+        $service = Service::create([
+            'name' => 'Interlock',
+            'slug' => 'interlock-sync-'.uniqid(),
+            'is_active' => true,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+            'price' => 7,
+        ]);
+        $product = Product::create([
+            'name' => 'Paving Job',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 250,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+        $service->products()->attach($product->id);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->post('/api/admin/services/'.$service->id.'/settings', [
+                'pricing_type' => 'per_m2',
+                'price' => '7',
+                'price_includes' => [
+                    'materials' => '1',
+                    'installation' => '0',
+                    'labor' => '0',
+                    'transportation' => '0',
+                    'delivery' => '0',
+                ],
+            ])
+            ->assertOk();
+
+        $product->refresh();
+        $this->assertEquals(250.0, (float) $product->price);
+        $this->assertSame('per_m2', $product->pricing_type);
+
+        $fields = ServiceAreaPricing::productApiFields($product);
+        $this->assertSame('AED 250', $fields['price_label']);
+        $this->assertSame(250.0, (float) $fields['price']);
+    }
+
+    public function test_services_products_api_exposes_catalog_and_rate_fields(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $service = Service::create([
+            'name' => 'Construction',
+            'slug' => 'construction-'.uniqid(),
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Inspection Service',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 235,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+        $service->products()->attach($product->id);
+
+        $this->getJson('/api/services/products?service_id='.$service->id)
+            ->assertOk()
+            ->assertJsonPath('data.data.0.price', 235)
+            ->assertJsonPath('data.data.0.price_label', 'AED 235')
+            ->assertJsonPath('data.data.0.catalog_price', 235)
+            ->assertJsonPath('data.data.0.price_per_m2', 7)
+            ->assertJsonPath('data.data.0.unit_rate_label', 'AED 7 / m²');
     }
 
     public function test_per_m2_rejected_for_non_service_products(): void

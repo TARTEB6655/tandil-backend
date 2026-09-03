@@ -90,7 +90,8 @@ class ServicePricingSettingsController extends Controller
     }
 
     /**
-     * Push service pricing onto every linked product that is type=service.
+     * Push service pricing metadata onto linked type=service products.
+     * Never overwrite catalog `price` — each product keeps its own list price.
      */
     private function syncLinkedServiceProducts(Service $service): int
     {
@@ -102,9 +103,6 @@ class ServicePricingSettingsController extends Controller
                 foreach ($products as $product) {
                     /** @var Product $product */
                     $product->pricing_type = $service->pricing_type ?? ServiceAreaPricing::TYPE_FIXED;
-                    if ($service->price !== null) {
-                        $product->price = round((float) $service->price, 2);
-                    }
                     $product->price_includes = is_array($service->price_includes)
                         ? $service->price_includes
                         : ServiceAreaPricing::emptyIncludes();

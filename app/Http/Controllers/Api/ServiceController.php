@@ -26,8 +26,7 @@ class ServiceController extends Controller
             'name' => $product->name,
             'slug' => $product->handle ?? \Illuminate\Support\Str::slug($product->name),
             'description' => $product->description,
-            'price' => (float) $product->price,
-            'type' => $product->type ?? 'service',
+            'type' => $product->type ?? 'product',
             ...\App\Support\ServiceAreaPricing::productApiFields($product),
             'image' => $rootImagePath,
             'image_url' => ProductImage::buildFullUrl($rootImagePath),
@@ -128,26 +127,14 @@ class ServiceController extends Controller
         $data = $products->getCollection()->map(function (Product $product) {
             $serviceNames = $product->services()->pluck('name')->values()->all();
             $productData = $this->productToApiData($product);
-            return [
-                'id' => $productData['id'],
-                'name' => $productData['name'],
-                'slug' => $productData['slug'],
-                'description' => $productData['description'],
-                'price' => $productData['price'],
-                'pricing_type' => $productData['pricing_type'] ?? 'fixed',
-                'price_label' => $productData['price_label'] ?? null,
-                'requires_area' => (bool) ($productData['requires_area'] ?? false),
-                'price_includes' => $productData['price_includes'] ?? null,
-                'price_includes_labels' => $productData['price_includes_labels'] ?? [],
-                'currency' => 'AED',
-                'image' => $productData['image'],
-                'image_url' => $productData['image_url'],
+
+            return array_merge($productData, [
                 'category' => $product->relationLoaded('category') && $product->category
                     ? ['id' => $product->category->id, 'name' => $product->category->name]
                     : null,
                 'service_names' => $serviceNames,
                 'rating' => null,
-            ];
+            ]);
         })->values()->all();
 
         return ApiResponse::success('Products of services retrieved successfully.', [
