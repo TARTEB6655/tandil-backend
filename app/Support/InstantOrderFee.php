@@ -119,11 +119,25 @@ final class InstantOrderFee
 
     /**
      * Instant = at least one product line and no service/booking lines.
+     * Product price amount does NOT matter (AED 41 or AED 1500 — same rule).
      */
     public static function cartIsInstant(?iterable $cartItems): bool
     {
+        return self::cartInstantState($cartItems)['is_instant'];
+    }
+
+    /**
+     * @return array{is_instant: bool, has_product: bool, has_service: bool, reason: ?string}
+     */
+    public static function cartInstantState(?iterable $cartItems): array
+    {
         if ($cartItems === null) {
-            return false;
+            return [
+                'is_instant' => false,
+                'has_product' => false,
+                'has_service' => false,
+                'reason' => 'empty_cart',
+            ];
         }
 
         $hasProduct = false;
@@ -142,7 +156,48 @@ final class InstantOrderFee
             }
         }
 
-        return $hasProduct && ! $hasService;
+        if (! self::enabled() || self::storedAmount() <= 0) {
+            return [
+                'is_instant' => false,
+                'has_product' => $hasProduct,
+                'has_service' => $hasService,
+                'reason' => 'fee_disabled',
+            ];
+        }
+
+        if ($hasService && $hasProduct) {
+            return [
+                'is_instant' => false,
+                'has_product' => true,
+                'has_service' => true,
+                'reason' => 'mixed_cart_has_service',
+            ];
+        }
+
+        if ($hasService && ! $hasProduct) {
+            return [
+                'is_instant' => false,
+                'has_product' => false,
+                'has_service' => true,
+                'reason' => 'service_only_cart',
+            ];
+        }
+
+        if (! $hasProduct) {
+            return [
+                'is_instant' => false,
+                'has_product' => false,
+                'has_service' => $hasService,
+                'reason' => 'no_product_lines',
+            ];
+        }
+
+        return [
+            'is_instant' => true,
+            'has_product' => true,
+            'has_service' => false,
+            'reason' => null,
+        ];
     }
 
     /**
@@ -151,12 +206,15 @@ final class InstantOrderFee
      */
     public static function applyToSummary(array $summary, ?iterable $cartItems = null): array
     {
-        $isInstant = self::cartIsInstant($cartItems);
+        $state = self::cartInstantState($cartItems);
+        $isInstant = $state['is_instant'];
         $fee = $isInstant ? self::amount() : 0.0;
 
         $summary['is_instant_order'] = $isInstant;
         $summary['instant_order_fee'] = $fee;
         $summary['instant_order_fee_label'] = $fee > 0 ? 'Instant order fee' : null;
+        // Helps app/debug: why fee is 0 (never because product price is high).
+        $summary['instant_order_fee_skipped_reason'] = $fee > 0 ? null : $state['reason'];
 
         if ($fee > 0) {
             $summary['total'] = round((float) ($summary['total'] ?? 0) + $fee, 2);

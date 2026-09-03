@@ -450,11 +450,16 @@ class CartController extends Controller
         $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
+        $isService = \App\Support\OrderFulfillmentType::isServiceProduct($product);
 
         return array_merge([
             'id' => $item->id,
             'product_id' => $product->id,
             'name' => $product->name,
+            'type' => $product->type ?? 'product',
+            'fulfillment_type' => \App\Support\OrderFulfillmentType::forProduct($product),
+            'is_service' => $isService,
+            'is_instant_eligible' => ! $isService,
             'image_url' => $product->image_url,
             'category' => $product->relationLoaded('category') && $product->category
                 ? $product->category->name
