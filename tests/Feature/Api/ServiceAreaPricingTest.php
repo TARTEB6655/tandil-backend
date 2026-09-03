@@ -219,23 +219,55 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.price_includes.delivery', false);
     }
 
-    public function test_product_settings_api_rejects_non_service(): void
+    public function test_service_pricing_settings_form_data_syncs_linked_products(): void
     {
-        $product = Product::create([
-            'name' => 'Hose',
-            'type' => 'product',
-            'category_id' => $this->category->id,
-            'price' => 20,
-            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
-            'status' => 'active',
-            'stock' => 10,
+        $service = \App\Models\Service::create([
+            'name' => 'Interlock & Outdoor Paving',
+            'slug' => 'interlock-'.uniqid(),
+            'is_active' => true,
+            'pricing_type' => 'fixed',
+            'price' => 100,
         ]);
 
+        $product = Product::create([
+            'name' => 'Interlock Install',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+        $service->products()->attach($product->id);
+
         $this->actingAs($this->admin, 'sanctum')
-            ->putJson('/api/admin/products/'.$product->id.'/settings', [
+            ->getJson('/api/admin/services/'.$service->id.'/settings')
+            ->assertOk()
+            ->assertJsonPath('data.service_id', $service->id)
+            ->assertJsonPath('data.pricing_type', 'fixed');
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->post('/api/admin/services/'.$service->id.'/settings', [
                 'pricing_type' => 'per_m2',
-                'price' => 70,
+                'price' => '70',
+                'price_includes' => [
+                    'materials' => '1',
+                    'installation' => '1',
+                    'labor' => '1',
+                    'transportation' => '0',
+                    'delivery' => '0',
+                ],
             ])
-            ->assertStatus(422);
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'per_m2')
+            ->assertJsonPath('data.price', 70)
+            ->assertJsonPath('data.synced_products_count', 1)
+            ->assertJsonPath('data.example_calculation.total', 7000);
+
+        $product->refresh();
+        $this->assertSame('per_m2', $product->pricing_type);
+        $this->assertEquals(70.0, (float) $product->price);
+        $this->assertTrue((bool) ($product->price_includes['materials'] ?? false));
+        $this->assertFalse((bool) ($product->price_includes['delivery'] ?? true));
     }
 }

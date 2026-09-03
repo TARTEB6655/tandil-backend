@@ -19,11 +19,16 @@ class Service extends Model
         'is_active',
         'category_id',
         'sort_order',
+        'pricing_type',
+        'price',
+        'price_includes',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'sort_order' => 'integer',
+        'price' => 'float',
+        'price_includes' => 'array',
     ];
 
     protected $appends = ['image_url', 'coming_soon'];

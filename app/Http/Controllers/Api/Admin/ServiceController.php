@@ -36,6 +36,9 @@ class ServiceController extends Controller
                 'slug' => $service->category->slug,
             ] : null,
             'sort_order' => (int) ($service->sort_order ?? 0),
+            'pricing_type' => $service->pricing_type ?? 'fixed',
+            'price' => $service->price !== null ? round((float) $service->price, 2) : null,
+            'price_includes' => is_array($service->price_includes) ? $service->price_includes : null,
             'created_at' => $service->created_at?->format('c'),
             'updated_at' => $service->updated_at?->format('c'),
         ], $extra);

@@ -479,6 +479,9 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     // Services API (separate CRUD; services = categories). Same data, routes under /api/admin/services.
     Route::get('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'index']);
     Route::post('/services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'store']);
+    Route::get('/services/{id}/settings', [\App\Http\Controllers\Api\Admin\ServicePricingSettingsController::class, 'show'])->whereNumber('id');
+    Route::put('/services/{id}/settings', [\App\Http\Controllers\Api\Admin\ServicePricingSettingsController::class, 'update'])->whereNumber('id');
+    Route::post('/services/{id}/settings', [\App\Http\Controllers\Api\Admin\ServicePricingSettingsController::class, 'update'])->whereNumber('id');
     Route::get('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'show']);
     Route::put('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
