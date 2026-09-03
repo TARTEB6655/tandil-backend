@@ -196,6 +196,27 @@ class ServiceAreaPricingTest extends TestCase
             'pricing_type' => 'per_m2',
             'price' => 70,
         ]);
+
+        // form-data (multipart) via POST — recommended for app / Postman
+        $form = $this->actingAs($this->admin, 'sanctum')
+            ->post('/api/admin/products/'.$product->id.'/settings', [
+                'pricing_type' => 'fixed',
+                'price' => '7000',
+                'price_includes' => [
+                    'materials' => '1',
+                    'installation' => '1',
+                    'labor' => '1',
+                    'transportation' => '0',
+                    'delivery' => '0',
+                ],
+            ]);
+
+        $form->assertOk()
+            ->assertJsonPath('data.pricing_type', 'fixed')
+            ->assertJsonPath('data.price', 7000)
+            ->assertJsonPath('data.requires_area', false)
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonPath('data.price_includes.delivery', false);
     }
 
     public function test_product_settings_api_rejects_non_service(): void
