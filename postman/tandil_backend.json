@@ -1,6 +1,6 @@
 {
     "info": {
-        "name": "Tandil Backend - Flow-Based Collection (v3.6.34)",
+        "name": "Tandil Backend - Flow-Based Collection (v3.6.35)",
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** dedicated API — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to direct product checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
@@ -8539,6 +8539,175 @@
                                     ]
                                 },
                                 "description": "PUT /api/admin/settings/instant-order-fee — **Dedicated API** for Instant Order surcharge.\n\n**Body (required):** `{ \"instant_order_fee_amount\": 15 }` (AED). Use `0` to disable.\n\n**When applied:** vendor/platform **product** direct checkout. **Not** booking/service orders.\n\n**Verify:** `GET /api/shop/order-summary` with vendor product in cart → `data.instant_order_fee`, `data.is_instant_order: true`."
+                            }
+                        },
+                        {
+                            "name": "Get Service Pricing Settings",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/settings/service-pricing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "settings",
+                                        "service-pricing"
+                                    ]
+                                },
+                                "description": "GET /api/admin/settings/service-pricing — **Global** Product Settings for ALL services (no service_id / product_id). Shop/category products keep Instant Order Fee."
+                            }
+                        },
+                        {
+                            "name": "Update Service Pricing Settings (form-data)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "pricing_type",
+                                            "value": "per_m2",
+                                            "type": "text",
+                                            "description": "fixed | per_m2"
+                                        },
+                                        {
+                                            "key": "price",
+                                            "value": "70",
+                                            "type": "text",
+                                            "description": "Applies to ALL services"
+                                        },
+                                        {
+                                            "key": "price_includes[materials]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[installation]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[labor]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[transportation]",
+                                            "value": "0",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[delivery]",
+                                            "value": "0",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/settings/service-pricing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "settings",
+                                        "service-pricing"
+                                    ]
+                                },
+                                "description": "POST form-data /api/admin/settings/service-pricing — no ID. Applies Fixed/per m² + includes to **all** services and linked service products. PUT also supported."
+                            }
+                        },
+                        {
+                            "name": "Update Service Pricing Settings (PUT form-data)",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "pricing_type",
+                                            "value": "fixed",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price",
+                                            "value": "7000",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[materials]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[installation]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[labor]",
+                                            "value": "1",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[transportation]",
+                                            "value": "0",
+                                            "type": "text"
+                                        },
+                                        {
+                                            "key": "price_includes[delivery]",
+                                            "value": "0",
+                                            "type": "text"
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/settings/service-pricing",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "settings",
+                                        "service-pricing"
+                                    ]
+                                },
+                                "description": "PUT form-data same global endpoint. Prefer POST if PUT multipart fails."
                             }
                         },
                         {
@@ -22383,178 +22552,6 @@
                                     ]
                                 },
                                 "description": "Get one service by id. GET /api/admin/services/:id. Set service_id in env. Response: data (id, name, slug, description, image, image_url, icon, is_active, coming_soon, category_id, category {id,name,slug}, sort_order, products_count, created_at, updated_at)."
-                            }
-                        },
-                        {
-                            "name": "Get Service Pricing Settings",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/services/{{service_id}}/settings",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "services",
-                                        "{{service_id}}",
-                                        "settings"
-                                    ]
-                                },
-                                "description": "GET /api/admin/services/{id}/settings — Admin Product Settings UI for a **Service** (e.g. Interlock). Applies to all linked type=service products. Shop/category products keep Instant Order Fee. Set {{service_id}}."
-                            }
-                        },
-                        {
-                            "name": "Update Service Pricing Settings (form-data)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "pricing_type",
-                                            "value": "per_m2",
-                                            "type": "text",
-                                            "description": "fixed | per_m2"
-                                        },
-                                        {
-                                            "key": "price",
-                                            "value": "70",
-                                            "type": "text",
-                                            "description": "Fixed total OR AED per m²"
-                                        },
-                                        {
-                                            "key": "price_includes[materials]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[installation]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[labor]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[transportation]",
-                                            "value": "0",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[delivery]",
-                                            "value": "0",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/services/{{service_id}}/settings",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "services",
-                                        "{{service_id}}",
-                                        "settings"
-                                    ]
-                                },
-                                "description": "POST form-data /api/admin/services/{id}/settings. Saves Fixed vs per m² + includes on the **Service**, then syncs to all linked service products. Not for shop/category products (Instant Order Fee)."
-                            }
-                        },
-                        {
-                            "name": "Update Service Pricing Settings (PUT form-data)",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "formdata",
-                                    "formdata": [
-                                        {
-                                            "key": "pricing_type",
-                                            "value": "fixed",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price",
-                                            "value": "7000",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[materials]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[installation]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[labor]",
-                                            "value": "1",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[transportation]",
-                                            "value": "0",
-                                            "type": "text"
-                                        },
-                                        {
-                                            "key": "price_includes[delivery]",
-                                            "value": "0",
-                                            "type": "text"
-                                        }
-                                    ]
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/services/{{service_id}}/settings",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "services",
-                                        "{{service_id}}",
-                                        "settings"
-                                    ]
-                                },
-                                "description": "PUT form-data same as POST. Prefer POST if PUT multipart fails."
                             }
                         },
                         {

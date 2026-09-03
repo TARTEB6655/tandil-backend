@@ -63,7 +63,7 @@ class Cart extends Model
      */
     public static function calculateUnitPrice(Product $product, array|Collection|null $selectedOptionIds = null): float
     {
-        $base = round((float) $product->price, 2);
+        $base = \App\Support\ServiceAreaPricing::effectiveUnitPrice($product, (float) $product->price);
         if (($product->product_type ?? 'simple') !== 'variable') {
             return $base;
         }

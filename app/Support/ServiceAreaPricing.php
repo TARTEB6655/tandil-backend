@@ -3,16 +3,25 @@
 namespace App\Support;
 
 use App\Models\Product;
+use App\Models\Service;
+use App\Models\Setting;
 
 /**
  * Area-based (per m²) pricing for service products only.
- * Matches Admin "Product Settings" UI: Fixed Price vs Price per Square Meter.
+ * Global Admin Setting (like Instant Order Fee) — applies to ALL services.
+ * Shop/category products are unchanged (Instant Order Fee still applies there).
  */
 final class ServiceAreaPricing
 {
     public const TYPE_FIXED = 'fixed';
 
     public const TYPE_PER_M2 = 'per_m2';
+
+    public const SETTING_PRICING_TYPE = 'service_pricing_type';
+
+    public const SETTING_PRICE = 'service_pricing_price';
+
+    public const SETTING_INCLUDES = 'service_pricing_includes';
 
     /** @var list<string> */
     public const INCLUDE_KEYS = [
@@ -31,6 +40,106 @@ final class ServiceAreaPricing
         'transportation' => 'Transportation',
         'delivery' => 'Delivery',
     ];
+
+    /**
+     * @return array{pricing_type: string, price: float, price_includes: array<string, bool>}
+     */
+    public static function globalConfig(): array
+    {
+        $type = self::normalizeType(Setting::get(self::SETTING_PRICING_TYPE, self::TYPE_FIXED), true);
+        $priceRaw = Setting::get(self::SETTING_PRICE, '0');
+        $price = max(0, round((float) ($priceRaw === null || $priceRaw === '' ? 0 : $priceRaw), 2));
+        $includesRaw = Setting::get(self::SETTING_INCLUDES, null);
+        $includes = self::normalizeIncludes($includesRaw, true) ?? self::emptyIncludes();
+
+        return [
+            'pricing_type' => $type,
+            'price' => $price,
+            'price_includes' => $includes,
+        ];
+    }
+
+    /**
+     * Persist global settings and sync every service + every type=service product.
+     *
+     * @param  array<string, bool>|null  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function saveGlobal(string $pricingType, float $price, ?array $includes): array
+    {
+        $type = self::normalizeType($pricingType, true);
+        $price = max(0, round($price, 2));
+        $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
+
+        Setting::set(self::SETTING_PRICING_TYPE, $type, 'text', 'services');
+        Setting::set(self::SETTING_PRICE, (string) $price, 'text', 'services');
+        Setting::set(self::SETTING_INCLUDES, json_encode($includes), 'json', 'services');
+
+        return self::syncAllServicesAndProducts($type, $price, $includes);
+    }
+
+    /**
+     * @param  array<string, bool>  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function syncAllServicesAndProducts(string $pricingType, float $price, array $includes): array
+    {
+        $servicesUpdated = 0;
+        Service::query()->orderBy('id')->chunkById(100, function ($services) use ($pricingType, $price, $includes, &$servicesUpdated) {
+            foreach ($services as $service) {
+                $service->pricing_type = $pricingType;
+                $service->price = $price;
+                $service->price_includes = $includes;
+                $service->save();
+                $servicesUpdated++;
+            }
+        });
+
+        $productsUpdated = 0;
+        Product::query()->where('type', 'service')->orderBy('id')->chunkById(100, function ($products) use ($pricingType, $price, $includes, &$productsUpdated) {
+            foreach ($products as $product) {
+                $product->pricing_type = $pricingType;
+                $product->price = $price;
+                $product->price_includes = $includes;
+                $product->save();
+                $productsUpdated++;
+            }
+        });
+
+        return [
+            'synced_services' => $servicesUpdated,
+            'synced_products' => $productsUpdated,
+        ];
+    }
+
+    /**
+     * Admin Settings screen payload (no id) — same UI as Product Settings.
+     *
+     * @return array<string, mixed>
+     */
+    public static function globalAdminApiPayload(): array
+    {
+        $config = self::globalConfig();
+        $shim = new Product([
+            'name' => 'All Services',
+            'type' => 'service',
+            'price' => $config['price'],
+            'pricing_type' => $config['pricing_type'],
+            'price_includes' => $config['price_includes'],
+        ]);
+        $base = self::productSettingsApi($shim);
+
+        return array_merge($base, [
+            'product_id' => null,
+            'product_name' => null,
+            'service_id' => null,
+            'service_name' => null,
+            'applies_to' => 'all_services',
+            'settings_available' => true,
+            'is_service' => true,
+            'note' => 'Applies to every service purchase. Shop/category products keep Instant Order Fee.',
+        ]);
+    }
 
     public static function normalizeType(?string $type, bool $isService): string
     {
@@ -51,7 +160,20 @@ final class ServiceAreaPricing
             return false;
         }
 
-        return self::normalizeType($product->pricing_type ?? null, true) === self::TYPE_PER_M2;
+        // Global admin setting wins for all services.
+        return self::globalConfig()['pricing_type'] === self::TYPE_PER_M2;
+    }
+
+    /**
+     * Effective unit price for a catalog product (services use global rate).
+     */
+    public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
+    {
+        if (($product->type ?? 'product') === 'service') {
+            return self::globalConfig()['price'];
+        }
+
+        return round($fallbackProductPrice, 2);
     }
 
     /**
@@ -148,11 +270,16 @@ final class ServiceAreaPricing
     public static function productApiFields(Product $product): array
     {
         $isService = ($product->type ?? 'product') === 'service';
-        $type = self::normalizeType($product->pricing_type ?? null, $isService);
-        $price = round((float) $product->price, 2);
-        $includes = $isService
-            ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())
-            : null;
+        if ($isService) {
+            $config = self::globalConfig();
+            $type = $config['pricing_type'];
+            $price = $config['price'];
+            $includes = $config['price_includes'];
+        } else {
+            $type = self::TYPE_FIXED;
+            $price = round((float) $product->price, 2);
+            $includes = null;
+        }
 
         if ($isService && $type === self::TYPE_PER_M2) {
             return [
@@ -218,7 +345,7 @@ final class ServiceAreaPricing
         }
 
         $type = $fields['pricing_type'];
-        $price = round((float) $product->price, 2);
+        $price = round((float) ($fields['price'] ?? $product->price), 2);
 
         return [
             'product_id' => (int) $product->id,
@@ -325,14 +452,19 @@ final class ServiceAreaPricing
     public static function orderItemSnapshot(Product $product, ?float $requiredArea): array
     {
         $isService = ($product->type ?? 'product') === 'service';
-        $type = self::normalizeType($product->pricing_type ?? null, $isService);
+        if ($isService) {
+            $config = self::globalConfig();
+            $type = $config['pricing_type'];
+            $includes = $config['price_includes'];
+        } else {
+            $type = self::TYPE_FIXED;
+            $includes = null;
+        }
 
         return [
             'pricing_type' => $type,
             'required_area' => $type === self::TYPE_PER_M2 ? $requiredArea : null,
-            'price_includes' => $isService && is_array($product->price_includes)
-                ? array_merge(self::emptyIncludes(), $product->price_includes)
-                : ($isService ? self::emptyIncludes() : null),
+            'price_includes' => $includes,
         ];
     }
 
