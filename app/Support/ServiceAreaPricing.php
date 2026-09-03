@@ -165,15 +165,32 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Effective unit price for a catalog product (services use global rate).
+     * Effective unit price for a catalog product.
+     * Services use global admin rate when configured (per m², or fixed price > 0).
+     * Otherwise each service product keeps its own catalog price.
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
     {
-        if (($product->type ?? 'product') === 'service') {
-            return self::globalConfig()['price'];
+        if (($product->type ?? 'product') !== 'service') {
+            return round($fallbackProductPrice, 2);
+        }
+
+        $config = self::globalConfig();
+        if ($config['pricing_type'] === self::TYPE_PER_M2 || $config['price'] > 0) {
+            return $config['price'];
         }
 
         return round($fallbackProductPrice, 2);
+    }
+
+    /**
+     * Whether the global service-pricing setting has been configured by admin.
+     */
+    public static function globalIsConfigured(): bool
+    {
+        $config = self::globalConfig();
+
+        return $config['pricing_type'] === self::TYPE_PER_M2 || $config['price'] > 0;
     }
 
     /**
@@ -273,7 +290,9 @@ final class ServiceAreaPricing
         if ($isService) {
             $config = self::globalConfig();
             $type = $config['pricing_type'];
-            $price = $config['price'];
+            $price = ($type === self::TYPE_PER_M2 || $config['price'] > 0)
+                ? $config['price']
+                : round((float) $product->price, 2);
             $includes = $config['price_includes'];
         } else {
             $type = self::TYPE_FIXED;
