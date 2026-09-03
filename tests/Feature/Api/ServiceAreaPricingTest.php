@@ -91,9 +91,14 @@ class ServiceAreaPricingTest extends TestCase
         $product->refresh();
         $service->refresh();
         $this->assertSame('per_m2', $product->pricing_type);
-        $this->assertEquals(70.0, (float) $product->price);
+        // Catalog price must NOT be overwritten by global rate (store keeps product price).
+        $this->assertEquals(10.0, (float) $product->price);
         $this->assertSame('per_m2', $service->pricing_type);
-        $this->assertEquals(70.0, (float) $service->price);
+
+        $fields = ServiceAreaPricing::productApiFields($product->fresh());
+        $this->assertSame(10.0, (float) $fields['price']);
+        $this->assertSame(70.0, (float) $fields['price_per_m2']);
+        $this->assertTrue($fields['requires_area']);
     }
 
     public function test_per_m2_rejected_for_non_service_products(): void

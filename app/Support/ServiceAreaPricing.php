@@ -60,7 +60,9 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Persist global settings and sync every service + every type=service product.
+     * Persist global settings.
+     * Syncs pricing_type + price_includes to services/products — does NOT overwrite catalog `price`
+     * (store listing must keep each product's own price; rate is applied at checkout).
      *
      * @param  array<string, bool>|null  $includes
      * @return array{synced_services: int, synced_products: int}
@@ -79,16 +81,17 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Sync pricing_type + includes only — never overwrite product/service catalog price.
+     *
      * @param  array<string, bool>  $includes
      * @return array{synced_services: int, synced_products: int}
      */
     public static function syncAllServicesAndProducts(string $pricingType, float $price, array $includes): array
     {
         $servicesUpdated = 0;
-        Service::query()->orderBy('id')->chunkById(100, function ($services) use ($pricingType, $price, $includes, &$servicesUpdated) {
+        Service::query()->orderBy('id')->chunkById(100, function ($services) use ($pricingType, $includes, &$servicesUpdated) {
             foreach ($services as $service) {
                 $service->pricing_type = $pricingType;
-                $service->price = $price;
                 $service->price_includes = $includes;
                 $service->save();
                 $servicesUpdated++;
@@ -96,11 +99,11 @@ final class ServiceAreaPricing
         });
 
         $productsUpdated = 0;
-        Product::query()->where('type', 'service')->orderBy('id')->chunkById(100, function ($products) use ($pricingType, $price, $includes, &$productsUpdated) {
+        Product::query()->where('type', 'service')->orderBy('id')->chunkById(100, function ($products) use ($pricingType, $includes, &$productsUpdated) {
             foreach ($products as $product) {
                 $product->pricing_type = $pricingType;
-                $product->price = $price;
                 $product->price_includes = $includes;
+                // Keep $product->price (catalog / list price) unchanged.
                 $product->save();
                 $productsUpdated++;
             }
@@ -282,62 +285,86 @@ final class ServiceAreaPricing
     /**
      * Customer / admin product payload fields for pricing UI.
      *
+     * Store listing uses `price` = catalog product price (never replaced by global rate).
+     * Per m² checkout uses `price_per_m2` from global admin setting.
+     *
      * @return array<string, mixed>
      */
     public static function productApiFields(Product $product): array
     {
         $isService = ($product->type ?? 'product') === 'service';
-        if ($isService) {
-            $config = self::globalConfig();
-            $type = $config['pricing_type'];
-            $price = ($type === self::TYPE_PER_M2 || $config['price'] > 0)
-                ? $config['price']
-                : round((float) $product->price, 2);
-            $includes = $config['price_includes'];
-        } else {
-            $type = self::TYPE_FIXED;
-            $price = round((float) $product->price, 2);
-            $includes = null;
+        $catalogPrice = round((float) $product->price, 2);
+
+        if (! $isService) {
+            return [
+                'pricing_type' => self::TYPE_FIXED,
+                'price' => $catalogPrice,
+                'catalog_price' => $catalogPrice,
+                'price_per_m2' => null,
+                'currency' => 'AED',
+                'price_unit' => null,
+                'price_label' => self::formatMoney($catalogPrice),
+                'requires_area' => false,
+                'price_includes' => null,
+                'price_includes_labels' => [],
+                'customer_preview' => null,
+            ];
         }
 
-        if ($isService && $type === self::TYPE_PER_M2) {
+        $config = self::globalConfig();
+        $type = $config['pricing_type'];
+        $includes = $config['price_includes'];
+        $rate = $config['price'];
+
+        if ($type === self::TYPE_PER_M2) {
             return [
                 'pricing_type' => self::TYPE_PER_M2,
-                'price' => $price,
-                'price_per_m2' => $price,
+                // Catalog / list card: keep product's own price
+                'price' => $catalogPrice,
+                'catalog_price' => $catalogPrice,
+                // Checkout rate (admin global)
+                'price_per_m2' => $rate,
+                'unit_rate' => $rate,
                 'currency' => 'AED',
                 'price_unit' => 'm²',
-                'price_label' => self::formatMoney($price).' / m²',
+                'price_label' => self::formatMoney($rate).' / m²',
+                'list_price_label' => self::formatMoney($catalogPrice),
                 'requires_area' => true,
                 'price_includes' => $includes,
                 'price_includes_labels' => self::includeLabels($includes),
                 'customer_preview' => [
-                    'price_display' => 'Price: '.self::formatMoney($price).' / m²',
-                    'note' => 'Customer must enter Required Area (m²). Total = Area × Price per m².',
+                    'price_display' => 'Price: '.self::formatMoney($rate).' / m²',
+                    'list_price_display' => 'Listed: '.self::formatMoney($catalogPrice),
+                    'note' => 'Show catalog price on store if needed. On detail/checkout show AED X / m², require Area (m²), Total = Area × rate. Order summary shows the calculated line total (like Instant Order Fee visibility).',
                     'example' => [
                         'area' => 100,
-                        'price_per_m2' => $price,
-                        'total' => round(100 * $price, 2),
-                        'total_label' => self::formatMoney(round(100 * $price, 2)),
+                        'price_per_m2' => $rate,
+                        'total' => round(100 * $rate, 2),
+                        'total_label' => self::formatMoney(round(100 * $rate, 2)),
                     ],
                 ],
             ];
         }
 
+        // Fixed: catalog price for listing; global fixed rate only if admin set price > 0 for checkout
+        $checkoutPrice = $rate > 0 ? $rate : $catalogPrice;
+
         return [
             'pricing_type' => self::TYPE_FIXED,
-            'price' => $price,
+            'price' => $catalogPrice,
+            'catalog_price' => $catalogPrice,
+            'checkout_price' => $checkoutPrice,
             'price_per_m2' => null,
             'currency' => 'AED',
             'price_unit' => null,
-            'price_label' => self::formatMoney($price),
+            'price_label' => self::formatMoney($catalogPrice),
             'requires_area' => false,
             'price_includes' => $includes,
             'price_includes_labels' => self::includeLabels($includes),
-            'customer_preview' => $isService ? [
-                'price_display' => 'Price: '.self::formatMoney($price),
-                'note' => 'On the customer app: show a single fixed price. No area field is required for checkout.',
-            ] : null,
+            'customer_preview' => [
+                'price_display' => 'Price: '.self::formatMoney($catalogPrice),
+                'note' => 'On the customer app: show the product catalog price. No area field for fixed pricing.',
+            ],
         ];
     }
 

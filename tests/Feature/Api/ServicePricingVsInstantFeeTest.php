@@ -131,12 +131,13 @@ class ServicePricingVsInstantFeeTest extends TestCase
             'stock' => 20,
         ]);
 
-        // Service detail / cart: per m² from global settings
+        // Service detail: catalog price stays; per m² rate is separate
         $this->getJson('/api/shop/products/'.$service->id, $this->headers())
             ->assertOk()
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.requires_area', true)
-            ->assertJsonPath('data.price', 70);
+            ->assertJsonPath('data.price', 10)
+            ->assertJsonPath('data.price_per_m2', 70);
 
         $this->postJson('/api/shop/cart/add', [
             'product_id' => $service->id,
