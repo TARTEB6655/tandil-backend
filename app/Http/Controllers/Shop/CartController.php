@@ -562,7 +562,11 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
             'quantity' => 'nullable|integer|min:1',
             'required_area' => 'nullable|numeric|min:0.01',
+            'requiredArea' => 'nullable|numeric|min:0.01',
             'area' => 'nullable|numeric|min:0.01',
+            'area_m2' => 'nullable|numeric|min:0.01',
+            'areaM2' => 'nullable|numeric|min:0.01',
+            'm2' => 'nullable|numeric|min:0.01',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -576,7 +580,7 @@ class CartController extends Controller
             return ApiResponse::error($optionError, 422);
         }
 
-        $areaRaw = $request->input('required_area', $request->input('area'));
+        $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
         $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
         if ($areaError !== null) {
             return ApiResponse::error($areaError, 422);
@@ -686,7 +690,7 @@ class CartController extends Controller
             ], self::optionIdsValidationRules()));
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
-            $areaRaw = $request->input('required_area', $request->input('area'));
+            $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
             if ($areaError !== null) {
                 throw new \InvalidArgumentException($areaError);
@@ -807,7 +811,7 @@ class CartController extends Controller
 
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $row['product_id']);
-            $areaRaw = $row['required_area'] ?? $row['area'] ?? null;
+            $areaRaw = ServiceAreaPricing::resolveAreaFromArray($row);
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
             if ($areaError !== null) {
                 throw new \InvalidArgumentException(((string) $product->name).': '.$areaError);
@@ -1596,9 +1600,8 @@ class CartController extends Controller
         $product = $cartItem->product;
 
         if ($product && ServiceAreaPricing::isPerM2($product)) {
-            $areaRaw = $request->has('required_area') || $request->has('area')
-                ? $request->input('required_area', $request->input('area'))
-                : $cartItem->required_area;
+            $fromRequest = ServiceAreaPricing::resolveAreaFromRequest($request);
+            $areaRaw = $fromRequest !== null ? $fromRequest : $cartItem->required_area;
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
             if ($areaError !== null) {
                 return ApiResponse::error($areaError, 422);

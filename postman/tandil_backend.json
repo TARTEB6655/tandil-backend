@@ -4240,7 +4240,7 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"required_area\": 12.5\n}"
+                                            "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"required_area\": 7\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/shop/cart/add",
@@ -4254,7 +4254,7 @@
                                                 "add"
                                             ]
                                         },
-                                        "description": "POST /api/shop/cart/add — **Cart flow Step 1.** Slot + options yahin set karo (payment-intent pe nahi).\n\n**Body:**\n- `product_id` (required)\n- `quantity` (required)\n- `selected_option_ids` (optional) — Product Details options\n- `booking_date` (Y-m-d) + `booking_slot` (e.g. \"9:00 AM - 10:00 AM\") — is cart line ke liye\n- `required_area` (optional decimal m²) — **services only** when admin set global `pricing_type=per_m2` via **5 → D. Settings → Service Pricing**. Line total = area × price. Shop products ignore this; Instant Order Fee applies on shop/product checkout only.\n\nFully booked → **422**. Phir GET cart check, phir **I → 8 Cart** payment-intent (`is_buy_now: false`, bina product/booking/items)."
+                                        "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** MUST send area:\n```json\n{ \"product_id\": 123, \"required_area\": 7, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nAliases accepted: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`.\nLine total = area × price per m² (e.g. 7 × 100 = 700).\n\nWithout area on per_m2 service → **422** Required Area error."
                                     }
                                 },
                                 {

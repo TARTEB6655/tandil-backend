@@ -427,6 +427,67 @@ final class ServiceAreaPricing
         return $area > 0 ? $area : null;
     }
 
+    /**
+     * Resolve Required Area (m²) from common client/app field names.
+     * Accepts: required_area, requiredArea, area, area_m2, areaM2, m2, square_meters.
+     */
+    public static function resolveAreaFromRequest(\Illuminate\Http\Request $request): mixed
+    {
+        foreach ([
+            'required_area',
+            'requiredArea',
+            'area',
+            'area_m2',
+            'areaM2',
+            'm2',
+            'square_meters',
+            'squareMeters',
+            'required_area_m2',
+            'requiredAreaM2',
+        ] as $key) {
+            if ($request->exists($key) && $request->input($key) !== null && $request->input($key) !== '') {
+                return $request->input($key);
+            }
+        }
+
+        // Nested payloads: { pricing: { required_area: 7 } } / { area: { value: 7 } }
+        $pricing = $request->input('pricing');
+        if (is_array($pricing)) {
+            foreach (['required_area', 'requiredArea', 'area', 'area_m2', 'm2'] as $key) {
+                if (array_key_exists($key, $pricing) && $pricing[$key] !== null && $pricing[$key] !== '') {
+                    return $pricing[$key];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve area from a cart/buy-now line array (items[]).
+     *
+     * @param  array<string, mixed>  $row
+     */
+    public static function resolveAreaFromArray(array $row): mixed
+    {
+        foreach ([
+            'required_area',
+            'requiredArea',
+            'area',
+            'area_m2',
+            'areaM2',
+            'm2',
+            'square_meters',
+            'squareMeters',
+        ] as $key) {
+            if (array_key_exists($key, $row) && $row[$key] !== null && $row[$key] !== '') {
+                return $row[$key];
+            }
+        }
+
+        return null;
+    }
+
     public static function validateAreaMessage(Product $product, mixed $areaRaw): ?string
     {
         if (! self::isPerM2($product)) {
@@ -434,7 +495,7 @@ final class ServiceAreaPricing
         }
         $area = self::normalizeArea($areaRaw);
         if ($area === null) {
-            return 'Required Area (m²) is required and must be a positive number (e.g. 50, 100, 137.5).';
+            return 'Required Area (m²) is required and must be a positive number (e.g. 50, 100, 137.5). Send it as required_area (or area / requiredArea).';
         }
 
         return null;

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api;
 
+use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Service;
@@ -141,6 +142,15 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.required_area', 100)
             ->assertJsonPath('data.line_total', 7000);
+
+        // Mobile apps often send camelCase / short aliases.
+        Cart::where('user_id', $this->client->id)->delete();
+        $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'requiredArea' => 7,
+        ])->assertCreated()
+            ->assertJsonPath('data.required_area', 7)
+            ->assertJsonPath('data.line_total', 490); // 7 × 70
     }
 
     public function test_global_fixed_service_no_area_required(): void
