@@ -151,6 +151,24 @@ class ServiceAreaPricingTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('data.required_area', 7)
             ->assertJsonPath('data.line_total', 490); // 7 × 70
+
+        // Area sent as "7 m²" string
+        Cart::where('user_id', $this->client->id)->delete();
+        $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'area' => '7 m²',
+        ])->assertCreated()
+            ->assertJsonPath('data.required_area', 7)
+            ->assertJsonPath('data.line_total', 490);
+
+        // Some apps put area into quantity by mistake (not default 1)
+        Cart::where('user_id', $this->client->id)->delete();
+        $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'quantity' => 7,
+        ])->assertCreated()
+            ->assertJsonPath('data.required_area', 7)
+            ->assertJsonPath('data.line_total', 490);
     }
 
     public function test_global_fixed_service_no_area_required(): void

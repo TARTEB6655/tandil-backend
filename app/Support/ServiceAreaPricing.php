@@ -419,6 +419,15 @@ final class ServiceAreaPricing
         if ($value === null || $value === '') {
             return null;
         }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            // Accept "7", "7.5", "7 m²", "7m2", "7 sqm", "7,5"
+            $value = str_replace(',', '.', $value);
+            $value = preg_replace('/\s*(m²|m2|sq\.?\s*m|sqm|square\s*meters?)\s*$/iu', '', $value);
+            $value = trim((string) $value);
+        }
+
         if (! is_numeric($value)) {
             return null;
         }
@@ -430,8 +439,9 @@ final class ServiceAreaPricing
     /**
      * Resolve Required Area (m²) from common client/app field names.
      * Accepts: required_area, requiredArea, area, area_m2, areaM2, m2, square_meters.
+     * Fallback for per-m² services: some apps put area into `quantity`.
      */
-    public static function resolveAreaFromRequest(\Illuminate\Http\Request $request): mixed
+    public static function resolveAreaFromRequest(\Illuminate\Http\Request $request, bool $allowQuantityFallback = true): mixed
     {
         foreach ([
             'required_area',
@@ -444,19 +454,33 @@ final class ServiceAreaPricing
             'squareMeters',
             'required_area_m2',
             'requiredAreaM2',
+            'required_area_sqm',
+            'areaValue',
+            'area_value',
         ] as $key) {
             if ($request->exists($key) && $request->input($key) !== null && $request->input($key) !== '') {
                 return $request->input($key);
             }
         }
 
-        // Nested payloads: { pricing: { required_area: 7 } } / { area: { value: 7 } }
-        $pricing = $request->input('pricing');
-        if (is_array($pricing)) {
-            foreach (['required_area', 'requiredArea', 'area', 'area_m2', 'm2'] as $key) {
-                if (array_key_exists($key, $pricing) && $pricing[$key] !== null && $pricing[$key] !== '') {
-                    return $pricing[$key];
+        // Nested payloads: { pricing: { required_area: 7 } }
+        foreach (['pricing', 'service_pricing', 'area_input', 'data'] as $nestKey) {
+            $nested = $request->input($nestKey);
+            if (! is_array($nested)) {
+                continue;
+            }
+            foreach (['required_area', 'requiredArea', 'area', 'area_m2', 'm2', 'value'] as $key) {
+                if (array_key_exists($key, $nested) && $nested[$key] !== null && $nested[$key] !== '') {
+                    return $nested[$key];
                 }
+            }
+        }
+
+        if ($allowQuantityFallback && $request->filled('quantity')) {
+            $qty = $request->input('quantity');
+            // Skip default cart quantity=1 — that is almost never an area.
+            if (is_numeric($qty) && (float) $qty >= 0.01 && (float) $qty !== 1.0) {
+                return $qty;
             }
         }
 

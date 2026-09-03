@@ -561,12 +561,13 @@ class CartController extends Controller
         $request->validate(array_merge([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'nullable|integer|min:1',
-            'required_area' => 'nullable|numeric|min:0.01',
-            'requiredArea' => 'nullable|numeric|min:0.01',
-            'area' => 'nullable|numeric|min:0.01',
-            'area_m2' => 'nullable|numeric|min:0.01',
-            'areaM2' => 'nullable|numeric|min:0.01',
-            'm2' => 'nullable|numeric|min:0.01',
+            // Area may arrive as "7", 7, or "7 m²" — normalized after validation.
+            'required_area' => 'nullable',
+            'requiredArea' => 'nullable',
+            'area' => 'nullable',
+            'area_m2' => 'nullable',
+            'areaM2' => 'nullable',
+            'm2' => 'nullable',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -581,6 +582,10 @@ class CartController extends Controller
         }
 
         $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
+        // Only use quantity-as-area fallback for per_m2 services.
+        if ($areaRaw === null && ! ServiceAreaPricing::isPerM2($product)) {
+            $areaRaw = null;
+        }
         $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
         if ($areaError !== null) {
             return ApiResponse::error($areaError, 422);
@@ -1585,8 +1590,11 @@ class CartController extends Controller
     {
         $request->validate([
             'quantity' => 'nullable|integer|min:1',
-            'required_area' => 'nullable|numeric|min:0.01',
-            'area' => 'nullable|numeric|min:0.01',
+            'required_area' => 'nullable',
+            'requiredArea' => 'nullable',
+            'area' => 'nullable',
+            'area_m2' => 'nullable',
+            'm2' => 'nullable',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ]);
