@@ -195,6 +195,79 @@ final class ServiceAreaPricing
         ];
     }
 
+    /**
+     * Full Product Settings screen payload (admin mobile UI).
+     *
+     * @return array<string, mixed>
+     */
+    public static function productSettingsApi(Product $product): array
+    {
+        $isService = ($product->type ?? 'product') === 'service';
+        $fields = self::productApiFields($product);
+        $includes = is_array($fields['price_includes'] ?? null)
+            ? $fields['price_includes']
+            : self::emptyIncludes();
+
+        $includeOptions = [];
+        foreach (self::INCLUDE_KEYS as $key) {
+            $includeOptions[] = [
+                'key' => $key,
+                'label' => self::INCLUDE_LABELS[$key],
+                'selected' => (bool) ($includes[$key] ?? false),
+            ];
+        }
+
+        $type = $fields['pricing_type'];
+        $price = round((float) $product->price, 2);
+
+        return [
+            'product_id' => (int) $product->id,
+            'product_name' => (string) $product->name,
+            'type' => $product->type ?? 'product',
+            'is_service' => $isService,
+            'settings_available' => $isService,
+            'pricing_type' => $type,
+            'pricing_type_options' => [
+                [
+                    'value' => self::TYPE_FIXED,
+                    'label' => 'Fixed Price',
+                    'description' => 'Enter one total price for the service. Customers will see this amount only.',
+                    'selected' => $type === self::TYPE_FIXED,
+                ],
+                [
+                    'value' => self::TYPE_PER_M2,
+                    'label' => 'Price per Square Meter (m²)',
+                    'description' => 'Enter the unit price. Customers will enter the required area manually.',
+                    'selected' => $type === self::TYPE_PER_M2,
+                ],
+            ],
+            'price' => $price,
+            'price_per_m2' => $type === self::TYPE_PER_M2 ? $price : null,
+            'currency' => 'AED',
+            'price_unit' => $type === self::TYPE_PER_M2 ? 'm²' : null,
+            'price_input_label' => $type === self::TYPE_PER_M2 ? 'Price per m²' : 'Fixed price',
+            'price_input_suffix' => $type === self::TYPE_PER_M2 ? 'AED / m²' : 'AED',
+            'price_label' => $fields['price_label'],
+            'requires_area' => (bool) $fields['requires_area'],
+            'price_includes' => $includes,
+            'price_includes_options' => $includeOptions,
+            'price_includes_labels' => self::includeLabels($includes),
+            'customer_preview' => $fields['customer_preview'],
+            'example_calculation' => $type === self::TYPE_PER_M2 ? [
+                'title' => 'Example calculation',
+                'area' => 100,
+                'area_label' => '100 m²',
+                'price_per_m2' => $price,
+                'price_per_m2_label' => self::formatMoney($price),
+                'total' => round(100 * $price, 2),
+                'total_label' => self::formatMoney(round(100 * $price, 2)),
+            ] : null,
+            'message' => $isService
+                ? null
+                : 'Area-based Product Settings apply only to services. Shop products always use Fixed Price.',
+        ];
+    }
+
     public static function normalizeArea(mixed $value): ?float
     {
         if ($value === null || $value === '') {

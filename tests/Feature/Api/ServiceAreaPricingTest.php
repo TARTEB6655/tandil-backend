@@ -148,4 +148,73 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.requires_area', false)
             ->assertJsonPath('data.line_total', 7000);
     }
+
+    public function test_dedicated_product_settings_api_get_and_put(): void
+    {
+        $product = Product::create([
+            'name' => 'Interlock',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 50,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/products/'.$product->id.'/settings')
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'fixed')
+            ->assertJsonPath('data.is_service', true)
+            ->assertJsonPath('data.settings_available', true)
+            ->assertJsonPath('data.price_input_label', 'Fixed price');
+
+        $update = $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/products/'.$product->id.'/settings', [
+                'pricing_type' => 'per_m2',
+                'price' => 70,
+                'price_includes' => [
+                    'materials' => true,
+                    'installation' => true,
+                    'labor' => true,
+                    'transportation' => false,
+                    'delivery' => false,
+                ],
+            ]);
+
+        $update->assertOk()
+            ->assertJsonPath('data.pricing_type', 'per_m2')
+            ->assertJsonPath('data.price', 70)
+            ->assertJsonPath('data.requires_area', true)
+            ->assertJsonPath('data.price_input_suffix', 'AED / m²')
+            ->assertJsonPath('data.example_calculation.total', 7000)
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonPath('data.price_includes.delivery', false);
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'pricing_type' => 'per_m2',
+            'price' => 70,
+        ]);
+    }
+
+    public function test_product_settings_api_rejects_non_service(): void
+    {
+        $product = Product::create([
+            'name' => 'Hose',
+            'type' => 'product',
+            'category_id' => $this->category->id,
+            'price' => 20,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+            'status' => 'active',
+            'stock' => 10,
+        ]);
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/products/'.$product->id.'/settings', [
+                'pricing_type' => 'per_m2',
+                'price' => 70,
+            ])
+            ->assertStatus(422);
+    }
 }

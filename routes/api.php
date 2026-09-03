@@ -515,6 +515,9 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/products/bulk-update-status', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStatus']);
     Route::post('/products/bulk-update-stock', [\App\Http\Controllers\Admin\ProductController::class, 'bulkUpdateStock']);
     // Individual product routes
+    Route::get('/products/{id}/settings', [\App\Http\Controllers\Api\Admin\ProductSettingsController::class, 'show'])->whereNumber('id');
+    Route::put('/products/{id}/settings', [\App\Http\Controllers\Api\Admin\ProductSettingsController::class, 'update'])->whereNumber('id');
+    Route::post('/products/{id}/settings', [\App\Http\Controllers\Api\Admin\ProductSettingsController::class, 'update'])->whereNumber('id');
     Route::get('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'show']);
     Route::put('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
     Route::post('/products/{id}', [\App\Http\Controllers\Admin\ProductController::class, 'update']);
