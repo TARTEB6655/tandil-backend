@@ -866,6 +866,18 @@ class OrderController extends Controller
             'payment_method' => $paymentLabel,
             'payment_method_code' => $order->payment_method,
 
+            'subtotal' => (float) ($order->subtotal_amount ?? 0),
+            'shipping' => (float) ($order->shipping_amount ?? 0),
+            'tax' => (float) ($order->tax_amount ?? 0),
+            'tax_percent' => (float) ($order->tax_percent ?? 0),
+            'discount' => (float) ($order->coupon_discount_amount ?? 0),
+            'instant_order_fee' => (float) ($order->instant_order_fee ?? 0),
+            'instant_order_fee_label' => ((float) ($order->instant_order_fee ?? 0) > 0)
+                ? 'Instant order fee'
+                : null,
+            'is_instant_order' => ((float) ($order->instant_order_fee ?? 0) > 0)
+                || \App\Support\OrderFulfillmentType::usesVendorProductWorkflow($order)
+                || \App\Support\OrderFulfillmentType::usesPlatformCheckoutWorkflow($order),
             'total' => (float) $order->total_amount,
             'currency' => $currency,
 
@@ -1205,6 +1217,7 @@ class OrderController extends Controller
             'subtotal_amount' => (float) ($order->subtotal_amount ?? 0),
             'shipping_amount' => (float) ($order->shipping_amount ?? 0),
             'tax_amount' => (float) ($order->tax_amount ?? 0),
+            'instant_order_fee' => (float) ($order->instant_order_fee ?? 0),
             'currency' => strtoupper((string) config('shop.currency', 'AED')),
             'special_instructions' => $order->special_instructions,
             'estimated_arrival' => $estimatedArrival,
@@ -1237,6 +1250,7 @@ class OrderController extends Controller
             'subtotal_amount' => (float) ($order->subtotal_amount ?? 0),
             'shipping_amount' => (float) ($order->shipping_amount ?? 0),
             'tax_amount' => (float) ($order->tax_amount ?? 0),
+            'instant_order_fee' => (float) ($order->instant_order_fee ?? 0),
             'special_instructions' => $order->special_instructions,
             'estimated_arrival' => $estimatedArrival,
             'job_duration' => $jobDuration,
