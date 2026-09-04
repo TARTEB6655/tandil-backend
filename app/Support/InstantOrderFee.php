@@ -121,9 +121,8 @@ final class InstantOrderFee
      * Service / booking lines never get Instant Order Fee.
      *
      * - type=service → no fee
-     * - shop simple products (type product/physical + product_type simple) → always fee-eligible,
-     *   even if legacy-linked on product_service (must not hide Instant Fee on Buy Now)
-     * - Services-catalog packages (e.g. باقة الاندسكيب الماسية: variable + service link) → no fee
+     * - product_type=simple (default) → Instant Fee, even if type is null or has a legacy service link
+     * - variable / other Services-catalog packages (service-linked) → no fee
      */
     public static function productIsExplicitService(?Product $product): bool
     {
@@ -136,16 +135,14 @@ final class InstantOrderFee
             return true;
         }
 
-        // Shop/simple SKUs keep Instant Order Fee (Buy Now / cart).
+        // Shop simple SKUs (Buy Now / cart) — Instant Fee always.
+        // Important: many catalog rows have type=null; do NOT treat those as services.
         $productType = strtolower(trim((string) ($product->product_type ?? 'simple')));
-        if (
-            in_array($type, ['product', 'physical', 'digital', 'simple'], true)
-            && ($productType === '' || $productType === 'simple')
-        ) {
+        if ($productType === '' || $productType === 'simple') {
             return false;
         }
 
-        // Service-linked packages / null-type service catalog rows.
+        // Variable packages under Services (e.g. باقة الاندسكيب الماسية).
         return ServiceAreaPricing::appliesToProduct($product);
     }
 
