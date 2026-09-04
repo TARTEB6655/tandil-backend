@@ -157,9 +157,28 @@ final class ServiceAreaPricing
         return self::TYPE_FIXED;
     }
 
+    /**
+     * Whether global Fixed / per-m² settings apply to this catalog line.
+     * Matches service shop listing: type=service OR linked via product_service pivot
+     * (same set as GET /api/services/.../products). Pure shop SKUs without a service link are excluded.
+     */
+    public static function appliesToProduct(Product $product): bool
+    {
+        $type = strtolower(trim((string) ($product->type ?? '')));
+        if ($type === 'service') {
+            return true;
+        }
+
+        if (! $product->relationLoaded('services')) {
+            $product->loadMissing('services');
+        }
+
+        return $product->services->isNotEmpty();
+    }
+
     public static function isPerM2(Product $product): bool
     {
-        if (($product->type ?? 'product') !== 'service') {
+        if (! self::appliesToProduct($product)) {
             return false;
         }
 
@@ -174,7 +193,7 @@ final class ServiceAreaPricing
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
     {
-        if (($product->type ?? 'product') !== 'service') {
+        if (! self::appliesToProduct($product)) {
             return round($fallbackProductPrice, 2);
         }
 
@@ -293,7 +312,7 @@ final class ServiceAreaPricing
      */
     public static function productApiFields(Product $product): array
     {
-        $isService = ($product->type ?? 'product') === 'service';
+        $isService = self::appliesToProduct($product);
         $catalogPrice = round((float) $product->price, 2);
 
         if (! $isService) {
@@ -391,7 +410,7 @@ final class ServiceAreaPricing
      */
     public static function productSettingsApi(Product $product): array
     {
-        $isService = ($product->type ?? 'product') === 'service';
+        $isService = self::appliesToProduct($product);
         $fields = self::productApiFields($product);
         $includes = is_array($fields['price_includes'] ?? null)
             ? $fields['price_includes']
@@ -660,7 +679,7 @@ final class ServiceAreaPricing
      */
     public static function orderItemSnapshot(Product $product, ?float $requiredArea): array
     {
-        $isService = ($product->type ?? 'product') === 'service';
+        $isService = self::appliesToProduct($product);
         if ($isService) {
             $config = self::globalConfig();
             $type = $config['pricing_type'];
@@ -687,7 +706,7 @@ final class ServiceAreaPricing
         $isPerM2 = self::isPerM2($product);
         $area = $isPerM2 ? $requiredArea : null;
         $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea);
-        $includes = $isPerM2 || ($product->type ?? '') === 'service'
+        $includes = $isPerM2 || self::appliesToProduct($product)
             ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())
             : null;
 

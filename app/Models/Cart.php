@@ -48,10 +48,10 @@ class Cart extends Model
     {
         $product = $this->product;
 
-        // Fixed services: always live base + Fixed addon (ignore stale cart unit_price).
+        // Service Fixed: always live base + Fixed addon (ignore stale cart unit_price).
         if (
             $product
-            && strtolower(trim((string) ($product->type ?? ''))) === 'service'
+            && \App\Support\ServiceAreaPricing::appliesToProduct($product)
             && ! \App\Support\ServiceAreaPricing::isPerM2($product)
         ) {
             return self::calculateUnitPrice($product, $this->selected_options ?? []);

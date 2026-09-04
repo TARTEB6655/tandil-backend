@@ -304,6 +304,52 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.order_summary.subtotal', 900);
     }
 
+    public function test_fixed_addon_applies_to_service_linked_products_not_only_type_service(): void
+    {
+        ServiceAreaPricing::saveGlobal('fixed', 800, ServiceAreaPricing::emptyIncludes());
+
+        $service = Service::create([
+            'name' => 'Landscaping',
+            'slug' => 'landscaping-'.uniqid(),
+            'is_active' => true,
+        ]);
+
+        // Same as many live catalog rows: type null/empty but linked under a Service.
+        $linked = Product::create([
+            'name' => 'توريد وتركيب العشب',
+            'type' => null,
+            'category_id' => $this->category->id,
+            'price' => 41,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+        $service->products()->attach($linked->id);
+
+        $shopOnly = Product::create([
+            'name' => 'simple product',
+            'type' => 'product',
+            'category_id' => $this->category->id,
+            'price' => 99,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/products/'.$linked->id)
+            ->assertOk()
+            ->assertJsonPath('data.base_price', 41)
+            ->assertJsonPath('data.fixed_price_addon', 800)
+            ->assertJsonPath('data.price', 841);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/products/'.$shopOnly->id)
+            ->assertOk()
+            ->assertJsonPath('data.price', 99)
+            ->assertJsonMissingPath('data.fixed_price_addon');
+    }
+
     public function test_buy_now_order_summary_accepts_required_area(): void
     {
         ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
