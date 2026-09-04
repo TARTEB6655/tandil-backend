@@ -452,6 +452,9 @@ class CartController extends Controller
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
         $isService = \App\Support\OrderFulfillmentType::isServiceProduct($product);
         $instantEligible = InstantOrderFee::productIsInstantEligible($product);
+        $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product);
+        // Cart row must show what the customer pays for this line (700), not unit rate (7).
+        $displayPrice = $isPerM2 ? $lineTotal : $price;
 
         return array_merge([
             'id' => $item->id,
@@ -472,8 +475,11 @@ class CartController extends Controller
                 : null,
             'brand' => $product->vendor ?? null,
             'base_price' => $basePrice,
-            'options_extra' => max(0, round($price - $basePrice, 2)),
-            'current_price' => $price,
+            'options_extra' => $isPerM2 ? 0.0 : max(0, round($price - $basePrice, 2)),
+            // Prefer these for cart UI (per m² → full line amount).
+            'price' => $displayPrice,
+            'current_price' => $displayPrice,
+            'display_price' => $displayPrice,
             'original_price' => $compareAt,
             'quantity' => $item->quantity,
             'stock' => $product->maxPurchaseQuantity(),

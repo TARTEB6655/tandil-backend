@@ -219,7 +219,10 @@ class ServiceAreaPricingTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.required_area', 100)
-            ->assertJsonPath('data.line_total', 7000);
+            ->assertJsonPath('data.line_total', 7000)
+            ->assertJsonPath('data.current_price', 7000)
+            ->assertJsonPath('data.display_price', 7000)
+            ->assertJsonPath('data.unit_price', 70);
 
         // Mobile apps often send camelCase / short aliases.
         Cart::where('user_id', $this->client->id)->delete();

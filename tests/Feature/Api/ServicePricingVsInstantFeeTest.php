@@ -181,7 +181,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
         );
     }
 
-    public function test_mixed_cart_with_service_is_not_instant_order(): void
+    public function test_mixed_cart_with_service_still_includes_instant_fee(): void
     {
         $shop = Product::factory()->create([
             'category_id' => $this->category->id,
@@ -214,12 +214,12 @@ class ServicePricingVsInstantFeeTest extends TestCase
             'required_area' => 10,
         ]);
 
-        // Service line 10×70=700 + shop 100 = 800; mixed → no instant fee
+        // Service line 10×70=700 + shop 100 = 800; mixed cart still gets Instant Order Fee (15)
         $this->getJson('/api/shop/order-summary', $this->headers())
             ->assertOk()
-            ->assertJsonPath('data.is_instant_order', false)
-            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 15)
             ->assertJsonPath('data.subtotal', 800)
-            ->assertJsonPath('data.total', 800);
+            ->assertJsonPath('data.total', 815);
     }
 }

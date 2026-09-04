@@ -140,8 +140,9 @@ final class InstantOrderFee
     }
 
     /**
-     * Instant = at least one non-service shop line and no explicit service lines.
-     * Product price amount does NOT matter (AED 41 or AED 1500 — same rule).
+     * Instant fee applies when the cart has at least one shop/simple product line.
+     * Service lines no longer block the fee (mixed cart still gets Instant Order Fee).
+     * Service-only carts do not get the fee.
      */
     public static function cartIsInstant(?iterable $cartItems): bool
     {
@@ -187,15 +188,6 @@ final class InstantOrderFee
             ];
         }
 
-        if ($hasService && $hasProduct) {
-            return [
-                'is_instant' => false,
-                'has_product' => true,
-                'has_service' => true,
-                'reason' => 'mixed_cart_has_service',
-            ];
-        }
-
         if ($hasService && ! $hasProduct) {
             return [
                 'is_instant' => false,
@@ -217,7 +209,7 @@ final class InstantOrderFee
         return [
             'is_instant' => true,
             'has_product' => true,
-            'has_service' => false,
+            'has_service' => $hasService,
             'reason' => null,
         ];
     }

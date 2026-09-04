@@ -324,7 +324,7 @@ class InstantOrderFeeTest extends TestCase
             ->assertJsonPath('data.total', 128);
     }
 
-    public function test_mixed_vendor_product_and_booking_service_excludes_instant_fee(): void
+    public function test_mixed_vendor_product_and_booking_service_still_includes_instant_fee(): void
     {
         $category = Category::factory()->create(['shipping_cost' => 5, 'tax_percentage' => 0]);
 
@@ -346,6 +346,7 @@ class InstantOrderFeeTest extends TestCase
             'vendor_id' => $vendor->id,
             'type' => 'physical',
             'price' => 40,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
         VendorProduct::create([
@@ -359,6 +360,7 @@ class InstantOrderFeeTest extends TestCase
             'category_id' => $category->id,
             'type' => 'service',
             'price' => 60,
+            'compare_at_price' => null,
             'status' => 'active',
         ]);
 
@@ -375,9 +377,12 @@ class InstantOrderFeeTest extends TestCase
 
         $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
 
+        // Shop product present → Instant Order Fee applies even with a service line.
         $response->assertOk()
-            ->assertJsonPath('data.is_instant_order', false)
-            ->assertJsonPath('data.instant_order_fee', 0)
-            ->assertJsonPath('data.subtotal', 100);
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 15)
+            ->assertJsonPath('data.subtotal', 100)
+            ->assertJsonPath('data.shipping', 5)
+            ->assertJsonPath('data.total', 120);
     }
 }
