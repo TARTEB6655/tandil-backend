@@ -46,11 +46,22 @@ class Cart extends Model
      */
     public function lineUnitPrice(): float
     {
+        $product = $this->product;
+
+        // Fixed services: always live catalog price so cart matches Product Details
+        // (ignore stale unit_price left from an old global Fixed override).
+        if (
+            $product
+            && strtolower(trim((string) ($product->type ?? ''))) === 'service'
+            && ! \App\Support\ServiceAreaPricing::isPerM2($product)
+        ) {
+            return self::calculateUnitPrice($product, $this->selected_options ?? []);
+        }
+
         if ($this->unit_price !== null && $this->unit_price >= 0) {
             return round((float) $this->unit_price, 2);
         }
 
-        $product = $this->product;
         if (! $product) {
             return 0.0;
         }

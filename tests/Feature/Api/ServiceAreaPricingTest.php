@@ -252,9 +252,10 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.line_total', 490);
     }
 
-    public function test_global_fixed_service_no_area_required(): void
+    public function test_global_fixed_service_uses_catalog_price_not_global_amount(): void
     {
-        ServiceAreaPricing::saveGlobal('fixed', 7000, [
+        // Global Fixed "7" must NOT replace the product catalog price on cart.
+        ServiceAreaPricing::saveGlobal('fixed', 7, [
             'materials' => true,
             'installation' => true,
             'labor' => true,
@@ -263,13 +264,21 @@ class ServiceAreaPricingTest extends TestCase
         ]);
 
         $product = Product::create([
-            'name' => 'Lawn Care Visit',
+            'name' => 'service product',
             'type' => 'service',
             'category_id' => $this->category->id,
-            'price' => 1,
+            'price' => 100,
+            'compare_at_price' => null,
             'status' => 'active',
             'stock' => 999,
         ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/products/'.$product->id)
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'fixed')
+            ->assertJsonPath('data.price', 100)
+            ->assertJsonPath('data.requires_area', false);
 
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,
@@ -277,7 +286,19 @@ class ServiceAreaPricingTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('data.pricing_type', 'fixed')
             ->assertJsonPath('data.requires_area', false)
-            ->assertJsonPath('data.line_total', 7000);
+            ->assertJsonPath('data.current_price', 100)
+            ->assertJsonPath('data.display_price', 100)
+            ->assertJsonPath('data.line_total', 100);
+
+        // Stale unit_price=7 on cart row must still resolve to catalog 100.
+        Cart::where('user_id', $this->client->id)->update(['unit_price' => 7]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/cart')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.current_price', 100)
+            ->assertJsonPath('data.items.0.line_total', 100)
+            ->assertJsonPath('data.order_summary.subtotal', 100);
     }
 
     public function test_buy_now_order_summary_accepts_required_area(): void

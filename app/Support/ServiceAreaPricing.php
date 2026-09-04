@@ -140,7 +140,7 @@ final class ServiceAreaPricing
             'applies_to' => 'all_services',
             'settings_available' => true,
             'is_service' => true,
-            'note' => 'Applies to every service purchase. Shop/category products keep Instant Order Fee.',
+            'note' => 'Per m²: rate below applies to all services at checkout (× area). Fixed: each service uses its own product price — edit the product to change AED amount. Price includes tags apply in both modes. Shop products keep Instant Order Fee.',
         ]);
     }
 
@@ -169,8 +169,8 @@ final class ServiceAreaPricing
 
     /**
      * Effective unit price for a catalog product.
-     * Services use global admin rate when configured (per m², or fixed price > 0).
-     * Otherwise each service product keeps its own catalog price.
+     * Per m² services: global admin rate.
+     * Fixed services: each product's own catalog price (never the global Fixed setting amount).
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
     {
@@ -179,8 +179,8 @@ final class ServiceAreaPricing
         }
 
         $config = self::globalConfig();
-        if ($config['pricing_type'] === self::TYPE_PER_M2 || $config['price'] > 0) {
-            return $config['price'];
+        if ($config['pricing_type'] === self::TYPE_PER_M2) {
+            return round((float) $config['price'], 2);
         }
 
         return round($fallbackProductPrice, 2);
@@ -348,14 +348,13 @@ final class ServiceAreaPricing
             ];
         }
 
-        // Fixed: catalog price for listing; global fixed rate only if admin set price > 0 for checkout
-        $checkoutPrice = $rate > 0 ? $rate : $catalogPrice;
-
+        // Fixed: always the product's own catalog price (matches Product Details).
+        // Global Fixed setting only selects mode + price_includes — it does NOT replace product.price.
         return [
             'pricing_type' => self::TYPE_FIXED,
             'price' => $catalogPrice,
             'catalog_price' => $catalogPrice,
-            'checkout_price' => $checkoutPrice,
+            'checkout_price' => $catalogPrice,
             'price_per_m2' => null,
             'currency' => 'AED',
             'price_unit' => null,
@@ -365,7 +364,7 @@ final class ServiceAreaPricing
             'price_includes_labels' => self::includeLabels($includes),
             'customer_preview' => [
                 'price_display' => 'Price: '.self::formatMoney($catalogPrice),
-                'note' => 'On the customer app: show the product catalog price. No area field for fixed pricing.',
+                'note' => 'Fixed mode: show this product catalog price on detail and cart. No area field. Edit the product price to change what customers pay.',
             ],
         ];
     }
