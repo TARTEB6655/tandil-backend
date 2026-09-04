@@ -140,7 +140,7 @@ final class ServiceAreaPricing
             'applies_to' => 'all_services',
             'settings_available' => true,
             'is_service' => true,
-            'note' => 'Per m²: rate below applies to all services at checkout (× area). Fixed: each service uses its own product price — edit the product to change AED amount. Price includes tags apply in both modes. Shop products keep Instant Order Fee.',
+            'note' => 'Per m²: rate × area at checkout. Fixed: customer pays (product base price + Fixed amount), e.g. base 100 + Fixed 800 = 900. Shop products keep Instant Order Fee.',
         ]);
     }
 
@@ -169,8 +169,8 @@ final class ServiceAreaPricing
 
     /**
      * Effective unit price for a catalog product.
-     * Per m² services: global admin rate.
-     * Fixed services: each product's own catalog price (never the global Fixed setting amount).
+     * Per m² services: global admin rate (× area at line total).
+     * Fixed services: product base (catalog) price + global Fixed amount.
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
     {
@@ -183,7 +183,8 @@ final class ServiceAreaPricing
             return round((float) $config['price'], 2);
         }
 
-        return round($fallbackProductPrice, 2);
+        // Fixed: base product price + global Fixed setting (e.g. 100 + 800 = 900).
+        return round($fallbackProductPrice + (float) $config['price'], 2);
     }
 
     /**
@@ -348,23 +349,37 @@ final class ServiceAreaPricing
             ];
         }
 
-        // Fixed: always the product's own catalog price (matches Product Details).
-        // Global Fixed setting only selects mode + price_includes — it does NOT replace product.price.
+        // Fixed: customer pays product base + global Fixed amount (e.g. 100 + 800 = 900).
+        $fixedAddon = round((float) $rate, 2);
+        $total = round($catalogPrice + $fixedAddon, 2);
+
         return [
             'pricing_type' => self::TYPE_FIXED,
-            'price' => $catalogPrice,
+            'price' => $total,
             'catalog_price' => $catalogPrice,
-            'checkout_price' => $catalogPrice,
+            'base_price' => $catalogPrice,
+            'fixed_price_addon' => $fixedAddon,
+            'fixed_price' => $fixedAddon,
+            'checkout_price' => $total,
             'price_per_m2' => null,
             'currency' => 'AED',
             'price_unit' => null,
-            'price_label' => self::formatMoney($catalogPrice),
+            'price_label' => self::formatMoney($total),
             'requires_area' => false,
             'price_includes' => $includes,
             'price_includes_labels' => self::includeLabels($includes),
             'customer_preview' => [
-                'price_display' => 'Price: '.self::formatMoney($catalogPrice),
-                'note' => 'Fixed mode: show this product catalog price on detail and cart. No area field. Edit the product price to change what customers pay.',
+                'price_display' => 'Price: '.self::formatMoney($total),
+                'breakdown' => [
+                    'base' => $catalogPrice,
+                    'base_label' => self::formatMoney($catalogPrice),
+                    'fixed_addon' => $fixedAddon,
+                    'fixed_addon_label' => self::formatMoney($fixedAddon),
+                    'total' => $total,
+                    'total_label' => self::formatMoney($total),
+                    'formula' => $catalogPrice.' + '.$fixedAddon.' = '.$total,
+                ],
+                'note' => 'Fixed mode: product base price + global Fixed price. No area field.',
             ],
         ];
     }
@@ -392,7 +407,10 @@ final class ServiceAreaPricing
         }
 
         $type = $fields['pricing_type'];
-        $price = round((float) ($fields['price'] ?? $product->price), 2);
+        // Admin input shows the global setting amount (Fixed addon / per-m² rate), not the customer total.
+        $price = $isService
+            ? round((float) self::globalConfig()['price'], 2)
+            : round((float) ($product->price ?? 0), 2);
 
         return [
             'product_id' => (int) $product->id,
@@ -405,7 +423,7 @@ final class ServiceAreaPricing
                 [
                     'value' => self::TYPE_FIXED,
                     'label' => 'Fixed Price',
-                    'description' => 'Enter one total price for the service. Customers will see this amount only.',
+                    'description' => 'This amount is added to each service product base price (e.g. base 100 + Fixed 800 = 900).',
                     'selected' => $type === self::TYPE_FIXED,
                 ],
                 [
@@ -419,14 +437,21 @@ final class ServiceAreaPricing
             'price_per_m2' => $type === self::TYPE_PER_M2 ? $price : null,
             'currency' => 'AED',
             'price_unit' => $type === self::TYPE_PER_M2 ? 'm²' : null,
-            'price_input_label' => $type === self::TYPE_PER_M2 ? 'Price per m²' : 'Fixed price',
+            'price_input_label' => $type === self::TYPE_PER_M2 ? 'Price per m²' : 'Fixed price (added to product base)',
             'price_input_suffix' => $type === self::TYPE_PER_M2 ? 'AED / m²' : 'AED',
-            'price_label' => $fields['price_label'],
+            'price_label' => $type === self::TYPE_FIXED
+                ? self::formatMoney($price).' addon'
+                : ($fields['price_label'] ?? self::formatMoney($price)),
             'requires_area' => (bool) $fields['requires_area'],
             'price_includes' => $includes,
             'price_includes_options' => $includeOptions,
             'price_includes_labels' => self::includeLabels($includes),
-            'customer_preview' => $fields['customer_preview'],
+            'customer_preview' => $type === self::TYPE_FIXED
+                ? [
+                    'price_display' => 'Example: base AED 100 + Fixed '.self::formatMoney($price).' = '.self::formatMoney(round(100 + $price, 2)),
+                    'note' => 'On the customer app: show base + Fixed total. No area field is required for checkout.',
+                ]
+                : ($fields['customer_preview'] ?? null),
             'example_calculation' => $type === self::TYPE_PER_M2 ? [
                 'title' => 'Example calculation',
                 'area' => 100,
@@ -435,7 +460,14 @@ final class ServiceAreaPricing
                 'price_per_m2_label' => self::formatMoney($price),
                 'total' => round(100 * $price, 2),
                 'total_label' => self::formatMoney(round(100 * $price, 2)),
-            ] : null,
+            ] : [
+                'title' => 'Example calculation',
+                'base' => 100,
+                'fixed_addon' => $price,
+                'total' => round(100 + $price, 2),
+                'total_label' => self::formatMoney(round(100 + $price, 2)),
+                'formula' => '100 + '.$price.' = '.round(100 + $price, 2),
+            ],
             'message' => $isService
                 ? null
                 : 'Area-based Product Settings apply only to services. Shop products always use Fixed Price.',

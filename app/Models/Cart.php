@@ -48,8 +48,7 @@ class Cart extends Model
     {
         $product = $this->product;
 
-        // Fixed services: always live catalog price so cart matches Product Details
-        // (ignore stale unit_price left from an old global Fixed override).
+        // Fixed services: always live base + Fixed addon (ignore stale cart unit_price).
         if (
             $product
             && strtolower(trim((string) ($product->type ?? ''))) === 'service'

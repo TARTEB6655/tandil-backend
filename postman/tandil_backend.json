@@ -8639,7 +8639,7 @@
                                         "service-pricing"
                                     ]
                                 },
-                                "description": "POST form-data `/api/admin/settings/service-pricing` — **no ID**.\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Body (form-data):**\n- `pricing_type`: `fixed` | `per_m2`\n- `price`: e.g. `70`\n- `price_includes[materials|installation|labor|transportation|delivery]`: `0`|`1`\n\nApplies to **all** services + linked `type=service` products. Client must send `required_area` on cart add when `per_m2`. Instant Order Fee is **not** applied on service checkout."
+                                "description": "POST form-data `/api/admin/settings/service-pricing` — **no ID**.\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Body (form-data):**\n- `pricing_type`: `fixed` | `per_m2`\n- `price`: e.g. `800` (Fixed = **addon** added to each service product base; per_m2 = rate × area)\n- `price_includes[materials|installation|labor|transportation|delivery]`: `0`|`1`\n\n**Fixed example:** product base AED 100 + Fixed 800 → customer sees **AED 900** on detail/cart.\n**Per m²:** Client must send `required_area` on cart add. Instant Order Fee is **not** applied on service-only checkout."
                             }
                         },
                         {

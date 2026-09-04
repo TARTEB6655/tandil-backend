@@ -252,10 +252,10 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.line_total', 490);
     }
 
-    public function test_global_fixed_service_uses_catalog_price_not_global_amount(): void
+    public function test_global_fixed_service_adds_addon_to_base_price(): void
     {
-        // Global Fixed "7" must NOT replace the product catalog price on cart.
-        ServiceAreaPricing::saveGlobal('fixed', 7, [
+        // Global Fixed 800 + product base 100 = customer price 900 (detail + cart).
+        ServiceAreaPricing::saveGlobal('fixed', 800, [
             'materials' => true,
             'installation' => true,
             'labor' => true,
@@ -277,7 +277,10 @@ class ServiceAreaPricingTest extends TestCase
             ->getJson('/api/shop/products/'.$product->id)
             ->assertOk()
             ->assertJsonPath('data.pricing_type', 'fixed')
-            ->assertJsonPath('data.price', 100)
+            ->assertJsonPath('data.catalog_price', 100)
+            ->assertJsonPath('data.base_price', 100)
+            ->assertJsonPath('data.fixed_price_addon', 800)
+            ->assertJsonPath('data.price', 900)
             ->assertJsonPath('data.requires_area', false);
 
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
@@ -286,19 +289,19 @@ class ServiceAreaPricingTest extends TestCase
         ])->assertCreated()
             ->assertJsonPath('data.pricing_type', 'fixed')
             ->assertJsonPath('data.requires_area', false)
-            ->assertJsonPath('data.current_price', 100)
-            ->assertJsonPath('data.display_price', 100)
-            ->assertJsonPath('data.line_total', 100);
+            ->assertJsonPath('data.current_price', 900)
+            ->assertJsonPath('data.display_price', 900)
+            ->assertJsonPath('data.line_total', 900);
 
-        // Stale unit_price=7 on cart row must still resolve to catalog 100.
-        Cart::where('user_id', $this->client->id)->update(['unit_price' => 7]);
+        // Stale unit_price must still resolve to base + Fixed (900).
+        Cart::where('user_id', $this->client->id)->update(['unit_price' => 100]);
 
         $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/shop/cart')
             ->assertOk()
-            ->assertJsonPath('data.items.0.current_price', 100)
-            ->assertJsonPath('data.items.0.line_total', 100)
-            ->assertJsonPath('data.order_summary.subtotal', 100);
+            ->assertJsonPath('data.items.0.current_price', 900)
+            ->assertJsonPath('data.items.0.line_total', 900)
+            ->assertJsonPath('data.order_summary.subtotal', 900);
     }
 
     public function test_buy_now_order_summary_accepts_required_area(): void
