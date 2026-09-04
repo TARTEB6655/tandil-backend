@@ -38,9 +38,19 @@
                             <!-- Product Image -->
                             <div class="flex-shrink-0">
                                 <div class="h-24 w-24 rounded-lg overflow-hidden bg-gray-100">
-                                    @if($item->product->getImageUrl())
-                                        <img src="{{ $item->product->getImageUrl() }}" 
-                                             alt="{{ $item->product->name }}" 
+                                    @php
+                                        $cartImageUrl = $item->product->image_url;
+                                        $cartThumbUrl = $cartImageUrl
+                                            ? $cartImageUrl.(str_contains($cartImageUrl, '?') ? '&' : '?').'w=192'
+                                            : null;
+                                    @endphp
+                                    @if($cartThumbUrl)
+                                        <img src="{{ $cartThumbUrl }}"
+                                             alt="{{ $item->product->name }}"
+                                             width="96"
+                                             height="96"
+                                             loading="lazy"
+                                             decoding="async"
                                              class="h-full w-full object-cover">
                                     @else
                                         <div class="h-full w-full flex items-center justify-center">

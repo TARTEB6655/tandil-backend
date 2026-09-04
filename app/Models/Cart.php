@@ -172,7 +172,7 @@ class Cart extends Model
      *   price_modifier: float
      * }>
      */
-    public static function resolveSelectedOptionsDisplay(Product $product, ?array $selectedOptionIds = null): array
+    public static function resolveSelectedOptionsDisplay(Product $product, ?array $selectedOptionIds = null, bool $includeImages = true): array
     {
         $ids = self::normalizeSelectedOptionIds($selectedOptionIds);
         if ($ids === []) {
@@ -197,7 +197,7 @@ class Cart extends Model
                     'option_id' => (int) $option->id,
                     'label' => (string) $option->label,
                     'subtitle' => $option->subtitle ? (string) $option->subtitle : null,
-                    'image_url' => $option->image_url,
+                    'image_url' => $includeImages ? $option->image_url : null,
                     'price_modifier' => round((float) $option->price_modifier, 2),
                 ];
             }

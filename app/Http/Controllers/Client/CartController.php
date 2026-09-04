@@ -20,7 +20,7 @@ class CartController extends Controller
     {
         $user = Auth::user();
         $cartItems = Cart::where('user_id', $user->id)
-            ->with(['product.category', 'product.optionGroups.options'])
+            ->with(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options'])
             ->get();
 
         $removedNames = [];

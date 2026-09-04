@@ -9,8 +9,12 @@
         @foreach($lines as $line)
             <div class="flex items-center gap-2.5 rounded-lg border border-gray-100 bg-gray-50/80 px-2.5 py-2">
                 @if(!empty($line['image_url']))
-                    <img src="{{ $line['image_url'] }}"
+                    <img src="{{ $line['image_url'] }}{{ str_contains($line['image_url'], '?') ? '&' : '?' }}w=80"
                          alt="{{ $line['label'] }}"
+                         width="40"
+                         height="40"
+                         loading="lazy"
+                         decoding="async"
                          class="h-10 w-10 shrink-0 rounded-md object-cover ring-1 ring-gray-200">
                 @else
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-white ring-1 ring-gray-200 text-gray-400">

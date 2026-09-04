@@ -66,6 +66,7 @@ Route::get('/app-storage/{path}', function (string $path) {
 })->where('path', '.*');
 
 // Serve public files at clean URL: https://your-domain.com/media/products/xxx.jpg
+// Optional ?w=192 for cart/list thumbnails (cached under storage/app/public/cache/thumbs).
 Route::get('/media/{path}', function (string $path) {
     $path = str_replace(['..', '\\'], ['', '/'], $path);
 
@@ -74,11 +75,15 @@ Route::get('/media/{path}', function (string $path) {
         return redirect()->route('shared.vendor-analytics', ['token' => $matches[1]]);
     }
 
-    if (! Storage::disk('public')->exists($path)) {
+    $width = request()->query('w');
+    $widthInt = is_numeric($width) ? (int) $width : null;
+    $resolved = \App\Support\MediaThumbCache::resolve($path, $widthInt);
+    if ($resolved === null) {
         abort(404);
     }
-    $fullPath = Storage::disk('public')->path($path);
-    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+    $fullPath = $resolved['full_path'];
+    $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
     $mime = match ($extension) {
         'csv' => 'text/csv; charset=UTF-8',
         'mp4', 'm4v' => 'video/mp4',
@@ -104,12 +109,12 @@ Route::get('/media/{path}', function (string $path) {
         $headers['Cache-Control'] = 'public, max-age=31536000, immutable';
         $mtime = @filemtime($fullPath) ?: time();
         $size = @filesize($fullPath) ?: 0;
-        $headers['ETag'] = '"'.md5($path.'|'.$mtime.'|'.$size).'"';
+        $headers['ETag'] = '"'.md5($resolved['path'].'|'.$mtime.'|'.$size).'"';
         $headers['Last-Modified'] = gmdate('D, d M Y H:i:s', $mtime).' GMT';
     }
 
     if ($extension === 'csv') {
-        $headers['Content-Disposition'] = 'attachment; filename="'.basename($path).'"';
+        $headers['Content-Disposition'] = 'attachment; filename="'.basename($fullPath).'"';
     }
 
     return response()->file($fullPath, $headers);

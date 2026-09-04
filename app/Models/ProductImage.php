@@ -51,6 +51,21 @@ class ProductImage extends Model
     }
 
     /**
+     * Small cart/list thumbnail URL (served via /media/{path}?w=… with on-disk cache).
+     */
+    public static function buildThumbUrl(?string $imagePath, int $width = 192): ?string
+    {
+        $full = self::buildFullUrl($imagePath);
+        if ($full === null) {
+            return null;
+        }
+        $width = max(48, min(640, $width));
+        $sep = str_contains($full, '?') ? '&' : '?';
+
+        return $full.$sep.'w='.$width;
+    }
+
+    /**
      * Get the full URL for the image.
      * Uses request host when available so API image URLs work behind proxy / correct domain.
      */

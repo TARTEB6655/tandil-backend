@@ -447,7 +447,8 @@ class CartController extends Controller
         $lineTotal = $item->lineTotalAmount();
         $selectedOptionIds = Cart::normalizeSelectedOptionIds($item->selected_options);
         $basePrice = round((float) $product->price, 2);
-        $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds);
+        // Skip option images in cart payload — tiny labels only (faster add-to-cart / cart view).
+        $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds, false);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
         $isService = \App\Support\OrderFulfillmentType::isServiceProduct($product);
@@ -455,6 +456,24 @@ class CartController extends Controller
         $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product);
         // Cart row must show what the customer pays for this line (700), not unit rate (7).
         $displayPrice = $isPerM2 ? $lineTotal : $price;
+
+        $imagePath = null;
+        if ($product->relationLoaded('primaryImage') && $product->primaryImage?->image_path) {
+            $imagePath = $product->primaryImage->image_path;
+        }
+        $imageUrl = $imagePath
+            ? \App\Models\ProductImage::buildFullUrl($imagePath)
+            : $product->image_url;
+        $thumbUrl = $imagePath
+            ? \App\Models\ProductImage::buildThumbUrl($imagePath, 192)
+            : ($imageUrl ? $imageUrl.(str_contains($imageUrl, '?') ? '&' : '?').'w=192' : null);
+
+        $linkedServiceCount = 0;
+        if (array_key_exists('services_count', $product->getAttributes())) {
+            $linkedServiceCount = (int) $product->services_count;
+        } elseif ($product->relationLoaded('services')) {
+            $linkedServiceCount = $product->services->count();
+        }
 
         return array_merge([
             'id' => $item->id,
@@ -466,10 +485,10 @@ class CartController extends Controller
             'fulfillment_type' => \App\Support\OrderFulfillmentType::forProduct($product),
             'is_service' => $isService,
             'is_instant_eligible' => $instantEligible,
-            'linked_service_count' => $product->relationLoaded('services')
-                ? $product->services->count()
-                : $product->services()->count(),
-            'image_url' => $product->image_url,
+            'linked_service_count' => $linkedServiceCount,
+            'image_url' => $imageUrl,
+            // Prefer image_thumb_url for cart list cells (small download).
+            'image_thumb_url' => $thumbUrl,
             'category' => $product->relationLoaded('category') && $product->category
                 ? $product->category->name
                 : null,
@@ -681,7 +700,7 @@ class CartController extends Controller
             ]);
         }
 
-        $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);
+        $cartItem->load(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options']);
         $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Item added to cart.', $data, 201);
@@ -1583,7 +1602,7 @@ class CartController extends Controller
         ]);
 
         $cartItems = Cart::where('user_id', $user->id)
-            ->with(['product.category', 'product.primaryImage', 'product.optionGroups.options'])
+            ->with(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options'])
             ->get();
 
         $validItems = $cartItems->filter(fn ($item) => $item->product !== null);
@@ -1668,7 +1687,7 @@ class CartController extends Controller
 
         $cartItem->save();
 
-        $cartItem->load(['product.category', 'product.primaryImage', 'product.optionGroups.options']);
+        $cartItem->load(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options']);
         $data = self::cartItemToFrontend($cartItem);
 
         return ApiResponse::success('Cart item updated.', $data);

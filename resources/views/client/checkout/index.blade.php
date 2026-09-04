@@ -158,9 +158,19 @@
                         @foreach($cartItems as $item)
                             <div class="flex gap-3">
                                 <div class="flex-shrink-0 h-16 w-16 rounded-lg overflow-hidden bg-gray-100">
-                                    @if($item->product->getImageUrl())
-                                        <img src="{{ $item->product->getImageUrl() }}" 
-                                             alt="{{ $item->product->name }}" 
+                                    @php
+                                        $checkoutImageUrl = $item->product->image_url;
+                                        $checkoutThumbUrl = $checkoutImageUrl
+                                            ? $checkoutImageUrl.(str_contains($checkoutImageUrl, '?') ? '&' : '?').'w=128'
+                                            : null;
+                                    @endphp
+                                    @if($checkoutThumbUrl)
+                                        <img src="{{ $checkoutThumbUrl }}"
+                                             alt="{{ $item->product->name }}"
+                                             width="64"
+                                             height="64"
+                                             loading="lazy"
+                                             decoding="async"
                                              class="h-full w-full object-cover">
                                     @else
                                         <div class="h-full w-full flex items-center justify-center">
