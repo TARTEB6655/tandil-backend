@@ -279,4 +279,73 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.requires_area', false)
             ->assertJsonPath('data.line_total', 7000);
     }
+
+    public function test_buy_now_order_summary_accepts_required_area(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'service product',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1&required_area=100')
+            ->assertOk()
+            ->assertJsonPath('data.subtotal', 700)
+            ->assertJsonPath('data.items.0.required_area', 100)
+            ->assertJsonPath('data.items.0.line_total', 700);
+    }
+
+    public function test_buy_now_without_area_reuses_cart_required_area(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'service product',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'required_area' => 100,
+        ])->assertCreated();
+
+        // Mimic Buy Now pay: product_id present, required_area omitted — hydrate from cart.
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
+            ->assertOk()
+            ->assertJsonPath('data.subtotal', 700)
+            ->assertJsonPath('data.items.0.required_area', 100)
+            ->assertJsonPath('data.items.0.line_total', 700);
+    }
+
+    public function test_buy_now_without_area_and_empty_cart_fails(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'service product',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
+            ->assertStatus(422);
+    }
 }

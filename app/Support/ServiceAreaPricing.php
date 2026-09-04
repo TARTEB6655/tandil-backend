@@ -555,6 +555,51 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Buy Now / payment-intent often omit required_area even after the user entered it
+     * on Product Details (and/or it was saved on a cart line). Hydrate from aliases first,
+     * then from the user's cart row for that product.
+     */
+    public static function hydrateMissingAreaOntoRequest(
+        \Illuminate\Http\Request $request,
+        int $userId,
+        ?Product $product = null
+    ): void {
+        $resolved = self::resolveAreaFromRequest($request, false);
+        if (self::normalizeArea($resolved) !== null) {
+            if (! $request->filled('required_area')) {
+                $request->merge(['required_area' => self::normalizeArea($resolved)]);
+            }
+
+            return;
+        }
+
+        $productId = (int) ($request->input('product_id') ?? 0);
+        if ($productId <= 0) {
+            return;
+        }
+
+        if ($product === null) {
+            $product = Product::query()->find($productId);
+        }
+        if ($product === null || ! self::isPerM2($product)) {
+            return;
+        }
+
+        $area = \App\Models\Cart::query()
+            ->where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->whereNotNull('required_area')
+            ->where('required_area', '>', 0)
+            ->orderByDesc('id')
+            ->value('required_area');
+
+        $normalized = self::normalizeArea($area);
+        if ($normalized !== null) {
+            $request->merge(['required_area' => $normalized]);
+        }
+    }
+
+    /**
      * Line total for a cart/order line.
      * Fixed: quantity × unitPrice. Per m²: required_area × unitPrice (quantity ignored for money).
      */

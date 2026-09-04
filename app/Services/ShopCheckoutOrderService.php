@@ -71,6 +71,23 @@ class ShopCheckoutOrderService
         }
 
         /*
+         * Normalize Required Area (m²) for Buy Now / payment-intent.
+         * Apps often send camelCase or short aliases and omit snake_case.
+         */
+        $areaCandidate = $all['required_area']
+            ?? $all['requiredArea']
+            ?? $all['area']
+            ?? $all['area_m2']
+            ?? $all['areaM2']
+            ?? $all['m2']
+            ?? $all['square_meters']
+            ?? $all['squareMeters']
+            ?? null;
+        if ($areaCandidate !== null && $areaCandidate !== '') {
+            $all['required_area'] = $areaCandidate;
+        }
+
+        /*
          * Normalize booking date.
          *
          * Supported (the mobile app is React Native/JS, so camelCase

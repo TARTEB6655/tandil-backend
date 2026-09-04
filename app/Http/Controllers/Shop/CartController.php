@@ -708,10 +708,15 @@ class CartController extends Controller
                 'quantity' => 'sometimes|integer|min:1',
                 'qty' => 'sometimes|integer|min:1',
                 'required_area' => 'nullable|numeric|min:0.01',
+                'requiredArea' => 'nullable|numeric|min:0.01',
                 'area' => 'nullable|numeric|min:0.01',
+                'area_m2' => 'nullable|numeric|min:0.01',
+                'm2' => 'nullable|numeric|min:0.01',
             ], self::optionIdsValidationRules()));
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
+            // Buy Now pay often omits area — reuse cart line or aliases (requiredArea / area / m2).
+            ServiceAreaPricing::hydrateMissingAreaOntoRequest($request, $userId, $product);
             $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
             if ($areaError !== null) {

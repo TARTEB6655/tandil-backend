@@ -69,17 +69,28 @@ class ShopStripeMobilePaymentService
             'special_instructions' => 'nullable|string|max:2000',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
+            'required_area' => 'nullable|numeric|min:0.01',
+            'requiredArea' => 'nullable|numeric|min:0.01',
+            'area' => 'nullable|numeric|min:0.01',
+            'area_m2' => 'nullable|numeric|min:0.01',
+            'm2' => 'nullable|numeric|min:0.01',
             'items' => 'sometimes|array|min:1',
             'items.*.product_id' => 'required_with:items|exists:products,id',
             'items.*.quantity' => 'sometimes|integer|min:1',
             'items.*.qty' => 'sometimes|integer|min:1',
             'items.*.booking_date' => 'nullable|date',
             'items.*.booking_slot' => 'nullable|string|max:255',
+            'items.*.required_area' => 'nullable|numeric|min:0.01',
         ], CartController::optionIdsValidationRules()));
 
         $isBuyNow = $request->boolean('is_buy_now');
         if ($isBuyNow && ! $request->filled('product_id')) {
             return $this->err('product_id is required when is_buy_now is true.', 422);
+        }
+
+        // Per m² Buy Now: accept area aliases / fall back to cart line before totals.
+        if ($request->filled('product_id')) {
+            \App\Support\ServiceAreaPricing::hydrateMissingAreaOntoRequest($request, (int) $user->id);
         }
 
         // Same totals as GET /api/shop/order-summary (cart, buy-now product_id/qty, coupon_code, catalog discount).

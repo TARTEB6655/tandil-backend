@@ -5543,7 +5543,7 @@
                                         ],
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n  \"is_buy_now\": true,\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"coupon_code\": \"\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  }\n}"
+                                            "raw": "{\n  \"is_buy_now\": true,\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"required_area\": 100,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"coupon_code\": \"\",\n  \"use_wallet\": false,\n  \"wallet_amount\": 0,\n  \"shipping\": {\n    \"full_name\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"street\": \"Street address\",\n    \"city\": \"Abu Dhabi\",\n    \"state\": \"Abu Dhabi\",\n    \"zip_code\": \"00000\",\n    \"country\": \"United Arab Emirates\"\n  }\n}"
                                         },
                                         "url": {
                                             "raw": "{{base_url}}/api/shop/checkout/stripe/payment-intent",
@@ -5558,7 +5558,7 @@
                                                 "payment-intent"
                                             ]
                                         },
-                                        "description": "POST /api/shop/checkout/stripe/payment-intent — **Buy Now button** (cart add nahi).\n\nBody: `is_buy_now: true` + `product_id` + `quantity` + `selected_option_ids` + `booking_date` + `booking_slot` + coupon/wallet + `shipping`.\n\n**Mat bhejo:** `items[]`.\n\nPhir Payment Sheet → **9 confirm**."
+                                        "description": "POST /api/shop/checkout/stripe/payment-intent — **Buy Now button** (cart add nahi).\n\nBody: `is_buy_now: true` + `product_id` + `quantity` + **`required_area` (required for per m² services)** + `selected_option_ids` + `booking_date` + `booking_slot` + coupon/wallet + `shipping`.\n\nAliases: `required_area`, `requiredArea`, `area`, `m2`. If omitted, backend reuses area from an existing cart line for that product when present.\n\n**Mat bhejo:** `items[]`.\n\nPhir Payment Sheet → **9 confirm**."
                                     }
                                 },
                                 {
