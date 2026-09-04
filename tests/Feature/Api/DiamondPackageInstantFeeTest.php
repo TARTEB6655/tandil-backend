@@ -15,8 +15,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * باقة الاندسكيب الماسية lives under Services (product_service link).
- * Instant Order Fee must NOT apply — fee is for shop/simple products only.
+ * Catalog channels:
+ * - Category products (shop simple) → Instant Order Fee
+ * - Services listing (service-linked / type=service) → no Instant Order Fee
  */
 class DiamondPackageInstantFeeTest extends TestCase
 {
@@ -174,7 +175,7 @@ class DiamondPackageInstantFeeTest extends TestCase
             ->assertJsonPath('data.items.0.is_instant_eligible', true);
     }
 
-    public function test_simple_product_with_legacy_service_link_still_gets_instant_fee_on_buy_now(): void
+    public function test_category_simple_product_buy_now_gets_instant_fee(): void
     {
         $category = Category::factory()->create(['shipping_cost' => 0, 'tax_percentage' => 0]);
         $product = Product::factory()->create([
@@ -182,6 +183,31 @@ class DiamondPackageInstantFeeTest extends TestCase
             'type' => 'product',
             'product_type' => 'simple',
             'name' => 'simple product',
+            'price' => 99,
+            'compare_at_price' => null,
+            'status' => 'active',
+        ]);
+
+        $this->getJson(
+            '/api/shop/order-summary?product_id='.$product->id.'&quantity=1',
+            $this->headers()
+        )
+            ->assertOk()
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 20)
+            ->assertJsonPath('data.subtotal', 99)
+            ->assertJsonPath('data.total', 119);
+    }
+
+    public function test_product_linked_into_services_channel_skips_instant_fee(): void
+    {
+        // If a product is linked under Services, it is Services-channel — no Instant Fee.
+        $category = Category::factory()->create(['shipping_cost' => 0, 'tax_percentage' => 0]);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'type' => 'product',
+            'product_type' => 'simple',
+            'name' => 'linked under services',
             'price' => 99,
             'compare_at_price' => null,
             'status' => 'active',
@@ -200,45 +226,9 @@ class DiamondPackageInstantFeeTest extends TestCase
             $this->headers()
         )
             ->assertOk()
-            ->assertJsonPath('data.is_instant_order', true)
-            ->assertJsonPath('data.instant_order_fee', 20)
-            ->assertJsonPath('data.subtotal', 99)
-            ->assertJsonPath('data.total', 119);
-    }
-
-    public function test_null_type_simple_product_with_service_link_still_gets_instant_fee(): void
-    {
-        $category = Category::factory()->create(['shipping_cost' => 0, 'tax_percentage' => 0]);
-        $product = Product::factory()->create([
-            'category_id' => $category->id,
-            'type' => null,
-            'product_type' => 'simple',
-            'name' => 'simple product null type',
-            'price' => 99,
-            'compare_at_price' => null,
-            'status' => 'active',
-        ]);
-
-        $service = Service::create([
-            'name' => 'Care',
-            'slug' => 'care-'.uniqid(),
-            'is_active' => true,
-            'category_id' => $category->id,
-        ]);
-        $product->services()->attach($service->id);
-
-        Cart::create([
-            'user_id' => $this->client->id,
-            'product_id' => $product->id,
-            'quantity' => 1,
-        ]);
-
-        $this->getJson('/api/shop/cart', $this->headers())
-            ->assertOk()
-            ->assertJsonPath('data.order_summary.is_instant_order', true)
-            ->assertJsonPath('data.order_summary.instant_order_fee', 20)
-            ->assertJsonPath('data.order_summary.total', 119)
-            ->assertJsonPath('data.items.0.is_instant_eligible', true);
+            ->assertJsonPath('data.is_instant_order', false)
+            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.total', 99);
     }
 
     public function test_explicit_service_type_still_skips_instant_fee(): void

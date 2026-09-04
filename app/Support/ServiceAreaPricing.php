@@ -8,8 +8,8 @@ use App\Models\Setting;
 
 /**
  * Area-based (per m²) pricing for service products only.
- * Global Admin Setting (like Instant Order Fee) — applies to ALL services.
- * Shop/category products are unchanged (Instant Order Fee still applies there).
+ * Global Admin Setting (like Instant Order Fee) — applies to ALL Services-channel products.
+ * Category/shop simple products are unchanged (Instant Order Fee still applies there).
  */
 final class ServiceAreaPricing
 {

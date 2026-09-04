@@ -113,16 +113,14 @@ final class InstantOrderFee
             'enabled' => $enabled,
             'currency' => config('shop.currency', 'AED'),
             'applies_to' => 'instant_orders',
-            'note' => 'Flat surcharge for shop/simple product checkout (including Buy Now). Not applied to type=service or Services packages (e.g. landscape packages). Appears on GET /api/shop/cart and /api/shop/order-summary as instant_order_fee.',
+            'note' => 'Instant Order Fee: Category/shop (simple) products only. Services listing products (type=service or service-linked packages) never get this fee.',
         ];
     }
 
     /**
-     * Service / booking lines never get Instant Order Fee.
-     *
-     * - type=service → no fee
-     * - product_type=simple (default) → Instant Fee, even if type is null or has a legacy service link
-     * - variable / other Services-catalog packages (service-linked) → no fee
+     * Two catalog channels:
+     * - Category / shop simple products → Instant Order Fee applies
+     * - Services listing (type=service OR linked via product_service) → no Instant Fee
      */
     public static function productIsExplicitService(?Product $product): bool
     {
@@ -130,19 +128,7 @@ final class InstantOrderFee
             return false;
         }
 
-        $type = strtolower(trim((string) ($product->type ?? '')));
-        if ($type === 'service') {
-            return true;
-        }
-
-        // Shop simple SKUs (Buy Now / cart) — Instant Fee always.
-        // Important: many catalog rows have type=null; do NOT treat those as services.
-        $productType = strtolower(trim((string) ($product->product_type ?? 'simple')));
-        if ($productType === '' || $productType === 'simple') {
-            return false;
-        }
-
-        // Variable packages under Services (e.g. باقة الاندسكيب الماسية).
+        // Services channel (includes landscape packages under Services).
         return ServiceAreaPricing::appliesToProduct($product);
     }
 
