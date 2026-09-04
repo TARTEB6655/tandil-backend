@@ -113,17 +113,15 @@ final class InstantOrderFee
             'enabled' => $enabled,
             'currency' => config('shop.currency', 'AED'),
             'applies_to' => 'instant_orders',
-            'note' => 'Flat surcharge added to direct product checkout (vendor/platform). Not applied to booking/service orders. Appears on GET /api/shop/cart and /api/shop/order-summary as instant_order_fee.',
+            'note' => 'Flat surcharge for shop/simple product checkout only. Not applied to Services catalog lines (type=service or product_service linked packages such as landscape packages). Appears on GET /api/shop/cart and /api/shop/order-summary as instant_order_fee.',
         ];
     }
 
     /**
-     * Instant fee line classification — ONLY explicit products.type === 'service' is excluded.
-     *
-     * Important: OrderFulfillmentType also treats empty type + product_service pivot as "service"
-     * for supervisor routing. That heuristic must NOT zero Instant Order Fee for shop packages
-     * (e.g. باقة الاندسكيب الماسية / variable design packages) whose public API still shows type=product
-     * via `$product->type ?? 'product'`. Price amount never matters.
+     * Service / booking lines never get Instant Order Fee.
+     * Matches Services catalog: type=service OR linked via product_service
+     * (e.g. باقة الاندسكيب الماسية under Services). Pure shop SKUs without a
+     * service link still get the fee.
      */
     public static function productIsExplicitService(?Product $product): bool
     {
@@ -131,7 +129,7 @@ final class InstantOrderFee
             return false;
         }
 
-        return strtolower(trim((string) ($product->type ?? ''))) === 'service';
+        return ServiceAreaPricing::appliesToProduct($product);
     }
 
     public static function productIsInstantEligible(?Product $product): bool
