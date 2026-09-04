@@ -113,15 +113,17 @@ final class InstantOrderFee
             'enabled' => $enabled,
             'currency' => config('shop.currency', 'AED'),
             'applies_to' => 'instant_orders',
-            'note' => 'Flat surcharge for shop/simple product checkout only. Not applied to Services catalog lines (type=service or product_service linked packages such as landscape packages). Appears on GET /api/shop/cart and /api/shop/order-summary as instant_order_fee.',
+            'note' => 'Flat surcharge for shop/simple product checkout (including Buy Now). Not applied to type=service or Services packages (e.g. landscape packages). Appears on GET /api/shop/cart and /api/shop/order-summary as instant_order_fee.',
         ];
     }
 
     /**
      * Service / booking lines never get Instant Order Fee.
-     * Matches Services catalog: type=service OR linked via product_service
-     * (e.g. باقة الاندسكيب الماسية under Services). Pure shop SKUs without a
-     * service link still get the fee.
+     *
+     * - type=service → no fee
+     * - shop simple products (type product/physical + product_type simple) → always fee-eligible,
+     *   even if legacy-linked on product_service (must not hide Instant Fee on Buy Now)
+     * - Services-catalog packages (e.g. باقة الاندسكيب الماسية: variable + service link) → no fee
      */
     public static function productIsExplicitService(?Product $product): bool
     {
@@ -129,6 +131,21 @@ final class InstantOrderFee
             return false;
         }
 
+        $type = strtolower(trim((string) ($product->type ?? '')));
+        if ($type === 'service') {
+            return true;
+        }
+
+        // Shop/simple SKUs keep Instant Order Fee (Buy Now / cart).
+        $productType = strtolower(trim((string) ($product->product_type ?? 'simple')));
+        if (
+            in_array($type, ['product', 'physical', 'digital', 'simple'], true)
+            && ($productType === '' || $productType === 'simple')
+        ) {
+            return false;
+        }
+
+        // Service-linked packages / null-type service catalog rows.
         return ServiceAreaPricing::appliesToProduct($product);
     }
 

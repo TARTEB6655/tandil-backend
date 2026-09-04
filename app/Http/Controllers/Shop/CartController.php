@@ -451,7 +451,7 @@ class CartController extends Controller
         $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds, false);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
-        $isService = \App\Support\ServiceAreaPricing::appliesToProduct($product);
+        $isService = InstantOrderFee::productIsExplicitService($product);
         $instantEligible = InstantOrderFee::productIsInstantEligible($product);
         $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product);
         // Cart row must show what the customer pays for this line (700), not unit rate (7).
