@@ -605,9 +605,43 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Remember area entered on Product Details / order-summary for Buy Now pay.
+     * Mobile often omits required_area on payment-intent even after the user typed it.
+     */
+    public static function rememberBuyNowArea(int $userId, int $productId, ?float $area): void
+    {
+        $normalized = self::normalizeArea($area);
+        if ($userId <= 0 || $productId <= 0 || $normalized === null) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\Cache::put(
+            self::buyNowAreaCacheKey($userId, $productId),
+            $normalized,
+            now()->addHours(6)
+        );
+    }
+
+    public static function recallBuyNowArea(int $userId, int $productId): ?float
+    {
+        if ($userId <= 0 || $productId <= 0) {
+            return null;
+        }
+
+        return self::normalizeArea(
+            \Illuminate\Support\Facades\Cache::get(self::buyNowAreaCacheKey($userId, $productId))
+        );
+    }
+
+    public static function buyNowAreaCacheKey(int $userId, int $productId): string
+    {
+        return 'shop:buy_now_area:'.$userId.':'.$productId;
+    }
+
+    /**
      * Buy Now / payment-intent often omit required_area even after the user entered it
      * on Product Details (and/or it was saved on a cart line). Hydrate from aliases first,
-     * then from the user's cart row for that product.
+     * then cart row, then remembered Buy Now area from a prior summary call.
      */
     public static function hydrateMissingAreaOntoRequest(
         \Illuminate\Http\Request $request,
@@ -615,9 +649,14 @@ final class ServiceAreaPricing
         ?Product $product = null
     ): void {
         $resolved = self::resolveAreaFromRequest($request, false);
-        if (self::normalizeArea($resolved) !== null) {
+        $normalized = self::normalizeArea($resolved);
+        if ($normalized !== null) {
             if (! $request->filled('required_area')) {
-                $request->merge(['required_area' => self::normalizeArea($resolved)]);
+                $request->merge(['required_area' => $normalized]);
+            }
+            $productId = (int) ($request->input('product_id') ?? ($product?->id ?? 0));
+            if ($productId > 0) {
+                self::rememberBuyNowArea($userId, $productId, $normalized);
             }
 
             return;
@@ -644,8 +683,13 @@ final class ServiceAreaPricing
             ->value('required_area');
 
         $normalized = self::normalizeArea($area);
+        if ($normalized === null) {
+            $normalized = self::recallBuyNowArea($userId, $productId);
+        }
+
         if ($normalized !== null) {
             $request->merge(['required_area' => $normalized]);
+            self::rememberBuyNowArea($userId, $productId, $normalized);
         }
     }
 

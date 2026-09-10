@@ -418,4 +418,61 @@ class ServiceAreaPricingTest extends TestCase
             ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
             ->assertStatus(422);
     }
+
+    public function test_buy_now_summary_remembers_area_for_later_pay_without_area(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'عزل الأسطح',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        // Product Details → Buy Now preview with area (cart never touched).
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1&required_area=50')
+            ->assertOk()
+            ->assertJsonPath('data.subtotal', 350);
+
+        // Payment step omits required_area (common mobile bug) — reuse remembered area.
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1&is_buy_now=1')
+            ->assertOk()
+            ->assertJsonPath('data.subtotal', 350)
+            ->assertJsonPath('data.items.0.required_area', 50);
+    }
+
+    public function test_buy_now_product_id_wins_over_items_without_area(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'roof insulation',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 100,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'is_buy_now' => true,
+                'product_id' => $product->id,
+                'quantity' => 1,
+                'required_area' => 50,
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 1],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 350)
+            ->assertJsonPath('data.order_summary.items.0.required_area', 50);
+    }
 }

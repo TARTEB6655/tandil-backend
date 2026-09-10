@@ -629,6 +629,9 @@ class CartController extends Controller
         $requiredArea = ServiceAreaPricing::isPerM2($product)
             ? ServiceAreaPricing::normalizeArea($areaRaw)
             : null;
+        if ($requiredArea !== null) {
+            ServiceAreaPricing::rememberBuyNowArea((int) $user->id, (int) $product->id, $requiredArea);
+        }
 
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
@@ -714,14 +717,18 @@ class CartController extends Controller
      */
     public static function checkoutPreview(Request $request, int $userId): array
     {
-        if ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
-            return self::checkoutPreviewFromItemsArray($request, $userId);
-        }
-
         $fallbackDate = self::resolveTopLevelBookingDate($request);
         $fallbackSlot = self::resolveTopLevelBookingSlot($request);
 
-        if ($request->filled('product_id')) {
+        // Buy Now: product_id wins over items[] (apps often send both; items without area broke pay).
+        // Cart checkout with accidental product_id + items[] still uses items/cart.
+        $useBuyNowProduct = $request->filled('product_id')
+            && (
+                $request->boolean('is_buy_now')
+                || ! ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0)
+            );
+
+        if ($useBuyNowProduct) {
             $request->validate(array_merge([
                 'product_id' => 'required|exists:products,id',
                 'quantity' => 'sometimes|integer|min:1',
@@ -734,7 +741,7 @@ class CartController extends Controller
             ], self::optionIdsValidationRules()));
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
-            // Buy Now pay often omits area — reuse cart line or aliases (requiredArea / area / m2).
+            // Buy Now pay often omits area — reuse cart / remembered area / aliases.
             ServiceAreaPricing::hydrateMissingAreaOntoRequest($request, $userId, $product);
             $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
@@ -744,6 +751,9 @@ class CartController extends Controller
             $requiredArea = ServiceAreaPricing::isPerM2($product)
                 ? ServiceAreaPricing::normalizeArea($areaRaw)
                 : null;
+            if ($requiredArea !== null) {
+                ServiceAreaPricing::rememberBuyNowArea($userId, (int) $product->id, $requiredArea);
+            }
             $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
             $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
@@ -777,6 +787,10 @@ class CartController extends Controller
                 'cart_service_ids' => $ctx['cart_service_ids'],
                 'cart_catalog' => $ctx['cart_catalog'],
             ];
+        }
+
+        if ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
+            return self::checkoutPreviewFromItemsArray($request, $userId);
         }
 
         $cartItems = Cart::where('user_id', $userId)
@@ -858,6 +872,23 @@ class CartController extends Controller
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $row['product_id']);
             $areaRaw = ServiceAreaPricing::resolveAreaFromArray($row);
+            // Top-level Buy Now area / remembered area when items[] omits required_area.
+            if (ServiceAreaPricing::normalizeArea($areaRaw) === null && ServiceAreaPricing::isPerM2($product)) {
+                $topArea = ServiceAreaPricing::resolveAreaFromRequest($request, false);
+                if (ServiceAreaPricing::normalizeArea($topArea) !== null) {
+                    $areaRaw = $topArea;
+                } else {
+                    $fromCart = \App\Models\Cart::query()
+                        ->where('user_id', $userId)
+                        ->where('product_id', $product->id)
+                        ->whereNotNull('required_area')
+                        ->where('required_area', '>', 0)
+                        ->orderByDesc('id')
+                        ->value('required_area');
+                    $areaRaw = ServiceAreaPricing::normalizeArea($fromCart)
+                        ?? ServiceAreaPricing::recallBuyNowArea($userId, (int) $product->id);
+                }
+            }
             $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
             if ($areaError !== null) {
                 throw new \InvalidArgumentException(((string) $product->name).': '.$areaError);
@@ -865,6 +896,9 @@ class CartController extends Controller
             $requiredArea = ServiceAreaPricing::isPerM2($product)
                 ? ServiceAreaPricing::normalizeArea($areaRaw)
                 : null;
+            if ($requiredArea !== null) {
+                ServiceAreaPricing::rememberBuyNowArea($userId, (int) $product->id, $requiredArea);
+            }
             $qty = ServiceAreaPricing::effectiveQuantity(
                 $product,
                 max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1))
