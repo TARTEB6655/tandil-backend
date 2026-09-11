@@ -71,6 +71,64 @@ class AdminReportsApiTest extends TestCase
         $this->assertDatabaseMissing('admin_reports', ['id' => $id]);
     }
 
+    public function test_admin_reports_list_heals_stuck_pending_hr_report(): void
+    {
+        $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
+        $this->assignRoleIfAvailable($tech, 'technician');
+
+        $stuck = AdminReport::create([
+            'title' => 'hamood — August 2026',
+            'type' => 'hr_technician_monthly',
+            'status' => 'pending',
+            'format' => 'pdf',
+            'file_path' => null,
+            'parameters' => [
+                'technician_id' => $tech->id,
+                'year' => 2026,
+                'month' => 8,
+                'start_date' => '2026-08-01',
+                'end_date' => '2026-08-31',
+            ],
+            'created_by' => $this->admin->id,
+        ]);
+
+        $list = $this->actingAs($this->admin, 'sanctum')->getJson('/api/admin/reports?per_page=10');
+        $list->assertStatus(200)->assertJsonPath('success', true);
+
+        $stuck->refresh();
+        $this->assertSame('generated', $stuck->status);
+        $this->assertNotEmpty($stuck->file_path);
+    }
+
+    public function test_admin_reports_regenerate_endpoint(): void
+    {
+        $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
+        $this->assignRoleIfAvailable($tech, 'technician');
+
+        $stuck = AdminReport::create([
+            'title' => 'hamood — August 2026',
+            'type' => 'hr_technician_monthly',
+            'status' => 'pending',
+            'format' => 'pdf',
+            'parameters' => [
+                'technician_id' => $tech->id,
+                'year' => 2026,
+                'month' => 8,
+                'start_date' => '2026-08-01',
+                'end_date' => '2026-08-31',
+            ],
+            'created_by' => $this->admin->id,
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/admin/reports/'.$stuck->id.'/regenerate');
+
+        $res->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'generated');
+        $this->assertSame('generated', $stuck->fresh()->status);
+    }
+
     public function test_admin_reports_schedule_and_cancel_smoke(): void
     {
         $schedule = $this->actingAs($this->admin, 'sanctum')->postJson('/api/admin/reports/schedule', [

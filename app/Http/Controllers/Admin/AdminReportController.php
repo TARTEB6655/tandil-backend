@@ -68,6 +68,9 @@ class AdminReportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Mobile Reports Management: heal Sep-era HR rows stuck pending (no queue worker).
+        AdminReport::healStuckPending(25);
+
         $perPage = min((int) $request->input('per_page', 15), 100);
         $query = AdminReport::with('creator')->orderBy('created_at', 'desc');
 
@@ -100,6 +103,9 @@ class AdminReportController extends Controller
     public function show(string $id): JsonResponse
     {
         $report = AdminReport::with('creator')->findOrFail($id);
+        if ($report->status === 'pending' && (! $report->file_path || ! Storage::disk('local')->exists((string) $report->file_path))) {
+            $report = $this->ensureReportFile($report)->load('creator');
+        }
         $data = $this->transformReport($report, true);
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -282,6 +288,8 @@ class AdminReportController extends Controller
      */
     public function statistics(): JsonResponse
     {
+        AdminReport::healStuckPending(25);
+
         $total = AdminReport::count();
         $pending = AdminReport::where('status', 'pending')->count();
         $generated = AdminReport::where('status', 'generated')->count();
@@ -303,6 +311,44 @@ class AdminReportController extends Controller
                 'failed' => $failed,
                 'by_type' => $byType,
             ],
+        ]);
+    }
+
+    /**
+     * POST /api/admin/reports/{id}/regenerate
+     * Force re-generate a pending/failed report (sync).
+     */
+    public function regenerate(string $id): JsonResponse
+    {
+        $report = AdminReport::findOrFail($id);
+        if (! in_array($report->status, ['pending', 'failed', 'generated'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only pending, failed, or generated reports can be regenerated.',
+            ], 422);
+        }
+
+        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
+            Storage::disk('local')->delete($report->file_path);
+        }
+
+        $report->forceFill([
+            'status' => 'pending',
+            'file_path' => null,
+            'file_size' => null,
+            'generated_at' => null,
+            'failure_reason' => null,
+        ])->save();
+
+        GenerateReportJob::dispatchSync($report);
+        $report = $report->fresh()->load('creator');
+
+        return response()->json([
+            'success' => true,
+            'message' => $report->status === 'generated'
+                ? 'Report regenerated successfully.'
+                : ($report->status === 'failed' ? 'Report regeneration failed.' : 'Report still pending.'),
+            'data' => $this->transformReport($report, true),
         ]);
     }
 

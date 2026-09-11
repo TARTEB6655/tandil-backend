@@ -1013,6 +1013,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/reports')->grou
     Route::post('/schedule', [\App\Http\Controllers\Admin\AdminReportController::class, 'schedule']);
     Route::get('/', [\App\Http\Controllers\Admin\AdminReportController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'show']);
+    Route::post('/{id}/regenerate', [\App\Http\Controllers\Admin\AdminReportController::class, 'regenerate']);
     Route::delete('/{id}/cancel', [\App\Http\Controllers\Admin\AdminReportController::class, 'cancel']);
     Route::delete('/{id}', [\App\Http\Controllers\Admin\AdminReportController::class, 'destroy']);
 });

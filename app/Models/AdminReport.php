@@ -38,6 +38,7 @@ class AdminReport extends Model
         'customer',
         'operational',
         'user',
+        'hr_technician_monthly',
     ];
 
     public const STATUSES = [
@@ -57,5 +58,33 @@ class AdminReport extends Model
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Re-run generation for pending reports that never got a file
+     * (queued without a worker — common for HR API before sync fix).
+     */
+    public static function healStuckPending(int $limit = 25): int
+    {
+        $stuck = static::query()
+            ->where('status', 'pending')
+            ->where(function ($q) {
+                $q->whereNull('file_path')->orWhere('file_path', '');
+            })
+            ->orderBy('id')
+            ->limit(max(1, $limit))
+            ->get();
+
+        $healed = 0;
+        foreach ($stuck as $report) {
+            try {
+                \App\Jobs\GenerateReportJob::dispatchSync($report);
+                $healed++;
+            } catch (\Throwable $e) {
+                // Job marks failed; keep listing usable.
+            }
+        }
+
+        return $healed;
     }
 }
