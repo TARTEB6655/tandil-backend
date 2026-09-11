@@ -11,14 +11,15 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        // Run the reminder job daily at 08:00 by default
+        // NOTE: Laravel 11+ app bootstrap does not call this Kernel schedule.
+        // Live schedules live in routes/console.php (Schedule::...).
+        // Kept here for reference / older tooling only.
+        $schedule->command('reports:process-scheduled')->everyMinute();
         $schedule->job(new SendVisitReminders(2))->dailyAt('08:00');
-        // Run tips job weekly on Mondays at 09:00
         $schedule->job(new SendTips())->weeklyOn(1, '09:00');
-        // Send orders export to supplier daily at 07:00 (last 7 days)
         $schedule->command('orders:send-to-supplier', ['--days' => 7])->dailyAt('07:00');
-        // Forfeit unused wallet refunds after expiry window (default 6 months).
         $schedule->command('wallet:forfeit-expired')->dailyAt('01:15');
+        $schedule->command('visits:process-offer-timeouts')->everyMinute();
     }
 
     protected function commands()
