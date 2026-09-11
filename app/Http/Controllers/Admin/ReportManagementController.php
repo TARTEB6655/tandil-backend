@@ -31,10 +31,36 @@ class ReportManagementController extends Controller
     }
 
     /**
+     * Re-run generation for pending reports that never got a file (queue worker missing).
+     */
+    protected function healStuckPendingReports(int $limit = 5): void
+    {
+        $stuck = AdminReport::query()
+            ->where('status', 'pending')
+            ->where(function ($q) {
+                $q->whereNull('file_path')->orWhere('file_path', '');
+            })
+            ->orderBy('id')
+            ->limit(max(1, $limit))
+            ->get();
+
+        foreach ($stuck as $report) {
+            try {
+                GenerateReportJob::dispatchSync($report);
+            } catch (\Throwable $e) {
+                // Leave status as-is / job marks failed; do not break the list page.
+            }
+        }
+    }
+
+    /**
      * List generated/scheduled reports.
      */
     public function index(Request $request)
     {
+        // Heal a few stuck "pending" rows (e.g. HR API used to queue without workers).
+        $this->healStuckPendingReports(5);
+
         $perPage = min((int) $request->input('per_page', 15), 100);
         $query = AdminReport::with('creator')->orderBy('created_at', 'desc');
 

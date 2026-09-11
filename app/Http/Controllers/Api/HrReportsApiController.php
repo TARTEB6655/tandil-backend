@@ -162,12 +162,27 @@ class HrReportsApiController extends Controller
             'created_by' => $request->user()->id,
         ]);
 
-        GenerateReportJob::dispatch($report);
+        // Sync by default (same as admin reports) — queue workers are often down in production,
+        // which left HR reports stuck as "pending" in admin Report Management.
+        // Pass async=1 to queue in the background when workers are available.
+        if ($request->boolean('async')) {
+            GenerateReportJob::dispatch($report);
+        } else {
+            GenerateReportJob::dispatchSync($report);
+            $report->refresh();
+        }
+
+        $fresh = $report->fresh()->load('creator');
+        $message = $fresh->status === 'generated'
+            ? 'Report generated successfully.'
+            : ($fresh->status === 'failed'
+                ? 'Report generation failed.'
+                : 'Report generation started. You will be notified when it is ready.');
 
         return response()->json([
             'success' => true,
-            'message' => 'Report generation started. You will be notified when it is ready.',
-            'data' => $this->transformReport($report->fresh()->load('creator')),
+            'message' => $message,
+            'data' => $this->transformReport($fresh),
         ], 201);
     }
 

@@ -141,7 +141,7 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
             ->assertJsonPath('data.technician.id', $tech->id);
     }
 
-    public function test_hr_reports_generate_creates_pending_admin_report(): void
+    public function test_hr_reports_generate_creates_generated_admin_report(): void
     {
         $tech = User::factory()->create(['role' => 'technician', 'status' => 'active']);
         $this->assignRoleIfAvailable($tech, 'technician');
@@ -161,7 +161,9 @@ class HrVisitAssignmentsAndReportsApiTest extends TestCase
             'id' => $reportId,
             'type' => 'hr_technician_monthly',
             'created_by' => $this->adminHr->id,
+            'status' => 'generated',
         ]);
+        $this->assertSame('generated', $res->json('data.status'));
         $title = $res->json('data.title');
         $this->assertIsString($title);
         $this->assertNotSame('', trim($title));
