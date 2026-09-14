@@ -26,6 +26,7 @@ use App\Models\Tip;
 use App\Models\JobSchedulingSetting;
 use App\Helpers\ApiResponse;
 use App\Support\CapsPagination;
+use App\Support\UserCredentialRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -297,9 +298,10 @@ class TechnicianDashboardController extends Controller
             $storedFromPut = ProfilePictureUploadService::storeFromMultipartPut($request);
         }
         $input = $request->all();
+        $profileRole = strtolower((string) ($user->role ?? 'technician'));
         $rules = [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'email' => ['sometimes', 'email', UserCredentialRules::uniqueEmail($profileRole, $user->id)],
             'phone' => 'nullable|string|max:50',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',

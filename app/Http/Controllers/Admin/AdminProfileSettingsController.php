@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\ImageCompressionService;
+use App\Support\UserCredentialRules;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rule;
 
 class AdminProfileSettingsController extends Controller
 {
@@ -28,7 +28,7 @@ class AdminProfileSettingsController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'string', 'email', 'max:255', UserCredentialRules::uniqueEmail(strtolower((string) ($user->role ?? 'admin')), $user->id)],
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
             'current_password' => 'nullable|required_with:password',
             'password' => 'nullable|string|min:8|confirmed',

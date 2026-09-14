@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
+use App\Support\UserCredentialRules;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use App\Services\ProfilePictureUploadService;
@@ -1316,9 +1317,10 @@ class AdminDashboardController extends Controller
             $storedFromPut = ProfilePictureUploadService::storeFromMultipartPut($request);
         }
 
+        $profileRole = strtolower((string) ($user->role ?? 'admin'));
         $rules = [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'email' => ['sometimes', 'email', UserCredentialRules::uniqueEmail($profileRole, $user->id)],
             'phone' => 'nullable|string|max:50',
         ];
         if ($profileFile || $storedFromPut) {

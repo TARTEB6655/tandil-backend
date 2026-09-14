@@ -7,6 +7,7 @@ use App\Enums\VendorType as VendorTypeEnum;
 use App\Http\Requests\Vendor\VendorProfileFormRequest;
 use App\Models\Vendor;
 use App\Support\PasswordInput;
+use App\Support\UserCredentialRules;
 use App\Models\VendorType as VendorTypeModel;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
@@ -66,7 +67,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
                 'sometimes',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email')->ignore($userId),
+                UserCredentialRules::uniqueEmail('vendor', $userId),
                 Rule::unique('vendor_profiles', 'email')->ignore($profileId),
             ],
             'phone' => [
@@ -74,7 +75,7 @@ class AdminVendorUpdateRequest extends VendorProfileFormRequest
                 'nullable',
                 'string',
                 'max:32',
-                Rule::unique('users', 'phone')->ignore($userId),
+                UserCredentialRules::uniquePhone('vendor', $userId),
             ],
             'password' => ['sometimes', 'nullable', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['sometimes', 'nullable', 'accepted'],

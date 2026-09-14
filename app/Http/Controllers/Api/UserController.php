@@ -11,6 +11,7 @@ use App\Services\AccountDeletionService;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
 use App\Support\RefundPolicy;
+use App\Support\UserCredentialRules;
 use App\Support\UserNotificationInbox;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -167,21 +168,22 @@ class UserController extends Controller
             }
         }
 
+        $role = strtolower((string) ($user->role ?? 'client'));
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'email' => ['sometimes', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'email' => ['sometimes', 'email', 'max:255', UserCredentialRules::uniqueEmail($role, $user->id)],
             'phone' => [
                 'sometimes',
                 'nullable',
                 'string',
                 'max:20',
-                Rule::unique('users', 'phone')->ignore($user->id)->whereNotNull('phone'),
+                UserCredentialRules::uniquePhone($role, $user->id),
             ],
             'profile_picture' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:102400',
             'current_password' => 'required_with:password',
             'password' => 'nullable|string|min:8|confirmed',
         ], [
-            'phone.unique' => 'This phone number is already registered. Please use a different phone number.',
+            'phone.unique' => 'This phone number is already registered for this role. Please use a different phone number.',
             'profile_picture.max' => 'Profile picture must not be larger than 100 MB. It will be compressed under 2 MB automatically.',
             'profile_picture.image' => 'Profile picture must be a JPEG, PNG, GIF, or WebP image.',
         ]);
@@ -241,7 +243,7 @@ class UserController extends Controller
                 'string',
                 'min:7',
                 'max:20',
-                Rule::unique('users', 'phone')->ignore($user->id),
+                UserCredentialRules::uniquePhone(strtolower((string) ($user->role ?? 'client')), $user->id),
             ],
         ]);
 

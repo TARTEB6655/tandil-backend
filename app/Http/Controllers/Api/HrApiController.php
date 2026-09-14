@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Jobs\OptimizePublicDiskImageJob;
+use App\Support\UserCredentialRules;
 
 class HrApiController extends Controller
 {
@@ -364,9 +365,10 @@ class HrApiController extends Controller
         }
 
         $input = $request->all();
+        $profileRole = strtolower((string) ($user->role ?? 'hr'));
         $rules = [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'email' => ['sometimes', 'email', 'max:255', UserCredentialRules::uniqueEmail($profileRole, $user->id)],
             'phone' => 'nullable|string|max:50',
         ];
         if ($profileFile) {

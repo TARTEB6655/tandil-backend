@@ -5,6 +5,7 @@ namespace App\Http\Requests\Auth;
 use App\Http\Requests\BaseFormRequest;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -41,32 +42,38 @@ class LoginRequest extends BaseFormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // Check if user exists and is active before attempting login
-        $user = \App\Models\User::where('email', $this->string('email'))->first();
-        
-        if ($user && $user->status !== 'active') {
-            RateLimiter::hit($this->throttleKey());
-            throw ValidationException::withMessages([
-                'email' => 'Your account is not active. Please contact the administrator.',
-            ]);
+        $candidates = \App\Models\User::where('email', $this->string('email'))->get();
+
+        $matchedInactive = false;
+        $user = null;
+        foreach ($candidates as $candidate) {
+            if (! Hash::check($this->string('password'), $candidate->password)) {
+                continue;
+            }
+            if ($candidate->status !== 'active') {
+                $matchedInactive = true;
+
+                continue;
+            }
+            $user = $candidate;
+            break;
         }
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! $user) {
             RateLimiter::hit($this->throttleKey());
+
+            if ($matchedInactive) {
+                throw ValidationException::withMessages([
+                    'email' => 'Your account is not active. Please contact the administrator.',
+                ]);
+            }
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
             ]);
         }
 
-        // Double-check status after authentication
-        $authenticatedUser = Auth::user();
-        if ($authenticatedUser && $authenticatedUser->status !== 'active') {
-            Auth::logout();
-            throw ValidationException::withMessages([
-                'email' => 'Your account is not active. Please contact the administrator.',
-            ]);
-        }
+        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }

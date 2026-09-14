@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests;
 
-use App\Models\User;
-use Illuminate\Validation\Rule;
+use App\Support\UserCredentialRules;
 
 class ProfileUpdateRequest extends BaseFormRequest
 {
@@ -14,6 +13,9 @@ class ProfileUpdateRequest extends BaseFormRequest
      */
     public function rules(): array
     {
+        $user = $this->user();
+        $role = strtolower((string) ($user->role ?? 'client'));
+
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
@@ -22,14 +24,14 @@ class ProfileUpdateRequest extends BaseFormRequest
                 'lowercase',
                 'email',
                 'max:255',
-                Rule::unique(User::class)->ignore($this->user()->id),
+                UserCredentialRules::uniqueEmail($role, $user?->id),
             ],
             'phone' => [
                 'nullable',
                 'string',
                 'min:7',
                 'max:20',
-                Rule::unique(User::class, 'phone')->ignore($this->user()->id),
+                UserCredentialRules::uniquePhone($role, $user?->id),
             ],
         ];
     }

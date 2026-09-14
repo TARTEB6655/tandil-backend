@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Client;
 
 use App\Http\Controllers\Controller;
+use App\Support\UserCredentialRules;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PhoneController extends Controller
@@ -35,7 +35,7 @@ class PhoneController extends Controller
                 'string',
                 'min:7',
                 'max:20',
-                Rule::unique('users', 'phone')->ignore($user->id),
+                UserCredentialRules::uniquePhone(strtolower((string) ($user->role ?? 'client')), $user->id),
             ],
         ]);
 

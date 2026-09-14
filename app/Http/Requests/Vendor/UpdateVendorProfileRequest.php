@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Vendor;
 
 use App\Models\Vendor;
+use App\Support\UserCredentialRules;
 use App\Support\VendorContext;
 use Illuminate\Validation\Rule;
 
@@ -56,7 +57,7 @@ class UpdateVendorProfileRequest extends VendorProfileFormRequest
                 'email',
                 'max:255',
                 Rule::unique('vendor_profiles', 'email')->ignore($profileId),
-                Rule::unique('users', 'email')->ignore($userId),
+                UserCredentialRules::uniqueEmail('vendor', $userId),
             ],
 
             'logo' => ['nullable', 'image', 'max:5120'],

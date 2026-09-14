@@ -40,12 +40,20 @@ class VendorAuthController extends Controller
             ]);
         } catch (QueryException $e) {
             $sql = $e->getMessage();
-            if (str_contains($sql, 'users_phone_unique') || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'phone'))) {
+            if (
+                str_contains($sql, 'users_phone_unique')
+                || str_contains($sql, 'users_phone_role_unique')
+                || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'phone'))
+            ) {
                 $msg = 'This phone number is already registered. Please log in or use a different phone number.';
 
                 return ApiResponse::error($msg, 422, ['phone' => [$msg]]);
             }
-            if (str_contains($sql, 'users_email_unique') || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'email'))) {
+            if (
+                str_contains($sql, 'users_email_unique')
+                || str_contains($sql, 'users_email_role_unique')
+                || (str_contains($sql, 'Duplicate entry') && str_contains($sql, 'email'))
+            ) {
                 $msg = 'This email is already registered. Please log in or use a different email.';
 
                 return ApiResponse::error($msg, 422, ['email' => [$msg]]);

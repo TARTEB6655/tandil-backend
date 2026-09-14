@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Support\UserCredentialRules;
 use Spatie\Permission\Models\Role;
 use Illuminate\Validation\Rule;
 
@@ -234,8 +235,8 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20',
+            'email' => ['required', 'email', UserCredentialRules::uniqueEmail((string) $request->input('role', 'client'))],
+            'phone' => ['nullable', 'string', 'max:20', UserCredentialRules::uniquePhone((string) $request->input('role', 'client'))],
             'password' => 'required|string|min:8|confirmed',
             'role' => ['required', Rule::exists('roles', 'name')],
             'status' => ['required', Rule::in(['active', 'inactive', 'suspended'])],
@@ -309,7 +310,7 @@ class UserController extends Controller
 
         $data = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => ['sometimes', 'required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['sometimes', 'required', 'email', UserCredentialRules::uniqueEmail((string) ($user->role ?? 'client'), $user->id)],
             'phone' => 'nullable|string|max:20',
             'password' => 'nullable|string|min:8|confirmed',
             'role' => ['sometimes', 'required', Rule::exists('roles', 'name')],

@@ -120,9 +120,11 @@ class VendorRegistrationSmokeTest extends TestCase
     {
         Role::findOrCreate('vendor', 'web');
 
+        // Same phone blocked only within vendor role (cross-role reuse is allowed).
         User::factory()->create([
             'phone' => '0555381810',
             'email' => 'existing-phone-'.uniqid().'@test.com',
+            'role' => 'vendor',
         ]);
 
         $payload = $this->screenshotLikePayload('hamood-'.uniqid().'@outlook.com');
@@ -137,6 +139,25 @@ class VendorRegistrationSmokeTest extends TestCase
 
         $this->assertStringNotContainsString('SQLSTATE', (string) $response->json('message'));
         $this->assertStringNotContainsString('Duplicate entry', (string) $response->json('message'));
+    }
+
+    public function test_vendor_can_reuse_client_phone_and_email(): void
+    {
+        Role::findOrCreate('client', 'web');
+        Role::findOrCreate('vendor', 'web');
+
+        User::factory()->create([
+            'phone' => '0555123456',
+            'email' => 'shared-client-vendor@test.com',
+            'role' => 'client',
+        ]);
+
+        $payload = $this->screenshotLikePayload('shared-client-vendor@test.com');
+        $payload['phone'] = '0555123456';
+
+        $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
+            ->assertCreated()
+            ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
     }
 
     public function test_unknown_vendor_type_falls_back_to_other_instead_of_422(): void

@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use App\Jobs\OptimizePublicDiskImageJob;
+use App\Support\UserCredentialRules;
 
 class AreaManagerApiController extends Controller
 {
@@ -1133,9 +1134,10 @@ class AreaManagerApiController extends Controller
         }
 
         $input = $request->all();
+        $profileRole = strtolower((string) ($user->role ?? 'area_manager'));
         $rules = [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'email' => ['sometimes', 'email', 'max:255', UserCredentialRules::uniqueEmail($profileRole, $user->id)],
             'phone' => 'nullable|string|max:50',
         ];
         if ($profileFile) {

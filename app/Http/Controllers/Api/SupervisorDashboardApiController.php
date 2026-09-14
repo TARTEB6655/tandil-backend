@@ -15,6 +15,7 @@ use App\Models\VisitSupervisorDecline;
 use App\Models\TechnicianBreak;
 use App\Models\Order;
 use App\Support\OrderToVisitDispatcher;
+use App\Support\UserCredentialRules;
 use App\Support\VisitOrderTrackingSync;
 use App\Models\Area;
 use App\Models\Complaint;
@@ -388,10 +389,13 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Team member not found or not in your zones.'], 404);
         }
 
+        $memberForRules = User::find($id);
+        $memberRole = strtolower((string) ($memberForRules?->role ?? 'technician'));
+
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255|unique:users,email,' . $id,
-            'phone' => 'nullable|string|max:50|unique:users,phone,' . $id,
+            'email' => ['sometimes', 'email', 'max:255', UserCredentialRules::uniqueEmail($memberRole, $id)],
+            'phone' => ['nullable', 'string', 'max:50', UserCredentialRules::uniquePhone($memberRole, $id)],
             'emails' => 'sometimes|array|min:1',
             'emails.*' => 'email|max:255',
             'phones' => 'sometimes|array|min:1',
@@ -887,7 +891,10 @@ class SupervisorDashboardApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Signup request not found.'], 404);
         }
 
-        if (User::where('email', $signup->email)->exists() || User::where('phone', $signup->phone)->exists()) {
+        if (
+            User::where('role', 'technician')->where('email', $signup->email)->exists()
+            || User::where('role', 'technician')->where('phone', $signup->phone)->exists()
+        ) {
             return response()->json([
                 'success' => false,
                 'message' => 'A user with this email or phone already exists.',
@@ -2259,9 +2266,10 @@ class SupervisorDashboardApiController extends Controller
         }
 
         $input = $request->all();
+        $profileRole = strtolower((string) ($user->role ?? 'supervisor'));
         $rules = [
             'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'email' => ['sometimes', 'email', 'max:255', UserCredentialRules::uniqueEmail($profileRole, $user->id)],
             'phone' => 'nullable|string|max:50',
         ];
         if ($profileFile) {

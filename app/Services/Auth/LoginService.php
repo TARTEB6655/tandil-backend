@@ -21,20 +21,30 @@ class LoginService
      */
     public function attemptPasswordLogin(string $email, string $password, string $portal): array
     {
-        $user = User::query()
-            ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
-            ->first();
+        $email = strtolower(trim($email));
+        $candidates = User::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->orderBy('id')
+            ->get();
 
-        if (! $user || ! $this->passwordMatches($user, $password)) {
+        $user = null;
+        foreach ($candidates as $candidate) {
+            if (! $this->passwordMatches($candidate, $password)) {
+                continue;
+            }
+            if (! $candidate->matchesLoginPortal($portal)) {
+                continue;
+            }
+            $user = $candidate;
+            break;
+        }
+
+        if (! $user) {
             return $this->failure('Invalid login credentials.', 401);
         }
 
         if ($user->status !== 'active') {
             return $this->failure('Account is not active. Please contact admin.', 403);
-        }
-
-        if (! $user->matchesLoginPortal($portal)) {
-            return $this->failure('Invalid login credentials.', 401);
         }
 
         if ($portal === 'vendor') {

@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Vendor;
 
 use App\Support\PasswordInput;
+use App\Support\UserCredentialRules;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 class VendorRegistrationRequest extends VendorProfileFormRequest
 {
@@ -70,8 +72,15 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'company_name' => ['sometimes', 'string', 'max:255'],
             'authorized_person_name' => ['sometimes', 'string', 'max:255'],
             'name' => ['sometimes', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email', 'unique:vendor_profiles,email'],
-            'phone' => ['required', 'string', 'max:32', 'unique:users,phone'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                UserCredentialRules::uniqueEmail('vendor'),
+                // vendor_profiles email still unique among vendors (no role column there).
+                Rule::unique('vendor_profiles', 'email'),
+            ],
+            'phone' => ['required', 'string', 'max:32', UserCredentialRules::uniquePhone('vendor')],
             'password' => ['required', 'string', 'min:6', 'confirmed'],
             'terms_accepted' => ['required', 'accepted'],
 

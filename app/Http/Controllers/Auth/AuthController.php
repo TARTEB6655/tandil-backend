@@ -13,10 +13,12 @@ use App\Services\Auth\LoginService;
 use App\Services\Auth\SocialClientAuthService;
 use App\Support\AppLoginRoles;
 use App\Support\PasswordInput;
+use App\Support\UserCredentialRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use RuntimeException;
 
 class AuthController extends Controller
@@ -30,8 +32,8 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'nullable|string|max:20|unique:users,phone',
+            'email' => ['required', 'email', UserCredentialRules::uniqueEmail((string) $request->input('role', 'client'))],
+            'phone' => ['nullable', 'string', 'max:20', UserCredentialRules::uniquePhone((string) $request->input('role', 'client'))],
             'password' => 'required|string|min:6|confirmed',
             'role' => 'required|in:client,technician,supervisor,area_manager,hr,admin',
         ]);
@@ -99,8 +101,8 @@ class AuthController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:100',
-            'email' => 'required|email|unique:users,email',
-            'phone' => 'required|string|max:20|unique:users,phone',
+            'email' => ['required', 'email', UserCredentialRules::uniqueEmail('technician')],
+            'phone' => ['required', 'string', 'max:20', UserCredentialRules::uniquePhone('technician')],
             'service_area' => 'nullable|string|max:5000',
             'area_id' => 'nullable|integer|exists:areas,id',
             'password' => 'required|string|min:6|confirmed',

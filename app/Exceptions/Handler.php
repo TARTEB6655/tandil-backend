@@ -105,7 +105,11 @@ class Handler extends ExceptionHandler
         if ($e instanceof \Illuminate\Database\QueryException) {
             $sqlMessage = $e->getMessage();
 
-            if (str_contains($sqlMessage, 'users_phone_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'phone'))) {
+            if (
+                str_contains($sqlMessage, 'users_phone_unique')
+                || str_contains($sqlMessage, 'users_phone_role_unique')
+                || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'phone'))
+            ) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This phone number is already registered. Please log in or use a different phone number.',
@@ -115,7 +119,11 @@ class Handler extends ExceptionHandler
                 ], 422);
             }
 
-            if (str_contains($sqlMessage, 'users_email_unique') || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'email'))) {
+            if (
+                str_contains($sqlMessage, 'users_email_unique')
+                || str_contains($sqlMessage, 'users_email_role_unique')
+                || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'email'))
+            ) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This email is already registered. Please log in or use a different email.',

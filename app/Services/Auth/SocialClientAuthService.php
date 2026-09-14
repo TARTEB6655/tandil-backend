@@ -76,7 +76,11 @@ class SocialClientAuthService
                 $user = User::query()->where($idColumn, $providerId)->first();
 
                 if (! $user && $email) {
-                    $user = User::query()->where('email', $email)->first();
+                    // Only link to an existing *client* account (email may exist on vendor/other roles).
+                    $user = User::query()
+                        ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
+                        ->whereRaw('LOWER(COALESCE(role, "")) = ?', [self::PORTAL])
+                        ->first();
                     if ($user) {
                         $user->{$idColumn} = $providerId;
                     }
@@ -137,7 +141,11 @@ class SocialClientAuthService
         }
 
         if ($email && empty($user->email)) {
-            $exists = User::query()->where('email', $email)->where('id', '!=', $user->id)->exists();
+            $exists = User::query()
+                ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
+                ->whereRaw('LOWER(COALESCE(role, "")) = ?', [self::PORTAL])
+                ->where('id', '!=', $user->id)
+                ->exists();
             if ($exists) {
                 throw new RuntimeException('This email is already registered with a different account.');
             }
@@ -172,7 +180,10 @@ class SocialClientAuthService
         bool $emailVerified,
     ): User {
         if ($email) {
-            $existing = User::query()->where('email', $email)->first();
+            $existing = User::query()
+                ->whereRaw('LOWER(email) = ?', [strtolower(trim($email))])
+                ->whereRaw('LOWER(COALESCE(role, "")) = ?', [self::PORTAL])
+                ->first();
             if ($existing) {
                 throw new RuntimeException('This email is already registered. Sign in with email and password, or use the same social account.');
             }
