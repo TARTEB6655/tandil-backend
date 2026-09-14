@@ -87,4 +87,93 @@ class AdminReport extends Model
 
         return $healed;
     }
+
+    /**
+     * Generate reports whose scheduled_at (Asia/Dubai wall-clock) has arrived.
+     * Used by cron and also when admin opens Reports (cron may be late/missing).
+     *
+     * @return array{processed: int, generated: int, failed: int}
+     */
+    public static function processDueScheduled(int $limit = 50): array
+    {
+        $now = \App\Support\DubaiTime::now();
+        $nowStorage = $now->format('Y-m-d H:i:s');
+
+        $due = static::query()
+            ->where('status', 'scheduled')
+            ->whereNotNull('scheduled_at')
+            // Compare as naive Dubai wall-clock strings stored in MySQL datetime.
+            ->whereRaw('scheduled_at <= ?', [$nowStorage])
+            ->orderBy('scheduled_at')
+            ->limit(max(1, $limit))
+            ->get();
+
+        $generated = 0;
+        $failed = 0;
+
+        foreach ($due as $report) {
+            $recurrence = $report->recurrence;
+            $scheduledAt = $report->scheduled_at?->copy();
+            $params = $report->parameters ?? [];
+            $createdBy = $report->created_by;
+            $title = $report->title;
+            $type = $report->type;
+            $format = $report->format ?? 'pdf';
+
+            $report->forceFill([
+                'status' => 'pending',
+                'failure_reason' => null,
+            ])->save();
+
+            try {
+                // Re-load by id so SerializesModels / sync job sees pending status.
+                \App\Jobs\GenerateReportJob::dispatchSync(static::query()->find($report->id) ?? $report);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Scheduled report generation failed', [
+                    'report_id' => $report->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            $fresh = $report->fresh();
+            if ($fresh && $fresh->status === 'generated') {
+                $generated++;
+            } else {
+                $failed++;
+            }
+
+            if ($recurrence && in_array($recurrence, self::RECURRENCE, true) && $scheduledAt) {
+                $next = \App\Support\DubaiTime::parse($scheduledAt);
+                $guard = 0;
+                do {
+                    $next = match ($recurrence) {
+                        'daily' => $next->copy()->addDay(),
+                        'weekly' => $next->copy()->addWeek(),
+                        'monthly' => $next->copy()->addMonth(),
+                        'yearly' => $next->copy()->addYear(),
+                        default => $next->copy()->addDay(),
+                    };
+                    $guard++;
+                } while ($next->lte($now) && $guard < 400);
+
+                static::create([
+                    'title' => $title,
+                    'type' => $type,
+                    'status' => 'scheduled',
+                    'scheduled_at' => \App\Support\DubaiTime::toStorage($next),
+                    'recurrence' => $recurrence,
+                    'format' => $format,
+                    'parameters' => $params,
+                    'created_by' => $createdBy,
+                ]);
+            }
+        }
+
+        return [
+            'processed' => $due->count(),
+            'generated' => $generated,
+            'failed' => $failed,
+            'now' => $nowStorage,
+        ];
+    }
 }

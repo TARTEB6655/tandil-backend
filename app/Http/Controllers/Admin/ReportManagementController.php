@@ -38,6 +38,7 @@ class ReportManagementController extends Controller
     {
         // Heal a few stuck "pending" rows (e.g. HR API used to queue without workers).
         AdminReport::healStuckPending(25);
+        AdminReport::processDueScheduled(25);
 
         $perPage = min((int) $request->input('per_page', 15), 100);
         $query = AdminReport::with('creator')->orderBy('created_at', 'desc');

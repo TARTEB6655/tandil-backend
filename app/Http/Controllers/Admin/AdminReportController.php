@@ -73,8 +73,9 @@ class AdminReportController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Mobile Reports Management: heal Sep-era HR rows stuck pending (no queue worker).
+        // Heal pending + generate any overdue scheduled rows (cron backup).
         AdminReport::healStuckPending(25);
+        AdminReport::processDueScheduled(25);
 
         $perPage = min((int) $request->input('per_page', 15), 100);
         $query = AdminReport::with('creator')->orderBy('created_at', 'desc');
@@ -295,6 +296,7 @@ class AdminReportController extends Controller
     public function statistics(): JsonResponse
     {
         AdminReport::healStuckPending(25);
+        AdminReport::processDueScheduled(25);
 
         $total = AdminReport::count();
         $pending = AdminReport::where('status', 'pending')->count();

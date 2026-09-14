@@ -112,4 +112,57 @@ class ProcessScheduledAdminReportsCommandTest extends TestCase
         $this->artisan('reports:process-scheduled')->assertSuccessful();
         $this->assertSame('generated', $due->fresh()->status);
     }
+
+    public function test_force_id_generates_even_if_still_future_scheduled(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $report = AdminReport::create([
+            'title' => 'Dummy financial — force',
+            'type' => 'financial',
+            'status' => 'scheduled',
+            'scheduled_at' => now()->addHour()->format('Y-m-d H:i:s'),
+            'format' => 'pdf',
+            'parameters' => ['format' => 'pdf'],
+            'created_by' => $admin->id,
+        ]);
+
+        $this->artisan('reports:process-scheduled', ['--id' => $report->id])
+            ->assertSuccessful();
+
+        $this->assertSame('generated', $report->fresh()->status);
+    }
+
+    public function test_admin_reports_list_processes_overdue_scheduled(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->assignAdminRole($admin);
+
+        $report = AdminReport::create([
+            'title' => 'Dummy financial — overdue list',
+            'type' => 'financial',
+            'status' => 'scheduled',
+            'scheduled_at' => now()->subMinutes(5)->format('Y-m-d H:i:s'),
+            'format' => 'pdf',
+            'parameters' => ['format' => 'pdf'],
+            'created_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson('/api/admin/reports?per_page=10')
+            ->assertOk();
+
+        $this->assertSame('generated', $report->fresh()->status);
+    }
+
+    private function assignAdminRole(User $admin): void
+    {
+        try {
+            if (class_exists(\Spatie\Permission\Models\Role::class)) {
+                \Spatie\Permission\Models\Role::findOrCreate('admin', 'web');
+                $admin->assignRole('admin');
+            }
+        } catch (\Throwable) {
+            //
+        }
+    }
 }
