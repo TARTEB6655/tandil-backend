@@ -219,8 +219,6 @@ class CheckoutController extends Controller
                     'price' => $lineUnit,
                     'subtotal' => $cartItem->quantity * $lineUnit,
                 ]);
-
-                $cartItem->product->decrement('stock', $cartItem->quantity);
             }
 
             app(\App\Services\Vendor\VendorOrderSyncService::class)->syncFromOrder(
@@ -329,10 +327,8 @@ class CheckoutController extends Controller
             abort(403);
         }
 
-        foreach ($order->items as $item) {
-            $item->product->increment('stock', $item->quantity);
-        }
-
+        // Stock is only committed when payment succeeds (OrderPaidSideEffects).
+        // Unpaid checkout cancel must not invent inventory restores.
         $order->delete();
 
         return redirect()->route('client.cart.index')->with('error', 'Payment was cancelled. Your order has been cancelled.');

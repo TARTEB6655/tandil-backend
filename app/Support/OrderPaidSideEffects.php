@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\AdminNotification;
+use App\Services\Shop\OrderStockService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -30,9 +31,13 @@ final class OrderPaidSideEffects
 
             $order = $order->fresh([
                 'items.product.services',
+                'items.product.vendorProduct.inventory',
                 'shippingAddress',
                 'user',
             ]) ?? $order;
+
+            // Sell units as soon as payment succeeds (vendor_inventory + products.stock).
+            app(OrderStockService::class)->decrementForPaidOrder($order);
 
             $total = (float) $order->total_amount;
 

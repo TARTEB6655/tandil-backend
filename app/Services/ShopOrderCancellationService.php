@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Visit;
 use App\Models\WalletCredit;
 use App\Notifications\AdminNotification;
+use App\Services\Shop\OrderStockService;
 use App\Support\RefundPolicy;
 use Illuminate\Support\Facades\DB;
 
@@ -40,10 +41,13 @@ final class ShopOrderCancellationService
      */
     public function cancelOrder(Order $order): array
     {
-        return DB::transaction(function () use ($order) {
+        $wasPaid = false;
+
+        $result = DB::transaction(function () use ($order, &$wasPaid) {
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             $decision = RefundPolicy::decisionForOrder($locked);
             $isPaid = strtolower((string) $locked->payment_status) === 'paid';
+            $wasPaid = $isPaid;
             $total = (float) $locked->total_amount;
             $refundAmount = $isPaid ? round($total * ((float) $decision['percent'] / 100), 2) : 0.0;
             $serviceFeeAmount = $isPaid ? round(max(0, $total - $refundAmount), 2) : 0.0;
@@ -106,6 +110,12 @@ final class ShopOrderCancellationService
                 'wallet_expires_at' => $expiresAt?->toIso8601String(),
             ];
         });
+
+        if ($wasPaid) {
+            app(OrderStockService::class)->restoreForCancelledOrder($order->fresh() ?? $order);
+        }
+
+        return $result;
     }
 
     /**

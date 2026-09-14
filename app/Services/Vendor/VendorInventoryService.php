@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class VendorInventoryService
 {
-    public function adjust(VendorProduct $vendorProduct, int $newQuantity, User $user, string $changeType = 'adjustment', ?string $notes = null): VendorInventory
+    public function adjust(VendorProduct $vendorProduct, int $newQuantity, ?User $user = null, string $changeType = 'adjustment', ?string $notes = null): VendorInventory
     {
         return DB::transaction(function () use ($vendorProduct, $newQuantity, $user, $changeType, $notes) {
             $inventory = VendorInventory::query()->firstOrCreate(
@@ -36,7 +36,7 @@ class VendorInventoryService
                 'change_type' => $changeType,
                 'quantity_before' => $before,
                 'quantity_after' => $inventory->quantity,
-                'changed_by' => $user->id,
+                'changed_by' => $user?->id,
                 'notes' => $notes,
             ]);
 

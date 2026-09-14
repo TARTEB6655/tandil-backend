@@ -40,6 +40,7 @@ class Order extends Model
         'payment_method',
         'transaction_id',
         'paid_at',
+        'stock_decremented_at',
         'wallet_redeemed_at',
 
         'order_status',
@@ -73,6 +74,7 @@ class Order extends Model
         'coupon_discount_amount' => 'decimal:2',
 
         'paid_at' => 'datetime',
+        'stock_decremented_at' => 'datetime',
         'wallet_redeemed_at' => 'datetime',
         'refunded_at' => 'datetime',
 
