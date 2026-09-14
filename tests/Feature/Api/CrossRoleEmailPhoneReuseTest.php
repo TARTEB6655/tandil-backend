@@ -12,10 +12,14 @@ class CrossRoleEmailPhoneReuseTest extends TestCase
 {
     use RefreshDatabase;
 
+    private const SHARED_EMAIL = 'shared-all-roles@tandil.test';
+
+    private const SHARED_PHONE = '0509988776';
+
     protected function setUp(): void
     {
         parent::setUp();
-        foreach (['client', 'vendor', 'technician'] as $role) {
+        foreach (['client', 'vendor', 'technician', 'supervisor', 'area_manager', 'hr', 'admin'] as $role) {
             Role::findOrCreate($role, 'web');
         }
     }
@@ -43,6 +47,52 @@ class CrossRoleEmailPhoneReuseTest extends TestCase
         $this->assertDatabaseCount('users', 2);
         $this->assertSame('same@tandil.test', $client->fresh()->email);
         $this->assertSame('same@tandil.test', $vendorUser->fresh()->email);
+    }
+
+    public function test_same_email_and_phone_can_create_client_supervisor_technician_manager_and_vendor(): void
+    {
+        // client / supervisor / technician / area_manager (manager) via public register API
+        foreach (['client', 'supervisor', 'technician', 'area_manager'] as $role) {
+            $this->postJson('/api/auth/register', [
+                'name' => ucfirst(str_replace('_', ' ', $role)).' User',
+                'email' => self::SHARED_EMAIL,
+                'phone' => self::SHARED_PHONE,
+                'password' => 'password123',
+                'password_confirmation' => 'password123',
+                'role' => $role,
+            ])
+                ->assertCreated()
+                ->assertJsonPath('success', true)
+                ->assertJsonPath('data.role', $role)
+                ->assertJsonPath('data.user.email', self::SHARED_EMAIL)
+                ->assertJsonPath('data.user.phone', self::SHARED_PHONE);
+        }
+
+        // vendor is a separate account row with same credentials
+        $vendor = User::factory()->create([
+            'name' => 'Vendor User',
+            'email' => self::SHARED_EMAIL,
+            'phone' => self::SHARED_PHONE,
+            'role' => 'vendor',
+            'status' => 'active',
+            'password' => Hash::make('password123'),
+        ]);
+        $vendor->assignRole('vendor');
+
+        $roles = User::query()
+            ->where('email', self::SHARED_EMAIL)
+            ->where('phone', self::SHARED_PHONE)
+            ->pluck('role')
+            ->map(fn ($r) => strtolower((string) $r))
+            ->sort()
+            ->values()
+            ->all();
+
+        $this->assertSame(
+            ['area_manager', 'client', 'supervisor', 'technician', 'vendor'],
+            $roles
+        );
+        $this->assertSame(5, User::query()->where('email', self::SHARED_EMAIL)->count());
     }
 
     public function test_same_email_rejected_within_same_role(): void
@@ -98,7 +148,6 @@ class CrossRoleEmailPhoneReuseTest extends TestCase
             'password' => 'vendor-pass',
             'roles' => 'vendor',
         ]);
-        // Vendor may be blocked if no vendor profile — at least credentials resolve to vendor portal attempt.
         $this->assertTrue(in_array($vendorLogin->status(), [200, 403], true));
         if ($vendorLogin->status() === 200) {
             $this->assertSame('vendor', $vendorLogin->json('data.slug'));
