@@ -25,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // UAE product — keep all app clocks on Dubai time (overrides mistaken APP_TIMEZONE=UTC).
+        $tz = 'Asia/Dubai';
+        config(['app.timezone' => $tz]);
+        date_default_timezone_set($tz);
+
         // Avoid fatal errors if `composer install` has not run yet (vendor missing on deploy).
         if (class_exists(\Spatie\Translatable\Translatable::class) && $this->app->bound(\Spatie\Translatable\Translatable::class)) {
             $this->app->make(\Spatie\Translatable\Translatable::class)

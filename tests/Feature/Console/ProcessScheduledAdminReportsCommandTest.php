@@ -90,4 +90,26 @@ class ProcessScheduledAdminReportsCommandTest extends TestCase
         ]);
         $this->assertSame(2, AdminReport::where('title', 'Weekly Performance')->count());
     }
+
+    public function test_process_uses_dubai_now_for_due_check(): void
+    {
+        config(['app.timezone' => 'Asia/Dubai']);
+        date_default_timezone_set('Asia/Dubai');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $dubaiNow = \App\Support\DubaiTime::now();
+
+        $due = AdminReport::create([
+            'title' => 'Due Dubai',
+            'type' => 'financial',
+            'status' => 'scheduled',
+            'scheduled_at' => $dubaiNow->copy()->subMinutes(2)->format('Y-m-d H:i:s'),
+            'format' => 'pdf',
+            'parameters' => ['format' => 'pdf'],
+            'created_by' => $admin->id,
+        ]);
+
+        $this->artisan('reports:process-scheduled')->assertSuccessful();
+        $this->assertSame('generated', $due->fresh()->status);
+    }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateReportJob;
 use App\Models\AdminReport;
+use App\Support\DubaiTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
@@ -141,7 +142,7 @@ class ReportManagementController extends Controller
             'title' => $request->title,
             'type' => $request->type,
             'status' => 'scheduled',
-            'scheduled_at' => $request->scheduled_at,
+            'scheduled_at' => DubaiTime::toStorage($request->input('scheduled_at')),
             'recurrence' => $request->recurrence,
             'format' => $format,
             'parameters' => $params,
@@ -149,7 +150,7 @@ class ReportManagementController extends Controller
         ]);
 
         return redirect()->route('admin.report-management.index')
-            ->with('success', 'Report scheduled successfully.');
+            ->with('success', 'Report scheduled successfully (Asia/Dubai time).');
     }
 
     /**

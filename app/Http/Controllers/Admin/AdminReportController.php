@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Jobs\GenerateReportJob;
 use App\Models\AdminReport;
+use App\Support\DubaiTime;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -51,9 +52,13 @@ class AdminReportController extends Controller
             'title' => $report->title,
             'type' => $report->type,
             'status' => $report->status,
-            'created_at' => $report->created_at->toIso8601String(),
-            'scheduled_at' => $report->scheduled_at?->toIso8601String(),
-            'generated_at' => $report->generated_at?->toIso8601String(),
+            'created_at' => $report->created_at?->timezone(DubaiTime::TZ)->toIso8601String(),
+            'scheduled_at' => $report->scheduled_at
+                ? DubaiTime::parse($report->scheduled_at)->toIso8601String()
+                : null,
+            'generated_at' => $report->generated_at
+                ? DubaiTime::parse($report->generated_at)->toIso8601String()
+                : null,
             'recurrence' => $report->recurrence,
             'file_url' => $this->fileUrl($report),
             'file_size' => $report->file_size,
@@ -199,7 +204,8 @@ class AdminReportController extends Controller
             'title' => $request->title,
             'type' => $request->type,
             'status' => 'scheduled',
-            'scheduled_at' => $request->scheduled_at,
+            // Always store as Asia/Dubai wall-clock (mobile may send Z/UTC by mistake).
+            'scheduled_at' => DubaiTime::toStorage($request->input('scheduled_at')),
             'recurrence' => $request->recurrence,
             'format' => $format,
             'parameters' => $params,

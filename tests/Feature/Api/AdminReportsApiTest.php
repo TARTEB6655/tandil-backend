@@ -143,6 +143,7 @@ class AdminReportsApiTest extends TestCase
 
         $schedule->assertStatus(201)->assertJsonPath('success', true)->assertJsonPath('data.status', 'scheduled');
         $id = (int) $schedule->json('data.id');
+        $this->assertStringContainsString('+04:00', (string) $schedule->json('data.scheduled_at'));
 
         $cancel = $this->actingAs($this->admin, 'sanctum')->deleteJson('/api/admin/reports/' . $id . '/cancel');
         $cancel->assertStatus(200)->assertJsonPath('success', true);
