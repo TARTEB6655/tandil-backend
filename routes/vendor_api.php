@@ -94,6 +94,7 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
 
         Route::get('/inventory/{vendorProductId}', [VendorInventoryController::class, 'show']);
         Route::put('/inventory/{vendorProductId}', [VendorInventoryController::class, 'update']);
+        Route::patch('/inventory/{vendorProductId}', [VendorInventoryController::class, 'update']);
         Route::post('/inventory/{vendorProductId}', [VendorInventoryController::class, 'update']);
 
         Route::get('/orders', [VendorOrderController::class, 'index']);

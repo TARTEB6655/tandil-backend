@@ -13,15 +13,23 @@ class VendorInventoryService
     public function adjust(VendorProduct $vendorProduct, int $newQuantity, User $user, string $changeType = 'adjustment', ?string $notes = null): VendorInventory
     {
         return DB::transaction(function () use ($vendorProduct, $newQuantity, $user, $changeType, $notes) {
-            $inventory = $vendorProduct->inventory ?? VendorInventory::create([
-                'vendor_product_id' => $vendorProduct->id,
-                'quantity' => 0,
-                'low_stock_threshold' => 5,
-            ]);
+            $inventory = VendorInventory::query()->firstOrCreate(
+                ['vendor_product_id' => $vendorProduct->id],
+                [
+                    'quantity' => 0,
+                    'low_stock_threshold' => 5,
+                ]
+            );
 
-            $before = $inventory->quantity;
-            $inventory->update(['quantity' => max(0, $newQuantity)]);
-            $vendorProduct->product?->update(['stock' => $inventory->quantity]);
+            $before = (int) $inventory->quantity;
+            $inventory->quantity = max(0, $newQuantity);
+            $inventory->save();
+
+            $product = $vendorProduct->product;
+            if ($product !== null) {
+                $product->stock = $inventory->quantity;
+                $product->save();
+            }
 
             VendorInventoryLog::create([
                 'vendor_product_id' => $vendorProduct->id,
@@ -31,6 +39,8 @@ class VendorInventoryService
                 'changed_by' => $user->id,
                 'notes' => $notes,
             ]);
+
+            $vendorProduct->unsetRelation('inventory');
 
             return $inventory->fresh();
         });

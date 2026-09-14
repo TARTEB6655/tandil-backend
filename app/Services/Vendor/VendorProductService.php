@@ -184,6 +184,7 @@ class VendorProductService
 
     public function findForVendor(Vendor $vendor, int $vendorProductId): ?VendorProduct
     {
+        // Mobile may send vendor_products.id OR catalog products.id.
         return VendorProduct::with([
             'product.category',
             'product.services',
@@ -195,7 +196,10 @@ class VendorProductService
             'currentPrice',
         ])
             ->where('vendor_id', $vendor->id)
-            ->where('id', $vendorProductId)
+            ->where(function ($query) use ($vendorProductId) {
+                $query->where('id', $vendorProductId)
+                    ->orWhere('product_id', $vendorProductId);
+            })
             ->first();
     }
 

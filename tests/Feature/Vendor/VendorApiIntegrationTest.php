@@ -374,6 +374,56 @@ class VendorApiIntegrationTest extends TestCase
         ], ['Accept' => 'application/json'])->assertCreated();
     }
 
+    public function test_inventory_update_accepts_catalog_product_id_and_stock_alias(): void
+    {
+        ['token' => $token] = $this->makeVendorUser(VendorStatus::Approved);
+
+        $category = Category::create([
+            'name' => 'Inventory Category',
+            'slug' => 'inventory-category',
+            'is_active' => true,
+            'shipping_cost' => 0,
+            'tax_percentage' => 0,
+        ]);
+
+        $create = $this->withToken($token)->postJson('/api/vendor/products', [
+            'name' => 'Stock Update Item',
+            'price' => 12,
+            'category_id' => $category->id,
+            'stock' => 3,
+            'status' => 'active',
+        ]);
+        $create->assertCreated();
+
+        $vendorProductId = (int) $create->json('data.vendor_product.id');
+        $catalogProductId = (int) $create->json('data.vendor_product.product_id');
+
+        $this->withToken($token)->putJson('/api/vendor/inventory/'.$catalogProductId, [
+            'stock' => 42,
+            'notes' => 'mobile stock alias',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.quantity', 42)
+            ->assertJsonPath('data.stock', 42)
+            ->assertJsonPath('data.product_id', $catalogProductId)
+            ->assertJsonPath('data.vendor_product_id', $vendorProductId);
+
+        $this->assertDatabaseHas('vendor_inventory', [
+            'vendor_product_id' => $vendorProductId,
+            'quantity' => 42,
+        ]);
+        $this->assertDatabaseHas('products', [
+            'id' => $catalogProductId,
+            'stock' => 42,
+        ]);
+
+        $this->withToken($token)->patchJson('/api/vendor/inventory/'.$vendorProductId, [
+            'stock_quantity' => 7,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.quantity', 7);
+    }
+
     /**
      * @return array{user: User, vendor: Vendor, token: string}
      */
