@@ -52,7 +52,7 @@ class GenerateReportJob implements ShouldQueue
             if ($format === 'csv') {
                 Storage::disk('local')->put($path, $content);
             } elseif ($ext === 'pdf') {
-                $html = $this->wrapContentAsHtml($content);
+                $html = $this->wrapContentAsHtml($content, $report);
                 $fullPath = Storage::disk('local')->path($path);
                 // Use dompdf/dompdf directly (no Laravel container) so queue workers and sync both work
                 if (! class_exists(\Dompdf\Dompdf::class)) {
@@ -90,11 +90,17 @@ class GenerateReportJob implements ShouldQueue
         }
     }
 
-    /** Wrap plain text report content in styled HTML for PDF rendering (colorful, professional). */
-    protected function wrapContentAsHtml(string $text): string
+    /**
+     * Wrap plain text report content in the shared branded PDF shell
+     * (same logo + forest green header as invoices / loyalty / analytics).
+     */
+    protected function wrapContentAsHtml(string $text, ?AdminReport $report = null): string
     {
         $lines = explode("\n", $text);
         $out = '';
+        $periodLabel = null;
+        $titleFromBody = null;
+
         foreach ($lines as $line) {
             $trimmed = trim($line);
             $escaped = htmlspecialchars($line, ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -106,48 +112,60 @@ class GenerateReportJob implements ShouldQueue
                 $out .= '<hr class="divider"/>';
                 continue;
             }
-            if (preg_match('/^(WEEKLY SUMMARY|TEAM PERFORMANCE|CUSTOMER SATISFACTION)$/', $trimmed)) {
-                $out .= '<h1 class="report-title">' . htmlspecialchars($trimmed, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '</h1>';
+            if (preg_match('/^(WEEKLY SUMMARY|TEAM PERFORMANCE|CUSTOMER SATISFACTION|FINANCIAL REPORT|USER REPORT|HR TECHNICIAN MONTHLY|TECHNICIAN MONTHLY REPORT)$/i', $trimmed)) {
+                $titleFromBody = strtoupper($trimmed);
+                // Title lives in the green header — skip duplicate in body.
                 continue;
             }
-            if (preg_match('/^Report:\s|^Period:\s|^Generated at:\s/', $trimmed)) {
-                $out .= '<p class="meta">' . $escaped . '</p>';
+            if (preg_match('/^Period:\s*(.+)$/i', $trimmed, $m)) {
+                $periodLabel = trim($m[1]);
+                $out .= '<p class="meta">'.$escaped.'</p>';
+                continue;
+            }
+            if (preg_match('/^Report:\s|^Generated at:\s/i', $trimmed)) {
+                $out .= '<p class="meta">'.$escaped.'</p>';
                 continue;
             }
             if (preg_match('/^Supervisor:\s+.+\(ID:/', $trimmed)) {
-                $out .= '<h2 class="supervisor-name">' . $escaped . '</h2>';
+                $out .= '<h2 class="supervisor-name">'.$escaped.'</h2>';
                 continue;
             }
             if (preg_match('/^\s+Team size:|^\s+No areas assigned/', $trimmed)) {
-                $out .= '<p class="stat-line">' . $escaped . '</p>';
+                $out .= '<p class="stat-line">'.$escaped.'</p>';
                 continue;
             }
             if (preg_match('/^Visit #\d+/', $trimmed)) {
-                $out .= '<p class="visit-detail">' . $escaped . '</p>';
+                $out .= '<p class="visit-detail">'.$escaped.'</p>';
                 continue;
             }
-            if (preg_match('/^Visit details|^By day \(scheduled|^By area:$|^Customers who had/', $trimmed)) {
-                $out .= '<h3 class="section-head">' . $escaped . '</h3>';
+            if (preg_match('/^Visit details|^By day \(scheduled|^By area:$|^Customers who had/i', $trimmed)) {
+                $out .= '<h3 class="section-head">'.$escaped.'</h3>';
                 continue;
             }
-            if (preg_match('/^Total visits|^Visits completed|^Completion %|^Revenue generated/', $trimmed)) {
-                $out .= '<p class="metric-line">' . $escaped . '</p>';
+            if (preg_match('/^Total visits|^Visits completed|^Completion %|^Revenue generated/i', $trimmed)) {
+                $out .= '<p class="metric-line">'.$escaped.'</p>';
                 continue;
             }
             if (preg_match('/^  \d+ \w+ \d{4}:|^  [A-Za-z].+:\s*\d+$/', $trimmed) || preg_match('/^  [A-Za-z0-9 #\-]+:\s*\d+/', $trimmed)) {
-                $out .= '<p class="stat-item">' . $escaped . '</p>';
+                $out .= '<p class="stat-item">'.$escaped.'</p>';
                 continue;
             }
-            $out .= '<p class="body">' . $escaped . '</p>';
+            $out .= '<p class="body">'.$escaped.'</p>';
         }
 
-        $brand = \App\Support\PdfBrand::headerHtml();
-        $css = \App\Support\PdfBrand::documentCss();
+        $documentTitle = $report?->title
+            ?: ($titleFromBody ?: 'Report');
+        $typeLabel = $report
+            ? (ucfirst(str_replace('_', ' ', (string) $report->type)).' report')
+            : 'Operations report';
 
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>'.$css.'</style></head><body>'
-            .$brand
-            .'<div class="report-body">'.$out.'</div>'
-            .'</body></html>';
+        return view('shared.admin-report-pdf', [
+            'documentTitle' => $documentTitle,
+            'documentSubtitle' => $typeLabel,
+            'periodLabel' => $periodLabel,
+            'generatedAt' => now()->format('d M Y, H:i'),
+            'bodyHtml' => $out,
+        ])->render();
     }
 
     /** Build report content for a given report and date range (used by web download-as-CSV). */

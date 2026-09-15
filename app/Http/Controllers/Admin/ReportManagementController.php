@@ -15,20 +15,9 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class ReportManagementController extends Controller
 {
-    protected function ensureReportFile(AdminReport $report): AdminReport
+    protected function ensureReportFile(AdminReport $report, bool $forceRegenerate = false): AdminReport
     {
-        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
-            return $report;
-        }
-
-        $report->forceFill([
-            'status' => 'pending',
-            'failure_reason' => null,
-        ])->save();
-
-        GenerateReportJob::dispatchSync($report);
-
-        return $report->fresh();
+        return $report->ensureDownloadableFile($forceRegenerate);
     }
 
     /**

@@ -91,6 +91,8 @@ class GeneratedReportController extends Controller
             return $this->downloadAsCsv($report);
         }
 
+        $report = $report->ensureDownloadableFile();
+
         if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()
                 ->route('areamanager.generated-reports.index')
@@ -116,6 +118,7 @@ class GeneratedReportController extends Controller
     public function view(int $id)
     {
         $report = AdminReport::where('created_by', request()->user()->id)->findOrFail($id);
+        $report = $report->ensureDownloadableFile();
 
         if (! $report->file_path || ! Storage::disk('local')->exists($report->file_path)) {
             return redirect()

@@ -20,18 +20,7 @@ class HrReportWebController extends Controller
 {
     private function ensureReportFile(AdminReport $report): AdminReport
     {
-        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
-            return $report;
-        }
-
-        $report->forceFill([
-            'status' => 'pending',
-            'failure_reason' => null,
-        ])->save();
-
-        GenerateReportJob::dispatchSync($report);
-
-        return $report->fresh();
+        return $report->ensureDownloadableFile();
     }
 
     private function paginatedReports(Request $request)

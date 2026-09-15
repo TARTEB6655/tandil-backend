@@ -61,6 +61,38 @@ class AdminReport extends Model
     }
 
     /**
+     * Ensure a downloadable file exists. PDF files are always rebuilt so
+     * branding (logo / forest green shell) stays current.
+     */
+    public function ensureDownloadableFile(bool $force = false): self
+    {
+        $disk = \Illuminate\Support\Facades\Storage::disk('local');
+        $exists = filled($this->file_path) && $disk->exists($this->file_path);
+        $isPdf = strtolower((string) ($this->format ?? 'pdf')) === 'pdf'
+            || str_ends_with(strtolower((string) ($this->file_path ?? '')), '.pdf');
+
+        if ($exists && ! $isPdf && ! $force) {
+            return $this;
+        }
+
+        if ($exists) {
+            $disk->delete($this->file_path);
+        }
+
+        $this->forceFill([
+            'status' => 'pending',
+            'failure_reason' => null,
+            'file_path' => null,
+            'file_size' => null,
+            'generated_at' => null,
+        ])->save();
+
+        \App\Jobs\GenerateReportJob::dispatchSync($this->fresh() ?? $this);
+
+        return $this->fresh() ?? $this;
+    }
+
+    /**
      * Re-run generation for pending reports that never got a file
      * (queued without a worker — common for HR API before sync fix).
      */

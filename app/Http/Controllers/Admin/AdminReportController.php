@@ -23,18 +23,7 @@ class AdminReportController extends Controller
 
     protected function ensureReportFile(AdminReport $report): AdminReport
     {
-        if ($report->file_path && Storage::disk('local')->exists($report->file_path)) {
-            return $report;
-        }
-
-        $report->forceFill([
-            'status' => 'pending',
-            'failure_reason' => null,
-        ])->save();
-
-        GenerateReportJob::dispatchSync($report);
-
-        return $report->fresh();
+        return $report->ensureDownloadableFile();
     }
 
     protected function transformReport(AdminReport $report, bool $includeCreatorEmail = false): array
