@@ -3,25 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Loyalty Reports &amp; Export</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1f2937; line-height: 1.4; }
-        .header { background: #0f766e; color: #fff; padding: 18px 20px; margin-bottom: 16px; }
-        .header h1 { font-size: 20px; margin-bottom: 4px; }
-        .header p { font-size: 11px; opacity: 0.95; margin-top: 2px; }
-        .content { padding: 0 20px 20px; }
-        .section { margin-bottom: 16px; page-break-inside: avoid; }
-        .section-title { font-size: 13px; font-weight: bold; color: #0f766e; border-bottom: 2px solid #0f766e; padding-bottom: 4px; margin-bottom: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 4px; }
-        th { background: #0f766e; color: #fff; font-weight: bold; text-align: left; padding: 7px 8px; font-size: 10px; }
-        td { padding: 7px 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-        tr:nth-child(even) td { background: #f9fafb; }
-        .meta-table td { border: none; padding: 4px 8px; background: transparent; }
-        .meta-label { color: #6b7280; width: 32%; font-weight: bold; }
-        .empty { color: #6b7280; font-style: italic; padding: 8px 0; }
-        .footer { margin-top: 12px; font-size: 9px; color: #9ca3af; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 8px; }
-        .num { text-align: right; }
-    </style>
+    <style>{!! \App\Support\PdfBrand::documentCss() !!}</style>
 </head>
 <body>
     @php

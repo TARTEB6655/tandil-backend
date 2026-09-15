@@ -413,6 +413,7 @@ Route::middleware(['auth', 'role:admin', 'set.admin.locale', 'prevent.admin.cach
             Route::delete('products/{vendorProduct}', [MarketplaceProductController::class, 'destroy'])->name('products.destroy');
             Route::get('orders', [MarketplaceOrderController::class, 'index'])->name('orders.index');
             Route::get('orders/{vendorOrder}', [MarketplaceOrderController::class, 'show'])->name('orders.show');
+            Route::get('orders/{vendorOrder}/invoice', [MarketplaceOrderController::class, 'downloadInvoice'])->name('orders.invoice');
             Route::post('orders/{vendorOrder}/status', [MarketplaceOrderController::class, 'updateStatus'])->name('orders.status');
             Route::post('orders/{vendorOrder}/cancel', [MarketplaceOrderController::class, 'cancel'])->name('orders.cancel');
             Route::post('orders/{vendorOrder}/dispute', [MarketplaceOrderController::class, 'updateDispute'])->name('orders.dispute');

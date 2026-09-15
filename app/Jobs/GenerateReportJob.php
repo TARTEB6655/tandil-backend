@@ -141,27 +141,13 @@ class GenerateReportJob implements ShouldQueue
             $out .= '<p class="body">' . $escaped . '</p>';
         }
 
-        $css = '
-            body { font-family: DejaVu Sans, sans-serif; font-size: 10pt; padding: 24px; line-height: 1.5; color: #374151; }
-            .pdf-brand-header { margin: -8px 0 10px 0; }
-            .report-title { color: #21409A; font-size: 16pt; font-weight: bold; margin: 0 0 6px 0; padding-bottom: 0; }
-            .report-title::after { content: ""; display: block; width: 50%; margin-top: 6px; border-bottom: 3px solid #4285F4; }
-            .meta { color: #6b7280; font-size: 9pt; margin: 3px 0; }
-            .divider { border: none; border-top: 1px solid #e5e7eb; margin: 14px 0; }
-            .supervisor-name { color: #1b5e20; font-size: 11pt; font-weight: bold; margin: 14px 0 4px 0; }
-            .stat-line { color: #5d4037; margin: 2px 0 8px 0; padding-left: 8px; }
-            .section-head { color: #4285F4; font-size: 10pt; font-weight: bold; margin: 12px 0 6px 0; }
-            .stat-item { margin: 2px 0; padding-left: 12px; color: #374151; }
-            .metric-line { margin: 4px 0; padding: 6px 10px; background: #e8f0fe; color: #21409A; font-weight: bold; }
-            .visit-detail { margin: 4px 0; padding: 6px 8px; background: #f1f8e9; border-left: 3px solid #2e7d32; font-size: 9pt; }
-            .body { margin: 4px 0; }
-            .spacer { height: 6px; }
-            h1, h2, h3 { page-break-after: avoid; }
-        ';
-
         $brand = \App\Support\PdfBrand::headerHtml();
+        $css = \App\Support\PdfBrand::documentCss();
 
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>'.$css.'</style></head><body>'.$brand.$out.'</body></html>';
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>'.$css.'</style></head><body>'
+            .$brand
+            .'<div class="report-body">'.$out.'</div>'
+            .'</body></html>';
     }
 
     /** Build report content for a given report and date range (used by web download-as-CSV). */

@@ -7,13 +7,15 @@ use App\Enums\VendorOrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\VendorOrderMapping;
 use App\Services\Vendor\AdminVendorOrderService;
+use App\Services\Vendor\VendorOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class MarketplaceOrderController extends Controller
 {
     public function __construct(
-        private readonly AdminVendorOrderService $orders
+        private readonly AdminVendorOrderService $orders,
+        private readonly VendorOrderService $vendorOrders
     ) {
         $this->middleware('role:admin');
     }
@@ -87,5 +89,17 @@ class MarketplaceOrderController extends Controller
         }
 
         return back()->with('success', 'Dispute updated.');
+    }
+
+    public function downloadInvoice(Request $request, VendorOrderMapping $vendorOrder)
+    {
+        $vendorOrder->load(['order.user', 'order.items.product', 'vendor.profile']);
+        $filename = $this->vendorOrders->invoiceFilename($vendorOrder);
+        $disposition = $request->boolean('print') ? 'inline' : 'attachment';
+
+        return response($this->vendorOrders->buildOrderPdfBinary($vendorOrder, 'invoice'), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => $disposition.'; filename="'.$filename.'"',
+        ]);
     }
 }

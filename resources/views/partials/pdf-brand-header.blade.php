@@ -1,13 +1,14 @@
-{{-- Small Tandil logo strip for DomPDF reports (same asset as dashboards). --}}
+{{-- Shared Tandil brand strip for DomPDF (admin indigo, logo 50px). --}}
 @php
     $pdfLogoSrc = \App\Support\PdfBrand::logoDataUri();
+    $pdfLogoHeight = \App\Support\PdfBrand::LOGO_HEIGHT_PX;
 @endphp
 @if ($pdfLogoSrc)
-    <div class="pdf-brand-header" style="padding:10px 20px 6px; text-align:left;">
+    <div class="pdf-brand-header">
         <img
             src="{{ $pdfLogoSrc }}"
             alt="{{ config('app.name', 'Tandil') }}"
-            style="height:36px; width:auto; max-width:120px; object-fit:contain;"
+            style="height: {{ $pdfLogoHeight }}px; width: auto; max-width: 160px; object-fit: contain; display: block;"
         />
     </div>
 @endif

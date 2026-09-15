@@ -2,8 +2,23 @@
     <div class="space-y-6 max-w-4xl">
         @if(session('success'))<div class="p-3 bg-green-50 text-green-800 text-sm rounded-lg">{{ session('success') }}</div>@endif
         <x-admin.marketplace-nav />
-        <h1 class="text-xl font-semibold">Vendor order #{{ $vendorOrder->order_id }}</h1>
-        <p class="text-sm text-gray-500">{{ $vendorOrder->vendor?->profile?->business_name }} · {{ ucfirst($vendorOrder->status) }}</p>
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+                <h1 class="text-xl font-semibold">Vendor order #{{ $vendorOrder->order_id }}</h1>
+                <p class="text-sm text-gray-500">{{ $vendorOrder->vendor?->profile?->business_name }} · {{ ucfirst($vendorOrder->status) }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.marketplace.orders.invoice', $vendorOrder) }}"
+                   class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700">
+                    Download invoice
+                </a>
+                <a href="{{ route('admin.marketplace.orders.invoice', $vendorOrder) }}?print=1"
+                   target="_blank"
+                   class="inline-flex items-center px-4 py-2 border border-indigo-600 text-indigo-700 text-sm rounded-lg hover:bg-indigo-50">
+                    View / Print
+                </a>
+            </div>
+        </div>
         <div class="grid sm:grid-cols-3 gap-4 text-sm bg-white dark:bg-gray-800 rounded-xl border p-6">
             <div><span class="text-gray-500">Subtotal</span><p class="font-semibold">AED {{ number_format($vendorOrder->subtotal, 2) }}</p></div>
             <div><span class="text-gray-500">Total</span><p class="font-semibold">AED {{ number_format($vendorOrder->total_amount, 2) }}</p></div>

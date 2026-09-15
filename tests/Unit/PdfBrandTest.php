@@ -20,6 +20,7 @@ class PdfBrandTest extends TestCase
 
         $html = PdfBrand::headerHtml();
         $this->assertStringContainsString('<img', $html);
-        $this->assertStringContainsString('height:36px', $html);
+        $this->assertStringContainsString('height:50px', $html);
+        $this->assertStringContainsString('#4f46e5', PdfBrand::documentCss());
     }
 }

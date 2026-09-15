@@ -258,7 +258,7 @@ class VendorController extends Controller
 
         return response($this->vendorOrders->buildOrderPdfBinary($vendorOrder, 'invoice'), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => (request()->boolean('print') ? 'inline' : 'attachment').'; filename="'.$filename.'"',
         ]);
     }
 
