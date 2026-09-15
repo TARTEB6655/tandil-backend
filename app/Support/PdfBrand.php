@@ -3,16 +3,16 @@
 namespace App\Support;
 
 /**
- * Shared DomPDF branding — same logo + indigo palette as the admin dashboard.
+ * Shared DomPDF branding — same logo + forest green palette as the Tandil brand.
  */
 final class PdfBrand
 {
-    /** Admin indigo-600 / indigo-700 */
-    public const PRIMARY = '#4f46e5';
+    /** Logo / Vendor Portal forest green */
+    public const PRIMARY = '#1B4332';
 
-    public const PRIMARY_DARK = '#4338ca';
+    public const PRIMARY_DARK = '#081C15';
 
-    public const PRIMARY_SOFT = '#eef2ff';
+    public const PRIMARY_SOFT = '#E8F5E9';
 
     public const TEXT = '#1f2937';
 
