@@ -375,6 +375,7 @@ class VendorOrderService
         $vendorItems = $this->vendorOrderItems($mapping);
         $fulfillmentType = $this->mappingFulfillmentType($mapping);
         $isService = $fulfillmentType === OrderFulfillmentType::SERVICE;
+        $deliveredAt = $this->resolveDeliveryAt($mapping);
 
         return [
             'id' => $mapping->id,
@@ -396,11 +397,11 @@ class VendorOrderService
             'order_date' => $this->formatDateTime($order?->created_at),
             'order_date_label' => $this->formatDate($order?->created_at),
             'order_date_display' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
-            'delivery_date' => $this->formatDate($order?->estimated_arrival),
-            'delivery_date_label' => $order?->estimated_arrival
-                ? $this->formatDate($order->estimated_arrival)
-                : null,
-            'delivery_date_display' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+            'delivery_date' => $this->formatDate($deliveredAt),
+            'delivery_date_label' => $this->formatDate($deliveredAt),
+            'delivery_date_display' => $this->formatDisplayDateTime($deliveredAt) ?? '—',
+            'delivered_at' => $deliveredAt?->format('c'),
+            'estimated_delivery' => $this->formatEstimatedArrival($order?->estimated_arrival),
             'payment_method' => $this->paymentMethodLabel($order),
             'payment_status' => $this->paymentStatusLabel($order?->payment_status),
             'tracking_number' => $mapping->tracking_number,
@@ -457,6 +458,7 @@ class VendorOrderService
         $layout = $order
             ? OrderTrackingTimeline::trackingLayout($order)
             : ($isService ? 'vertical' : 'horizontal');
+        $deliveredAt = $this->resolveDeliveryAt($mapping);
 
         return [
             'order_id' => $mapping->order_id,
@@ -498,7 +500,9 @@ class VendorOrderService
             ],
             'order_summary' => [
                 'order_date' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
-                'delivery_date' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+                'delivery_date' => $this->formatDisplayDateTime($deliveredAt) ?? '—',
+                'delivered_at' => $deliveredAt?->format('c'),
+                'estimated_delivery' => $this->formatEstimatedArrival($order?->estimated_arrival),
                 'tracking' => $isService ? '—' : $this->displayOrDash($mapping->tracking_number),
                 'payment_method' => $this->paymentMethodLabel($order),
                 'payment_status' => $this->paymentStatusLabel($order?->payment_status),
@@ -1421,16 +1425,55 @@ class VendorOrderService
     private function formatOrderInfo(VendorOrderMapping $mapping): array
     {
         $order = $mapping->order;
+        $deliveredAt = $this->resolveDeliveryAt($mapping);
 
         return [
             'order_date' => $this->formatDisplayDateTime($order?->created_at) ?? '—',
-            'delivery_date' => $this->formatDisplayDateTime($order?->estimated_arrival) ?? '—',
+            'delivery_date' => $this->formatDisplayDateTime($deliveredAt) ?? '—',
+            'delivered_at' => $deliveredAt?->format('c'),
             'tracking' => $this->displayOrDash($mapping->tracking_number),
             'placed_at' => $this->formatDateTime($order?->created_at),
-            'estimated_delivery' => $this->formatDate($order?->estimated_arrival),
+            'estimated_delivery' => $this->formatEstimatedArrival($order?->estimated_arrival),
             'payment_reference' => $order?->payment_reference,
             'transaction_id' => $order?->transaction_id,
         ];
+    }
+
+    /**
+     * Actual delivery timestamp (OTP confirm), not catalog ETA text.
+     */
+    private function resolveDeliveryAt(VendorOrderMapping $mapping): ?Carbon
+    {
+        if ($mapping->delivery_otp_confirmed_at !== null) {
+            return Carbon::parse($mapping->delivery_otp_confirmed_at);
+        }
+
+        $mapping->loadMissing('statusLogs');
+        $log = $mapping->statusLogs
+            ->first(fn (VendorOrderStatusLog $row) => $row->status === VendorOrderStatus::Delivered->value);
+
+        return $log?->created_at ? Carbon::parse($log->created_at) : null;
+    }
+
+    /**
+     * Catalog/ETA string may be free text ("2 day delivery") — do not force through date formatters.
+     */
+    private function formatEstimatedArrival(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($raw)->format('d/m/Y');
+        } catch (\Throwable) {
+            return $raw;
+        }
     }
 
     /**

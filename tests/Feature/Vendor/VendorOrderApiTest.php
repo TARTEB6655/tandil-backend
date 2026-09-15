@@ -305,9 +305,10 @@ class VendorOrderApiTest extends TestCase
         ])->assertStatus(422);
 
         $otp = $mapping->delivery_otp;
-        $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
+        $confirm = $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [
             'otp' => $otp,
-        ])
+        ]);
+        $confirm
             ->assertOk()
             ->assertJsonPath('data.order.status', 'delivered');
 
@@ -315,6 +316,13 @@ class VendorOrderApiTest extends TestCase
         $this->assertSame('delivered', $mapping->order->fresh()->order_status);
         $this->assertNotNull($mapping->delivery_otp_confirmed_at);
         $this->assertNull($mapping->delivery_otp);
+
+        $detail = $this->withToken($token)->getJson('/api/vendor/orders/'.$mapping->id);
+        $detail->assertOk();
+        $this->assertNotSame('—', $detail->json('data.order.delivery_date_display'));
+        $this->assertNotSame('—', $detail->json('data.order.order_info.delivery_date'));
+        $this->assertNotNull($detail->json('data.order.delivered_at'));
+        $this->assertNotNull($detail->json('data.order.delivery_date_label'));
 
         // Already confirmed — do not accept OTP again (even the previous code).
         $this->withToken($token)->postJson('/api/vendor/orders/'.$mapping->id.'/confirm-delivery', [

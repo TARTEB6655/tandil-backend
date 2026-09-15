@@ -844,6 +844,8 @@ class OrderController extends Controller
             default => $order->paymentMethodLabel(),
         };
 
+        $deliveredAt = $this->resolveDeliveredAt($order);
+
         /*
         |--------------------------------------------------------------------------
         | Response
@@ -891,6 +893,10 @@ class OrderController extends Controller
 
             'estimated_arrival' => $estimatedArrival,
             'job_duration' => $jobDuration,
+
+            // Actual delivery time (vendor OTP confirm), not catalog ETA.
+            'delivery_date' => $this->formatDeliveryDateDisplay($deliveredAt),
+            'delivered_at' => $deliveredAt?->format('c'),
         ];
     }
 
@@ -1205,6 +1211,7 @@ class OrderController extends Controller
     private function mapOrderForListApi(Order $order): array
     {
         [$estimatedArrival, $jobDuration] = $this->resolveOrderTiming($order);
+        $deliveredAt = $this->resolveDeliveredAt($order);
 
         return [
             'id' => $order->id,
@@ -1222,6 +1229,8 @@ class OrderController extends Controller
             'special_instructions' => $order->special_instructions,
             'estimated_arrival' => $estimatedArrival,
             'job_duration' => $jobDuration,
+            'delivery_date' => $this->formatDeliveryDateDisplay($deliveredAt),
+            'delivered_at' => $deliveredAt?->format('c'),
             'created_at' => $order->created_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
             'items' => $order->items->map(fn (OrderItem $item) => array_merge([
@@ -1240,6 +1249,7 @@ class OrderController extends Controller
     private function mapOrderForTrackApi(Order $order): array
     {
         [$estimatedArrival, $jobDuration] = $this->resolveOrderTiming($order);
+        $deliveredAt = $this->resolveDeliveredAt($order);
 
         return [
             'id' => $order->id,
@@ -1254,6 +1264,8 @@ class OrderController extends Controller
             'special_instructions' => $order->special_instructions,
             'estimated_arrival' => $estimatedArrival,
             'job_duration' => $jobDuration,
+            'delivery_date' => $this->formatDeliveryDateDisplay($deliveredAt),
+            'delivered_at' => $deliveredAt?->format('c'),
             'created_at' => $order->created_at?->format('c'),
             'updated_at' => $order->updated_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
@@ -1269,5 +1281,35 @@ class OrderController extends Controller
                 'product' => $this->mapOrderItemProductForApi($item),
             ], \App\Support\ServiceAreaPricing::orderItemApiFields($item)))->values()->all(),
         ];
+    }
+
+    /**
+     * Vendor product delivery timestamp (OTP confirm), or null if not delivered yet.
+     */
+    private function resolveDeliveredAt(Order $order): ?\Carbon\CarbonInterface
+    {
+        $order->loadMissing('vendorMappings');
+        $mapping = $order->vendorMappings->sortByDesc('id')->first()
+            ?? $order->vendorMappings()->latest('id')->first();
+
+        if ($mapping?->delivery_otp_confirmed_at) {
+            return $mapping->delivery_otp_confirmed_at;
+        }
+
+        // Service / platform: when status is delivered, fall back to order updated_at.
+        if (strtolower((string) ($order->order_status ?? '')) === 'delivered') {
+            return $order->updated_at;
+        }
+
+        return null;
+    }
+
+    private function formatDeliveryDateDisplay(?\Carbon\CarbonInterface $value): string
+    {
+        if ($value === null) {
+            return '—';
+        }
+
+        return $value->format('j M Y').' at '.$value->format('g:i A');
     }
 }
