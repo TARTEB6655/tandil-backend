@@ -36,6 +36,7 @@
         };
     @endphp
 
+    @include('partials.pdf-brand-header')
     <div class="header">
         <h1>Loyalty Reports &amp; Export</h1>
         <p>Program health and filtered period summary</p>

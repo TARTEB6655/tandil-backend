@@ -143,6 +143,7 @@ class GenerateReportJob implements ShouldQueue
 
         $css = '
             body { font-family: DejaVu Sans, sans-serif; font-size: 10pt; padding: 24px; line-height: 1.5; color: #374151; }
+            .pdf-brand-header { margin: -8px 0 10px 0; }
             .report-title { color: #21409A; font-size: 16pt; font-weight: bold; margin: 0 0 6px 0; padding-bottom: 0; }
             .report-title::after { content: ""; display: block; width: 50%; margin-top: 6px; border-bottom: 3px solid #4285F4; }
             .meta { color: #6b7280; font-size: 9pt; margin: 3px 0; }
@@ -157,7 +158,10 @@ class GenerateReportJob implements ShouldQueue
             .spacer { height: 6px; }
             h1, h2, h3 { page-break-after: avoid; }
         ';
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>' . $css . '</style></head><body>' . $out . '</body></html>';
+
+        $brand = \App\Support\PdfBrand::headerHtml();
+
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Report</title><style>'.$css.'</style></head><body>'.$brand.$out.'</body></html>';
     }
 
     /** Build report content for a given report and date range (used by web download-as-CSV). */

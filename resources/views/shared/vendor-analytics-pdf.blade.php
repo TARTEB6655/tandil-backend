@@ -23,6 +23,7 @@
     </style>
 </head>
 <body>
+    @include('partials.pdf-brand-header')
     <div class="header">
         <h1>{{ $businessName }}</h1>
         <p>Vendor Performance Analytics Report</p>
