@@ -698,4 +698,138 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_calendar_uses_product_name_snapshot_after_product_deleted(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'Aloe Vera Pot',
+            'type' => 'simple',
+            'price' => 40,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 09:00:00',
+            'created_at' => '2026-08-26 09:00:00',
+        ]);
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 40,
+            'subtotal' => 40,
+        ]);
+        $this->assertSame('Aloe Vera Pot', $item->fresh()->product_name);
+
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'product_title' => 'Aloe Vera Pot',
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 40,
+            'subtotal' => 40,
+            'delivery_otp_confirmed_at' => '2026-08-26 09:00:00',
+        ]);
+
+        // Simulate catalog purge: product gone, FK nulled, snapshot kept.
+        $product->delete();
+        $item->refresh();
+        if ($item->product_id !== null) {
+            // SQLite may still cascade in older FKs — keep the row manually.
+            OrderItem::query()->whereKey($item->id)->update([
+                'product_id' => null,
+                'product_name' => 'Aloe Vera Pot',
+            ]);
+            $item->refresh();
+        }
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('Aloe Vera Pot', $job['title']);
+        $this->assertSame('Aloe Vera Pot', $job['product_name']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_calendar_mapping_only_uses_notification_product_name(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 09:00:00',
+            'created_at' => '2026-08-26 09:00:00',
+        ]);
+        $mapping = VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 100,
+            'subtotal' => 100,
+            'delivery_otp_confirmed_at' => '2026-08-26 09:00:00',
+        ]);
+
+        // No order_items (cascade-deleted). Name only survives in notification payload.
+        \Illuminate\Support\Facades\DB::table('notifications')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'type' => 'App\\Notifications\\VendorNewPaidOrderNotification',
+            'notifiable_type' => User::class,
+            'notifiable_id' => $vendorUser->id,
+            'data' => json_encode([
+                'order_id' => $order->id,
+                'order_number' => $order->publicOrderNumber(),
+                'message' => $order->publicOrderNumber().' paid for Desert Rose Pack. Status: Delivered. Location: Abu Dhabi. Required: date TBC . Payment confirmed.',
+                'products' => [
+                    ['name' => 'Desert Rose Pack', 'quantity' => 1],
+                ],
+            ]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id
+                && (int) ($j['vendor_order_mapping_id'] ?? 0) === $mapping->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('Desert Rose Pack', $job['title']);
+        $this->assertSame('Desert Rose Pack', $mapping->fresh()->product_title);
+
+        Carbon::setTestNow();
+    }
 }

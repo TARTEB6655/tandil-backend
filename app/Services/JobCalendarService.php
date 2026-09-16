@@ -261,8 +261,6 @@ class JobCalendarService
 
     private function resolveProductTitle(Order $order, ?OrderItem $item, ?VendorOrderMapping $mapping): string
     {
-        unset($mapping);
-
         $candidates = [];
 
         $push = function (?string $value) use (&$candidates): void {
@@ -272,6 +270,9 @@ class JobCalendarService
             }
             $candidates[] = $name;
         };
+
+        $push($item?->product_name);
+        $push($mapping?->product_title);
 
         $items = OrderItem::query()
             ->with('product')
@@ -285,6 +286,7 @@ class JobCalendarService
 
         foreach ($items as $line) {
             $line->loadMissing('product');
+            $push($line->product_name);
             $push($line->product?->name);
             $productId = (int) ($line->product_id ?? 0);
             if ($productId > 0 && ! $line->product) {
@@ -312,17 +314,79 @@ class JobCalendarService
             $push($this->titleFromNotes((string) $notes));
         }
 
+        $push($this->titleFromNotifications($order));
+
+        $resolved = null;
         foreach ($candidates as $name) {
             if (strtolower($name) !== 'product') {
-                return $name;
+                $resolved = $name;
+                break;
+            }
+        }
+        if ($resolved === null && $candidates !== []) {
+            $resolved = $candidates[0];
+        }
+        $resolved = $resolved ?? 'Product';
+
+        // Persist recovered title onto mapping so future calendar reads stay cheap.
+        if ($mapping
+            && strcasecmp($resolved, 'Product') !== 0
+            && blank($mapping->product_title)
+            && \Illuminate\Support\Facades\Schema::hasColumn($mapping->getTable(), 'product_title')
+        ) {
+            $mapping->forceFill(['product_title' => $resolved])->saveQuietly();
+        }
+
+        return $resolved;
+    }
+
+    private function titleFromNotifications(Order $order): ?string
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('notifications')) {
+            return null;
+        }
+
+        $orderId = (int) $order->id;
+        $orderNumber = $order->publicOrderNumber();
+
+        $rows = \Illuminate\Support\Facades\DB::table('notifications')
+            ->where(function ($q) use ($orderId, $orderNumber) {
+                $q->where('data', 'like', '%"order_id":'.$orderId.'%')
+                    ->orWhere('data', 'like', '%"order_id": '.$orderId.'%')
+                    ->orWhere('data', 'like', '%"order_number":"'.$orderNumber.'"%');
+            })
+            ->orderByDesc('id')
+            ->limit(30)
+            ->pluck('data');
+
+        foreach ($rows as $raw) {
+            $payload = is_string($raw) ? json_decode($raw, true) : null;
+            if (! is_array($payload)) {
+                continue;
+            }
+
+            foreach (['products', 'product_ordered'] as $key) {
+                foreach ($payload[$key] ?? [] as $product) {
+                    if (! is_array($product)) {
+                        continue;
+                    }
+                    $name = trim((string) ($product['name'] ?? ''));
+                    if ($name !== '' && strcasecmp($name, 'Product') !== 0) {
+                        return $name;
+                    }
+                }
+            }
+
+            $message = (string) ($payload['message'] ?? '');
+            if ($message !== '' && preg_match('/paid for\s+(.+?)\.\s*Status:/i', $message, $m)) {
+                $name = trim($m[1]);
+                if ($name !== '' && strcasecmp($name, 'Product') !== 0) {
+                    return $name;
+                }
             }
         }
 
-        if ($candidates !== []) {
-            return $candidates[0];
-        }
-
-        return 'Product';
+        return null;
     }
 
     private function titleFromNotes(string $notes): ?string

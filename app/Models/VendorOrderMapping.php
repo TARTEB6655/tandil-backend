@@ -12,6 +12,7 @@ class VendorOrderMapping extends Model
     protected $fillable = [
         'order_id',
         'vendor_id',
+        'product_title',
         'status',
         'tracking_number',
         'delivery_otp',

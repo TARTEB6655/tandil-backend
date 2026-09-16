@@ -12,6 +12,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'product_name',
         'quantity',
         'pricing_type',
         'required_area',
@@ -21,6 +22,25 @@ class OrderItem extends Model
         'booking_date',
         'booking_slot',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (OrderItem $item) {
+            if (filled($item->product_name)) {
+                return;
+            }
+            $name = $item->product?->name;
+            if (! is_string($name) || trim($name) === '') {
+                $productId = (int) ($item->product_id ?? 0);
+                if ($productId > 0) {
+                    $name = Product::query()->whereKey($productId)->value('name');
+                }
+            }
+            if (is_string($name) && trim($name) !== '') {
+                $item->product_name = trim($name);
+            }
+        });
+    }
 
     protected $casts = [
         'price' => 'decimal:2',

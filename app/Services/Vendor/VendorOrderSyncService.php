@@ -60,15 +60,21 @@ class VendorOrderSyncService
                 $rate = MarketplaceSettings::effectiveCommissionForVendor($vendor);
                 $commission = round($total * ($rate / 100), 2);
 
+                $attrs = [
+                    'subtotal' => round($subtotal, 2),
+                    'tax_amount' => $tax,
+                    'shipping_amount' => $shipping,
+                    'total_amount' => $total,
+                    'commission_amount' => $commission,
+                ];
+                $productTitle = $this->productTitleForVendor($order, $vendorId);
+                if ($productTitle !== null) {
+                    $attrs['product_title'] = $productTitle;
+                }
+
                 $mapping = VendorOrderMapping::updateOrCreate(
                     ['order_id' => $order->id, 'vendor_id' => $vendorId],
-                    [
-                        'subtotal' => round($subtotal, 2),
-                        'tax_amount' => $tax,
-                        'shipping_amount' => $shipping,
-                        'total_amount' => $total,
-                        'commission_amount' => $commission,
-                    ]
+                    $attrs
                 );
 
                 if ($mapping->wasRecentlyCreated) {
@@ -82,5 +88,28 @@ class VendorOrderSyncService
                 }
             }
         });
+    }
+
+    private function productTitleForVendor(Order $order, int $vendorId): ?string
+    {
+        $titles = [];
+        foreach ($order->items as $item) {
+            if (! OrderFulfillmentType::isVendorOwnedListing($item->product)) {
+                continue;
+            }
+            if ((int) ($item->product->vendor_id ?? 0) !== $vendorId) {
+                continue;
+            }
+            $name = trim((string) ($item->product_name ?: $item->product?->name ?: ''));
+            if ($name !== '' && strcasecmp($name, 'Product') !== 0) {
+                $titles[$name] = true;
+            }
+        }
+
+        if ($titles === []) {
+            return null;
+        }
+
+        return implode(', ', array_keys($titles));
     }
 }

@@ -501,11 +501,19 @@ class JobSchedulingController extends Controller
         $client = $this->resolveOrderClient($order);
         $status = $this->resolveCalendarStatus(null, $order, $mapping);
         $title = trim((string) ($entry['title'] ?? ''));
-        if ($title === '' || preg_match('/^order_\d+$/i', $title)) {
-            $fromProduct = trim((string) ($item?->product?->name ?? ''));
-            if ($fromProduct !== '') {
-                $title = $fromProduct;
-            } elseif ($item?->product_id) {
+        if ($title === '' || preg_match('/^order_\d+$/i', $title) || strcasecmp($title, 'Product') === 0) {
+            foreach ([
+                $item?->product_name,
+                $item?->product?->name,
+                $mapping?->product_title,
+            ] as $candidate) {
+                $from = trim((string) ($candidate ?? ''));
+                if ($from !== '' && strcasecmp($from, 'Product') !== 0 && ! preg_match('/^order_\d+$/i', $from)) {
+                    $title = $from;
+                    break;
+                }
+            }
+            if (($title === '' || strcasecmp($title, 'Product') === 0) && $item?->product_id) {
                 $fromDb = trim((string) (\App\Models\Product::query()->whereKey($item->product_id)->value('name') ?? ''));
                 if ($fromDb !== '') {
                     $title = $fromDb;
