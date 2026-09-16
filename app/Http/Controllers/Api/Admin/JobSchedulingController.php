@@ -261,6 +261,8 @@ class JobSchedulingController extends Controller
                 'subscription.client:id,name',
                 'order.user:id,name',
                 'order.vendorMappings',
+                'orderItem.order.user:id,name',
+                'orderItem.order.vendorMappings',
                 'orderItem.product:id,name,job_duration,vendor_id,type',
                 'orderItem.product.services',
             ])
@@ -268,6 +270,24 @@ class JobSchedulingController extends Controller
             ->orderBy('scheduled_time')
             ->get()
             ->map(fn (Visit $v) => OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($v))
+            // Product/vendor lines are rendered as shop_order (correct Delivered status).
+            ->filter(function (Visit $v) {
+                $item = $v->orderItem;
+                if (! $item) {
+                    return true;
+                }
+                $item->loadMissing(['product.services', 'order.vendorMappings']);
+                $fulfillment = OrderFulfillmentType::forOrderItem($item);
+                if (in_array($fulfillment, [OrderFulfillmentType::PRODUCT, OrderFulfillmentType::PLATFORM], true)) {
+                    return false;
+                }
+                $order = $v->order ?? $item->order;
+                if ($order && $order->vendorMappings->isNotEmpty()) {
+                    return false;
+                }
+
+                return true;
+            })
             ->values();
 
         // Pairwise overlap within this calendar window (same technician + overlapping times).
@@ -380,12 +400,21 @@ class JobSchedulingController extends Controller
         $client = $this->resolveJobClient($v);
         $technician = $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null;
         $supervisor = $v->supervisor ? ['id' => $v->supervisor->id, 'name' => $v->supervisor->name] : null;
+
+        // Many product visits only set order_item_id (order_id null) — still need the order
+        // for Delivered status from vendor_order_mappings / order_status.
         $order = $v->order;
+        if ($order === null && $v->orderItem) {
+            $v->orderItem->loadMissing(['order.user', 'order.vendorMappings']);
+            $order = $v->orderItem->order;
+        }
+        if ($order) {
+            $order->loadMissing(['user', 'vendorMappings']);
+        }
+
         $fulfillmentType = $v->orderItem
             ? OrderFulfillmentType::forOrderItem($v->orderItem)
             : OrderFulfillmentType::SERVICE;
-        // Always try vendor mapping when present — needed for Delivered label even if
-        // the catalog line was mis-tagged as service.
         $mapping = $this->resolveVendorMapping($order, $v->orderItem, $fulfillmentType);
         $status = $this->resolveCalendarStatus($v->status, $order, $mapping);
         $title = $this->resolveVisitTitle($v);
@@ -571,10 +600,33 @@ class JobSchedulingController extends Controller
         $vendorStatus = $mapping?->status;
         $vendorStatusNorm = strtolower(trim((string) $vendorStatus));
 
-        if ($orderStatusNorm === 'delivered' || $vendorStatusNorm === 'delivered') {
+        // Vendor/shop fulfillment wins over visit.pending for product deliveries.
+        if (in_array($orderStatusNorm, ['delivered', 'completed'], true)
+            || $vendorStatusNorm === 'delivered') {
             return [
                 'status' => 'delivered',
                 'status_label' => 'Delivered',
+                'order_status' => $orderStatusNorm === 'completed' ? 'delivered' : $orderStatus,
+                'order_status_label' => 'Delivered',
+                'vendor_order_status' => $vendorStatus ?? 'delivered',
+            ];
+        }
+
+        // Prefer vendor mapping / order status over stale visit "pending".
+        if ($vendorStatusNorm !== '') {
+            return [
+                'status' => $vendorStatusNorm,
+                'status_label' => $this->calendarStatusLabel($vendorStatusNorm),
+                'order_status' => $orderStatus,
+                'order_status_label' => $this->orderStatusLabel($orderStatus),
+                'vendor_order_status' => $vendorStatus,
+            ];
+        }
+
+        if ($orderStatusNorm !== '' && ($visitStatusNorm === '' || $visitStatusNorm === 'pending')) {
+            return [
+                'status' => $orderStatusNorm,
+                'status_label' => $this->calendarStatusLabel($orderStatusNorm),
                 'order_status' => $orderStatus,
                 'order_status_label' => $this->orderStatusLabel($orderStatus),
                 'vendor_order_status' => $vendorStatus,
@@ -583,7 +635,7 @@ class JobSchedulingController extends Controller
 
         $primaryStatus = $visitStatusNorm !== ''
             ? $visitStatusNorm
-            : ($vendorStatusNorm !== '' ? $vendorStatusNorm : ($orderStatusNorm !== '' ? $orderStatusNorm : 'pending'));
+            : ($orderStatusNorm !== '' ? $orderStatusNorm : 'pending');
 
         return [
             'status' => $primaryStatus,
@@ -648,10 +700,11 @@ class JobSchedulingController extends Controller
         if ($v->subscription?->client) {
             return ['id' => $v->subscription->client->id, 'name' => $v->subscription->client->name];
         }
-        if ($v->order?->user) {
-            return ['id' => $v->order->user->id, 'name' => $v->order->user->name];
+        $order = $v->order ?? $v->orderItem?->order;
+        if ($order?->user) {
+            return ['id' => $order->user->id, 'name' => $order->user->name];
         }
-        $guest = trim((string) ($v->order?->guest_full_name ?? ''));
+        $guest = trim((string) ($order?->guest_full_name ?? ''));
         if ($guest !== '') {
             return ['id' => null, 'name' => $guest];
         }

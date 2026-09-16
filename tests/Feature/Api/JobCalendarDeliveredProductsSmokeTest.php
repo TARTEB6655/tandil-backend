@@ -290,4 +290,79 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_delivered_mango_shows_delivered_not_pending_even_with_orphan_visit(): void
+    {
+        Carbon::setTestNow('2026-09-16 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+        $mango = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'mango',
+            'type' => 'product',
+            'price' => 100,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'processing', // shop lag; vendor mapping is source of truth
+            'paid_at' => '2026-09-15 10:00:00',
+            'created_at' => '2026-09-15 10:00:00',
+        ]);
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $mango->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+        ]);
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 100,
+            'subtotal' => 100,
+            'delivery_otp_confirmed_at' => '2026-09-15 18:00:00',
+        ]);
+
+        // Production-shaped visit: order_item set, order_id null, status still pending.
+        Visit::create([
+            'order_id' => null,
+            'order_item_id' => $item->id,
+            'scheduled_date' => '2026-09-15',
+            'scheduled_time' => '09:00',
+            'duration_minutes' => 150,
+            'status' => 'pending',
+            'notes' => 'mango | Client One',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-09-01')
+            ->assertOk();
+
+        $jobs = collect($res->json('data.jobs'))
+            ->filter(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id)
+            ->values();
+
+        $this->assertGreaterThanOrEqual(1, $jobs->count());
+        $this->assertTrue(
+            $jobs->every(fn ($j) => ($j['status_label'] ?? null) === 'Delivered'),
+            'Expected Delivered, got: '.json_encode($jobs->pluck('status_label'))
+        );
+        $this->assertTrue(
+            $jobs->contains(fn ($j) => ($j['title'] ?? null) === 'mango')
+        );
+
+        Carbon::setTestNow();
+    }
 }

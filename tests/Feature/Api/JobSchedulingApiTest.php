@@ -349,7 +349,8 @@ class JobSchedulingApiTest extends TestCase
             ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-08-10')
             ->assertOk();
 
-        $job = collect($res->json('data.jobs'))->firstWhere('id', Visit::query()->where('order_id', $order->id)->value('id'));
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
         $this->assertNotNull($job);
         $this->assertSame('2026-08-21', $job['scheduled_date']);
         $this->assertSame('09:00', $job['scheduled_time']);
@@ -421,7 +422,8 @@ class JobSchedulingApiTest extends TestCase
             ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-08-10')
             ->assertOk();
 
-        $job = collect($res->json('data.jobs'))->firstWhere('id', $visit->id);
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
         $this->assertNotNull($job);
         $this->assertSame('2026-08-15', $job['scheduled_date']);
         $this->assertSame('15:00', $job['scheduled_time']);

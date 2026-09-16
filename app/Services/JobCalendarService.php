@@ -40,6 +40,25 @@ class JobCalendarService
             ->whereNotNull('order_item_id')
             ->whereDate('scheduled_date', '>=', $fromStr)
             ->whereDate('scheduled_date', '<=', $toStr)
+            ->with(['orderItem.product.services', 'orderItem.order.vendorMappings'])
+            ->get()
+            ->filter(function (Visit $visit) {
+                $item = $visit->orderItem;
+                if (! $item) {
+                    return false;
+                }
+                // Only suppress shop_order when a true supervisor SERVICE visit covers the line.
+                $fulfillment = OrderFulfillmentType::forOrderItem($item);
+                if ($fulfillment !== OrderFulfillmentType::SERVICE) {
+                    return false;
+                }
+                $order = $item->order;
+                if ($order && $order->vendorMappings->isNotEmpty()) {
+                    return false;
+                }
+
+                return true;
+            })
             ->pluck('order_item_id')
             ->map(fn ($id) => (int) $id)
             ->all();
