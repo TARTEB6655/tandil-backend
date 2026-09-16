@@ -83,6 +83,16 @@ class JobCalendarService
         $coveredMappingIds = [];
 
         foreach ($orders as $order) {
+            // Re-bind items from DB so cascade/stale eager loads don't hide line products.
+            $order->setRelation(
+                'items',
+                OrderItem::query()
+                    ->with('product.services')
+                    ->where('order_id', $order->id)
+                    ->orderBy('id')
+                    ->get()
+            );
+
             foreach ($order->items as $item) {
                 if (in_array((int) $item->id, $visitedInWindowItemIds, true)) {
                     continue;
@@ -186,9 +196,18 @@ class JobCalendarService
 
     private function bestItemForMapping(Order $order, VendorOrderMapping $mapping): ?OrderItem
     {
-        $order->loadMissing('items.product');
+        // Always re-query — relation may be empty/stale after product cascade deletes.
+        $items = OrderItem::query()
+            ->with('product')
+            ->where('order_id', $order->id)
+            ->orderBy('id')
+            ->get();
 
-        $matched = $order->items->first(
+        if ($items->isEmpty()) {
+            return null;
+        }
+
+        $matched = $items->first(
             fn (OrderItem $item) => (int) ($item->product?->vendor_id ?? 0) === (int) $mapping->vendor_id
         );
 
@@ -196,10 +215,10 @@ class JobCalendarService
             return $matched;
         }
 
-        // Prefer any line that still has a catalog product (name for calendar title).
-        $withProduct = $order->items->first(fn (OrderItem $item) => $item->product !== null);
+        $withProduct = $items->first(fn (OrderItem $item) => $item->product !== null
+            || (int) ($item->product_id ?? 0) > 0);
 
-        return $withProduct ?? $order->items->first();
+        return $withProduct ?? $items->first();
     }
 
     /**
@@ -217,50 +236,54 @@ class JobCalendarService
             if ($name === '') {
                 return;
             }
-            // Skip placeholders that are just the public order ref.
             if (preg_match('/^order_\d+$/i', $name)) {
                 return;
             }
             $candidates[] = $name;
         };
 
-        if ($item) {
-            $item->loadMissing('product');
-            $push($item->product?->name);
+        // Fresh items query (order.relation may be empty when products were cascaded).
+        $items = OrderItem::query()
+            ->with('product')
+            ->where('order_id', $order->id)
+            ->orderBy('id')
+            ->get();
 
-            // Relationship can be stale/missing — load by FK directly.
-            if (! $item->product && $item->product_id) {
-                $push(\App\Models\Product::query()->whereKey($item->product_id)->value('name'));
-            }
+        if ($item && ! $items->contains('id', $item->id)) {
+            $items->prepend($item);
         }
 
-        $order->loadMissing('items.product');
-        foreach ($order->items as $line) {
+        foreach ($items as $line) {
+            $line->loadMissing('product');
             $push($line->product?->name);
-            if (! $line->product && $line->product_id) {
-                $push(\App\Models\Product::query()->whereKey($line->product_id)->value('name'));
+
+            $productId = (int) ($line->product_id ?? 0);
+            if ($productId > 0 && ! $line->product) {
+                $push(\App\Models\Product::query()->whereKey($productId)->value('name'));
             }
         }
 
-        // Visit notes often start with the product name ("mango | Client One").
+        // Visit notes: order_id, order_item_id, or [SHOP-ORDER:N] / Order #N in notes.
+        $itemIds = $items->pluck('id')->filter()->map(fn ($id) => (int) $id)->all();
         $visitNotes = Visit::query()
-            ->where(function ($q) use ($order) {
+            ->where(function ($q) use ($order, $itemIds) {
                 $q->where('order_id', $order->id);
-                $itemIds = $order->items->pluck('id')->filter()->all();
                 if ($itemIds !== []) {
                     $q->orWhereIn('order_item_id', $itemIds);
                 }
+                $q->orWhere('notes', 'like', '%[SHOP-ORDER:'.$order->id.']%')
+                    ->orWhere('notes', 'like', '%Order #'.$order->id.'%')
+                    ->orWhere('notes', 'like', '%Order # '.$order->id.'%')
+                    ->orWhere('notes', 'like', '%'.$order->publicOrderNumber().'%');
             })
             ->orderByDesc('id')
-            ->limit(10)
+            ->limit(20)
             ->pluck('notes');
 
         foreach ($visitNotes as $notes) {
-            $fromNotes = $this->titleFromNotes((string) $notes);
-            $push($fromNotes);
+            $push($this->titleFromNotes((string) $notes));
         }
 
-        // Prefer a real catalog name over the generic placeholder "Product".
         foreach ($candidates as $name) {
             if (strtolower($name) !== 'product') {
                 return $name;
@@ -271,7 +294,8 @@ class JobCalendarService
             return $candidates[0];
         }
 
-        return $order->publicOrderNumber();
+        // Last resort: still prefer generic Product over order_00xx so UI isn't all IDs.
+        return 'Product';
     }
 
     private function titleFromNotes(string $notes): ?string

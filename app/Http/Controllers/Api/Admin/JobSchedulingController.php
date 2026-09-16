@@ -515,7 +515,7 @@ class JobSchedulingController extends Controller
             }
         }
         if ($title === '') {
-            $title = $order->publicOrderNumber();
+            $title = 'Product';
         }
 
         $syntheticId = $item

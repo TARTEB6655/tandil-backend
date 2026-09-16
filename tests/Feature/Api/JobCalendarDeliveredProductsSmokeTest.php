@@ -493,4 +493,127 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_calendar_mapping_only_row_uses_item_product_name_when_vendor_id_mismatched(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $otherUser = User::factory()->create(['role' => 'vendor']);
+        $otherVendor = Vendor::create([
+            'user_id' => $otherUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+
+        // Product owned by a different vendor — vendor list shows Qty 0 "Product",
+        // but calendar must still show the real catalog name.
+        $product = Product::factory()->create([
+            'vendor_id' => $otherVendor->id,
+            'category_id' => $category->id,
+            'name' => 'August Lavender Bundle',
+            'type' => 'product',
+            'price' => 118.95,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 09:00:00',
+            'created_at' => '2026-08-26 09:00:00',
+        ]);
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 118.95,
+            'subtotal' => 118.95,
+        ]);
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 118.95,
+            'subtotal' => 118.95,
+            'delivery_otp_confirmed_at' => '2026-08-26 09:00:00',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('August Lavender Bundle', $job['title']);
+        $this->assertSame('August Lavender Bundle', $job['product_name']);
+        $this->assertSame($item->id, $job['order_item_id']);
+        $this->assertNotSame($order->publicOrderNumber(), $job['title']);
+        $this->assertSame('Delivered', $job['status_label']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_calendar_mapping_without_items_does_not_use_order_number_as_title(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 09:00:00',
+            'created_at' => '2026-08-26 09:00:00',
+        ]);
+        // No order_items — same shape as production order_0061 response.
+        $mapping = VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 100,
+            'subtotal' => 100,
+            'delivery_otp_confirmed_at' => '2026-08-26 09:00:00',
+        ]);
+
+        Visit::create([
+            'order_id' => $order->id,
+            'scheduled_date' => '2026-08-26',
+            'scheduled_time' => '09:00',
+            'status' => 'pending',
+            'notes' => 'Desert Rose Pack | Client One | [SHOP-ORDER:'.$order->id.']',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id
+                && (int) ($j['vendor_order_mapping_id'] ?? 0) === $mapping->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('Desert Rose Pack', $job['title']);
+        $this->assertSame('Desert Rose Pack', $job['product_name']);
+        $this->assertNull($job['order_item_id']);
+
+        Carbon::setTestNow();
+    }
 }
