@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\VendorOrderMapping;
 use App\Models\Visit;
 use App\Support\OrderFulfillmentType;
@@ -14,8 +15,8 @@ use Illuminate\Support\Collection;
 /**
  * Shop product/platform lines on the admin jobs calendar.
  *
- * Date filter matches visits: only rows with scheduled_date in [from, to].
- * Day view for Aug 28 must NOT reuse Aug 26 product rows.
+ * Service lines stay on the visit path only (avoids duplicate cards).
+ * Date filter matches visits: scheduled_date in [from, to].
  */
 class JobCalendarService
 {
@@ -36,31 +37,30 @@ class JobCalendarService
         $fromStr = $from->toDateString();
         $toStr = $to->toDateString();
 
-        $visitedInWindowItemIds = Visit::query()
-            ->whereNotNull('order_item_id')
-            ->whereDate('scheduled_date', '>=', $fromStr)
-            ->whereDate('scheduled_date', '<=', $toStr)
-            ->with(['orderItem.product.services', 'orderItem.order.vendorMappings'])
+        // Any linked service visit means the job is the visit card — never also shop_order.
+        $serviceVisitOrderIds = Visit::query()
+            ->where(function ($q) {
+                $q->whereNotNull('order_id')
+                    ->orWhereNotNull('order_item_id');
+            })
+            ->with(['orderItem.product.services'])
             ->get()
             ->filter(function (Visit $visit) {
                 $item = $visit->orderItem;
                 if (! $item) {
-                    return false;
-                }
-                // Only suppress shop_order when a true supervisor SERVICE visit covers the line.
-                $fulfillment = OrderFulfillmentType::forOrderItem($item);
-                if ($fulfillment !== OrderFulfillmentType::SERVICE) {
-                    return false;
-                }
-                $order = $item->order;
-                if ($order && $order->vendorMappings->isNotEmpty()) {
-                    return false;
+                    // Notes-linked service visits (no order_item_id) still suppress mapping cards.
+                    $notes = (string) ($visit->notes ?? '');
+
+                    return (int) ($visit->order_id ?? 0) > 0
+                        && stripos($notes, 'Order Service Visit') !== false;
                 }
 
-                return true;
+                return OrderFulfillmentType::forOrderItem($item) === OrderFulfillmentType::SERVICE;
             })
-            ->pluck('order_item_id')
-            ->map(fn ($id) => (int) $id)
+            ->map(fn (Visit $v) => (int) ($v->order_id ?? $v->orderItem?->order_id ?? 0))
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
             ->all();
 
         $orders = Order::query()
@@ -83,7 +83,6 @@ class JobCalendarService
         $coveredMappingIds = [];
 
         foreach ($orders as $order) {
-            // Re-bind items from DB so cascade/stale eager loads don't hide line products.
             $order->setRelation(
                 'items',
                 OrderItem::query()
@@ -93,21 +92,18 @@ class JobCalendarService
                     ->get()
             );
 
+            $hasServiceVisitInWindow = in_array((int) $order->id, $serviceVisitOrderIds, true);
+
             foreach ($order->items as $item) {
-                if (in_array((int) $item->id, $visitedInWindowItemIds, true)) {
+                $fulfillment = OrderFulfillmentType::forOrderItem($item);
+
+                // True service lines are rendered via visits. Mis-tagged service SKUs
+                // without a visit in-window are still covered by the mapping loop below.
+                if ($fulfillment === OrderFulfillmentType::SERVICE) {
                     continue;
                 }
 
                 $mapping = $this->vendorMappingForItem($order, $item);
-                $fulfillment = OrderFulfillmentType::forOrderItem($item);
-
-                if ($fulfillment === OrderFulfillmentType::SERVICE && $mapping === null) {
-                    continue;
-                }
-
-                $displayType = $fulfillment === OrderFulfillmentType::SERVICE
-                    ? OrderFulfillmentType::PRODUCT
-                    : $fulfillment;
 
                 [$scheduledDate, $scheduledTime, $durationMinutes] = $this->resolveSchedule(
                     $order,
@@ -115,7 +111,6 @@ class JobCalendarService
                     $mapping
                 );
 
-                // Strict calendar window (day/week/month) — same as visits.
                 if ($scheduledDate === null || $scheduledDate < $fromStr || $scheduledDate > $toStr) {
                     continue;
                 }
@@ -128,7 +123,7 @@ class JobCalendarService
                     'order' => $order,
                     'item' => $item,
                     'mapping' => $mapping,
-                    'fulfillment_type' => $displayType,
+                    'fulfillment_type' => $fulfillment,
                     'scheduled_date' => $scheduledDate,
                     'scheduled_time' => $scheduledTime,
                     'duration_minutes' => $durationMinutes,
@@ -141,9 +136,16 @@ class JobCalendarService
                     continue;
                 }
 
+                // Avoid duplicate shop_order when a service visit already represents this order.
+                if ($hasServiceVisitInWindow) {
+                    continue;
+                }
+
+                $item = $this->bestItemForMapping($order, $mapping);
+
                 [$scheduledDate, $scheduledTime, $durationMinutes] = $this->resolveSchedule(
                     $order,
-                    $this->bestItemForMapping($order, $mapping),
+                    $item,
                     $mapping
                 );
 
@@ -152,13 +154,18 @@ class JobCalendarService
                 }
 
                 $coveredMappingIds[(int) $mapping->id] = true;
-                $item = $this->bestItemForMapping($order, $mapping);
+
+                $fulfillment = $item
+                    ? (OrderFulfillmentType::forOrderItem($item) === OrderFulfillmentType::SERVICE
+                        ? OrderFulfillmentType::PRODUCT
+                        : OrderFulfillmentType::forOrderItem($item))
+                    : OrderFulfillmentType::PRODUCT;
 
                 $entries->push([
                     'order' => $order,
                     'item' => $item,
                     'mapping' => $mapping,
-                    'fulfillment_type' => OrderFulfillmentType::PRODUCT,
+                    'fulfillment_type' => $fulfillment,
                     'scheduled_date' => $scheduledDate,
                     'scheduled_time' => $scheduledTime,
                     'duration_minutes' => $durationMinutes,
@@ -196,35 +203,62 @@ class JobCalendarService
 
     private function bestItemForMapping(Order $order, VendorOrderMapping $mapping): ?OrderItem
     {
-        // Always re-query — relation may be empty/stale after product cascade deletes.
         $items = OrderItem::query()
-            ->with('product')
+            ->with('product.services')
             ->where('order_id', $order->id)
             ->orderBy('id')
             ->get();
 
         if ($items->isEmpty()) {
-            return null;
+            return $this->itemFromVisitNotes($order);
         }
 
         $matched = $items->first(
             fn (OrderItem $item) => (int) ($item->product?->vendor_id ?? 0) === (int) $mapping->vendor_id
         );
-
         if ($matched) {
             return $matched;
         }
 
-        $withProduct = $items->first(fn (OrderItem $item) => $item->product !== null
-            || (int) ($item->product_id ?? 0) > 0);
+        // Prefer non-service catalog lines for product calendar cards.
+        $productLine = $items->first(
+            fn (OrderItem $item) => OrderFulfillmentType::forOrderItem($item) !== OrderFulfillmentType::SERVICE
+        );
 
-        return $withProduct ?? $items->first();
+        return $productLine
+            ?? $items->first(fn (OrderItem $item) => $item->product !== null || (int) ($item->product_id ?? 0) > 0)
+            ?? $items->first();
     }
 
-    /**
-     * Resolve a human product title for calendar cards.
-     * Never prefer bare order_00xx when a catalog/notes name exists.
-     */
+    private function itemFromVisitNotes(Order $order): ?OrderItem
+    {
+        $visits = Visit::query()
+            ->where(function ($q) use ($order) {
+                $q->where('order_id', $order->id)
+                    ->orWhere('notes', 'like', '%[SHOP-ORDER:'.$order->id.']%')
+                    ->orWhere('notes', 'like', '%Order #'.$order->id.'%');
+            })
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get(['id', 'order_item_id', 'notes']);
+
+        foreach ($visits as $visit) {
+            $itemId = (int) ($visit->order_item_id ?? 0);
+            if ($itemId <= 0 && is_string($visit->notes) && preg_match('/\[ITEM:(\d+)\]/', $visit->notes, $m)) {
+                $itemId = (int) $m[1];
+            }
+            if ($itemId <= 0) {
+                continue;
+            }
+            $item = OrderItem::query()->with('product.services')->find($itemId);
+            if ($item) {
+                return $item;
+            }
+        }
+
+        return null;
+    }
+
     private function resolveProductTitle(Order $order, ?OrderItem $item, ?VendorOrderMapping $mapping): string
     {
         unset($mapping);
@@ -233,16 +267,12 @@ class JobCalendarService
 
         $push = function (?string $value) use (&$candidates): void {
             $name = trim((string) $value);
-            if ($name === '') {
-                return;
-            }
-            if (preg_match('/^order_\d+$/i', $name)) {
+            if ($name === '' || preg_match('/^order_\d+$/i', $name)) {
                 return;
             }
             $candidates[] = $name;
         };
 
-        // Fresh items query (order.relation may be empty when products were cascaded).
         $items = OrderItem::query()
             ->with('product')
             ->where('order_id', $order->id)
@@ -256,14 +286,12 @@ class JobCalendarService
         foreach ($items as $line) {
             $line->loadMissing('product');
             $push($line->product?->name);
-
             $productId = (int) ($line->product_id ?? 0);
             if ($productId > 0 && ! $line->product) {
-                $push(\App\Models\Product::query()->whereKey($productId)->value('name'));
+                $push(Product::query()->whereKey($productId)->value('name'));
             }
         }
 
-        // Visit notes: order_id, order_item_id, or [SHOP-ORDER:N] / Order #N in notes.
         $itemIds = $items->pluck('id')->filter()->map(fn ($id) => (int) $id)->all();
         $visitNotes = Visit::query()
             ->where(function ($q) use ($order, $itemIds) {
@@ -294,7 +322,6 @@ class JobCalendarService
             return $candidates[0];
         }
 
-        // Last resort: still prefer generic Product over order_00xx so UI isn't all IDs.
         return 'Product';
     }
 
@@ -309,13 +336,9 @@ class JobCalendarService
         if (! is_string($first) || $first === '') {
             return null;
         }
-        if (preg_match('/^Recreated from Order/i', $first)) {
-            return null;
-        }
-        if (preg_match('/^Job #\d+$/i', $first)) {
-            return null;
-        }
-        if (preg_match('/^order_\d+$/i', $first)) {
+        if (preg_match('/^Recreated from Order/i', $first)
+            || preg_match('/^Job #\d+$/i', $first)
+            || preg_match('/^order_\d+$/i', $first)) {
             return null;
         }
 

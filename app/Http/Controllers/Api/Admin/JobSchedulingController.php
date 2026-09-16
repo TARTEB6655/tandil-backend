@@ -271,6 +271,7 @@ class JobSchedulingController extends Controller
             ->get()
             ->map(fn (Visit $v) => OrderToVisitDispatcher::syncVisitScheduleFromLinkedOrder($v))
             // Product/vendor lines are rendered as shop_order (correct Delivered status).
+            // Service lines with vendor mappings still use the visit card only.
             ->filter(function (Visit $v) {
                 $item = $v->orderItem;
                 if (! $item) {
@@ -281,11 +282,8 @@ class JobSchedulingController extends Controller
                 if (in_array($fulfillment, [OrderFulfillmentType::PRODUCT, OrderFulfillmentType::PLATFORM], true)) {
                     return false;
                 }
-                $order = $v->order ?? $item->order;
-                if ($order && $order->vendorMappings->isNotEmpty()) {
-                    return false;
-                }
 
+                // Keep service visits even when a vendor mapping exists (supervisor flow).
                 return true;
             })
             ->values();

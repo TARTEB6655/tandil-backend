@@ -616,4 +616,86 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_calendar_service_order_with_visit_does_not_also_emit_shop_order(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $supervisor = User::factory()->create(['role' => 'supervisor', 'name' => 'Supervisor']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'service product',
+            'type' => 'service',
+            'price' => 100,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'assigned',
+            'booking_date' => '2026-08-26',
+            'booking_slot' => '10:00 AM – 11:00 AM',
+            'paid_at' => '2026-08-26 09:00:00',
+        ]);
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+            'booking_date' => '2026-08-26',
+            'booking_slot' => '10:00 AM – 11:00 AM',
+        ]);
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Pending->value,
+            'total_amount' => 100,
+            'subtotal' => 100,
+        ]);
+        $visit = Visit::create([
+            'order_id' => $order->id,
+            'order_item_id' => $item->id,
+            'supervisor_id' => $supervisor->id,
+            'scheduled_date' => '2026-08-29',
+            'scheduled_time' => '10:00',
+            'duration_minutes' => 60,
+            'status' => 'pending',
+            'notes' => 'service product | Order Service Visit | [SHOP-ORDER:'.$order->id.'][ITEM:'.$item->id.']',
+        ]);
+
+        $week = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=week&date=2026-08-24')
+            ->assertOk();
+
+        $jobs = collect($week->json('data.jobs'))
+            ->filter(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id)
+            ->values();
+
+        $this->assertCount(1, $jobs, 'Service order must appear once (visit only), not shop_order + visit');
+        $this->assertSame('visit', $jobs[0]['job_source']);
+        $this->assertSame($visit->id, $jobs[0]['id']);
+        $this->assertSame('service product', $jobs[0]['title']);
+        $this->assertSame('2026-08-29', $jobs[0]['scheduled_date']);
+
+        // Day of the old booking slot must not resurrect a shop_order card.
+        $day = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+        $onBookingDay = collect($day->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+        $this->assertNull($onBookingDay);
+
+        Carbon::setTestNow();
+    }
 }
