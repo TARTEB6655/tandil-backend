@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\VendorOrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\VendorOrderMapping;
@@ -13,8 +12,10 @@ use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Shop product lines (vendor + platform) on the admin jobs calendar,
- * including historical delivered vendor orders (e.g. order_0061 / order_0067).
+ * Shop product/platform lines on the admin jobs calendar.
+ *
+ * Date filter matches visits: only rows with scheduled_date in [from, to].
+ * Day view for Aug 28 must NOT reuse Aug 26 product rows.
  */
 class JobCalendarService
 {
@@ -85,15 +86,14 @@ class JobCalendarService
                     $mapping
                 );
 
-                if ($scheduledDate === null || $scheduledDate > $toStr) {
+                // Strict calendar window (day/week/month) — same as visits.
+                if ($scheduledDate === null || $scheduledDate < $fromStr || $scheduledDate > $toStr) {
                     continue;
                 }
 
                 if ($mapping) {
                     $coveredMappingIds[(int) $mapping->id] = true;
                 }
-
-                $productName = trim((string) ($item->product?->name ?? ''));
 
                 $entries->push([
                     'order' => $order,
@@ -103,12 +103,10 @@ class JobCalendarService
                     'scheduled_date' => $scheduledDate,
                     'scheduled_time' => $scheduledTime,
                     'duration_minutes' => $durationMinutes,
-                    'title' => $productName !== '' ? $productName : 'Product',
+                    'title' => $this->resolveProductTitle($order, $item, $mapping),
                 ]);
             }
 
-            // Vendor mappings with no matching line items (UI shows "Product" Qty 0)
-            // must still appear on the calendar — same as Delivered Orders list.
             foreach ($order->vendorMappings as $mapping) {
                 if (isset($coveredMappingIds[(int) $mapping->id])) {
                     continue;
@@ -116,25 +114,26 @@ class JobCalendarService
 
                 [$scheduledDate, $scheduledTime, $durationMinutes] = $this->resolveSchedule(
                     $order,
-                    $order->items->first(),
+                    $this->bestItemForMapping($order, $mapping),
                     $mapping
                 );
 
-                if ($scheduledDate === null || $scheduledDate > $toStr) {
+                if ($scheduledDate === null || $scheduledDate < $fromStr || $scheduledDate > $toStr) {
                     continue;
                 }
 
                 $coveredMappingIds[(int) $mapping->id] = true;
+                $item = $this->bestItemForMapping($order, $mapping);
 
                 $entries->push([
                     'order' => $order,
-                    'item' => null,
+                    'item' => $item,
                     'mapping' => $mapping,
                     'fulfillment_type' => OrderFulfillmentType::PRODUCT,
                     'scheduled_date' => $scheduledDate,
                     'scheduled_time' => $scheduledTime,
                     'duration_minutes' => $durationMinutes,
-                    'title' => 'Product',
+                    'title' => $this->resolveProductTitle($order, $item, $mapping),
                 ]);
             }
         }
@@ -161,11 +160,46 @@ class JobCalendarService
             }
         }
 
-        // Screenshot case: product.vendor_id no longer matches mapping, but order
-        // still has a single vendor mapping (Delivered Orders still lists it).
         return $order->vendorMappings->count() === 1
             ? $order->vendorMappings->first()
             : null;
+    }
+
+    private function bestItemForMapping(Order $order, VendorOrderMapping $mapping): ?OrderItem
+    {
+        $order->loadMissing('items.product');
+
+        $matched = $order->items->first(
+            fn (OrderItem $item) => (int) ($item->product?->vendor_id ?? 0) === (int) $mapping->vendor_id
+        );
+
+        return $matched ?? $order->items->first();
+    }
+
+    /**
+     * Prefer real catalog name; avoid generic "Product" when order_number is known.
+     */
+    private function resolveProductTitle(Order $order, ?OrderItem $item, ?VendorOrderMapping $mapping): string
+    {
+        $name = trim((string) ($item?->product?->name ?? ''));
+        if ($name !== '' && strtolower($name) !== 'product') {
+            return $name;
+        }
+
+        // Try any other line on the order with a real name.
+        $order->loadMissing('items.product');
+        foreach ($order->items as $line) {
+            $candidate = trim((string) ($line->product?->name ?? ''));
+            if ($candidate !== '' && strtolower($candidate) !== 'product') {
+                return $candidate;
+            }
+        }
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return $order->publicOrderNumber();
     }
 
     /**

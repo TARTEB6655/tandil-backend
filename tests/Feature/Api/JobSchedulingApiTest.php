@@ -584,7 +584,7 @@ class JobSchedulingApiTest extends TestCase
         $this->assertSame('Platform Soil Mix', $job['title']);
     }
 
-    public function test_jobs_calendar_includes_old_delivered_products_up_to_selected_date(): void
+    public function test_jobs_calendar_day_filter_excludes_other_days_delivered_products(): void
     {
         $vendorUser = User::factory()->create(['role' => 'vendor']);
         $vendor = Vendor::create([
@@ -597,19 +597,18 @@ class JobSchedulingApiTest extends TestCase
         $product = Product::factory()->create([
             'vendor_id' => $vendor->id,
             'category_id' => $category->id,
-            'name' => 'Old Delivered Plant',
+            'name' => 'Aug26 Delivered Plant',
             'status' => 'active',
             'price' => 55,
             'type' => 'simple',
         ]);
 
-        // Delivered weeks ago — outside day/week "from", but still <= selected date.
         $order = Order::factory()->create([
             'payment_status' => 'paid',
             'order_status' => 'delivered',
             'booking_date' => null,
-            'paid_at' => '2026-08-01 10:00:00',
-            'created_at' => '2026-08-01 10:00:00',
+            'paid_at' => '2026-08-26 10:00:00',
+            'created_at' => '2026-08-26 10:00:00',
         ]);
 
         OrderItem::create([
@@ -626,24 +625,31 @@ class JobSchedulingApiTest extends TestCase
             'status' => VendorOrderStatus::Delivered->value,
             'total_amount' => 55,
             'subtotal' => 55,
-            'delivery_otp_confirmed_at' => '2026-08-03 14:00:00',
+            'delivery_otp_confirmed_at' => '2026-08-26 14:00:00',
         ]);
 
-        // Day view for mid-September must still return the August delivered product.
-        $res = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-15')
+        // Own day: must show with Delivered + real name
+        $onDay = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
             ->assertOk();
 
-        $job = collect($res->json('data.jobs'))
-            ->first(fn ($j) => ($j['order_id'] ?? null) === $order->id);
-
+        $job = collect($onDay->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
         $this->assertNotNull($job);
-        $this->assertSame('shop_order', $job['job_source']);
-        $this->assertSame('delivered', $job['status']);
+        $this->assertSame('2026-08-26', $job['scheduled_date']);
         $this->assertSame('Delivered', $job['status_label']);
-        $this->assertSame('delivered', $job['order_status']);
-        $this->assertSame('Old Delivered Plant', $job['title']);
-        $this->assertSame('2026-08-03', $job['scheduled_date']);
+        $this->assertSame('Aug26 Delivered Plant', $job['title']);
+
+        // Next days must NOT repeat the same product (screenshot bug).
+        foreach (['2026-08-27', '2026-08-28'] as $otherDay) {
+            $res = $this->actingAs($this->admin, 'sanctum')
+                ->getJson('/api/admin/job-scheduling/calendar?view=day&date='.$otherDay)
+                ->assertOk();
+
+            $found = collect($res->json('data.jobs'))
+                ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+            $this->assertNull($found, "Delivered product must not leak onto {$otherDay}");
+        }
     }
 
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void

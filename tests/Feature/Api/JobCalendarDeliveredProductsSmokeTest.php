@@ -97,19 +97,28 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
         ]);
 
         $res = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-16')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-05')
             ->assertOk()
             ->assertJsonPath('success', true);
 
         $jobs = collect($res->json('data.jobs'));
         $job = $jobs->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
 
-        $this->assertNotNull($job, 'Delivered vendor product must appear on calendar. jobs='.json_encode($jobs->values()));
+        $this->assertNotNull($job, 'Delivered vendor product must appear on its delivery day. jobs='.json_encode($jobs->values()));
         $this->assertSame('shop_order', $job['job_source']);
         $this->assertSame('delivered', $job['status']);
         $this->assertSame('Delivered', $job['status_label']);
         $this->assertSame('delivered', $job['vendor_order_status']);
         $this->assertSame('Delivered Tomato Box', $job['title']);
+        $this->assertSame('2026-08-05', $job['scheduled_date']);
+
+        // Must not leak onto a later day.
+        $later = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-16')
+            ->assertOk();
+        $this->assertNull(
+            collect($later->json('data.jobs'))->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id)
+        );
 
         Carbon::setTestNow();
     }
@@ -160,7 +169,7 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
         ]);
 
         $res = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-09-01')
+            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-07-01')
             ->assertOk();
 
         $job = collect($res->json('data.jobs'))
@@ -168,6 +177,7 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         $this->assertNotNull($job, 'Vendor-mapped delivered line must not vanish when type=service');
         $this->assertSame('Delivered', $job['status_label']);
+        $this->assertSame('Mis-typed Delivered Pot', $job['title']);
 
         Carbon::setTestNow();
     }
@@ -203,11 +213,18 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
             'price' => 100,
             'status' => 'active',
         ]);
-        // Product reassigned away from mapping vendor → vendor list shows "Product" Qty 0
+        $soil = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'Garden Soil Mix',
+            'type' => 'product',
+            'price' => 118.95,
+            'status' => 'active',
+        ]);
         $orphaned = Product::factory()->create([
             'vendor_id' => $otherVendor->id,
             'category_id' => $category->id,
-            'name' => 'Product',
+            'name' => 'Orphan Herb Pot',
             'type' => 'product',
             'price' => 118.95,
             'status' => 'active',
@@ -242,26 +259,34 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         $oMango = $make($mango, '2026-09-15 10:00:00', 1);
         $o63 = $make($orphaned, '2026-08-26 10:00:00', 0);
-        $o61 = $make($orphaned, '2026-08-25 10:00:00', 0);
-
-        $res = $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-16')
-            ->assertOk();
-
-        $jobs = collect($res->json('data.jobs'));
+        $o61 = $make($soil, '2026-08-25 10:00:00', 1);
 
         foreach ([
-            [$oMango, 'mango', 'Delivered'],
-            [$o63, 'Product', 'Delivered'],
-            [$o61, 'Product', 'Delivered'],
-        ] as [$order, $title, $label]) {
-            $job = $jobs->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
-            $this->assertNotNull($job, "Missing {$order->publicOrderNumber()} on calendar");
+            ['2026-09-15', $oMango, 'mango'],
+            ['2026-08-26', $o63, 'Orphan Herb Pot'],
+            ['2026-08-25', $o61, 'Garden Soil Mix'],
+        ] as [$day, $order, $title]) {
+            $res = $this->actingAs($this->admin, 'sanctum')
+                ->getJson('/api/admin/job-scheduling/calendar?view=day&date='.$day)
+                ->assertOk();
+
+            $job = collect($res->json('data.jobs'))
+                ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+
+            $this->assertNotNull($job, "Missing {$order->publicOrderNumber()} on {$day}");
             $this->assertSame($order->publicOrderNumber(), $job['order_number']);
-            $this->assertSame($label, $job['status_label']);
+            $this->assertSame('Delivered', $job['status_label']);
             $this->assertSame('shop_order', $job['job_source']);
             $this->assertSame($title, $job['title']);
+            $this->assertSame($day, $job['scheduled_date']);
         }
+
+        $aug28 = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-28')
+            ->assertOk();
+        $this->assertNull(
+            collect($aug28->json('data.jobs'))->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $o63->id)
+        );
 
         Carbon::setTestNow();
     }

@@ -377,7 +377,6 @@ class JobSchedulingController extends Controller
     private function calendarJobPayload(Visit $v, bool $hasOverlap, array $conflictingIds = []): array
     {
         $endTime = $this->computeEndTime($v);
-        $title = $this->jobTitleFromNotes((string) $v->notes, $v->id);
         $client = $this->resolveJobClient($v);
         $technician = $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null;
         $supervisor = $v->supervisor ? ['id' => $v->supervisor->id, 'name' => $v->supervisor->name] : null;
@@ -385,8 +384,11 @@ class JobSchedulingController extends Controller
         $fulfillmentType = $v->orderItem
             ? OrderFulfillmentType::forOrderItem($v->orderItem)
             : OrderFulfillmentType::SERVICE;
+        // Always try vendor mapping when present — needed for Delivered label even if
+        // the catalog line was mis-tagged as service.
         $mapping = $this->resolveVendorMapping($order, $v->orderItem, $fulfillmentType);
         $status = $this->resolveCalendarStatus($v->status, $order, $mapping);
+        $title = $this->resolveVisitTitle($v);
 
         return [
             'id' => $v->id,
@@ -421,6 +423,29 @@ class JobSchedulingController extends Controller
         ];
     }
 
+    private function resolveVisitTitle(Visit $v): string
+    {
+        $productName = trim((string) ($v->orderItem?->product?->name ?? ''));
+        if ($productName !== '' && strtolower($productName) !== 'product') {
+            return $productName;
+        }
+
+        $fromNotes = $this->jobTitleFromNotes((string) $v->notes, $v->id);
+        if ($fromNotes !== '' && ! preg_match('/^Job #\d+$/', $fromNotes) && strtolower($fromNotes) !== 'product') {
+            return $fromNotes;
+        }
+
+        if ($productName !== '') {
+            return $productName;
+        }
+
+        if ($v->order) {
+            return $v->order->publicOrderNumber();
+        }
+
+        return $fromNotes !== '' ? $fromNotes : 'Job #'.$v->id;
+    }
+
     /**
      * @param  array{
      *     order: Order,
@@ -451,8 +476,13 @@ class JobSchedulingController extends Controller
         if ($title === '') {
             $title = trim((string) ($item?->product?->name ?? ''));
         }
-        if ($title === '') {
-            $title = 'Product';
+        if ($title === '' || strtolower($title) === 'product') {
+            $better = trim((string) ($entry['title'] ?? ''));
+            if ($better !== '' && strtolower($better) !== 'product') {
+                $title = $better;
+            } elseif ($title === '') {
+                $title = $order->publicOrderNumber();
+            }
         }
 
         $syntheticId = $item
@@ -493,21 +523,35 @@ class JobSchedulingController extends Controller
         ];
     }
 
-    private function resolveVendorMapping(?Order $order, ?OrderItem $item, string $fulfillmentType): ?VendorOrderMapping
+    private function resolveVendorMapping(?Order $order, ?OrderItem $item, ?string $fulfillmentType = null): ?VendorOrderMapping
     {
-        if ($order === null || $fulfillmentType !== OrderFulfillmentType::PRODUCT) {
+        unset($fulfillmentType);
+
+        if ($order === null) {
             return null;
         }
 
         $order->loadMissing('vendorMappings');
-        $vendorId = (int) ($item?->product?->vendor_id ?? 0);
-        if ($vendorId <= 0) {
-            return $order->vendorMappings->first();
+        if ($order->vendorMappings->isEmpty()) {
+            return null;
         }
 
-        return $order->vendorMappings->first(
-            fn (VendorOrderMapping $mapping) => (int) $mapping->vendor_id === $vendorId
+        $vendorId = (int) ($item?->product?->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            $match = $order->vendorMappings->first(
+                fn (VendorOrderMapping $mapping) => (int) $mapping->vendor_id === $vendorId
+            );
+            if ($match) {
+                return $match;
+            }
+        }
+
+        // Prefer delivered mapping when present (status_label: Delivered).
+        $delivered = $order->vendorMappings->first(
+            fn (VendorOrderMapping $mapping) => strtolower((string) $mapping->status) === 'delivered'
         );
+
+        return $delivered ?? $order->vendorMappings->first();
     }
 
     /**
