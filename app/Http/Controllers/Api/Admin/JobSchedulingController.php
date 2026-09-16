@@ -2,16 +2,22 @@
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Enums\VendorOrderStatus;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\ParsesPutMultipartFormFields;
 use App\Models\JobBlockedDate;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\User;
+use App\Models\VendorOrderMapping;
 use App\Models\Visit;
 use App\Notifications\AdminNotification;
+use App\Services\JobCalendarService;
 use App\Services\JobSchedulingService;
+use App\Support\OrderFulfillmentType;
 use App\Support\OrderToVisitDispatcher;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -254,7 +260,8 @@ class JobSchedulingController extends Controller
                 'supervisor:id,name',
                 'subscription.client:id,name',
                 'order.user:id,name',
-                'orderItem.product:id,name,job_duration',
+                'order.vendorMappings',
+                'orderItem.product:id,name,job_duration,vendor_id',
             ])
             ->orderBy('scheduled_date')
             ->orderBy('scheduled_time')
@@ -265,12 +272,24 @@ class JobSchedulingController extends Controller
         // Pairwise overlap within this calendar window (same technician + overlapping times).
         $overlapWith = $this->buildTechnicianOverlapMap($visits);
 
-        $jobs = $visits->map(function (Visit $v) use ($overlapWith) {
+        $visitJobs = $visits->map(function (Visit $v) use ($overlapWith) {
             $conflictingIds = $overlapWith[$v->id] ?? [];
             $hasOverlap = $conflictingIds !== [];
 
             return $this->calendarJobPayload($v, $hasOverlap, $conflictingIds);
-        })->values();
+        });
+
+        $shopJobs = app(JobCalendarService::class)
+            ->shopOrderEntries($from, $to)
+            ->map(fn (array $entry) => $this->calendarShopOrderPayload($entry));
+
+        $jobs = $visitJobs
+            ->concat($shopJobs)
+            ->sortBy([
+                fn (array $job) => $job['scheduled_date'] ?? '',
+                fn (array $job) => $job['scheduled_time'] ?? '99:99',
+            ])
+            ->values();
 
         return ApiResponse::success('Jobs calendar retrieved successfully.', [
             'view' => $view,
@@ -361,16 +380,31 @@ class JobSchedulingController extends Controller
         $client = $this->resolveJobClient($v);
         $technician = $v->technician ? ['id' => $v->technician->id, 'name' => $v->technician->name] : null;
         $supervisor = $v->supervisor ? ['id' => $v->supervisor->id, 'name' => $v->supervisor->name] : null;
+        $order = $v->order;
+        $fulfillmentType = $v->orderItem
+            ? OrderFulfillmentType::forOrderItem($v->orderItem)
+            : OrderFulfillmentType::SERVICE;
+        $mapping = $this->resolveVendorMapping($order, $v->orderItem, $fulfillmentType);
+        $status = $this->resolveCalendarStatus($v->status, $order, $mapping);
 
         return [
             'id' => $v->id,
+            'job_source' => 'visit',
+            'visit_id' => $v->id,
+            'order_id' => $order?->id,
+            'order_item_id' => $v->order_item_id,
+            'vendor_order_mapping_id' => $mapping?->id,
+            'fulfillment_type' => $fulfillmentType,
             'title' => $title,
             'scheduled_date' => $v->scheduled_date?->toDateString(),
             'scheduled_time' => $v->scheduled_time,
             'end_time' => $endTime,
             'time_slot' => $this->formatCalendarTimeSlot($v->scheduled_time, $endTime),
-            'status' => $v->status,
-            'status_label' => $this->jobStatusLabel($v->status),
+            'status' => $status['status'],
+            'status_label' => $status['status_label'],
+            'order_status' => $status['order_status'],
+            'order_status_label' => $status['order_status_label'],
+            'vendor_order_status' => $status['vendor_order_status'],
             'notes' => $v->notes,
             'technician' => $technician,
             'technician_name' => $technician['name'] ?? null,
@@ -383,6 +417,172 @@ class JobSchedulingController extends Controller
             'overlap_warning' => $hasOverlap ? 'Technician overlap' : null,
             'overlap_with_job_ids' => $conflictingIds,
         ];
+    }
+
+    /**
+     * @param  array{
+     *     order: Order,
+     *     item: OrderItem,
+     *     mapping: VendorOrderMapping|null,
+     *     fulfillment_type: string,
+     *     scheduled_date: string,
+     *     scheduled_time: string|null,
+     *     duration_minutes: int|null
+     * }  $entry
+     * @return array<string, mixed>
+     */
+    private function calendarShopOrderPayload(array $entry): array
+    {
+        /** @var Order $order */
+        $order = $entry['order'];
+        /** @var OrderItem $item */
+        $item = $entry['item'];
+        /** @var VendorOrderMapping|null $mapping */
+        $mapping = $entry['mapping'];
+        $scheduledTime = $entry['scheduled_time'];
+        $durationMinutes = $entry['duration_minutes'] ?? 60;
+        $endTime = $this->computeEndTimeFromStart($scheduledTime, $durationMinutes);
+        $client = $this->resolveOrderClient($order);
+        $status = $this->resolveCalendarStatus(null, $order, $mapping);
+        $productName = trim((string) ($item->product?->name ?? ''));
+
+        return [
+            // Negative id avoids collision with visit ids; job_source identifies the row.
+            'id' => -1 * (int) $item->id,
+            'job_source' => 'shop_order',
+            'visit_id' => null,
+            'order_id' => $order->id,
+            'order_item_id' => $item->id,
+            'vendor_order_mapping_id' => $mapping?->id,
+            'fulfillment_type' => $entry['fulfillment_type'],
+            'title' => $productName !== '' ? $productName : 'Order #'.$order->id,
+            'scheduled_date' => $entry['scheduled_date'],
+            'scheduled_time' => $scheduledTime,
+            'end_time' => $endTime,
+            'time_slot' => $this->formatCalendarTimeSlot($scheduledTime, $endTime),
+            'status' => $status['status'],
+            'status_label' => $status['status_label'],
+            'order_status' => $status['order_status'],
+            'order_status_label' => $status['order_status_label'],
+            'vendor_order_status' => $status['vendor_order_status'],
+            'notes' => $order->special_instructions,
+            'technician' => null,
+            'technician_name' => null,
+            'supervisor' => null,
+            'supervisor_name' => null,
+            'client' => $client,
+            'client_name' => $client['name'] ?? null,
+            'assignees_label' => $client['name'] ?? null,
+            'technician_overlap' => false,
+            'overlap_warning' => null,
+            'overlap_with_job_ids' => [],
+        ];
+    }
+
+    private function resolveVendorMapping(?Order $order, ?OrderItem $item, string $fulfillmentType): ?VendorOrderMapping
+    {
+        if ($order === null || $fulfillmentType !== OrderFulfillmentType::PRODUCT) {
+            return null;
+        }
+
+        $order->loadMissing('vendorMappings');
+        $vendorId = (int) ($item?->product?->vendor_id ?? 0);
+        if ($vendorId <= 0) {
+            return $order->vendorMappings->first();
+        }
+
+        return $order->vendorMappings->first(
+            fn (VendorOrderMapping $mapping) => (int) $mapping->vendor_id === $vendorId
+        );
+    }
+
+    /**
+     * @return array{
+     *     status: string,
+     *     status_label: string,
+     *     order_status: string|null,
+     *     order_status_label: string|null,
+     *     vendor_order_status: string|null
+     * }
+     */
+    private function resolveCalendarStatus(?string $visitStatus, ?Order $order, ?VendorOrderMapping $mapping): array
+    {
+        $visitStatusNorm = strtolower(trim((string) $visitStatus));
+        $orderStatus = $order?->order_status;
+        $orderStatusNorm = strtolower(trim((string) $orderStatus));
+        $vendorStatus = $mapping?->status;
+        $vendorStatusNorm = strtolower(trim((string) $vendorStatus));
+
+        if ($orderStatusNorm === 'delivered' || $vendorStatusNorm === 'delivered') {
+            return [
+                'status' => 'delivered',
+                'status_label' => 'Delivered',
+                'order_status' => $orderStatus,
+                'order_status_label' => $this->orderStatusLabel($orderStatus),
+                'vendor_order_status' => $vendorStatus,
+            ];
+        }
+
+        $primaryStatus = $visitStatusNorm !== ''
+            ? $visitStatusNorm
+            : ($vendorStatusNorm !== '' ? $vendorStatusNorm : ($orderStatusNorm !== '' ? $orderStatusNorm : 'pending'));
+
+        return [
+            'status' => $primaryStatus,
+            'status_label' => $this->calendarStatusLabel($primaryStatus),
+            'order_status' => $orderStatus,
+            'order_status_label' => $this->orderStatusLabel($orderStatus),
+            'vendor_order_status' => $vendorStatus,
+        ];
+    }
+
+    private function calendarStatusLabel(string $status): string
+    {
+        $lower = strtolower(trim($status));
+        if ($lower === 'delivered') {
+            return 'Delivered';
+        }
+
+        if (in_array($lower, VendorOrderStatus::values(), true)) {
+            return VendorOrderStatus::from($lower)->label();
+        }
+
+        return $this->jobStatusLabel($status);
+    }
+
+    private function orderStatusLabel(?string $status): ?string
+    {
+        if ($status === null || trim($status) === '') {
+            return null;
+        }
+
+        return $this->calendarStatusLabel($status);
+    }
+
+    private function resolveOrderClient(Order $order): ?array
+    {
+        if ($order->user) {
+            return ['id' => $order->user->id, 'name' => $order->user->name];
+        }
+
+        $guest = trim((string) ($order->guest_full_name ?? ''));
+        if ($guest !== '') {
+            return ['id' => null, 'name' => $guest];
+        }
+
+        return null;
+    }
+
+    private function computeEndTimeFromStart(?string $start, ?int $durationMinutes): ?string
+    {
+        if ($start === null || trim($start) === '') {
+            return null;
+        }
+
+        $duration = ($durationMinutes !== null && $durationMinutes > 0) ? $durationMinutes : 60;
+        $totalMinutes = (self::toMinutes($start) + $duration) % (24 * 60);
+
+        return sprintf('%02d:%02d', intdiv($totalMinutes, 60), $totalMinutes % 60);
     }
 
     private function resolveJobClient(Visit $v): ?array

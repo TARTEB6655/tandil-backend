@@ -2,9 +2,18 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\VendorOrderStatus;
+use App\Enums\VendorStatus;
 use App\Models\Area;
+use App\Models\Category;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Vendor;
+use App\Models\VendorOrderMapping;
+use App\Models\VendorProduct;
 use App\Models\Visit;
 use App\Notifications\AdminNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -422,6 +431,155 @@ class JobSchedulingApiTest extends TestCase
         $visit->refresh();
         $this->assertSame($order->id, (int) $visit->order_id);
         $this->assertSame('15:00', $visit->scheduled_time);
+    }
+
+    public function test_jobs_calendar_includes_vendor_product_order_with_order_status(): void
+    {
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'Organic Tomatoes',
+            'status' => 'active',
+            'price' => 40,
+        ]);
+
+        VendorProduct::create([
+            'vendor_id' => $vendor->id,
+            'product_id' => $product->id,
+            'status' => 'active',
+            'approval_status' => 'approved',
+        ]);
+
+        $order = Order::factory()->create([
+            'payment_status' => 'paid',
+            'order_status' => 'processing',
+            'booking_date' => '2026-09-20',
+            'paid_at' => now(),
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 40,
+            'subtotal' => 40,
+        ]);
+
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Processing->value,
+            'total_amount' => 40,
+            'subtotal' => 40,
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-20')
+            ->assertOk()
+            ->assertJsonPath('data.total', 1);
+
+        $job = collect($res->json('data.jobs'))->first();
+        $this->assertSame('shop_order', $job['job_source']);
+        $this->assertSame('product', $job['fulfillment_type']);
+        $this->assertSame($order->id, $job['order_id']);
+        $this->assertSame('processing', $job['order_status']);
+        $this->assertSame('Processing', $job['status_label']);
+        $this->assertSame('Organic Tomatoes', $job['title']);
+    }
+
+    public function test_jobs_calendar_shows_delivered_when_visit_completed_and_order_delivered(): void
+    {
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignRoleIfAvailable($client, 'client');
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'type' => 'service',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'booking_date' => '2026-09-18',
+            'booking_slot' => '10:00 AM',
+        ]);
+
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 100,
+            'subtotal' => 100,
+            'booking_date' => '2026-09-18',
+            'booking_slot' => '10:00 AM',
+        ]);
+
+        $visit = Visit::create([
+            'order_id' => $order->id,
+            'order_item_id' => $item->id,
+            'scheduled_date' => '2026-09-18',
+            'scheduled_time' => '10:00',
+            'status' => 'completed',
+            'notes' => $product->name.' | Order Service Visit',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-18')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))->firstWhere('id', $visit->id);
+        $this->assertNotNull($job);
+        $this->assertSame('delivered', $job['status']);
+        $this->assertSame('Delivered', $job['status_label']);
+        $this->assertSame('delivered', $job['order_status']);
+        $this->assertSame('Delivered', $job['order_status_label']);
+    }
+
+    public function test_jobs_calendar_includes_platform_product_order(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => null,
+            'category_id' => $category->id,
+            'name' => 'Platform Soil Mix',
+            'status' => 'active',
+            'price' => 25,
+        ]);
+
+        $order = Order::factory()->create([
+            'payment_status' => 'paid',
+            'order_status' => 'shipped',
+            'booking_date' => '2026-09-22',
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'price' => 25,
+            'subtotal' => 50,
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=week&date=2026-09-22')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))->firstWhere('job_source', 'shop_order');
+        $this->assertNotNull($job);
+        $this->assertSame('platform', $job['fulfillment_type']);
+        $this->assertSame('shipped', $job['order_status']);
+        $this->assertSame('Platform Soil Mix', $job['title']);
     }
 
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void
