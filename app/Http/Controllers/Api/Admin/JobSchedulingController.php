@@ -429,6 +429,7 @@ class JobSchedulingController extends Controller
             'vendor_order_mapping_id' => $mapping?->id,
             'fulfillment_type' => $fulfillmentType,
             'title' => $title,
+            'product_name' => $title,
             'scheduled_date' => $v->scheduled_date?->toDateString(),
             'scheduled_time' => $v->scheduled_time,
             'end_time' => $endTime,
@@ -502,16 +503,19 @@ class JobSchedulingController extends Controller
         $client = $this->resolveOrderClient($order);
         $status = $this->resolveCalendarStatus(null, $order, $mapping);
         $title = trim((string) ($entry['title'] ?? ''));
-        if ($title === '') {
-            $title = trim((string) ($item?->product?->name ?? ''));
-        }
-        if ($title === '' || strtolower($title) === 'product') {
-            $better = trim((string) ($entry['title'] ?? ''));
-            if ($better !== '' && strtolower($better) !== 'product') {
-                $title = $better;
-            } elseif ($title === '') {
-                $title = $order->publicOrderNumber();
+        if ($title === '' || preg_match('/^order_\d+$/i', $title)) {
+            $fromProduct = trim((string) ($item?->product?->name ?? ''));
+            if ($fromProduct !== '') {
+                $title = $fromProduct;
+            } elseif ($item?->product_id) {
+                $fromDb = trim((string) (\App\Models\Product::query()->whereKey($item->product_id)->value('name') ?? ''));
+                if ($fromDb !== '') {
+                    $title = $fromDb;
+                }
             }
+        }
+        if ($title === '') {
+            $title = $order->publicOrderNumber();
         }
 
         $syntheticId = $item
@@ -528,6 +532,7 @@ class JobSchedulingController extends Controller
             'vendor_order_mapping_id' => $mapping?->id,
             'fulfillment_type' => $entry['fulfillment_type'],
             'title' => $title,
+            'product_name' => $title,
             'quantity' => (int) ($item?->quantity ?? 0),
             'scheduled_date' => $entry['scheduled_date'],
             'scheduled_time' => $scheduledTime,

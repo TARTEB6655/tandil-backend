@@ -365,4 +365,132 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_calendar_title_uses_product_name_not_order_number(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'Garden Soil Mix',
+            'type' => 'product',
+            'price' => 50,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 09:00:00',
+            'created_at' => '2026-08-26 09:00:00',
+        ]);
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 50,
+            'subtotal' => 50,
+        ]);
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 50,
+            'subtotal' => 50,
+            'delivery_otp_confirmed_at' => '2026-08-26 11:00:00',
+        ]);
+
+        // Unload product relation simulation: visit notes carry the name.
+        Visit::create([
+            'order_id' => null,
+            'order_item_id' => $item->id,
+            'scheduled_date' => '2026-08-26',
+            'scheduled_time' => '09:00',
+            'status' => 'pending',
+            'notes' => 'Garden Soil Mix | Client One',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-08-26')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('Garden Soil Mix', $job['title']);
+        $this->assertSame('Garden Soil Mix', $job['product_name'] ?? $job['title']);
+        $this->assertNotSame($order->publicOrderNumber(), $job['title']);
+        $this->assertSame('Delivered', $job['status_label']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_calendar_title_from_visit_notes_when_product_row_missing_name_relation(): void
+    {
+        Carbon::setTestNow('2026-08-26 12:00:00');
+
+        $client = User::factory()->create(['role' => 'client', 'name' => 'Client One']);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'August Herb Box',
+            'type' => 'product',
+            'price' => 40,
+            'status' => 'active',
+        ]);
+
+        $order = Order::factory()->create([
+            'user_id' => $client->id,
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'paid_at' => '2026-08-26 08:00:00',
+            'created_at' => '2026-08-26 08:00:00',
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'price' => 40,
+            'subtotal' => 80,
+        ]);
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 80,
+            'subtotal' => 80,
+            'delivery_otp_confirmed_at' => '2026-08-26 16:00:00',
+        ]);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=month&date=2026-08-01')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('August Herb Box', $job['title']);
+        $this->assertStringStartsNotWith('order_', (string) $job['title']);
+
+        Carbon::setTestNow();
+    }
 }

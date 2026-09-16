@@ -192,33 +192,110 @@ class JobCalendarService
             fn (OrderItem $item) => (int) ($item->product?->vendor_id ?? 0) === (int) $mapping->vendor_id
         );
 
-        return $matched ?? $order->items->first();
+        if ($matched) {
+            return $matched;
+        }
+
+        // Prefer any line that still has a catalog product (name for calendar title).
+        $withProduct = $order->items->first(fn (OrderItem $item) => $item->product !== null);
+
+        return $withProduct ?? $order->items->first();
     }
 
     /**
-     * Prefer real catalog name; avoid generic "Product" when order_number is known.
+     * Resolve a human product title for calendar cards.
+     * Never prefer bare order_00xx when a catalog/notes name exists.
      */
     private function resolveProductTitle(Order $order, ?OrderItem $item, ?VendorOrderMapping $mapping): string
     {
-        $name = trim((string) ($item?->product?->name ?? ''));
-        if ($name !== '' && strtolower($name) !== 'product') {
-            return $name;
-        }
+        unset($mapping);
 
-        // Try any other line on the order with a real name.
-        $order->loadMissing('items.product');
-        foreach ($order->items as $line) {
-            $candidate = trim((string) ($line->product?->name ?? ''));
-            if ($candidate !== '' && strtolower($candidate) !== 'product') {
-                return $candidate;
+        $candidates = [];
+
+        $push = function (?string $value) use (&$candidates): void {
+            $name = trim((string) $value);
+            if ($name === '') {
+                return;
+            }
+            // Skip placeholders that are just the public order ref.
+            if (preg_match('/^order_\d+$/i', $name)) {
+                return;
+            }
+            $candidates[] = $name;
+        };
+
+        if ($item) {
+            $item->loadMissing('product');
+            $push($item->product?->name);
+
+            // Relationship can be stale/missing — load by FK directly.
+            if (! $item->product && $item->product_id) {
+                $push(\App\Models\Product::query()->whereKey($item->product_id)->value('name'));
             }
         }
 
-        if ($name !== '') {
-            return $name;
+        $order->loadMissing('items.product');
+        foreach ($order->items as $line) {
+            $push($line->product?->name);
+            if (! $line->product && $line->product_id) {
+                $push(\App\Models\Product::query()->whereKey($line->product_id)->value('name'));
+            }
+        }
+
+        // Visit notes often start with the product name ("mango | Client One").
+        $visitNotes = Visit::query()
+            ->where(function ($q) use ($order) {
+                $q->where('order_id', $order->id);
+                $itemIds = $order->items->pluck('id')->filter()->all();
+                if ($itemIds !== []) {
+                    $q->orWhereIn('order_item_id', $itemIds);
+                }
+            })
+            ->orderByDesc('id')
+            ->limit(10)
+            ->pluck('notes');
+
+        foreach ($visitNotes as $notes) {
+            $fromNotes = $this->titleFromNotes((string) $notes);
+            $push($fromNotes);
+        }
+
+        // Prefer a real catalog name over the generic placeholder "Product".
+        foreach ($candidates as $name) {
+            if (strtolower($name) !== 'product') {
+                return $name;
+            }
+        }
+
+        if ($candidates !== []) {
+            return $candidates[0];
         }
 
         return $order->publicOrderNumber();
+    }
+
+    private function titleFromNotes(string $notes): ?string
+    {
+        $clean = trim(preg_replace('/^\[DUMMY-SUP-ASSIGN\]\s*/', '', $notes) ?? $notes);
+        if ($clean === '') {
+            return null;
+        }
+        $parts = array_values(array_filter(array_map('trim', explode('|', $clean)), fn ($p) => $p !== ''));
+        $first = $parts[0] ?? null;
+        if (! is_string($first) || $first === '') {
+            return null;
+        }
+        if (preg_match('/^Recreated from Order/i', $first)) {
+            return null;
+        }
+        if (preg_match('/^Job #\d+$/i', $first)) {
+            return null;
+        }
+        if (preg_match('/^order_\d+$/i', $first)) {
+            return null;
+        }
+
+        return $first;
     }
 
     /**
