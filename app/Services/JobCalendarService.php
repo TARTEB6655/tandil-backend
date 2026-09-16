@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\VendorOrderStatus;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\VendorOrderMapping;
@@ -13,12 +14,13 @@ use Illuminate\Support\Collection;
 
 /**
  * Shop product lines (vendor + platform) that do not create service visits
- * still appear on the admin jobs calendar.
+ * still appear on the admin jobs calendar — including old delivered orders.
  */
 class JobCalendarService
 {
     /**
-     * Paid product/platform order lines without a linked visit, scheduled in range.
+     * Product/platform order lines through the calendar end date (no lower bound),
+     * so historical delivered products always appear when viewing "up to now".
      *
      * @return Collection<int, array{
      *     order: Order,
@@ -32,23 +34,25 @@ class JobCalendarService
      */
     public function shopOrderEntries(Carbon $from, Carbon $to): Collection
     {
-        $fromStr = $from->toDateString();
+        // Keep $from for signature compatibility; product rows use "up to $to" only.
+        unset($from);
+
         $toStr = $to->toDateString();
 
+        // Items that already have a visit are shown via the visit payload (slot backfill, etc.).
         $visitedItemIds = Visit::query()
             ->whereNotNull('order_item_id')
             ->pluck('order_item_id')
-            ->all();
-
-        $wholeOrderVisitOrderIds = Visit::query()
-            ->whereNotNull('order_id')
-            ->whereNull('order_item_id')
-            ->pluck('order_id')
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         $orders = Order::query()
-            ->where('payment_status', 'paid')
-            ->whereHas('items.product')
+            ->where(function ($q) {
+                $q->where('payment_status', 'paid')
+                    ->orWhere('order_status', 'delivered')
+                    ->orWhereHas('vendorMappings', fn ($vm) => $vm->where('status', VendorOrderStatus::Delivered->value));
+            })
+            ->whereHas('items')
             ->with([
                 'items.product.services',
                 'user:id,name',
@@ -59,12 +63,8 @@ class JobCalendarService
         $entries = collect();
 
         foreach ($orders as $order) {
-            if (in_array((int) $order->id, array_map('intval', $wholeOrderVisitOrderIds), true)) {
-                continue;
-            }
-
             foreach ($order->items as $item) {
-                if (in_array((int) $item->id, array_map('intval', $visitedItemIds), true)) {
+                if (in_array((int) $item->id, $visitedItemIds, true)) {
                     continue;
                 }
 
@@ -74,7 +74,8 @@ class JobCalendarService
                 }
 
                 [$scheduledDate, $scheduledTime, $durationMinutes] = $this->resolveSchedule($order, $item);
-                if ($scheduledDate === null || $scheduledDate < $fromStr || $scheduledDate > $toStr) {
+                // Everything up to the selected end date (old delivered included).
+                if ($scheduledDate === null || $scheduledDate > $toStr) {
                     continue;
                 }
 
@@ -82,7 +83,7 @@ class JobCalendarService
                 if ($fulfillment === OrderFulfillmentType::PRODUCT) {
                     $vendorId = (int) ($item->product?->vendor_id ?? 0);
                     $mapping = $order->vendorMappings->first(
-                        fn (VendorOrderMapping $m) => (int) $m->vendor_id === $vendorId
+                        fn (VendorOrderMapping $m) => $vendorId <= 0 || (int) $m->vendor_id === $vendorId
                     );
                 }
 
@@ -107,15 +108,38 @@ class JobCalendarService
     }
 
     /**
+     * Prefer delivery timestamp for delivered products so they land on the day
+     * they were actually delivered; otherwise booking → paid → created.
+     *
      * @return array{0: ?string, 1: ?string, 2: ?int}
      */
     private function resolveSchedule(Order $order, OrderItem $item): array
     {
-        $bookingDate = ShopBookingSlotHelper::normalizedDate(
-            $item->booking_date?->format('Y-m-d') ?? (is_string($item->booking_date) ? $item->booking_date : null)
-        ) ?? ShopBookingSlotHelper::normalizedDate(
-            $order->booking_date?->format('Y-m-d') ?? (is_string($order->booking_date) ? $order->booking_date : null)
-        );
+        $mapping = $order->relationLoaded('vendorMappings')
+            ? $order->vendorMappings->first(
+                fn (VendorOrderMapping $m) => (int) $m->vendor_id === (int) ($item->product?->vendor_id ?? 0)
+                    || (int) ($item->product?->vendor_id ?? 0) <= 0
+            )
+            : null;
+
+        $orderStatus = strtolower(trim((string) ($order->order_status ?? '')));
+        $vendorStatus = strtolower(trim((string) ($mapping?->status ?? '')));
+        $isDelivered = $orderStatus === 'delivered' || $vendorStatus === 'delivered';
+
+        $bookingDate = null;
+
+        // Delivered products: prefer OTP confirm day so they show on the real delivery date.
+        if ($isDelivered && $mapping?->delivery_otp_confirmed_at) {
+            $bookingDate = Carbon::parse($mapping->delivery_otp_confirmed_at)->toDateString();
+        }
+
+        if ($bookingDate === null) {
+            $bookingDate = ShopBookingSlotHelper::normalizedDate(
+                $item->booking_date?->format('Y-m-d') ?? (is_string($item->booking_date) ? $item->booking_date : null)
+            ) ?? ShopBookingSlotHelper::normalizedDate(
+                $order->booking_date?->format('Y-m-d') ?? (is_string($order->booking_date) ? $order->booking_date : null)
+            );
+        }
 
         if ($bookingDate === null) {
             $fallback = $order->paid_at ?? $order->created_at;

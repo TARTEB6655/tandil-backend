@@ -449,6 +449,7 @@ class JobSchedulingApiTest extends TestCase
             'name' => 'Organic Tomatoes',
             'status' => 'active',
             'price' => 40,
+            'type' => 'simple',
         ]);
 
         VendorProduct::create([
@@ -483,10 +484,10 @@ class JobSchedulingApiTest extends TestCase
 
         $res = $this->actingAs($this->admin, 'sanctum')
             ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-20')
-            ->assertOk()
-            ->assertJsonPath('data.total', 1);
+            ->assertOk();
 
-        $job = collect($res->json('data.jobs'))->first();
+        $job = collect($res->json('data.jobs'))->firstWhere('order_id', $order->id);
+        $this->assertNotNull($job);
         $this->assertSame('shop_order', $job['job_source']);
         $this->assertSame('product', $job['fulfillment_type']);
         $this->assertSame($order->id, $job['order_id']);
@@ -555,6 +556,7 @@ class JobSchedulingApiTest extends TestCase
             'name' => 'Platform Soil Mix',
             'status' => 'active',
             'price' => 25,
+            'type' => 'simple',
         ]);
 
         $order = Order::factory()->create([
@@ -580,6 +582,68 @@ class JobSchedulingApiTest extends TestCase
         $this->assertSame('platform', $job['fulfillment_type']);
         $this->assertSame('shipped', $job['order_status']);
         $this->assertSame('Platform Soil Mix', $job['title']);
+    }
+
+    public function test_jobs_calendar_includes_old_delivered_products_up_to_selected_date(): void
+    {
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'Old Delivered Plant',
+            'status' => 'active',
+            'price' => 55,
+            'type' => 'simple',
+        ]);
+
+        // Delivered weeks ago — outside day/week "from", but still <= selected date.
+        $order = Order::factory()->create([
+            'payment_status' => 'paid',
+            'order_status' => 'delivered',
+            'booking_date' => null,
+            'paid_at' => '2026-08-01 10:00:00',
+            'created_at' => '2026-08-01 10:00:00',
+        ]);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'price' => 55,
+            'subtotal' => 55,
+        ]);
+
+        VendorOrderMapping::create([
+            'order_id' => $order->id,
+            'vendor_id' => $vendor->id,
+            'status' => VendorOrderStatus::Delivered->value,
+            'total_amount' => 55,
+            'subtotal' => 55,
+            'delivery_otp_confirmed_at' => '2026-08-03 14:00:00',
+        ]);
+
+        // Day view for mid-September must still return the August delivered product.
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-15')
+            ->assertOk();
+
+        $job = collect($res->json('data.jobs'))
+            ->first(fn ($j) => ($j['order_id'] ?? null) === $order->id);
+
+        $this->assertNotNull($job);
+        $this->assertSame('shop_order', $job['job_source']);
+        $this->assertSame('delivered', $job['status']);
+        $this->assertSame('Delivered', $job['status_label']);
+        $this->assertSame('delivered', $job['order_status']);
+        $this->assertSame('Old Delivered Plant', $job['title']);
+        $this->assertSame('2026-08-03', $job['scheduled_date']);
     }
 
     public function test_jobs_calendar_week_view_returns_jobs_in_range(): void

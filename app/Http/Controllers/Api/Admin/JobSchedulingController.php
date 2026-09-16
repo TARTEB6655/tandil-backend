@@ -261,7 +261,8 @@ class JobSchedulingController extends Controller
                 'subscription.client:id,name',
                 'order.user:id,name',
                 'order.vendorMappings',
-                'orderItem.product:id,name,job_duration,vendor_id',
+                'orderItem.product:id,name,job_duration,vendor_id,type',
+                'orderItem.product.services',
             ])
             ->orderBy('scheduled_date')
             ->orderBy('scheduled_time')
