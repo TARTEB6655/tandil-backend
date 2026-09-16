@@ -14,23 +14,20 @@ use Illuminate\Support\Collection;
 
 /**
  * Shop product lines (vendor + platform) on the admin jobs calendar,
- * including historical delivered orders.
- *
- * If a line already has a visit inside the selected window, the visit row
- * is shown. If the only visit is outside the window (legacy), the product
- * still appears here as shop_order — otherwise it vanished from day view.
+ * including historical delivered vendor orders (e.g. order_0061 / order_0067).
  */
 class JobCalendarService
 {
     /**
      * @return Collection<int, array{
      *     order: Order,
-     *     item: OrderItem,
+     *     item: OrderItem|null,
      *     mapping: VendorOrderMapping|null,
      *     fulfillment_type: string,
      *     scheduled_date: string,
      *     scheduled_time: string|null,
-     *     duration_minutes: int|null
+     *     duration_minutes: int|null,
+     *     title: string
      * }>
      */
     public function shopOrderEntries(Carbon $from, Carbon $to): Collection
@@ -38,7 +35,6 @@ class JobCalendarService
         $fromStr = $from->toDateString();
         $toStr = $to->toDateString();
 
-        // Visits already painted in this calendar window — don't duplicate as shop_order.
         $visitedInWindowItemIds = Visit::query()
             ->whereNotNull('order_item_id')
             ->whereDate('scheduled_date', '>=', $fromStr)
@@ -51,12 +47,11 @@ class JobCalendarService
             ->where(function ($q) {
                 $q->where('payment_status', 'paid')
                     ->orWhere('order_status', 'delivered')
-                    ->orWhereHas(
-                        'vendorMappings',
-                        fn ($vm) => $vm->where('status', VendorOrderStatus::Delivered->value)
-                    );
+                    ->orWhereHas('vendorMappings');
             })
-            ->whereHas('items')
+            ->where(function ($q) {
+                $q->whereHas('items')->orWhereHas('vendorMappings');
+            })
             ->with([
                 'items.product.services',
                 'user:id,name',
@@ -65,6 +60,7 @@ class JobCalendarService
             ->get();
 
         $entries = collect();
+        $coveredMappingIds = [];
 
         foreach ($orders as $order) {
             foreach ($order->items as $item) {
@@ -75,7 +71,6 @@ class JobCalendarService
                 $mapping = $this->vendorMappingForItem($order, $item);
                 $fulfillment = OrderFulfillmentType::forOrderItem($item);
 
-                // Pure supervisor services (no vendor mapping) belong on the visit path only.
                 if ($fulfillment === OrderFulfillmentType::SERVICE && $mapping === null) {
                     continue;
                 }
@@ -90,10 +85,15 @@ class JobCalendarService
                     $mapping
                 );
 
-                // Include full history through the selected end date.
                 if ($scheduledDate === null || $scheduledDate > $toStr) {
                     continue;
                 }
+
+                if ($mapping) {
+                    $coveredMappingIds[(int) $mapping->id] = true;
+                }
+
+                $productName = trim((string) ($item->product?->name ?? ''));
 
                 $entries->push([
                     'order' => $order,
@@ -103,6 +103,38 @@ class JobCalendarService
                     'scheduled_date' => $scheduledDate,
                     'scheduled_time' => $scheduledTime,
                     'duration_minutes' => $durationMinutes,
+                    'title' => $productName !== '' ? $productName : 'Product',
+                ]);
+            }
+
+            // Vendor mappings with no matching line items (UI shows "Product" Qty 0)
+            // must still appear on the calendar — same as Delivered Orders list.
+            foreach ($order->vendorMappings as $mapping) {
+                if (isset($coveredMappingIds[(int) $mapping->id])) {
+                    continue;
+                }
+
+                [$scheduledDate, $scheduledTime, $durationMinutes] = $this->resolveSchedule(
+                    $order,
+                    $order->items->first(),
+                    $mapping
+                );
+
+                if ($scheduledDate === null || $scheduledDate > $toStr) {
+                    continue;
+                }
+
+                $coveredMappingIds[(int) $mapping->id] = true;
+
+                $entries->push([
+                    'order' => $order,
+                    'item' => null,
+                    'mapping' => $mapping,
+                    'fulfillment_type' => OrderFulfillmentType::PRODUCT,
+                    'scheduled_date' => $scheduledDate,
+                    'scheduled_time' => $scheduledTime,
+                    'duration_minutes' => $durationMinutes,
+                    'title' => 'Product',
                 ]);
             }
         }
@@ -121,11 +153,16 @@ class JobCalendarService
         $vendorId = (int) ($item->product?->vendor_id ?? 0);
 
         if ($vendorId > 0) {
-            return $order->vendorMappings->first(
+            $match = $order->vendorMappings->first(
                 fn (VendorOrderMapping $m) => (int) $m->vendor_id === $vendorId
             );
+            if ($match) {
+                return $match;
+            }
         }
 
+        // Screenshot case: product.vendor_id no longer matches mapping, but order
+        // still has a single vendor mapping (Delivered Orders still lists it).
         return $order->vendorMappings->count() === 1
             ? $order->vendorMappings->first()
             : null;
@@ -134,7 +171,7 @@ class JobCalendarService
     /**
      * @return array{0: ?string, 1: ?string, 2: ?int}
      */
-    private function resolveSchedule(Order $order, OrderItem $item, ?VendorOrderMapping $mapping): array
+    private function resolveSchedule(Order $order, ?OrderItem $item, ?VendorOrderMapping $mapping): array
     {
         $orderStatus = strtolower(trim((string) ($order->order_status ?? '')));
         $vendorStatus = strtolower(trim((string) ($mapping?->status ?? '')));
@@ -146,14 +183,18 @@ class JobCalendarService
             $bookingDate = Carbon::parse($mapping->delivery_otp_confirmed_at)->toDateString();
         }
 
-        if ($bookingDate === null) {
+        if ($bookingDate === null && $item) {
             $itemDate = $item->booking_date;
-            $orderDate = $order->booking_date;
             $bookingDate = ShopBookingSlotHelper::normalizedDate(
                 $itemDate instanceof \DateTimeInterface
                     ? $itemDate->format('Y-m-d')
                     : (is_string($itemDate) ? $itemDate : null)
-            ) ?? ShopBookingSlotHelper::normalizedDate(
+            );
+        }
+
+        if ($bookingDate === null) {
+            $orderDate = $order->booking_date;
+            $bookingDate = ShopBookingSlotHelper::normalizedDate(
                 $orderDate instanceof \DateTimeInterface
                     ? $orderDate->format('Y-m-d')
                     : (is_string($orderDate) ? $orderDate : null)
@@ -161,11 +202,13 @@ class JobCalendarService
         }
 
         if ($bookingDate === null) {
-            $fallback = $order->paid_at ?? $order->created_at;
+            $fallback = $mapping?->delivery_otp_confirmed_at
+                ?? $order->paid_at
+                ?? $order->created_at;
             $bookingDate = $fallback ? Carbon::parse($fallback)->toDateString() : null;
         }
 
-        $bookingSlot = ShopBookingSlotHelper::normalizedSlot($item->booking_slot)
+        $bookingSlot = ShopBookingSlotHelper::normalizedSlot($item?->booking_slot)
             ?? ShopBookingSlotHelper::normalizedSlot($order->booking_slot);
 
         $parsed = ShopBookingSlotHelper::parseSlotRange($bookingSlot);

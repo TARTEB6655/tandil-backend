@@ -393,6 +393,7 @@ class JobSchedulingController extends Controller
             'job_source' => 'visit',
             'visit_id' => $v->id,
             'order_id' => $order?->id,
+            'order_number' => $order?->publicOrderNumber(),
             'order_item_id' => $v->order_item_id,
             'vendor_order_mapping_id' => $mapping?->id,
             'fulfillment_type' => $fulfillmentType,
@@ -423,12 +424,13 @@ class JobSchedulingController extends Controller
     /**
      * @param  array{
      *     order: Order,
-     *     item: OrderItem,
+     *     item: OrderItem|null,
      *     mapping: VendorOrderMapping|null,
      *     fulfillment_type: string,
      *     scheduled_date: string,
      *     scheduled_time: string|null,
-     *     duration_minutes: int|null
+     *     duration_minutes: int|null,
+     *     title?: string
      * }  $entry
      * @return array<string, mixed>
      */
@@ -436,7 +438,7 @@ class JobSchedulingController extends Controller
     {
         /** @var Order $order */
         $order = $entry['order'];
-        /** @var OrderItem $item */
+        /** @var OrderItem|null $item */
         $item = $entry['item'];
         /** @var VendorOrderMapping|null $mapping */
         $mapping = $entry['mapping'];
@@ -445,18 +447,29 @@ class JobSchedulingController extends Controller
         $endTime = $this->computeEndTimeFromStart($scheduledTime, $durationMinutes);
         $client = $this->resolveOrderClient($order);
         $status = $this->resolveCalendarStatus(null, $order, $mapping);
-        $productName = trim((string) ($item->product?->name ?? ''));
+        $title = trim((string) ($entry['title'] ?? ''));
+        if ($title === '') {
+            $title = trim((string) ($item?->product?->name ?? ''));
+        }
+        if ($title === '') {
+            $title = 'Product';
+        }
+
+        $syntheticId = $item
+            ? -1 * (int) $item->id
+            : -1 * (1_000_000 + (int) ($mapping?->id ?? $order->id));
 
         return [
-            // Negative id avoids collision with visit ids; job_source identifies the row.
-            'id' => -1 * (int) $item->id,
+            'id' => $syntheticId,
             'job_source' => 'shop_order',
             'visit_id' => null,
             'order_id' => $order->id,
-            'order_item_id' => $item->id,
+            'order_number' => $order->publicOrderNumber(),
+            'order_item_id' => $item?->id,
             'vendor_order_mapping_id' => $mapping?->id,
             'fulfillment_type' => $entry['fulfillment_type'],
-            'title' => $productName !== '' ? $productName : 'Order #'.$order->id,
+            'title' => $title,
+            'quantity' => (int) ($item?->quantity ?? 0),
             'scheduled_date' => $entry['scheduled_date'],
             'scheduled_time' => $scheduledTime,
             'end_time' => $endTime,

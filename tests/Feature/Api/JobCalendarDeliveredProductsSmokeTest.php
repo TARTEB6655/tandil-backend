@@ -171,4 +171,98 @@ class JobCalendarDeliveredProductsSmokeTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_smoke_screenshot_delivered_orders_appear_on_calendar(): void
+    {
+        Carbon::setTestNow('2026-09-16 12:00:00');
+
+        $client = User::factory()->create([
+            'role' => 'client',
+            'name' => 'Client One',
+            'phone' => '2212122121',
+        ]);
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        $otherVendorUser = User::factory()->create(['role' => 'vendor']);
+        $otherVendor = Vendor::create([
+            'user_id' => $otherVendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+
+        $category = Category::factory()->create();
+        $mango = Product::factory()->create([
+            'vendor_id' => $vendor->id,
+            'category_id' => $category->id,
+            'name' => 'mango',
+            'type' => 'product',
+            'price' => 100,
+            'status' => 'active',
+        ]);
+        // Product reassigned away from mapping vendor → vendor list shows "Product" Qty 0
+        $orphaned = Product::factory()->create([
+            'vendor_id' => $otherVendor->id,
+            'category_id' => $category->id,
+            'name' => 'Product',
+            'type' => 'product',
+            'price' => 118.95,
+            'status' => 'active',
+        ]);
+
+        $make = function (Product $product, string $when, int $qty) use ($client, $vendor) {
+            $order = Order::factory()->create([
+                'user_id' => $client->id,
+                'payment_status' => 'paid',
+                'order_status' => 'delivered',
+                'paid_at' => $when,
+                'created_at' => $when,
+            ]);
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $product->id,
+                'quantity' => $qty,
+                'price' => $product->price,
+                'subtotal' => (float) $product->price * max($qty, 0),
+            ]);
+            VendorOrderMapping::create([
+                'order_id' => $order->id,
+                'vendor_id' => $vendor->id,
+                'status' => VendorOrderStatus::Delivered->value,
+                'total_amount' => (float) $product->price * max($qty, 1),
+                'subtotal' => (float) $product->price * max($qty, 0),
+                'delivery_otp_confirmed_at' => $when,
+            ]);
+
+            return $order->fresh();
+        };
+
+        $oMango = $make($mango, '2026-09-15 10:00:00', 1);
+        $o63 = $make($orphaned, '2026-08-26 10:00:00', 0);
+        $o61 = $make($orphaned, '2026-08-25 10:00:00', 0);
+
+        $res = $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/job-scheduling/calendar?view=day&date=2026-09-16')
+            ->assertOk();
+
+        $jobs = collect($res->json('data.jobs'));
+
+        foreach ([
+            [$oMango, 'mango', 'Delivered'],
+            [$o63, 'Product', 'Delivered'],
+            [$o61, 'Product', 'Delivered'],
+        ] as [$order, $title, $label]) {
+            $job = $jobs->first(fn ($j) => (int) ($j['order_id'] ?? 0) === $order->id);
+            $this->assertNotNull($job, "Missing {$order->publicOrderNumber()} on calendar");
+            $this->assertSame($order->publicOrderNumber(), $job['order_number']);
+            $this->assertSame($label, $job['status_label']);
+            $this->assertSame('shop_order', $job['job_source']);
+            $this->assertSame($title, $job['title']);
+        }
+
+        Carbon::setTestNow();
+    }
 }
