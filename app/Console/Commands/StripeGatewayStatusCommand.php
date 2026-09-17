@@ -24,6 +24,9 @@ class StripeGatewayStatusCommand extends Command
                 'stripe_live_public_key',
                 'stripe_test_secret_key',
                 'stripe_live_secret_key',
+                'stripe_test_webhook_secret',
+                'stripe_live_webhook_secret',
+                'stripe_webhook_secret',
                 'stripe_keys_version',
             ])
             ->pluck('value', 'key');
@@ -41,6 +44,11 @@ class StripeGatewayStatusCommand extends Command
                 ['test secret (DB)', $this->prefix((string) ($rows['stripe_test_secret_key'] ?? ''))],
                 ['live publishable (DB)', $this->prefix((string) ($rows['stripe_live_public_key'] ?? ''))],
                 ['live secret (DB)', $this->prefix((string) ($rows['stripe_live_secret_key'] ?? ''))],
+                ['live webhook secret (DB)', $this->configured((string) ($rows['stripe_live_webhook_secret'] ?? ''))],
+                ['test webhook secret (DB)', $this->configured((string) ($rows['stripe_test_webhook_secret'] ?? ''))],
+                ['legacy webhook secret (DB)', $this->configured((string) ($rows['stripe_webhook_secret'] ?? ''))],
+                ['webhook secret source', StripeCredentials::webhookSecretSource()],
+                ['webhook secrets for verify', (string) count(StripeCredentials::webhookSecretsForVerification())],
                 ['test mode ready', StripeCredentials::validateKeyPair(
                     StripeCredentials::keysForMode('test')['secret'],
                     StripeCredentials::keysForMode('test')['public']
@@ -66,5 +74,12 @@ class StripeGatewayStatusCommand extends Command
         $key = StripeCredentials::normalizeKey($key);
 
         return $key === '' ? '(empty)' : substr($key, 0, 12).'…';
+    }
+
+    private function configured(string $key): string
+    {
+        $key = StripeCredentials::normalizeKey($key);
+
+        return $key === '' ? 'NO' : 'YES ('.substr($key, 0, 8).'…)';
     }
 }
