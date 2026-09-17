@@ -47,24 +47,73 @@ final class StripeCredentials
 
     public static function webhookSecret(): string
     {
+        $secrets = self::webhookSecretsForVerification();
+
+        return $secrets[0] ?? '';
+    }
+
+    /**
+     * Prefer the active-mode secret, then the other mode / legacy fallbacks.
+     * Stripe Dashboard live vs test endpoints must match; trying both avoids
+     * false 400s when admin mode and webhook endpoint secrets drift.
+     *
+     * @return list<string>
+     */
+    public static function webhookSecretsForVerification(): array
+    {
         self::migrateLegacyKeysIfNeeded();
 
-        $mode = self::activeMode();
-        $fromDb = self::normalizeKey((string) Setting::get(self::settingPrefix($mode).'webhook_secret', ''));
-        if ($fromDb !== '') {
-            return $fromDb;
-        }
+        $ordered = [];
+        $push = function (string $value) use (&$ordered): void {
+            $value = self::normalizeKey($value);
+            if ($value === '' || in_array($value, $ordered, true)) {
+                return;
+            }
+            $ordered[] = $value;
+        };
 
-        $legacy = self::normalizeKey((string) Setting::get('stripe_webhook_secret', ''));
-        if ($legacy !== '') {
-            return $legacy;
+        $mode = self::activeMode();
+        $other = $mode === 'live' ? 'test' : 'live';
+
+        $push((string) Setting::get(self::settingPrefix($mode).'webhook_secret', ''));
+        $push((string) Setting::get('stripe_webhook_secret', ''));
+        $push((string) (
+            $mode === 'live'
+                ? config('services.stripe.live_webhook_secret')
+                : config('services.stripe.test_webhook_secret')
+        ));
+        $push((string) config('services.stripe.webhook_secret', ''));
+
+        $push((string) Setting::get(self::settingPrefix($other).'webhook_secret', ''));
+        $push((string) (
+            $other === 'live'
+                ? config('services.stripe.live_webhook_secret')
+                : config('services.stripe.test_webhook_secret')
+        ));
+
+        return $ordered;
+    }
+
+    /** @return 'database'|'env'|'none' */
+    public static function webhookSecretSource(): string
+    {
+        self::migrateLegacyKeysIfNeeded();
+        $mode = self::activeMode();
+        if (self::normalizeKey((string) Setting::get(self::settingPrefix($mode).'webhook_secret', '')) !== ''
+            || self::normalizeKey((string) Setting::get('stripe_webhook_secret', '')) !== '') {
+            return 'database';
         }
 
         $envKey = $mode === 'live'
             ? config('services.stripe.live_webhook_secret')
             : config('services.stripe.test_webhook_secret');
 
-        return self::normalizeKey((string) ($envKey ?? '')) ?: self::normalizeKey((string) config('services.stripe.webhook_secret', ''));
+        if (self::normalizeKey((string) ($envKey ?? '')) !== ''
+            || self::normalizeKey((string) config('services.stripe.webhook_secret', '')) !== '') {
+            return 'env';
+        }
+
+        return 'none';
     }
 
     /**

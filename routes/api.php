@@ -12,6 +12,13 @@ Route::get('/health', function () {
 });
 
 /*
+| Stripe Dashboard endpoint URL (often configured as /api/stripe/webhook).
+| Same handler as /api/shop/stripe/webhook and /api/shop/webhooks/stripe.
+| Public — no auth / CSRF (api middleware group only).
+*/
+Route::post('/stripe/webhook', [\App\Http\Controllers\Shop\ShopPaymentController::class, 'stripeWebhook']);
+
+/*
 |--------------------------------------------------------------------------
 | MULTILINGUAL EXAMPLES (Spatie translatable + JSON columns)
 |--------------------------------------------------------------------------

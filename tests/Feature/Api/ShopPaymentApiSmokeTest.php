@@ -412,4 +412,111 @@ class ShopPaymentApiSmokeTest extends TestCase
         $order->refresh();
         $this->assertSame('paid', $order->payment_status);
     }
+
+    public function test_post_stripe_webhook_alias_path_works_and_is_idempotent(): void
+    {
+        $secret = 'whsec_alias_secret';
+        Config::set('services.stripe.webhook_secret', $secret);
+
+        $order = Order::factory()->create([
+            'payment_method' => 'stripe',
+            'payment_status' => 'pending',
+            'payment_reference' => null,
+        ]);
+
+        $payload = json_encode([
+            'id' => 'evt_test_alias_1',
+            'type' => 'checkout.session.completed',
+            'data' => [
+                'object' => [
+                    'id' => 'cs_test_alias',
+                    'client_reference_id' => (string) $order->id,
+                    'metadata' => ['order_id' => (string) $order->id],
+                ],
+            ],
+        ]);
+        $this->assertIsString($payload);
+
+        $timestamp = time();
+        $sigHeader = 't='.$timestamp.',v1='.hash_hmac('sha256', $timestamp.'.'.$payload, $secret);
+
+        $first = $this->call(
+            'POST',
+            '/api/stripe/webhook',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_STRIPE_SIGNATURE' => $sigHeader,
+            ],
+            $payload
+        );
+        $first->assertOk()->assertJsonPath('received', true);
+
+        $order->refresh();
+        $this->assertSame('paid', $order->payment_status);
+        $this->assertSame('cs_test_alias', $order->payment_reference);
+        $paidAt = $order->paid_at;
+
+        $second = $this->call(
+            'POST',
+            '/api/stripe/webhook',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_STRIPE_SIGNATURE' => $sigHeader,
+            ],
+            $payload
+        );
+        $second->assertOk()->assertJsonPath('received', true);
+
+        $order->refresh();
+        $this->assertSame('paid', $order->payment_status);
+        $this->assertSame('cs_test_alias', $order->payment_reference);
+        $this->assertTrue($paidAt?->eq($order->paid_at));
+    }
+
+    public function test_post_stripe_webhook_accepts_live_secret_when_active_mode_is_test(): void
+    {
+        Config::set('services.stripe.mode', 'test');
+        Config::set('services.stripe.test_webhook_secret', '');
+        Config::set('services.stripe.webhook_secret', '');
+        Config::set('services.stripe.live_webhook_secret', 'whsec_live_fallback');
+
+        $order = Order::factory()->create([
+            'payment_method' => 'stripe',
+            'payment_status' => 'pending',
+        ]);
+
+        $payload = json_encode([
+            'type' => 'checkout.session.completed',
+            'data' => [
+                'object' => [
+                    'id' => 'cs_live_secret',
+                    'client_reference_id' => (string) $order->id,
+                ],
+            ],
+        ]);
+        $this->assertIsString($payload);
+        $timestamp = time();
+        $sigHeader = 't='.$timestamp.',v1='.hash_hmac('sha256', $timestamp.'.'.$payload, 'whsec_live_fallback');
+
+        $this->call(
+            'POST',
+            '/api/stripe/webhook',
+            [],
+            [],
+            [],
+            [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_STRIPE_SIGNATURE' => $sigHeader,
+            ],
+            $payload
+        )->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->payment_status);
+    }
 }

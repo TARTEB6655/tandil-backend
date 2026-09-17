@@ -347,15 +347,33 @@ class ShopPaymentController extends Controller
     }
 
     /**
-     * POST /api/shop/webhooks/stripe
+     * POST /api/stripe/webhook (and /api/shop/stripe/webhook, /api/shop/webhooks/stripe)
+     *
+     * Returns 400 only for missing/invalid Stripe-Signature.
+     * After a valid signature, always acknowledges with 2xx (processing errors are logged).
      */
     public function stripeWebhook(Request $request)
     {
         $payload = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature', '');
-        $secret = StripeCredentials::webhookSecret();
-        if ($secret === '' || ! $this->verifyStripeSignature($payload, $sigHeader, $secret)) {
-            Log::warning('Stripe webhook rejected (missing secret or bad signature)');
+        $secrets = StripeCredentials::webhookSecretsForVerification();
+
+        if ($secrets === []) {
+            Log::warning('Stripe webhook rejected: webhook signing secret is not configured');
+
+            return response()->json(['error' => 'Invalid signature'], 400);
+        }
+
+        $verified = false;
+        foreach ($secrets as $secret) {
+            if ($this->verifyStripeSignature($payload, $sigHeader, $secret)) {
+                $verified = true;
+                break;
+            }
+        }
+
+        if (! $verified) {
+            Log::warning('Stripe webhook rejected: bad signature');
 
             return response()->json(['error' => 'Invalid signature'], 400);
         }
@@ -365,39 +383,70 @@ class ShopPaymentController extends Controller
             return response()->json(['error' => 'Invalid JSON'], 400);
         }
 
-        if (($event['type'] ?? '') === 'checkout.session.completed') {
-            $session = $event['data']['object'] ?? [];
-            $orderId = $session['client_reference_id'] ?? ($session['metadata']['order_id'] ?? null);
-            if ($orderId) {
-                $order = Order::find((int) $orderId);
-                if ($order && $order->payment_status !== 'paid' && $order->payment_method === 'stripe') {
-                    $order->payment_status = 'paid';
-                    $order->paid_at = now();
-                    $order->payment_reference = $session['id'] ?? $order->payment_reference;
-                    $order->save();
-                    app(ShopWalletRedemptionService::class)->redeemAfterOrderPaid($order->fresh());
-                    $this->notifyAdminsNewOrder($order->fresh(), (float) $order->total_amount, 'Stripe');
-                }
-            }
-        }
-
-        if (($event['type'] ?? '') === 'payment_intent.succeeded') {
-            $pi = $event['data']['object'] ?? [];
-            if (is_array($pi)) {
-                $purpose = (string) ($pi['metadata']['purpose'] ?? '');
-                // Wallet Add Money — never create shop orders.
-                if ($purpose === \App\Services\WalletTopUpStripeService::PURPOSE) {
-                    app(\App\Services\WalletTopUpStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
-                } elseif ($purpose === \App\Services\SubscriptionPaymentStripeService::PURPOSE) {
-                    // Membership renew/upgrade — never create shop orders or credit wallet.
-                    app(\App\Services\SubscriptionPaymentStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
-                } else {
-                    app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
-                }
-            }
+        try {
+            $this->handleStripeWebhookEvent($event);
+        } catch (\Throwable $e) {
+            // Signature was valid — acknowledge to avoid infinite Stripe retries on app bugs.
+            // Fulfillment paths are idempotent; ops can replay from Stripe Dashboard if needed.
+            Log::error('Stripe webhook processing failed: '.$e->getMessage(), [
+                'type' => $event['type'] ?? null,
+                'id' => $event['id'] ?? null,
+            ]);
         }
 
         return response()->json(['received' => true]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $event
+     */
+    protected function handleStripeWebhookEvent(array $event): void
+    {
+        $type = (string) ($event['type'] ?? '');
+
+        if ($type === 'checkout.session.completed') {
+            $session = $event['data']['object'] ?? [];
+            if (! is_array($session)) {
+                return;
+            }
+            $orderId = $session['client_reference_id'] ?? ($session['metadata']['order_id'] ?? null);
+            if (! $orderId) {
+                return;
+            }
+            $order = Order::find((int) $orderId);
+            if (! $order || $order->payment_status === 'paid' || $order->payment_method !== 'stripe') {
+                return;
+            }
+            $order->payment_status = 'paid';
+            $order->paid_at = now();
+            $order->payment_reference = $session['id'] ?? $order->payment_reference;
+            $order->save();
+            try {
+                app(ShopWalletRedemptionService::class)->redeemAfterOrderPaid($order->fresh());
+            } catch (\Throwable $e) {
+                Log::error('Stripe checkout.session wallet redeem failed: '.$e->getMessage(), [
+                    'order_id' => $order->id,
+                ]);
+            }
+            $this->notifyAdminsNewOrder($order->fresh(), (float) $order->total_amount, 'Stripe');
+
+            return;
+        }
+
+        if ($type === 'payment_intent.succeeded') {
+            $pi = $event['data']['object'] ?? [];
+            if (! is_array($pi)) {
+                return;
+            }
+            $purpose = (string) ($pi['metadata']['purpose'] ?? '');
+            if ($purpose === \App\Services\WalletTopUpStripeService::PURPOSE) {
+                app(\App\Services\WalletTopUpStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
+            } elseif ($purpose === \App\Services\SubscriptionPaymentStripeService::PURPOSE) {
+                app(\App\Services\SubscriptionPaymentStripeService::class)->fulfillFromWebhookPaymentIntent($pi);
+            } else {
+                app(ShopStripeMobilePaymentService::class)->fulfillFromWebhookPaymentIntent($pi);
+            }
+        }
     }
 
     /**
