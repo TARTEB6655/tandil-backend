@@ -31,7 +31,10 @@ class CategoryController extends Controller
         $rootImagePath = $mainImagePath ?? $product->image;
         $arr = $product->toArray();
         $arr['image'] = $rootImagePath;
-        $arr['image_url'] = ProductImage::buildFullUrl($rootImagePath);
+        $arr['image_url'] = ProductImage::buildThumbUrl($rootImagePath, 384)
+            ?? ProductImage::buildFullUrl($rootImagePath);
+        $arr['image_thumb_url'] = ProductImage::buildThumbUrl($rootImagePath, 384);
+        $arr['image_full_url'] = ProductImage::buildFullUrl($rootImagePath);
 
         return $arr;
     }

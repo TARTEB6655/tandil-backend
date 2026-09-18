@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Services\ImageCompressionService;
+use App\Support\MediaThumbCache;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Log;
 
@@ -38,6 +39,15 @@ class OptimizePublicDiskImageJob
                     'path' => $this->relativePath,
                     'profile' => $this->profile,
                 ]);
+            } elseif (in_array($this->profile, ['gallery', 'option'], true)) {
+                // Warm list/cart thumbs so first product-grid paint is not a cold GD resize.
+                foreach ([192, 256, 384] as $width) {
+                    try {
+                        MediaThumbCache::resolve($this->relativePath, $width);
+                    } catch (\Throwable) {
+                        // non-fatal
+                    }
+                }
             }
         } catch (\Throwable $e) {
             Log::error('OptimizePublicDiskImageJob failed', [

@@ -82,5 +82,34 @@ class ProductGalleryImagesApiTest extends TestCase
         $this->assertSame('main-list.jpg', $item['main_image']['image_path'] ?? null);
         $this->assertCount(1, $item['gallery_images'] ?? []);
         $this->assertSame('extra-list.jpg', $item['gallery_images'][0]['image_path'] ?? null);
+        $this->assertStringContainsString('w=384', (string) ($item['image_url'] ?? ''));
+        $this->assertStringContainsString('w=384', (string) ($item['main_image']['image_url'] ?? ''));
+        $this->assertStringContainsString('w=384', (string) ($item['image_thumb_url'] ?? ''));
+        $this->assertNotEmpty($item['image_full_url'] ?? null);
+        $this->assertStringNotContainsString('w=384', (string) ($item['image_full_url'] ?? 'w=384'));
+        $this->assertSame([], $item['option_groups'] ?? null);
+        $this->assertSame([], $item['variants'] ?? null);
+    }
+
+    public function test_shop_product_show_keeps_full_size_image_urls(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'image' => 'detail-main.jpg',
+        ]);
+        ProductImage::create([
+            'product_id' => $product->id,
+            'image_path' => 'detail-main.jpg',
+            'sort_order' => 0,
+            'is_primary' => true,
+        ]);
+
+        $response = $this->getJson("/api/shop/products/{$product->id}", ['Accept' => 'application/json']);
+        $response->assertOk();
+        $url = (string) $response->json('data.image_url');
+        $this->assertNotEmpty($url);
+        $this->assertStringNotContainsString('w=384', $url);
     }
 }

@@ -104,7 +104,10 @@ class VendorStoreService
             'price' => $price !== null ? (float) $price : null,
             'compare_at_price' => $compareAt !== null ? (float) $compareAt : null,
             'currency' => $product->vendorProduct?->currentPrice?->currency ?? 'AED',
-            'image_url' => ProductImage::buildFullUrl($imagePath),
+            'image_url' => ProductImage::buildThumbUrl($imagePath, 384)
+                ?? ProductImage::buildFullUrl($imagePath),
+            'image_thumb_url' => ProductImage::buildThumbUrl($imagePath, 384),
+            'image_full_url' => ProductImage::buildFullUrl($imagePath),
             'in_stock' => $qty > 0,
             'stock_quantity' => (int) $qty,
             'stock_label' => $qty > 0 ? $qty.' in stock' : 'Out of stock',

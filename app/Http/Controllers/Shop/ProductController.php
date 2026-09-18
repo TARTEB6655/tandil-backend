@@ -15,6 +15,9 @@ use Carbon\Carbon;
 
 class ProductController extends Controller
 {
+    /** List/card thumbnail width (mobile-friendly; served via /media/…?w= with disk cache). */
+    private const LIST_THUMB_WIDTH = 384;
+
     public function __construct(
         private readonly VendorComparisonService $vendorComparison
     ) {}
@@ -31,8 +34,6 @@ class ProductController extends Controller
                 'category',
                 'images',
                 'primaryImage',
-                'optionGroups.options',
-                'variants.options'
             ])
                 ->visibleInClientShop()
                 ->where('is_featured', true)
@@ -44,7 +45,7 @@ class ProductController extends Controller
                 'success' => true,
                 'message' => 'Featured products retrieved successfully',
                 'data' => array_map(
-                    fn (Product $p) => $this->productToPublicData($p),
+                    fn (Product $p) => $this->productToPublicData($p, true),
                     $products->all()
                 ),
             ]);
@@ -77,8 +78,6 @@ class ProductController extends Controller
                 'category',
                 'images',
                 'primaryImage',
-                'optionGroups.options',
-                'variants.options'
             ])
                 ->visibleInClientShop();
 
@@ -131,7 +130,7 @@ class ProductController extends Controller
                 'success' => true,
                 'message' => 'Products retrieved successfully',
                 'data' => array_map(
-                    fn (Product $p) => $this->productToPublicData($p),
+                    fn (Product $p) => $this->productToPublicData($p, true),
                     $products->items()
                 ),
                 'pagination' => [
@@ -155,8 +154,10 @@ class ProductController extends Controller
 
     /**
      * Build product data for public API.
+     *
+     * @param  bool  $forList  When true, use cached thumbnails and omit heavy variant/option payloads.
      */
-    private function productToPublicData(Product $product): array
+    private function productToPublicData(Product $product, bool $forList = false): array
     {
         $imagesCollection = $product->relationLoaded('images')
             ? $product->images
@@ -166,6 +167,15 @@ class ProductController extends Controller
             ? $product->primaryImage
             : null;
 
+        $url = function (?string $path) use ($forList): ?string {
+            if ($forList) {
+                return ProductImage::buildThumbUrl($path, self::LIST_THUMB_WIDTH)
+                    ?? ProductImage::buildFullUrl($path);
+            }
+
+            return ProductImage::buildFullUrl($path);
+        };
+
         $mainImage = null;
         $galleryImages = [];
 
@@ -173,9 +183,7 @@ class ProductController extends Controller
             $mainImage = [
                 'id' => $primaryImage->id,
                 'image_path' => $primaryImage->image_path,
-                'image_url' => ProductImage::buildFullUrl(
-                    $primaryImage->image_path
-                ),
+                'image_url' => $url($primaryImage->image_path),
             ];
         }
 
@@ -187,18 +195,14 @@ class ProductController extends Controller
                     $mainImage = [
                         'id' => $img->id,
                         'image_path' => $img->image_path,
-                        'image_url' => ProductImage::buildFullUrl(
-                            $img->image_path
-                        ),
+                        'image_url' => $url($img->image_path),
                     ];
                 }
             } else {
                 $galleryImages[] = [
                     'id' => $img->id,
                     'image_path' => $img->image_path,
-                    'image_url' => ProductImage::buildFullUrl(
-                        $img->image_path
-                    ),
+                    'image_url' => $url($img->image_path),
                     'sort_order' => (int) $img->sort_order,
                 ];
             }
@@ -221,7 +225,7 @@ class ProductController extends Controller
         $variants = [];
         $productType = $product->product_type ?? 'simple';
 
-        if ($product->relationLoaded('optionGroups')) {
+        if (! $forList && $product->relationLoaded('optionGroups')) {
             $optionGroups = $product->optionGroups
                 ->sortBy('sort_order')
                 ->values()
@@ -232,7 +236,7 @@ class ProductController extends Controller
                 ->all();
         }
 
-        if ($product->relationLoaded('variants')) {
+        if (! $forList && $product->relationLoaded('variants')) {
             foreach ($product->variants as $variant) {
                 $optIds = [];
 
@@ -278,6 +282,9 @@ class ProductController extends Controller
             ], $product->category->shippingTaxConfigForApi());
         }
 
+        $cardUrl = $url($rootImagePath);
+        $fullUrl = ProductImage::buildFullUrl($rootImagePath);
+
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -299,7 +306,10 @@ class ProductController extends Controller
             'job_duration' => $product->job_duration,
 
             'image' => $rootImagePath,
-            'image_url' => ProductImage::buildFullUrl($rootImagePath),
+            // List cards use thumb URL so mobile grids paint quickly; detail keeps full.
+            'image_url' => $cardUrl,
+            'image_thumb_url' => ProductImage::buildThumbUrl($rootImagePath, self::LIST_THUMB_WIDTH),
+            'image_full_url' => $fullUrl,
 
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
@@ -608,8 +618,6 @@ class ProductController extends Controller
                     'category',
                     'images',
                     'primaryImage',
-                    'optionGroups.options',
-                    'variants.options'
                 ])
                 ->ordered()
                 ->paginate(12);
@@ -622,7 +630,7 @@ class ProductController extends Controller
 
                     'products' => array_map(
                         fn (Product $p) =>
-                            $this->productToPublicData($p),
+                            $this->productToPublicData($p, true),
                         $products->items()
                     ),
 
