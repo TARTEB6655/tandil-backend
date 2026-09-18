@@ -4,29 +4,23 @@ namespace App\Services;
 
 use App\Models\Visit;
 use App\Models\VisitPhoto;
+use App\Support\MediaThumbCache;
+use App\Support\MediaUrl;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class VisitPhotoService
 {
+    public const CLIENT_THUMB_WIDTH = 384;
+
     public function photoUrl(?string $path): ?string
     {
-        if (! $path || ! is_string($path)) {
-            return null;
-        }
+        return MediaUrl::full($path);
+    }
 
-        $path = ltrim(str_replace('\\', '/', $path), '/');
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        // Serve via clean /media/ path (matches profile pictures, product images).
-        // The public /storage symlink is not reliable on all hosts (e.g. Cloudways).
-        if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/').'/media/'.$path;
-        }
-
-        return asset('media/'.$path);
+    public function thumbUrl(?string $path, int $width = self::CLIENT_THUMB_WIDTH): ?string
+    {
+        return MediaUrl::thumb($path, $width) ?? MediaUrl::full($path);
     }
 
     /**
@@ -36,7 +30,8 @@ class VisitPhotoService
     {
         $item = [
             'id' => $photo->id,
-            'photo_url' => $this->photoUrl($photo->photo_path),
+            'photo_url' => $this->thumbUrl($photo->photo_path),
+            'photo_full_url' => $this->photoUrl($photo->photo_path),
             'photo_path' => $photo->photo_path,
             'type' => $photo->type ?? 'after',
             'visit_id' => $photo->visit_id,
@@ -55,6 +50,7 @@ class VisitPhotoService
     {
         $path = $file->store('visit_photos', 'public');
         ImageCompressionService::compressVisitPhotoFromPublicPath($path);
+        $this->warmThumbs($path);
 
         return VisitPhoto::create([
             'visit_id' => $visit->id,
@@ -73,6 +69,7 @@ class VisitPhotoService
 
             $path = $file->store('visit_photos', 'public');
             ImageCompressionService::compressVisitPhotoFromPublicPath($path);
+            $this->warmThumbs($path);
             $photo->photo_path = $path;
         }
 
@@ -96,5 +93,16 @@ class VisitPhotoService
         }
 
         $photo->delete();
+    }
+
+    private function warmThumbs(string $path): void
+    {
+        foreach ([192, 256, self::CLIENT_THUMB_WIDTH] as $width) {
+            try {
+                MediaThumbCache::resolve($path, $width);
+            } catch (\Throwable) {
+                // non-fatal
+            }
+        }
     }
 }

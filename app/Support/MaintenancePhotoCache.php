@@ -18,7 +18,7 @@ final class MaintenancePhotoCache
     public static function bumpVersion(): void
     {
         if (! Cache::has(self::VERSION_KEY)) {
-            Cache::forever(self::VERSION_KEY, 2);
+            Cache::forever(self::VERSION_KEY, 3);
 
             return;
         }
@@ -28,6 +28,7 @@ final class MaintenancePhotoCache
 
     private static function version(): int
     {
-        return (int) Cache::get(self::VERSION_KEY, 1);
+        // Default 3 invalidates pre-thumb list caches after deploy.
+        return (int) Cache::get(self::VERSION_KEY, 3);
     }
 }

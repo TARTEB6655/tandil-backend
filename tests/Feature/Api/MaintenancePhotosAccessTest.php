@@ -57,6 +57,14 @@ class MaintenancePhotosAccessTest extends TestCase
                     ],
                 ],
             ]);
+
+        $before = (string) $response->json('data.data.0.before_image_url');
+        $after = (string) $response->json('data.data.0.after_image_url');
+        $this->assertStringContainsString('w=384', $before);
+        $this->assertStringContainsString('w=384', $after);
+        $this->assertStringContainsString('maintenance_photos', $before);
+        $this->assertNotEmpty($response->json('data.data.0.before_image_full_url'));
+        $this->assertStringNotContainsString('w=384', (string) $response->json('data.data.0.before_image_full_url'));
     }
 
     public function test_client_list_orders_by_priority(): void

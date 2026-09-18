@@ -3,25 +3,24 @@
 namespace App\Services;
 
 use App\Models\MaintenancePhoto;
+use App\Support\MediaThumbCache;
+use App\Support\MediaUrl;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
 class MaintenancePhotoService
 {
+    /** Client home-screen card width (retina-friendly). */
+    public const CLIENT_THUMB_WIDTH = 384;
+
     public function imageUrl(?string $path): ?string
     {
-        if (! $path || ! is_string($path)) {
-            return null;
-        }
+        return MediaUrl::full($path);
+    }
 
-        $path = ltrim(str_replace('\\', '/', $path), '/');
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        $base = rtrim(request()->getSchemeAndHttpHost() ?: config('app.url', ''), '/');
-
-        return $base ? ($base.'/media/'.$path) : asset('media/'.$path);
+    public function thumbUrl(?string $path, int $width = self::CLIENT_THUMB_WIDTH): ?string
+    {
+        return MediaUrl::thumb($path, $width) ?? MediaUrl::full($path);
     }
 
     /**
@@ -32,8 +31,11 @@ class MaintenancePhotoService
         return [
             'id' => $photo->id,
             'title' => $photo->title,
-            'before_image_url' => $this->imageUrl($photo->before_image_path),
-            'after_image_url' => $this->imageUrl($photo->after_image_path),
+            // Client list uses thumbs so before/after cards paint quickly.
+            'before_image_url' => $this->thumbUrl($photo->before_image_path),
+            'after_image_url' => $this->thumbUrl($photo->after_image_path),
+            'before_image_full_url' => $this->imageUrl($photo->before_image_path),
+            'after_image_full_url' => $this->imageUrl($photo->after_image_path),
             'priority' => (int) $photo->priority,
             'active' => (bool) $photo->is_active,
             'created_at' => $photo->created_at?->format('c'),
@@ -102,6 +104,13 @@ class MaintenancePhotoService
     {
         $path = $file->store('maintenance_photos/'.$prefix, 'public');
         ImageCompressionService::compressMaintenancePhotoFromPublicPath($path);
+        foreach ([192, 256, self::CLIENT_THUMB_WIDTH] as $width) {
+            try {
+                MediaThumbCache::resolve($path, $width);
+            } catch (\Throwable) {
+                // non-fatal
+            }
+        }
 
         return $path;
     }
