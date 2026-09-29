@@ -84,13 +84,23 @@ class SupervisorContractorRegistrationApiTest extends TestCase
             'company_name' => 'Field Co LLC',
         ]);
 
-        Notification::assertSentTo($admin, AdminNotification::class, function (AdminNotification $n) {
-            $payload = $n->toArray(User::query()->where('role', 'admin')->first());
+        Notification::assertSentTo($admin, AdminNotification::class, function (AdminNotification $n) use ($admin) {
+            $payload = $n->toArray($admin);
 
             return ($payload['title'] ?? null) === 'New Contractor Registration'
-                && ($payload['meta']['entity'] ?? null) === 'supervisor_registration';
+                && ($payload['meta']['entity'] ?? null) === 'supervisor_registration'
+                && isset($payload['meta']['registration_id'])
+                && ! isset($payload['meta']['vendor_id']);
         });
-        Notification::assertSentTo($user, SupervisorRegistrationStatusNotification::class);
+        Notification::assertSentTo($user, SupervisorRegistrationStatusNotification::class, function ($n) use ($user) {
+            $payload = $n->toArray($user);
+
+            return ($payload['title'] ?? null) === 'Registration Under Review'
+                && ($payload['title_ar'] ?? null) === 'التسجيل قيد المراجعة'
+                && ($payload['meta']['entity'] ?? null) === 'supervisor_registration'
+                && str_starts_with((string) ($payload['type'] ?? ''), 'supervisor_registration_');
+        });
+        Notification::assertNotSentTo($user, \App\Notifications\VendorApplicationStatusNotification::class);
     }
 
     public function test_admin_can_approve_reject_and_request_documents(): void
@@ -123,8 +133,15 @@ class SupervisorContractorRegistrationApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.status', 'documents_requested');
 
-        Notification::assertSentTo($user, SupervisorRegistrationStatusNotification::class, function ($n) {
-            return in_array($n->status, ['documents_requested', 'missing_documents'], true);
+        Notification::assertSentTo($user, SupervisorRegistrationStatusNotification::class, function ($n) use ($user) {
+            if (! in_array($n->status, ['documents_requested', 'missing_documents'], true)) {
+                return false;
+            }
+            $payload = $n->toArray($user);
+
+            return ($payload['title'] ?? null) === 'Additional Documents Required'
+                && ($payload['title_ar'] ?? null) === 'مستندات إضافية مطلوبة'
+                && str_contains((string) ($payload['message'] ?? ''), 'Upload VAT certificate');
         });
 
         $this->withToken($token)
@@ -137,6 +154,15 @@ class SupervisorContractorRegistrationApiTest extends TestCase
             ->assertJsonPath('data.employee_id', 'SUP-100');
 
         $this->assertSame('active', $user->fresh()->status);
+        Notification::assertSentTo($user, SupervisorRegistrationStatusNotification::class, function ($n) use ($user) {
+            if ($n->status !== 'approved') {
+                return false;
+            }
+            $payload = $n->toArray($user);
+
+            return ($payload['title'] ?? null) === 'Your Account Has Been Activated!'
+                && ($payload['title_ar'] ?? null) === 'تم تفعيل حسابك!';
+        });
 
         $user2 = User::factory()->create(['role' => 'supervisor', 'status' => 'pending', 'email' => 'reject-sup@test.com']);
         $user2->assignRole('supervisor');
@@ -156,6 +182,16 @@ class SupervisorContractorRegistrationApiTest extends TestCase
             ->assertJsonPath('data.status', 'rejected');
 
         $this->assertSame('inactive', $user2->fresh()->status);
+        Notification::assertSentTo($user2, SupervisorRegistrationStatusNotification::class, function ($n) use ($user2) {
+            if ($n->status !== 'rejected') {
+                return false;
+            }
+            $payload = $n->toArray($user2);
+
+            return ($payload['title'] ?? null) === 'Registration Not Approved'
+                && str_contains((string) ($payload['message'] ?? ''), 'Invalid license');
+        });
+        Notification::assertNotSentTo($user2, \App\Notifications\VendorApplicationStatusNotification::class);
     }
 
     public function test_admin_can_list_registrations(): void

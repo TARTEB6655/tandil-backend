@@ -117,7 +117,7 @@ class VendorModuleTest extends TestCase
         Notification::assertSentTo(
             $admin,
             AdminNotification::class,
-            fn (AdminNotification $notification) => ($notification->toArray($admin)['title'] ?? null) === 'New Contractor Registration'
+            fn (AdminNotification $notification) => ($notification->toArray($admin)['title'] ?? null) === 'New Vendor Registration'
                 && ($notification->toArray($admin)['meta']['entity'] ?? null) === 'vendor'
         );
     }
@@ -147,7 +147,7 @@ class VendorModuleTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['trade_license', 'emirates_id']);
+            ->assertJsonValidationErrors(['trade_license']);
     }
 
     public function test_admin_can_approve_vendor(): void

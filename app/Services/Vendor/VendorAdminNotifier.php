@@ -15,8 +15,8 @@ class VendorAdminNotifier
         $label = $this->vendorLabel($vendor);
 
         $this->notifyAdmins(
-            'New Contractor Registration',
-            "{$label} submitted a contractor registration request and is awaiting review. Open Admin → Vendors to review documents and approve or reject.",
+            'New Vendor Registration',
+            "{$label} submitted a marketplace vendor registration and is awaiting review. Open Admin → Vendors to review documents and approve or reject.",
             $vendor,
             'new_registration'
         );
