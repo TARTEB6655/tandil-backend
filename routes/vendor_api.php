@@ -30,10 +30,10 @@ Route::prefix('vendor')->group(function () {
     Route::post('/compare/products', [VendorComparisonController::class, 'byProducts']);
 });
 
-// Contractor registration — single multipart endpoint only.
+// Contractor = supervisor signup (multipart only). Not marketplace vendor.
 Route::prefix('contractor')->group(function () {
-    Route::post('/auth/register', [VendorAuthController::class, 'register']);
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/register', [\App\Http\Controllers\Api\Supervisor\SupervisorRegistrationController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']); // body: email, password, roles: "supervisor"
 });
 
 /*

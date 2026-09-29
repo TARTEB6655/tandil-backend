@@ -505,6 +505,14 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'team']);
     Route::post('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'addTeamMember']);
     Route::delete('/supervisors/{id}/team', [\App\Http\Controllers\Api\Admin\SupervisorController::class, 'removeTeamMember']);
+
+    // Supervisor (contractor) registration review
+    Route::get('/supervisor-registrations', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'index']);
+    Route::get('/supervisor-registrations/{id}', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'show'])->whereNumber('id');
+    Route::post('/supervisor-registrations/{id}/approve', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'approve'])->whereNumber('id');
+    Route::post('/supervisor-registrations/{id}/reject', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'reject'])->whereNumber('id');
+    Route::post('/supervisor-registrations/{id}/request-documents', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'requestDocuments'])->whereNumber('id');
+
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
     Route::get('/operational-areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'operationalAreas']);
     Route::post('/operational-areas/{id}/toggle-active', [\App\Http\Controllers\Api\Admin\AreaController::class, 'toggleOperationalArea']);

@@ -21,12 +21,12 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     }
 
     /**
-     * Map contractor field names → internal columns, then shared aliases.
+     * Normalize marketplace vendor signup aliases (not supervisor/contractor signup).
      */
     protected function prepareForValidation(): void
     {
         PasswordInput::normalize($this);
-        $this->normalizeContractorAliases();
+        $this->normalizeLegacyFieldAliases();
         $this->normalizeRegistrationFileAliases();
         $this->normalizeSingleFileUploads([
             'logo',
@@ -45,7 +45,6 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'bank_confirmation_letter',
         ]);
 
-        // File field name used by contractor app.
         if ($this->files->has('trade_license_upload') && ! $this->files->has('trade_license')) {
             $this->files->set('trade_license', $this->file('trade_license_upload'));
         }
@@ -79,18 +78,12 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
         }
     }
 
-    protected function normalizeContractorAliases(): void
+    protected function normalizeLegacyFieldAliases(): void
     {
         $map = [
             'company_address' => 'address',
             'trade_license_expiry_date' => 'trade_license_expiry',
             'trn' => 'tax_vat_number',
-            'main_service_categories' => 'category_ids',
-            'service_subcategories' => 'subcategory_ids',
-            'selected_services' => 'service_ids',
-            'emirates' => 'coverage_emirate_ids',
-            'cities' => 'coverage_city_ids',
-            'service_coverage_areas' => 'area_ids',
         ];
 
         foreach ($map as $from => $to) {
@@ -99,7 +92,6 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             }
         }
 
-        // Company city may be id from cities options.
         if ($this->filled('city') && is_numeric($this->input('city'))) {
             $city = \App\Models\ContractorCity::query()->find((int) $this->input('city'));
             if ($city) {
@@ -110,7 +102,6 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             }
         }
 
-        // Bank select may send bank id or name.
         if ($this->filled('bank_name') && is_numeric($this->input('bank_name'))) {
             $bank = \App\Models\ContractorBank::query()->find((int) $this->input('bank_name'));
             if ($bank) {
@@ -126,102 +117,6 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
      * @return array<string, mixed>
      */
     public function rules(): array
-    {
-        if ($this->isContractorRegistration()) {
-            return $this->contractorRules();
-        }
-
-        return $this->legacyVendorRules();
-    }
-
-    private function isContractorRegistration(): bool
-    {
-        return $this->is('api/contractor/*')
-            || $this->hasFile('trade_license_upload')
-            || $this->filled('main_service_categories')
-            || $this->filled('service_coverage_areas')
-            || $this->filled('selected_services');
-    }
-
-    /**
-     * Exact contractor registration contract.
-     *
-     * @return array<string, mixed>
-     */
-    private function contractorRules(): array
-    {
-        $doc = ['file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS];
-
-        return [
-            'name' => ['required', 'string', 'max:255'],
-            'owner_name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32', UserCredentialRules::uniquePhone('vendor')],
-            'email' => [
-                'required',
-                'email',
-                'max:255',
-                UserCredentialRules::uniqueEmail('vendor'),
-                Rule::unique('vendor_profiles', 'email'),
-            ],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
-            'password_confirmation' => ['required', 'string', 'min:6'],
-
-            'company_name' => ['required', 'string', 'max:255'],
-            'business_name' => ['nullable', 'string', 'max:255'],
-            'trade_license_number' => ['required', 'string', 'max:100'],
-            'trade_license_upload' => ['nullable', ...$doc],
-            'trade_license' => ['required', ...$doc],
-            'trade_license_expiry_date' => ['nullable', 'date'],
-            'trade_license_expiry' => ['required', 'date'],
-            'trn' => ['nullable', 'string', 'max:64'],
-            'tax_vat_number' => ['nullable', 'string', 'max:64'],
-            'vat_certificate' => ['nullable', ...$doc],
-            'emirate' => ['required', 'string', 'max:100'],
-            'city' => ['required', 'string', 'max:100'],
-            'city_id' => ['nullable', 'integer', 'exists:contractor_cities,id'],
-            'company_address' => ['nullable', 'string', 'max:2000'],
-            'address' => ['required', 'string', 'max:2000'],
-
-            'bank_name' => ['required', 'string', 'max:191'],
-            'bank_id' => ['nullable', 'integer', 'exists:contractor_banks,id'],
-            'account_holder_name' => ['required', 'string', 'max:191'],
-            'bank_account_number' => ['required', 'string', 'max:64'],
-            'iban' => ['required', 'string', 'max:64'],
-            'bank_confirmation_letter' => ['required', ...$doc],
-
-            'main_service_categories' => ['nullable', 'array'],
-            'main_service_categories.*' => ['integer', 'exists:categories,id'],
-            'category_ids' => ['required', 'array', 'min:1'],
-            'category_ids.*' => ['integer', 'exists:categories,id'],
-            'service_subcategories' => ['nullable', 'array'],
-            'service_subcategories.*' => ['integer', 'exists:categories,id'],
-            'subcategory_ids' => ['nullable', 'array'],
-            'subcategory_ids.*' => ['integer', 'exists:categories,id'],
-            'selected_services' => ['nullable', 'array'],
-            'selected_services.*' => ['integer', 'exists:services,id'],
-            'service_ids' => ['required', 'array', 'min:1'],
-            'service_ids.*' => ['integer', 'exists:services,id'],
-            'emirates' => ['nullable', 'array'],
-            'emirates.*' => ['integer', 'exists:emirates,id'],
-            'coverage_emirate_ids' => ['required', 'array', 'min:1'],
-            'coverage_emirate_ids.*' => ['integer', 'exists:emirates,id'],
-            'cities' => ['nullable', 'array'],
-            'cities.*' => ['integer', 'exists:contractor_cities,id'],
-            'coverage_city_ids' => ['nullable', 'array'],
-            'coverage_city_ids.*' => ['integer', 'exists:contractor_cities,id'],
-            'service_coverage_areas' => ['nullable', 'array'],
-            'service_coverage_areas.*' => ['integer', 'exists:areas,id'],
-            'area_ids' => ['required', 'array', 'min:1'],
-            'area_ids.*' => ['integer', 'exists:areas,id'],
-        ];
-    }
-
-    /**
-     * Legacy vendor mobile signup (backward compatible).
-     *
-     * @return array<string, mixed>
-     */
-    private function legacyVendorRules(): array
     {
         $shared = $this->businessProfileRules(true);
         $shared['city'] = ['nullable', 'string', 'max:100'];

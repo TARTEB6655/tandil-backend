@@ -186,7 +186,8 @@ class ContractorRegistrationAdminController extends Controller
     }
 
     /**
-     * Ask contractor for missing documents / info (keeps account pending, notifies EN+AR).
+     * Ask marketplace vendor for missing documents (keeps account pending, notifies EN+AR).
+     * Supervisor/contractor signup uses POST /api/admin/supervisor-registrations/{id}/request-documents.
      */
     public function requestDocuments(Request $request, int $id): JsonResponse
     {
@@ -211,7 +212,7 @@ class ContractorRegistrationAdminController extends Controller
 
         $this->vendorNotifier->missingDocuments($vendor->fresh(['profile', 'user']), $data['message']);
 
-        return ApiResponse::success('Missing documents requested from contractor.', [
+        return ApiResponse::success('Missing documents requested from vendor.', [
             'vendor' => $vendor->fresh(['profile', 'user', 'documents']),
         ]);
     }

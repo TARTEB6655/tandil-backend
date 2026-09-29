@@ -1158,14 +1158,19 @@
                                     "pm.test('Status is 201 Created', function () {",
                                     "    pm.response.to.have.status(201);",
                                     "});",
-                                    "pm.test('Contractor registration succeeded (pending)', function () {",
+                                    "pm.test('Contractor registration succeeded (pending supervisor)', function () {",
                                     "    var j = pm.response.json();",
                                     "    pm.expect(j.success).to.eql(true);",
-                                    "    pm.expect(j.data).to.have.property('vendor_id');",
+                                    "    pm.expect(j.data).to.have.property('registration_id');",
+                                    "    pm.expect(j.data).to.have.property('supervisor_id');",
                                     "    pm.expect(j.data.status).to.eql('pending');",
-                                    "    if (j.data.vendor_id) {",
-                                    "        pm.environment.set('vendor_id', j.data.vendor_id);",
-                                    "        pm.collectionVariables.set('vendor_id', String(j.data.vendor_id));",
+                                    "    if (j.data.registration_id) {",
+                                    "        pm.environment.set('supervisor_registration_id', j.data.registration_id);",
+                                    "        pm.collectionVariables.set('supervisor_registration_id', String(j.data.registration_id));",
+                                    "    }",
+                                    "    if (j.data.supervisor_id) {",
+                                    "        pm.environment.set('supervisor_id', j.data.supervisor_id);",
+                                    "        pm.collectionVariables.set('supervisor_id', String(j.data.supervisor_id));",
                                     "    }",
                                     "});",
                                     "pm.test('Documents uploaded', function () {",
@@ -1198,7 +1203,7 @@
                                     "key": "phone",
                                     "value": "+971500009901",
                                     "type": "text",
-                                    "description": "Mobile number. Required. Unique for vendor role."
+                                    "description": "Mobile number. Required. Unique for supervisor role."
                                 },
                                 {
                                     "key": "email",
@@ -1352,7 +1357,7 @@
                                 "register"
                             ]
                         },
-                        "description": "POST /api/contractor/auth/register — **only contractor signup API** (multipart/form-data).\n\nCreates contractor (vendor role) with status **pending** (Pending Review). Admins receive **New Contractor Registration** notification; contractor receives **Registration Under Review** (EN+AR).\n\n**Exact fields only:**\n- Personal: name, phone, email, password, password_confirmation\n- Company: company_name, trade_license_number, trade_license_upload, trade_license_expiry_date, trn, vat_certificate, emirate, city, company_address\n- Bank: bank_name, account_holder_name, bank_account_number, iban, bank_confirmation_letter\n- Coverage: main_service_categories[], service_subcategories[], selected_services[], emirates[], cities[], service_coverage_areas[]\n\n**File uploads:** trade_license_upload, vat_certificate (optional), bank_confirmation_letter.\n\nNo second schema/options API for contractor — send this multipart request only. After submit, admin reviews via /api/admin/vendors/{id}/approve|reject|request-documents."
+                        "description": "POST /api/contractor/auth/register — **only contractor signup API** (multipart/form-data).\n\nCreates a **supervisor** user + `supervisor_registrations` row with status **pending**. Does **not** create a marketplace vendor. Admins receive **New Contractor Registration**; supervisor receives **Registration Under Review** (EN+AR).\n\nResponse: `data.registration_id`, `data.supervisor_id`, `data.status`.\n\n**Exact fields only:**\n- Personal: name, phone, email, password, password_confirmation\n- Company: company_name, trade_license_number, trade_license_upload, trade_license_expiry_date, trn, vat_certificate, emirate, city, company_address\n- Bank: bank_name, account_holder_name, bank_account_number, iban, bank_confirmation_letter\n- Coverage: main_service_categories[], service_subcategories[], selected_services[], emirates[], cities[], service_coverage_areas[]\n\n**File uploads:** trade_license_upload, vat_certificate (optional), bank_confirmation_letter.\n\nAdmin review: `/api/admin/supervisor-registrations/{id}/approve|reject|request-documents`."
                     }
                 },
                 {
@@ -1368,9 +1373,9 @@
                                     "    var t = d.data && (d.data.token || d.data.access_token);",
                                     "    if (t) {",
                                     "        pm.collectionVariables.set('token', t);",
-                                    "        pm.collectionVariables.set('vendor_token', t);",
+                                    "        pm.collectionVariables.set('supervisor_token', t);",
                                     "        pm.environment.set('token', t);",
-                                    "        pm.environment.set('vendor_token', t);",
+                                    "        pm.environment.set('supervisor_token', t);",
                                     "    }",
                                     "}"
                                 ]
@@ -1391,7 +1396,7 @@
                         ],
                         "body": {
                             "mode": "raw",
-                            "raw": "{\n  \"email\": \"contractor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"
+                            "raw": "{\n  \"email\": \"contractor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"supervisor\"\n}"
                         },
                         "url": {
                             "raw": "{{base_url}}/api/contractor/auth/login",
@@ -1405,7 +1410,7 @@
                                 "login"
                             ]
                         },
-                        "description": "POST /api/contractor/auth/login — same as vendor login (role vendor). Use after Register Contractor. Account must be approved to access vendor-protected routes."
+                        "description": "POST /api/contractor/auth/login — contractor app login with `roles: supervisor`. Use after Register Contractor. Account must be **approved** (active) before login succeeds."
                     }
                 },
                 {
@@ -28451,7 +28456,150 @@
                                     }
                                 },
                                 {
-                                    "name": "12b. Request missing documents (contractor)",
+                                    "name": "12b. List supervisor registrations (contractor)",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/supervisor-registrations?status=pending&per_page=15",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "supervisor-registrations"
+                                            ],
+                                            "query": [
+                                                {
+                                                    "key": "status",
+                                                    "value": "pending"
+                                                },
+                                                {
+                                                    "key": "per_page",
+                                                    "value": "15"
+                                                }
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/supervisor-registrations — Pending contractor (supervisor) signups. Not marketplace vendors. Sets {{supervisor_registration_id}} from first item in tests if needed."
+                                    }
+                                },
+                                {
+                                    "name": "12c. Show supervisor registration",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "supervisor-registrations",
+                                                "{{supervisor_registration_id}}"
+                                            ]
+                                        },
+                                        "description": "GET /api/admin/supervisor-registrations/{id} — Full contractor/supervisor registration detail + documents."
+                                    }
+                                },
+                                {
+                                    "name": "12d. Approve supervisor registration",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "supervisor-registrations",
+                                                "{{supervisor_registration_id}}",
+                                                "approve"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/supervisor-registrations/{id}/approve — Activates supervisor user (status active). Optional employee_id. Notifies supervisor EN+AR."
+                                    }
+                                },
+                                {
+                                    "name": "12e. Reject supervisor registration",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Authorization",
+                                                "value": "Bearer {{token}}"
+                                            },
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json"
+                                            }
+                                        ],
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n  \"reason\": \"Trade license is expired.\"\n}"
+                                        },
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/reject",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "supervisor-registrations",
+                                                "{{supervisor_registration_id}}",
+                                                "reject"
+                                            ]
+                                        },
+                                        "description": "POST /api/admin/supervisor-registrations/{id}/reject — Rejects contractor signup. `reason` required. Notifies supervisor EN+AR."
+                                    }
+                                },
+                                {
+                                    "name": "12f. Request missing documents (supervisor/contractor)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -28473,19 +28621,19 @@
                                             "raw": "{\n  \"message\": \"Please upload a clear VAT certificate and updated trade license.\",\n  \"notes\": \"Missing documents requested\"\n}"
                                         },
                                         "url": {
-                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/request-documents",
+                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/request-documents",
                                             "host": [
                                                 "{{base_url}}"
                                             ],
                                             "path": [
                                                 "api",
                                                 "admin",
-                                                "vendors",
-                                                "{{vendor_id}}",
+                                                "supervisor-registrations",
+                                                "{{supervisor_registration_id}}",
                                                 "request-documents"
                                             ]
                                         },
-                                        "description": "POST /api/admin/vendors/{id}/request-documents — After contractor registration, admin can ask for more docs. Sets admin_review_message + notifies contractor (EN+AR: Additional Documents Required). Body: message (required), notes (optional)."
+                                        "description": "POST /api/admin/supervisor-registrations/{id}/request-documents — Ask contractor/supervisor for more docs. Sets admin_review_message + notifies EN+AR. Body: message (required), notes (optional)."
                                     }
                                 },
                                 {

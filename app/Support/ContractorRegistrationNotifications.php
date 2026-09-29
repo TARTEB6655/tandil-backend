@@ -3,7 +3,7 @@
 namespace App\Support;
 
 /**
- * Bilingual contractor (vendor) registration push/in-app copy (EN + AR).
+ * Bilingual contractor (supervisor) registration push/in-app copy (EN + AR).
  */
 final class ContractorRegistrationNotifications
 {
