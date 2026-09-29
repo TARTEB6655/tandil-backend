@@ -105,6 +105,14 @@ class VendorRegistrationService
                     $this->application->syncCategories($vendor, $data['category_ids']);
                 }
 
+                if (! empty($data['subcategory_ids']) && is_array($data['subcategory_ids'])) {
+                    $merged = array_values(array_unique(array_merge(
+                        array_map('intval', $data['category_ids'] ?? []),
+                        array_map('intval', $data['subcategory_ids'])
+                    )));
+                    $this->application->syncCategories($vendor, $merged);
+                }
+
                 if (! empty($data['service_ids']) && is_array($data['service_ids'])) {
                     $this->syncServices($vendor, $data['service_ids']);
                 }

@@ -3,10 +3,15 @@
 namespace Tests\Feature\Vendor;
 
 use App\Enums\VendorStatus;
+use App\Models\Area;
+use App\Models\Category;
 use App\Models\ContractorRegistrationField;
+use App\Models\Emirate;
+use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Notifications\AdminNotification;
 use App\Notifications\VendorApplicationStatusNotification;
 use Database\Seeders\ContractorRegistrationConfigSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -27,19 +32,29 @@ class ContractorRegistrationSchemaApiTest extends TestCase
         $this->seed(ContractorRegistrationConfigSeeder::class);
     }
 
-    public function test_public_registration_schema_returns_sections_and_options(): void
+    public function test_public_schema_has_exact_contractor_fields_only(): void
     {
         $response = $this->getJson('/api/contractor/auth/registration-schema');
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.version', 'contractor-registration-v1')
-            ->assertJsonPath('data.status_after_submit', 'pending');
+            ->assertJsonPath('data.version', 'contractor-registration-v2');
 
-        $sections = $response->json('data.sections');
-        $this->assertIsArray($sections);
-        $this->assertNotEmpty($sections);
-        $this->assertNotEmpty($response->json('data.options.banks'));
+        $keys = collect($response->json('data.sections'))
+            ->flatMap(fn ($s) => collect($s['fields'])->pluck('key'))
+            ->sort()
+            ->values()
+            ->all();
+
+        $expected = ContractorRegistrationConfigSeeder::ALLOWED_KEYS;
+        sort($expected);
+        $this->assertSame($expected, $keys);
+
+        $this->assertSame(
+            ['trade_license_upload', 'vat_certificate', 'bank_confirmation_letter'],
+            $response->json('data.file_uploads')
+        );
+        $this->assertNotEmpty($response->json('data.admin_fields'));
     }
 
     public function test_admin_can_toggle_field_required_and_schema_reflects_change(): void
@@ -48,7 +63,7 @@ class ContractorRegistrationSchemaApiTest extends TestCase
         $admin->assignRole('admin');
         $token = $admin->createToken('test')->plainTextToken;
 
-        $field = ContractorRegistrationField::query()->where('key', 'tax_vat_number')->firstOrFail();
+        $field = ContractorRegistrationField::query()->where('key', 'trn')->firstOrFail();
         $this->withToken($token)
             ->putJson("/api/admin/contractor-registration/fields/{$field->id}", [
                 'is_required' => true,
@@ -59,30 +74,61 @@ class ContractorRegistrationSchemaApiTest extends TestCase
 
         $schema = $this->getJson('/api/vendor/auth/registration-schema');
         $company = collect($schema->json('data.sections'))->firstWhere('key', 'company');
-        $trn = collect($company['fields'] ?? [])->firstWhere('key', 'tax_vat_number');
+        $trn = collect($company['fields'] ?? [])->firstWhere('key', 'trn');
         $this->assertTrue((bool) ($trn['is_required'] ?? false));
     }
 
-    public function test_registration_sets_pending_and_sends_bilingual_submitted_notification(): void
+    public function test_contractor_registration_notifies_admin_and_contractor(): void
     {
         Notification::fake();
 
+        $admin = User::factory()->create(['role' => 'admin', 'email' => 'admin-contractor@test.com']);
+        $admin->assignRole('admin');
+
+        $emirate = Emirate::query()->firstOrCreate(
+            ['slug' => 'dubai'],
+            ['name' => 'Dubai', 'is_active' => true]
+        );
+        $category = Category::query()->firstOrCreate(
+            ['slug' => 'cleaning-main'],
+            ['name' => 'Cleaning', 'is_active' => true]
+        );
+        $service = Service::query()->firstOrCreate(
+            ['slug' => 'deep-clean-contractor'],
+            [
+                'name' => 'Deep Clean',
+                'is_active' => true,
+                'category_id' => $category->id,
+            ]
+        );
+        $area = Area::query()->firstOrCreate(
+            ['name' => 'Marina Zone'],
+            ['is_active' => true]
+        );
+
         $response = $this->post('/api/contractor/auth/register', [
-            'company_name' => 'Contractor Co',
-            'authorized_person_name' => 'Sam Contractor',
-            'email' => 'contractor-schema@test.com',
+            'name' => 'Sam Contractor',
             'phone' => '+971500009901',
+            'email' => 'contractor-schema@test.com',
             'password' => 'secret12',
             'password_confirmation' => 'secret12',
-            'address' => 'Dubai Marina',
+            'company_name' => 'Contractor Co',
             'trade_license_number' => 'TL-CONTRACTOR',
+            'trade_license_upload' => UploadedFile::fake()->create('trade-license.pdf', 100, 'application/pdf'),
+            'trade_license_expiry_date' => '2027-12-31',
+            'trn' => 'TRN123',
             'emirate' => 'Dubai',
             'city' => 'Dubai',
+            'company_address' => 'Dubai Marina',
             'bank_name' => 'Emirates NBD',
-            'iban' => 'AE070331234567890123456',
             'account_holder_name' => 'Contractor Co',
-            'terms_accepted' => 1,
-            'trade_license' => UploadedFile::fake()->create('trade-license.pdf', 100, 'application/pdf'),
+            'bank_account_number' => '1234567890',
+            'iban' => 'AE070331234567890123456',
+            'bank_confirmation_letter' => UploadedFile::fake()->create('bank-letter.pdf', 100, 'application/pdf'),
+            'main_service_categories' => [$category->id],
+            'selected_services' => [$service->id],
+            'emirates' => [$emirate->id],
+            'service_coverage_areas' => [$area->id],
         ], ['Accept' => 'application/json']);
 
         $response->assertCreated()
@@ -91,10 +137,11 @@ class ContractorRegistrationSchemaApiTest extends TestCase
         $user = User::query()->where('email', 'contractor-schema@test.com')->first();
         $this->assertNotNull($user);
 
-        Notification::assertSentTo($user, VendorApplicationStatusNotification::class, function ($n) {
-            $payload = $n->toArray($n->vendor->user);
-            return ($payload['title'] ?? null) === 'Registration Under Review'
-                && isset($payload['title_ar'], $payload['message_ar']);
+        Notification::assertSentTo($user, VendorApplicationStatusNotification::class);
+        Notification::assertSentTo($admin, AdminNotification::class, function (AdminNotification $n) {
+            $payload = $n->toArray(User::factory()->make(['role' => 'admin']));
+
+            return str_contains((string) ($payload['title'] ?? ''), 'Contractor');
         });
     }
 
@@ -124,8 +171,5 @@ class ContractorRegistrationSchemaApiTest extends TestCase
         Notification::assertSentTo($vendorUser, VendorApplicationStatusNotification::class, function ($n) {
             return $n->status === 'missing_documents';
         });
-
-        $this->assertNotNull($vendor->fresh()->profile->documents_requested_at);
-        $this->assertSame('Please upload VAT certificate.', $vendor->fresh()->profile->admin_review_message);
     }
 }

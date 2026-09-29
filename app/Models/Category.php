@@ -21,6 +21,7 @@ class Category extends Model
 
     protected $fillable = [
         'vendor_id',
+        'parent_id',
         'name',
         'slug',
         'description',
@@ -74,6 +75,16 @@ class Category extends Model
     public function vendorAccount()
     {
         return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(self::class, 'parent_id')->ordered();
     }
 
     public function scopeOrdered($query)
