@@ -1,10 +1,10 @@
 {
     "info": {
         "name": "Tandil Backend - Flow-Based Collection (v3.6.36)",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **12 → N2. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.37"
+        "version": "3.6.38"
     },
     "item": [
         {
@@ -1149,7 +1149,7 @@
                     }
                 },
                 {
-                    "name": "Register Contractor (multipart – only API)",
+                    "name": "Register Contractor (supervisor – multipart)",
                     "event": [
                         {
                             "listen": "test",
@@ -1361,7 +1361,7 @@
                     }
                 },
                 {
-                    "name": "Login Contractor",
+                    "name": "Login Contractor (supervisor role)",
                     "event": [
                         {
                             "listen": "test",
@@ -8381,7 +8381,7 @@
                 },
                 {
                     "name": "D. Settings (Mobile)",
-                    "description": "Admin Settings APIs (Bearer {{token}} admin).\n\n**Newly added / key requests in this folder:**\n1. **Get Instant Order Fee** / **Update Instant Order Fee** → `GET/PUT /api/admin/settings/instant-order-fee` (shop/product checkout only)\n2. **Get Service Pricing Settings** / **Update Service Pricing Settings (form-data)** / **Update Service Pricing Settings (PUT form-data)** → `GET/POST|PUT /api/admin/settings/service-pricing` (global Fixed / per m² for **all services**; no ID)\n\nAlso: Get All Settings, System, App Config, Payment, Shop shipping/tax, Export Data, Legal.",
+                    "description": "Admin Settings API for React Native Settings screen. Base URL: `/api/admin/settings`. Auth: Bearer token + admin role. **Legal & Contact Content** subfolder at bottom — edit client/vendor policy pages shown in their dashboards.",
                     "item": [
                         {
                             "name": "Get All Settings",
@@ -9660,8 +9660,7 @@
                                 }
                             ]
                         }
-                    ],
-                    "description": "Admin Settings API for React Native Settings screen. Base URL: `/api/admin/settings`. Auth: Bearer token + admin role. **Legal & Contact Content** subfolder at bottom — edit client/vendor policy pages shown in their dashboards."
+                    ]
                 },
                 {
                     "name": "E. Banners",
@@ -28456,187 +28455,6 @@
                                     }
                                 },
                                 {
-                                    "name": "12b. List supervisor registrations (contractor)",
-                                    "request": {
-                                        "method": "GET",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/supervisor-registrations?status=pending&per_page=15",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "supervisor-registrations"
-                                            ],
-                                            "query": [
-                                                {
-                                                    "key": "status",
-                                                    "value": "pending"
-                                                },
-                                                {
-                                                    "key": "per_page",
-                                                    "value": "15"
-                                                }
-                                            ]
-                                        },
-                                        "description": "GET /api/admin/supervisor-registrations — Pending contractor (supervisor) signups. Not marketplace vendors. Sets {{supervisor_registration_id}} from first item in tests if needed."
-                                    }
-                                },
-                                {
-                                    "name": "12c. Show supervisor registration",
-                                    "request": {
-                                        "method": "GET",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "supervisor-registrations",
-                                                "{{supervisor_registration_id}}"
-                                            ]
-                                        },
-                                        "description": "GET /api/admin/supervisor-registrations/{id} — Full contractor/supervisor registration detail + documents."
-                                    }
-                                },
-                                {
-                                    "name": "12d. Approve supervisor registration",
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "supervisor-registrations",
-                                                "{{supervisor_registration_id}}",
-                                                "approve"
-                                            ]
-                                        },
-                                        "description": "POST /api/admin/supervisor-registrations/{id}/approve — Activates supervisor user (status active). Optional employee_id. Notifies supervisor EN+AR."
-                                    }
-                                },
-                                {
-                                    "name": "12e. Reject supervisor registration",
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"reason\": \"Trade license is expired.\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/reject",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "supervisor-registrations",
-                                                "{{supervisor_registration_id}}",
-                                                "reject"
-                                            ]
-                                        },
-                                        "description": "POST /api/admin/supervisor-registrations/{id}/reject — Rejects contractor signup. `reason` required. Notifies supervisor EN+AR."
-                                    }
-                                },
-                                {
-                                    "name": "12f. Request missing documents (supervisor/contractor)",
-                                    "request": {
-                                        "method": "POST",
-                                        "header": [
-                                            {
-                                                "key": "Authorization",
-                                                "value": "Bearer {{token}}"
-                                            },
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json"
-                                            }
-                                        ],
-                                        "body": {
-                                            "mode": "raw",
-                                            "raw": "{\n  \"message\": \"Please upload a clear VAT certificate and updated trade license.\",\n  \"notes\": \"Missing documents requested\"\n}"
-                                        },
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/request-documents",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "supervisor-registrations",
-                                                "{{supervisor_registration_id}}",
-                                                "request-documents"
-                                            ]
-                                        },
-                                        "description": "POST /api/admin/supervisor-registrations/{id}/request-documents — Ask contractor/supervisor for more docs. Sets admin_review_message + notifies EN+AR. Body: message (required), notes (optional)."
-                                    }
-                                },
-                                {
                                     "name": "13. Mark under review",
                                     "request": {
                                         "method": "POST",
@@ -28724,6 +28542,223 @@
                                     }
                                 }
                             ]
+                        }
+                    ]
+                },
+                {
+                    "name": "N2. Admin – Supervisor (Contractor) Registrations",
+                    "description": "Review **contractor app** signups. These are **supervisors**, not marketplace vendors.\n\n**Flow:** Register Contractor (`2. Authentication`) → admin list/show → approve | reject | request-documents.\n\n**Auth:** Login as admin → Bearer {{token}}.\n\n**Vars:** {{supervisor_registration_id}}, {{supervisor_id}} (set by Register Contractor or List).",
+                    "item": [
+                        {
+                            "name": "1. List supervisor registrations",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    var items = (j.data && j.data.items) || [];",
+                                            "    if (items.length) {",
+                                            "        if (items[0].registration_id) {",
+                                            "            pm.collectionVariables.set('supervisor_registration_id', String(items[0].registration_id));",
+                                            "            pm.environment.set('supervisor_registration_id', String(items[0].registration_id));",
+                                            "        }",
+                                            "        if (items[0].supervisor_id) {",
+                                            "            pm.collectionVariables.set('supervisor_id', String(items[0].supervisor_id));",
+                                            "            pm.environment.set('supervisor_id', String(items[0].supervisor_id));",
+                                            "        }",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations?status=pending&per_page=15",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "disabled": true
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/supervisor-registrations — Pending contractor (supervisor) signups. Auto-sets {{supervisor_registration_id}} and {{supervisor_id}} from first item."
+                            }
+                        },
+                        {
+                            "name": "2. Show supervisor registration",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}"
+                                    ]
+                                },
+                                "description": "GET /api/admin/supervisor-registrations/{id} — Full detail + documents. Response uses registration_id / supervisor_id (not vendor_id)."
+                            }
+                        },
+                        {
+                            "name": "3. Approve supervisor registration",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "approve"
+                                    ]
+                                },
+                                "description": "POST .../approve — Activates supervisor user (status active). Optional employee_id, assigned_zone_ids. Notifies supervisor EN+AR."
+                            }
+                        },
+                        {
+                            "name": "4. Reject supervisor registration",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Trade license is expired.\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/reject",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "reject"
+                                    ]
+                                },
+                                "description": "POST .../reject — Rejects contractor signup. `reason` required. Notifies supervisor EN+AR."
+                            }
+                        },
+                        {
+                            "name": "5. Request missing documents",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"message\": \"Please upload a clear VAT certificate and updated trade license.\",\n  \"notes\": \"Missing documents requested\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/request-documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "request-documents"
+                                    ]
+                                },
+                                "description": "POST .../request-documents — Ask supervisor/contractor for more docs. Body: message (required), notes (optional). Status → documents_requested. Notifies EN+AR."
+                            }
                         }
                     ]
                 },
@@ -29550,6 +29585,18 @@
             "value": "",
             "type": "string",
             "description": "Set by Postman test script on 4. Client Dashboard -> J. Subscriptions -> Renew/Upgrade Create Payment Intent."
+        },
+        {
+            "key": "supervisor_registration_id",
+            "value": "",
+            "type": "string",
+            "description": "Set by Register Contractor or Admin N2 List. Used by /api/admin/supervisor-registrations/{id}."
+        },
+        {
+            "key": "supervisor_token",
+            "value": "",
+            "type": "string",
+            "description": "Set by Login Contractor (roles: supervisor)."
         }
     ]
 }
