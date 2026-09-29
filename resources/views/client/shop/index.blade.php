@@ -80,8 +80,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                 @forelse($products as $product)
                     @php
-                        // Use centralized model URL accessor (same behavior as admin/products API).
-                        $imgUrl = $product->getImageUrl();
+                        $imgUrl = media_thumb(
+                            $product->primaryImage?->image_path
+                                ?? $product->firstImage?->image_path
+                                ?? $product->image,
+                            384
+                        ) ?? $product->getImageUrl();
                         $isVariable = ($product->product_type ?? 'simple') === 'variable';
                         $hasGroups  = $isVariable && $product->optionGroups->isNotEmpty();
                     @endphp
@@ -91,7 +95,8 @@
                         <div class="relative aspect-[4/3] bg-gray-100 overflow-hidden shrink-0">
                             @if($imgUrl)
                                 <img src="{{ $imgUrl }}" alt="{{ $product->name }}"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                     loading="lazy" decoding="async">
                             @else
                                 <div class="w-full h-full flex items-center justify-center">
                                     <svg class="w-14 h-14 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

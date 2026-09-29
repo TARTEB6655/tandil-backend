@@ -25,17 +25,12 @@ class Banner extends Model
     ];
 
     /**
-     * Get the image URL (uses /media/ path like Category and Product for reliable display).
+     * Home/list banner URL (cached thumb via /media/…?w=640).
      */
     public function getImageUrlAttribute()
     {
-        if ($this->image) {
-            if (filter_var($this->image, FILTER_VALIDATE_URL) || substr($this->image, 0, 4) === 'http') {
-                return $this->image;
-            }
-            return asset('media/' . ltrim(str_replace('\\', '/', $this->image), '/'));
-        }
-        return null;
+        return \App\Support\MediaUrl::thumb($this->image, 640)
+            ?? \App\Support\MediaUrl::full($this->image);
     }
 
     /**

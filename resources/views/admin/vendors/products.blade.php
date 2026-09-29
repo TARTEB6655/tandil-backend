@@ -116,7 +116,7 @@
                                 <td class="px-4 py-4">
                                     <div class="flex items-center gap-3">
                                         @if($vp->product?->image_url)
-                                            <img src="{{ $vp->product->image_url }}" alt="" class="h-10 w-10 rounded-md border object-cover dark:border-gray-700" />
+                                            <img src="{{ media_thumb($vp->product->primaryImage?->image_path ?? $vp->product->image, 192) ?? $vp->product->image_url }}" alt="" class="h-10 w-10 rounded-md border object-cover dark:border-gray-700" loading="lazy" decoding="async" width="40" height="40" />
                                         @else
                                             <div class="flex h-10 w-10 items-center justify-center rounded-md bg-gray-100 text-xs text-gray-500 dark:bg-gray-800">—</div>
                                         @endif

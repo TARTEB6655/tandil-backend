@@ -66,12 +66,11 @@ class ProductImage extends Model
     }
 
     /**
-     * Get the full URL for the image.
-     * Uses request host when available so API image URLs work behind proxy / correct domain.
+     * List/card URL (cached thumb). Use buildFullUrl() for zoom/detail.
      */
     public function getImageUrl()
     {
-        return self::buildFullUrl($this->image_path);
+        return self::buildThumbUrl($this->image_path, 384) ?? self::buildFullUrl($this->image_path);
     }
 
     /**

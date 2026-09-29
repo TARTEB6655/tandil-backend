@@ -37,17 +37,9 @@ class Package extends Model
     public function getImageUrlAttribute(): ?string
     {
         $image = $this->attributes['image'] ?? null;
-        if (empty($image) || ! is_string($image)) {
-            return null;
-        }
-        if (str_starts_with($image, 'http')) {
-            return $image;
-        }
-        $path = ltrim(str_replace('\\', '/', $image), '/');
-        if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
-        }
-        return asset('media/' . $path);
+
+        return \App\Support\MediaUrl::thumb(is_string($image) ? $image : null, 384)
+            ?? \App\Support\MediaUrl::full(is_string($image) ? $image : null);
     }
 
     protected $appends = ['image_url'];

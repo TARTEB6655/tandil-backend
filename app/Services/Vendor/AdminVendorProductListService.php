@@ -171,7 +171,10 @@ class AdminVendorProductListService
             'is_live' => $vp->isAdminLive(),
             'is_low_stock' => $vp->isLowStock(),
             'is_out_of_stock' => $vp->isOutOfStock(),
-            'image_url' => $product?->image_url,
+            'image_url' => $product?->image_url
+                ?? ($product?->primaryImage?->image_path
+                    ? \App\Models\ProductImage::buildThumbUrl($product->primaryImage->image_path, 384)
+                    : null),
             'created_at' => $vp->created_at?->toIso8601String(),
             'updated_at' => $vp->updated_at?->toIso8601String(),
         ];

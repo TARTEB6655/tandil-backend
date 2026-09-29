@@ -244,7 +244,7 @@ class Product extends Model
     }
 
     /**
-     * Build full image URL from path.
+     * Build list/card image URL (cached thumb via /media/…?w=).
      */
     private function buildImageUrl(string $path, string $prefix = ''): ?string
     {
@@ -258,22 +258,19 @@ class Product extends Model
         }
         $normalized = ltrim(str_replace('\\', '/', $path), '/');
 
-        // If DB already stores a public media path, keep it as-is.
         if (str_starts_with($normalized, 'media/')) {
-            return asset($normalized);
+            $normalized = substr($normalized, strlen('media/'));
         }
-        // Support plain public images paths as well (e.g. images/logo.png).
         if (str_starts_with($normalized, 'images/')) {
-            return asset($normalized);
+            return asset('images/'.substr($normalized, strlen('images/')));
         }
 
         if ($prefix && strpos($normalized, $prefix) !== 0) {
-            $normalized = $prefix . $normalized;
+            $normalized = $prefix.$normalized;
         }
 
-        // Enforce production media URL style requested by frontend/deployment.
-        // Example: https://<host>/media/products/abc.jpg
-        return asset('media/' . $normalized);
+        return \App\Support\MediaUrl::thumb($normalized, 384)
+            ?? \App\Support\MediaUrl::full($normalized);
     }
 
     /**

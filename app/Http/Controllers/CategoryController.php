@@ -120,17 +120,8 @@ class CategoryController extends Controller
      */
     private function buildCategoryImageUrl(?string $path): ?string
     {
-        if (! $path || ! is_string($path)) {
-            return null;
-        }
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-        $path = ltrim(str_replace('\\', '/', $path), '/');
-        if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
-        }
-        return asset('media/' . $path);
+        return \App\Support\MediaUrl::thumb($path, 256)
+            ?? \App\Support\MediaUrl::full($path);
     }
 
     /**

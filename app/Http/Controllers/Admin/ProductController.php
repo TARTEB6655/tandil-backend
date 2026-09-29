@@ -38,12 +38,25 @@ class ProductController extends Controller
         $this->middleware('role:admin');
     }
 
+    private const LIST_THUMB_WIDTH = 384;
+
     /**
      * Return product data with only allowed API fields.
      * Main image shown once (main_image + root image_url); gallery images separate (gallery_images only).
+     *
+     * @param  bool  $forList  List/card responses use cached thumbs and skip heavy option/variant payloads.
      */
-    private function productToApiData(Product $product): array
+    private function productToApiData(Product $product, bool $forList = false): array
     {
+        $url = function (?string $path) use ($forList): ?string {
+            if ($forList) {
+                return ProductImage::buildThumbUrl($path, self::LIST_THUMB_WIDTH)
+                    ?? ProductImage::buildFullUrl($path);
+            }
+
+            return ProductImage::buildFullUrl($path);
+        };
+
         $imagesCollection = $product->relationLoaded('images') ? $product->images : collect([]);
         $primaryImage = $product->relationLoaded('primaryImage') ? $product->primaryImage : null;
         $mainImage = null;
@@ -52,7 +65,7 @@ class ProductController extends Controller
             $mainImage = [
                 'id' => $primaryImage->id,
                 'image_path' => $primaryImage->image_path,
-                'image_url' => ProductImage::buildFullUrl($primaryImage->image_path),
+                'image_url' => $url($primaryImage->image_path),
             ];
         }
         $uniqueImages = ProductImage::uniqueByPath($imagesCollection);
@@ -62,14 +75,14 @@ class ProductController extends Controller
                     $mainImage = [
                         'id' => $img->id,
                         'image_path' => $img->image_path,
-                        'image_url' => ProductImage::buildFullUrl($img->image_path),
+                        'image_url' => $url($img->image_path),
                     ];
                 }
-            } else {
+            } elseif (! $forList) {
                 $galleryImages[] = [
                     'id' => $img->id,
                     'image_path' => $img->image_path,
-                    'image_url' => ProductImage::buildFullUrl($img->image_path),
+                    'image_url' => $url($img->image_path),
                     'sort_order' => (int) $img->sort_order,
                 ];
             }
@@ -86,9 +99,9 @@ class ProductController extends Controller
             $imagesList[] = $galleryImage;
         }
 
-        // Variable product extras (option groups + variants) — full group/option + image URLs
+        // Variable product extras — skip on list for faster admin/vendor grids.
         $optionGroups = [];
-        if ($product->relationLoaded('optionGroups')) {
+        if (! $forList && $product->relationLoaded('optionGroups')) {
             $optionGroups = $product->optionGroups
                 ->sortBy('sort_order')
                 ->values()
@@ -97,7 +110,7 @@ class ProductController extends Controller
         }
 
         $variants = [];
-        if ($product->relationLoaded('variants')) {
+        if (! $forList && $product->relationLoaded('variants')) {
             foreach ($product->variants as $variant) {
                 $optIds = [];
                 if ($variant->relationLoaded('options')) {
@@ -114,6 +127,9 @@ class ProductController extends Controller
                 ];
             }
         }
+
+        $cardUrl = $url($rootImagePath);
+        $fullUrl = ProductImage::buildFullUrl($rootImagePath);
 
         return [
             'id' => $product->id,
@@ -134,7 +150,9 @@ class ProductController extends Controller
             'estimated_arrival' => $product->estimated_arrival,
             'job_duration' => $product->job_duration,
             'image' => $rootImagePath,
-            'image_url' => ProductImage::buildFullUrl($rootImagePath),
+            'image_url' => $cardUrl,
+            'image_thumb_url' => ProductImage::buildThumbUrl($rootImagePath, self::LIST_THUMB_WIDTH),
+            'image_full_url' => $fullUrl,
             'main_image' => $mainImage,
             'gallery_images' => $galleryImages,
             'images' => $imagesList,
@@ -150,7 +168,11 @@ class ProductController extends Controller
             'tax_percentage' => $product->category !== null
                 ? $product->category->effectiveTaxPercentage()
                 : null,
-            'service_ids' => $product->relationLoaded('services') ? $product->services->pluck('id')->values()->all() : $product->services()->pluck('id')->values()->all(),
+            'service_ids' => $forList
+                ? []
+                : ($product->relationLoaded('services')
+                    ? $product->services->pluck('id')->values()->all()
+                    : $product->services()->pluck('id')->values()->all()),
             'option_groups' => $optionGroups,
             'variants' => $variants,
             'created_at' => $product->created_at,
@@ -467,15 +489,16 @@ class ProductController extends Controller
         $search = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        // Optimized: only load what's needed
+        // Optimized: only load what's needed for list/card thumbnails
         $query = Product::with([
             'category:id,name,slug',
             'primaryImage:id,product_id,image_path,is_primary',
             'firstImage:id,product_id,image_path,sort_order',
         ]);
         
-        // Add extra relations only for API requests (so variable option groups are available in JSON).
-        if ($isApi) {
+        // Detail-heavy relations only when not a list API response (web index still light).
+        // Admin API product list uses thumbs + skips option/variant payloads.
+        if ($isApi && $request->boolean('include_variants', false)) {
             $query->with([
                 'images:id,product_id,image_path,sort_order,is_primary',
                 'optionGroups.options',
@@ -508,7 +531,7 @@ class ProductController extends Controller
             return response()->json([
                 'status' => true,
                 'message' => 'Products retrieved successfully.',
-                'data' => array_map(fn (Product $p) => $this->productToApiData($p), $products->items()),
+                'data' => array_map(fn (Product $p) => $this->productToApiData($p, true), $products->items()),
                 'pagination' => [
                     'current_page' => $products->currentPage(),
                     'last_page' => $products->lastPage(),
@@ -581,7 +604,7 @@ class ProductController extends Controller
             'status' => true,
             'message' => 'Product order updated successfully.',
             'category_id' => $categoryId,
-            'data' => $products->map(fn (Product $p) => $this->productToApiData($p))->all(),
+            'data' => $products->map(fn (Product $p) => $this->productToApiData($p, true))->all(),
         ]);
     }
 

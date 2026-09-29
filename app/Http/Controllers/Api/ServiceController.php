@@ -29,7 +29,8 @@ class ServiceController extends Controller
             'type' => $product->type ?? 'product',
             ...\App\Support\ServiceAreaPricing::productApiFields($product),
             'image' => $rootImagePath,
-            'image_url' => ProductImage::buildFullUrl($rootImagePath),
+            'image_url' => ProductImage::buildThumbUrl($rootImagePath, 384)
+                ?? ProductImage::buildFullUrl($rootImagePath),
             'status' => $product->status,
         ];
     }

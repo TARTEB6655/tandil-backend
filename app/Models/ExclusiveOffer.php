@@ -33,17 +33,8 @@ class ExclusiveOffer extends Model
      */
     public function getImageUrlAttribute(): ?string
     {
-        if (empty($this->image) || ! is_string($this->image)) {
-            return null;
-        }
-        if (filter_var($this->image, FILTER_VALIDATE_URL) || str_starts_with($this->image, 'http')) {
-            return $this->image;
-        }
-        $path = ltrim(str_replace('\\', '/', $this->image), '/');
-        if (function_exists('request') && request() && request()->getHttpHost()) {
-            return rtrim(request()->getSchemeAndHttpHost(), '/') . '/media/' . $path;
-        }
-        return asset('media/' . $path);
+        return \App\Support\MediaUrl::thumb($this->image, 384)
+            ?? \App\Support\MediaUrl::full($this->image);
     }
 
     /**

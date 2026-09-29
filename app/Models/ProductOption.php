@@ -34,7 +34,7 @@ class ProductOption extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        return self::buildFullUrl($this->image_path);
+        return self::buildThumbUrl($this->image_path, 192) ?? self::buildFullUrl($this->image_path);
     }
 
     /**
@@ -73,6 +73,18 @@ class ProductOption extends Model
         }
 
         return asset($mediaPath);
+    }
+
+    public static function buildThumbUrl(?string $imagePath, int $width = 192): ?string
+    {
+        $full = self::buildFullUrl($imagePath);
+        if ($full === null) {
+            return null;
+        }
+        $width = max(48, min(640, $width));
+        $sep = str_contains($full, '?') ? '&' : '?';
+
+        return $full.$sep.'w='.$width;
     }
 
     /**

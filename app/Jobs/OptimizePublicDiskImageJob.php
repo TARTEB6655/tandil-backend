@@ -41,7 +41,7 @@ class OptimizePublicDiskImageJob
                 ]);
             } elseif (in_array($this->profile, ['gallery', 'option'], true)) {
                 // Warm list/cart thumbs so first product-grid paint is not a cold GD resize.
-                foreach ([192, 256, 384] as $width) {
+                foreach ([192, 256, 384, 640] as $width) {
                     try {
                         MediaThumbCache::resolve($this->relativePath, $width);
                     } catch (\Throwable) {

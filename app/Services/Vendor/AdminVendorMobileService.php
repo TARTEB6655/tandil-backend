@@ -131,7 +131,10 @@ class AdminVendorMobileService
             'disabled_by_admin' => (bool) $vp->disabled_by_admin,
             'is_enabled' => $isEnabled,
             'is_live' => $isEnabled,
-            'image_url' => $product?->image_url,
+            'image_url' => $product?->image_url
+                ?? ($product?->primaryImage?->image_path
+                    ? \App\Models\ProductImage::buildThumbUrl($product->primaryImage->image_path, 384)
+                    : null),
             'can_toggle' => true,
             'actions' => [
                 'show' => [

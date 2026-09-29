@@ -112,4 +112,36 @@ class ProductGalleryImagesApiTest extends TestCase
         $this->assertNotEmpty($url);
         $this->assertStringNotContainsString('w=384', $url);
     }
+
+    public function test_admin_products_list_uses_thumb_image_urls(): void
+    {
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+        ]);
+        ProductImage::create([
+            'product_id' => $product->id,
+            'image_path' => 'admin-list-main.jpg',
+            'sort_order' => 0,
+            'is_primary' => true,
+        ]);
+
+        $admin = \App\Models\User::factory()->create(['role' => 'admin']);
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->getJson('/api/admin/products', [
+            'Accept' => 'application/json',
+            'Authorization' => 'Bearer '.$token,
+        ]);
+
+        $response->assertOk();
+        $item = collect($response->json('data'))->firstWhere('id', $product->id);
+        $this->assertNotNull($item);
+        $this->assertStringContainsString('w=384', (string) ($item['image_url'] ?? ''));
+        $this->assertStringContainsString('w=384', (string) ($item['image_thumb_url'] ?? ''));
+        $this->assertStringNotContainsString('w=384', (string) ($item['image_full_url'] ?? 'w=384'));
+        $this->assertSame([], $item['option_groups'] ?? null);
+        $this->assertSame([], $item['variants'] ?? null);
+    }
 }

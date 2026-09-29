@@ -486,7 +486,7 @@ class CartController extends Controller
             'is_service' => $isService,
             'is_instant_eligible' => $instantEligible,
             'linked_service_count' => $linkedServiceCount,
-            'image_url' => $imageUrl,
+            'image_url' => $thumbUrl ?? $imageUrl,
             // Prefer image_thumb_url for cart list cells (small download).
             'image_thumb_url' => $thumbUrl,
             'category' => $product->relationLoaded('category') && $product->category
