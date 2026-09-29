@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             FixedUsersOnlySeeder::class,
             VendorTypeAndEmirateSeeder::class,
+            ContractorRegistrationConfigSeeder::class,
             SubscriptionAndReportDummySeeder::class,
             ServicesCategoriesAndProductsSeeder::class,
             ExclusiveOfferSeeder::class,

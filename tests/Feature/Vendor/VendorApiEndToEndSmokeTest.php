@@ -72,7 +72,7 @@ class VendorApiEndToEndSmokeTest extends TestCase
         $register->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.business_name', 'E2E Fresh Market')
             ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00')
             ->assertJsonStructure([

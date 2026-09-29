@@ -11,6 +11,8 @@ enum VendorDocumentType: string
     case GovernmentId = 'government_id';
     case VendorAgreement = 'vendor_agreement';
     case TaxCertificate = 'tax_certificate';
+    case VatCertificate = 'vat_certificate';
+    case BankConfirmationLetter = 'bank_confirmation_letter';
     case BusinessProof = 'business_proof';
     case Other = 'other';
 
@@ -24,6 +26,8 @@ enum VendorDocumentType: string
             self::GovernmentId => 'Government ID',
             self::VendorAgreement => 'Vendor Agreement',
             self::TaxCertificate => 'Tax Certificate',
+            self::VatCertificate => 'VAT Certificate',
+            self::BankConfirmationLetter => 'Bank Account Confirmation Letter',
             self::BusinessProof => 'Business Proof',
             self::Other => 'Other Document',
         };

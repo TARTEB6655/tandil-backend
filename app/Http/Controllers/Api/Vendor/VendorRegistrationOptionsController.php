@@ -4,29 +4,32 @@ namespace App\Http\Controllers\Api\Vendor;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Models\Emirate;
-use App\Models\VendorType;
+use App\Services\Vendor\ContractorRegistrationSchemaService;
 
 /**
- * Public options for the vendor registration wizard (active rows only).
+ * Dynamic contractor/vendor registration form schema for the mobile app.
  */
 class VendorRegistrationOptionsController extends Controller
 {
+    public function __construct(
+        private readonly ContractorRegistrationSchemaService $schema
+    ) {}
+
     public function __invoke()
     {
-        return ApiResponse::success('Registration options retrieved successfully.', [
-            'vendor_types' => VendorType::query()
-                ->active()
-                ->orderBy('name')
-                ->get()
-                ->map(fn (VendorType $row) => $row->toApiArray())
-                ->values(),
-            'emirates' => Emirate::query()
-                ->active()
-                ->orderBy('name')
-                ->get()
-                ->map(fn (Emirate $row) => $row->toApiArray())
-                ->values(),
-        ]);
+        $data = $this->schema->publicSchema();
+
+        // Backward-compatible flat keys used by older apps.
+        $data['vendor_types'] = $data['options']['vendor_types']
+            ?? \App\Models\VendorType::query()->active()->orderBy('name')->get()->map->toApiArray()->values();
+        $data['emirates'] = $data['options']['emirates'] ?? [];
+        $data['banks'] = $data['options']['banks'] ?? [];
+        $data['cities'] = $data['options']['cities'] ?? [];
+        $data['categories'] = $data['options']['categories'] ?? [];
+        $data['services'] = $data['options']['services'] ?? [];
+        $data['areas'] = $data['options']['areas'] ?? [];
+
+        return ApiResponse::success('Registration options retrieved successfully.', $data)
+            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
     }
 }

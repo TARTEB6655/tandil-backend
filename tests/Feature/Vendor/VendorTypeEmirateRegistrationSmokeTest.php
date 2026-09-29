@@ -64,7 +64,7 @@ class VendorTypeEmirateRegistrationSmokeTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.vendor_type', 'spices')
             ->assertJsonPath('data.profile.emirate', 'Al Ain Zone');
 

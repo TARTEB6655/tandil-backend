@@ -74,15 +74,15 @@ class VendorRegistrationService
 
                 $vendor = Vendor::create([
                     'user_id' => $user->id,
-                    'status' => VendorStatus::UnderReview->value,
+                    'status' => VendorStatus::Pending->value,
                 ]);
 
                 $profileData = array_merge(
                     $this->mapProfileFields($data),
                     [
                         'vendor_id' => $vendor->id,
-                        'business_name' => $data['business_name'],
-                        'owner_name' => $data['owner_name'],
+                        'business_name' => $data['business_name'] ?? ($data['company_name'] ?? $data['owner_name']),
+                        'owner_name' => $data['owner_name'] ?? ($data['authorized_person_name'] ?? $data['name'] ?? 'Contractor'),
                         'email' => $data['email'],
                         'logo_path' => $preparedLogo,
                         'onboarding_completed_at' => now(),
@@ -105,13 +105,21 @@ class VendorRegistrationService
                     $this->application->syncCategories($vendor, $data['category_ids']);
                 }
 
+                if (! empty($data['service_ids']) && is_array($data['service_ids'])) {
+                    $this->syncServices($vendor, $data['service_ids']);
+                }
+
+                if (! empty($data['area_ids']) && is_array($data['area_ids'])) {
+                    $this->syncAreas($vendor, $data['area_ids']);
+                }
+
                 VendorApprovalLog::create([
                     'vendor_id' => $vendor->id,
                     'performed_by' => null,
                     'action' => 'submitted_for_review',
                     'old_status' => null,
-                    'new_status' => VendorStatus::UnderReview->value,
-                    'notes' => 'Vendor registration submitted for admin review.',
+                    'new_status' => VendorStatus::Pending->value,
+                    'notes' => 'Contractor registration submitted for admin review.',
                 ]);
 
                 return $vendor;
@@ -133,15 +141,16 @@ class VendorRegistrationService
             $vendorId = $vendor->id;
             if ($adminCreator === null) {
                 dispatch(function () use ($vendorId) {
-                    $fresh = Vendor::query()->with('profile')->find($vendorId);
+                    $fresh = Vendor::query()->with(['profile', 'user'])->find($vendorId);
                     if ($fresh) {
                         app(VendorAdminNotifier::class)->newRegistration($fresh);
+                        app(VendorVendorNotifier::class)->registrationSubmitted($fresh);
                     }
                 })->afterResponse();
             }
 
-            $targetStatus = $initialStatus ?? VendorStatus::UnderReview;
-            if ($targetStatus !== VendorStatus::UnderReview) {
+            $targetStatus = $initialStatus ?? VendorStatus::Pending;
+            if ($targetStatus !== VendorStatus::Pending) {
                 $vendor = app(VendorApprovalService::class)->transition(
                     $vendor->fresh(['profile', 'user']),
                     $targetStatus,
@@ -444,12 +453,16 @@ class VendorRegistrationService
         $fields = [
             'phone',
             'trade_license_number',
+            'trade_license_expiry',
             'emirate',
             'city',
+            'city_id',
             'address',
             'google_maps_location',
             'bank_name',
+            'bank_id',
             'iban',
+            'bank_account_number',
             'account_holder_name',
             'delivery_radius',
             'operating_hours',
@@ -464,6 +477,27 @@ class VendorRegistrationService
             if (array_key_exists($field, $data)) {
                 $mapped[$field] = $data[$field] === '' ? null : $data[$field];
             }
+        }
+
+        if (! empty($mapped['bank_id']) && empty($mapped['bank_name']) && \Illuminate\Support\Facades\Schema::hasTable('contractor_banks')) {
+            $mapped['bank_name'] = \App\Models\ContractorBank::query()->whereKey($mapped['bank_id'])->value('name');
+        }
+
+        if (! empty($mapped['city_id']) && empty($mapped['city']) && \Illuminate\Support\Facades\Schema::hasTable('contractor_cities')) {
+            $city = \App\Models\ContractorCity::query()->find($mapped['city_id']);
+            if ($city) {
+                $mapped['city'] = $city->name;
+                if (empty($mapped['emirate']) && $city->emirate) {
+                    $mapped['emirate'] = $city->emirate->name;
+                }
+            }
+        }
+
+        if (! empty($mapped['emirate']) && is_numeric($mapped['emirate'])) {
+            $mapped['emirate'] = \App\Models\Emirate::query()->whereKey((int) $mapped['emirate'])->value('name')
+                ?? $mapped['emirate'];
+        } elseif (! empty($mapped['emirate'])) {
+            $mapped['emirate'] = \App\Models\Emirate::resolveToName($mapped['emirate']) ?? $mapped['emirate'];
         }
 
         // vendor_type may be a single slug or an array of slugs (multi-select). The
@@ -527,7 +561,37 @@ class VendorRegistrationService
         if ($request->hasFile('business_proof') && ! isset($files[VendorDocumentType::BusinessLicense->value])) {
             $files[VendorDocumentType::BusinessLicense->value] = $request->file('business_proof');
         }
+        if ($request->hasFile('vat_certificate') && ! isset($files[VendorDocumentType::VatCertificate->value])) {
+            $files[VendorDocumentType::VatCertificate->value] = $request->file('vat_certificate');
+        }
+        if ($request->hasFile('bank_confirmation_letter') && ! isset($files[VendorDocumentType::BankConfirmationLetter->value])) {
+            $files[VendorDocumentType::BankConfirmationLetter->value] = $request->file('bank_confirmation_letter');
+        }
 
         return $files;
+    }
+
+    /**
+     * @param  list<int|string>  $serviceIds
+     */
+    private function syncServices(Vendor $vendor, array $serviceIds): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('service_vendor')) {
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $serviceIds))));
+        $vendor->services()->sync($ids);
+    }
+
+    /**
+     * @param  list<int|string>  $areaIds
+     */
+    private function syncAreas(Vendor $vendor, array $areaIds): void
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('vendor_area')) {
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $areaIds))));
+        $vendor->areas()->sync($ids);
     }
 }

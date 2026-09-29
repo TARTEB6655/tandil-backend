@@ -15,13 +15,17 @@ class VendorProfile extends Model
         'email',
         'phone',
         'trade_license_number',
+        'trade_license_expiry',
         'vendor_type',
         'emirate',
         'city',
+        'city_id',
         'address',
         'google_maps_location',
         'bank_name',
+        'bank_id',
         'iban',
+        'bank_account_number',
         'account_holder_name',
         'delivery_radius',
         'operating_hours',
@@ -33,6 +37,8 @@ class VendorProfile extends Model
         'description',
         'social_links',
         'years_in_business',
+        'admin_review_message',
+        'documents_requested_at',
         'terms_accepted_at',
         'onboarding_completed_at',
     ];
@@ -40,8 +46,10 @@ class VendorProfile extends Model
     protected $casts = [
         'delivery_radius' => 'decimal:2',
         'minimum_order_amount' => 'decimal:2',
+        'trade_license_expiry' => 'date',
         'terms_accepted_at' => 'datetime',
         'onboarding_completed_at' => 'datetime',
+        'documents_requested_at' => 'datetime',
         'social_links' => 'array',
     ];
 

@@ -80,7 +80,7 @@ class VendorRegistrationAllTypesAndImageSmokeTest extends TestCase
 
         $response->assertCreated()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.vendor_type', $expectedStored);
 
         $logoPath = (string) $response->json('data.profile.logo_path');

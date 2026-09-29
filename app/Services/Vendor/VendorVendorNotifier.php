@@ -18,6 +18,16 @@ class VendorVendorNotifier
         $this->notifyVendor($vendor, 'rejected', $reason, $notes);
     }
 
+    public function registrationSubmitted(Vendor $vendor): void
+    {
+        $this->notifyVendor($vendor, 'submitted');
+    }
+
+    public function missingDocuments(Vendor $vendor, ?string $notes = null): void
+    {
+        $this->notifyVendor($vendor, 'missing_documents', null, $notes);
+    }
+
     private function notifyVendor(Vendor $vendor, string $status, ?string $reason = null, ?string $notes = null): void
     {
         try {

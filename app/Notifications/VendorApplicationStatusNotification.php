@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Vendor;
+use App\Support\ContractorRegistrationNotifications;
 use App\Support\NotificationAudiencePayload;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
@@ -26,32 +27,48 @@ class VendorApplicationStatusNotification extends Notification
     public function toArray($notifiable): array
     {
         $vendor = $this->vendor->loadMissing('profile');
-        $businessName = $vendor->profile?->business_name ?? 'your business';
+        $copy = $this->copyForStatus();
 
-        $isApproved = $this->status === 'approved';
-
-        $title = $isApproved
-            ? 'Vendor application approved'
-            : 'Vendor application rejected';
-
-        $message = $isApproved
-            ? "Congratulations! {$businessName} has been approved. You can now sign in and access your vendor dashboard."
-            : "Your vendor application for {$businessName} was not approved."
-                .($this->reason ? " Reason: {$this->reason}" : '')
-                .' You may update your profile and resubmit.';
+        $message = $copy['message'];
+        $messageAr = $copy['message_ar'];
+        if ($this->status === 'rejected' && filled($this->reason)) {
+            $message .= ' Reason: '.$this->reason;
+            $messageAr .= ' السبب: '.$this->reason;
+        }
+        if ($this->status === 'missing_documents' && filled($this->notes)) {
+            $message .= ' Admin comments: '.$this->notes;
+            $messageAr .= ' ملاحظات المسؤول: '.$this->notes;
+        }
 
         return NotificationAudiencePayload::merge($notifiable, [
-            'title' => $title,
+            'title' => $copy['title'],
+            'title_ar' => $copy['title_ar'],
             'message' => $message,
-            'type' => 'vendor_application_status',
+            'message_ar' => $messageAr,
+            'type' => 'contractor_registration_'.$copy['event'],
             'meta' => [
-                'entity' => 'vendor_application',
+                'entity' => 'contractor_registration',
+                'event' => $copy['event'],
                 'vendor_id' => $vendor->id,
                 'status' => $this->status,
                 'rejection_reason' => $this->reason,
                 'notes' => $this->notes,
+                'admin_review_message' => $vendor->profile?->admin_review_message,
                 'business_name' => $vendor->profile?->business_name,
             ],
         ]);
+    }
+
+    /**
+     * @return array{event: string, title: string, title_ar: string, message: string, message_ar: string}
+     */
+    private function copyForStatus(): array
+    {
+        return match ($this->status) {
+            'approved' => ContractorRegistrationNotifications::approved(),
+            'rejected' => ContractorRegistrationNotifications::rejected(),
+            'missing_documents' => ContractorRegistrationNotifications::missingDocuments(),
+            default => ContractorRegistrationNotifications::submitted(),
+        };
     }
 }

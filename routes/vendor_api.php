@@ -25,9 +25,18 @@ Route::prefix('vendor')->group(function () {
     Route::post('/auth/register', [VendorAuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']); // body: email, password, roles: "vendor"
     Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
+    Route::get('/auth/registration-schema', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
 
     Route::get('/compare/products/{productId}', [VendorComparisonController::class, 'byProduct']);
     Route::post('/compare/products', [VendorComparisonController::class, 'byProducts']);
+});
+
+// Contractor aliases (same handlers — client naming for contractor registration app)
+Route::prefix('contractor')->group(function () {
+    Route::post('/auth/register', [VendorAuthController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
+    Route::get('/auth/registration-schema', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
 });
 
 /*
@@ -137,12 +146,26 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::post('/{id}/account-status', [VendorManagementController::class, 'updateAccountStatus']);
     Route::post('/{id}/approve', [VendorManagementController::class, 'approve']);
     Route::post('/{id}/reject', [VendorManagementController::class, 'reject']);
+    Route::post('/{id}/request-documents', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'requestDocuments']);
     Route::post('/{id}/suspend', [VendorManagementController::class, 'suspend']);
     Route::post('/{id}/activate', [VendorManagementController::class, 'activate']);
     Route::post('/{id}/under-review', [VendorManagementController::class, 'underReview']);
     Route::post('/{id}/disable', [VendorManagementController::class, 'disable']);
     Route::post('/{id}/delete', [VendorManagementController::class, 'destroy']);
     Route::delete('/{id}', [VendorManagementController::class, 'destroy']);
+});
+
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/contractor-registration')->group(function () {
+    Route::get('/fields', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'fields']);
+    Route::put('/fields/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateField']);
+    Route::post('/fields/reorder', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'reorderFields']);
+    Route::get('/banks', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'banks']);
+    Route::post('/banks', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'storeBank']);
+    Route::put('/banks/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateBank']);
+    Route::delete('/banks/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'destroyBank']);
+    Route::get('/cities', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'cities']);
+    Route::post('/cities', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'storeCity']);
+    Route::put('/cities/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateCity']);
 });
 
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/marketplace')->group(function () {

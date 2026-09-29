@@ -63,7 +63,7 @@ class VendorModuleTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.business_name', 'Green Farms LLC')
             ->assertJsonPath('data.profile.owner_name', 'Ali Vendor')
             ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00')
@@ -71,7 +71,7 @@ class VendorModuleTest extends TestCase
             ->assertJsonPath('data.profile.logo_url', fn ($url) => is_string($url) && str_contains($url, '/media/vendors/logos/'))
             ->assertJsonPath('data.documents.0.file_url', fn ($url) => is_string($url) && str_contains($url, '/media/vendors/'));
 
-        $this->assertDatabaseHas('vendors', ['status' => 'under_review']);
+        $this->assertDatabaseHas('vendors', ['status' => 'pending']);
         $this->assertDatabaseHas('vendor_profiles', [
             'business_name' => 'Green Farms LLC',
             'trade_license_number' => 'TL-12345',

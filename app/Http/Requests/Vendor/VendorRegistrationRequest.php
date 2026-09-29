@@ -28,8 +28,8 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
     {
         PasswordInput::normalize($this);
         $this->normalizeRegistrationFileAliases();
-        $this->normalizeSingleFileUploads(['logo', 'trade_license', 'emirates_id']);
-        $this->ensureUploadFileExtensions(['logo', 'trade_license', 'emirates_id']);
+        $this->normalizeSingleFileUploads(['logo', 'trade_license', 'emirates_id', 'vat_certificate', 'bank_confirmation_letter']);
+        $this->ensureUploadFileExtensions(['logo', 'trade_license', 'emirates_id', 'vat_certificate', 'bank_confirmation_letter']);
 
         parent::prepareForValidation();
 
@@ -68,6 +68,28 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
         // City is optional on the mobile form.
         $shared['city'] = ['nullable', 'string', 'max:100'];
 
+        // Contractor registration does not require marketplace-only fields.
+        $shared['vendor_type'] = ['nullable', function (string $attribute, mixed $value, \Closure $fail) {
+            if ($value === null || $value === '' || $value === []) {
+                return;
+            }
+            $allowed = $this->allowedVendorTypeSlugs();
+            $values = is_array($value) ? $value : [$value];
+            foreach ($values as $single) {
+                if (! in_array($single, $allowed, true)) {
+                    $fail('Please select a valid vendor type.');
+
+                    return;
+                }
+            }
+        }];
+        $shared['google_maps_location'] = ['nullable', 'string', 'max:500'];
+        $shared['delivery_radius'] = ['nullable', 'numeric', 'min:0', 'max:10000'];
+        $shared['operating_hours'] = ['nullable', 'string', 'max:500'];
+        $shared['minimum_order_amount'] = ['nullable', 'numeric', 'min:0', 'max:1000000'];
+        // Bank may be provided via bank_id from admin-managed list.
+        $shared['bank_name'] = ['nullable', 'string', 'max:191'];
+
         return array_merge($shared, [
             'company_name' => ['sometimes', 'string', 'max:255'],
             'authorized_person_name' => ['sometimes', 'string', 'max:255'],
@@ -88,7 +110,22 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'logo' => ['nullable', 'file', 'max:102400', 'extensions:'.self::IMAGE_EXTENSIONS],
 
             'trade_license' => ['required', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
-            'emirates_id' => ['required', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'emirates_id' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'vat_certificate' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+            'bank_confirmation_letter' => ['nullable', 'file', 'max:102400', 'extensions:'.self::DOCUMENT_EXTENSIONS],
+
+            'trade_license_expiry' => ['nullable', 'date'],
+            'bank_id' => ['nullable', 'integer', 'exists:contractor_banks,id'],
+            'bank_account_number' => ['nullable', 'string', 'max:64'],
+            'city_id' => ['nullable', 'integer', 'exists:contractor_cities,id'],
+            'service_ids' => ['nullable', 'array'],
+            'service_ids.*' => ['integer', 'exists:services,id'],
+            'area_ids' => ['nullable', 'array'],
+            'area_ids.*' => ['integer', 'exists:areas,id'],
+            'coverage_emirate_ids' => ['nullable', 'array'],
+            'coverage_emirate_ids.*' => ['integer', 'exists:emirates,id'],
+            'coverage_city_ids' => ['nullable', 'array'],
+            'coverage_city_ids.*' => ['integer', 'exists:contractor_cities,id'],
 
             'opens_at' => ['nullable', 'date_format:H:i'],
             'closes_at' => ['nullable', 'date_format:H:i'],
@@ -111,7 +148,6 @@ class VendorRegistrationRequest extends VendorProfileFormRequest
             'trade_license.required' => 'Trade license document is required.',
             'trade_license.extensions' => 'Trade license must be a PDF or image (JPEG, PNG, WebP). HEIC is not supported.',
             'trade_license.max' => 'Trade license must not be larger than 100 MB. Images are compressed under 2 MB automatically; PDFs must already be under 2 MB.',
-            'emirates_id.required' => 'Emirates ID document is required.',
             'emirates_id.extensions' => 'Emirates ID must be a PDF or image (JPEG, PNG, WebP). HEIC is not supported.',
             'emirates_id.max' => 'Emirates ID must not be larger than 100 MB. Images are compressed under 2 MB automatically; PDFs must already be under 2 MB.',
             'opens_at.date_format' => 'Opening time must be in HH:MM format (e.g. 06:00).',

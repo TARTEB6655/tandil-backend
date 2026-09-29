@@ -68,7 +68,7 @@ class VendorRegistrationSmokeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.operating_hours', '08:00 - 22:00')
             ->assertJsonPath('data.profile.account_holder_name', '2323323')
             ->assertJsonPath('data.profile.vendor_type', 'fruits')
@@ -113,7 +113,7 @@ class VendorRegistrationSmokeTest extends TestCase
 
         $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
             ->assertCreated()
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
+            ->assertJsonPath('data.status', VendorStatus::Pending->value);
     }
 
     public function test_duplicate_phone_returns_friendly_422_not_sql(): void
@@ -157,7 +157,7 @@ class VendorRegistrationSmokeTest extends TestCase
 
         $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
             ->assertCreated()
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
+            ->assertJsonPath('data.status', VendorStatus::Pending->value);
     }
 
     public function test_unknown_vendor_type_falls_back_to_other_instead_of_422(): void
@@ -198,7 +198,7 @@ class VendorRegistrationSmokeTest extends TestCase
 
         $this->post('/api/vendor/auth/register', $payload, ['Accept' => 'application/json'])
             ->assertCreated()
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value);
+            ->assertJsonPath('data.status', VendorStatus::Pending->value);
 
         $user = User::where('email', $email)->first();
         $this->assertNotNull($user);

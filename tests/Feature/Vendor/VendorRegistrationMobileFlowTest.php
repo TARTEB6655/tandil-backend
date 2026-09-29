@@ -67,7 +67,7 @@ class VendorRegistrationMobileFlowTest extends TestCase
         $response->assertCreated()
             ->assertJsonPath('success', true)
             ->assertJsonPath('message', VendorRegistrationService::REGISTRATION_SUCCESS_MESSAGE)
-            ->assertJsonPath('data.status', VendorStatus::UnderReview->value)
+            ->assertJsonPath('data.status', VendorStatus::Pending->value)
             ->assertJsonPath('data.profile.business_name', 'Ahmed Fresh Market')
             ->assertJsonPath('data.profile.owner_name', 'Ahmed')
             ->assertJsonPath('data.profile.iban', 'AE267779282929393')
