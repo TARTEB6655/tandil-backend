@@ -148,13 +148,11 @@ class VendorRegistrationService
 
             $vendorId = $vendor->id;
             if ($adminCreator === null) {
-                dispatch(function () use ($vendorId) {
-                    $fresh = Vendor::query()->with(['profile', 'user'])->find($vendorId);
-                    if ($fresh) {
-                        app(VendorAdminNotifier::class)->newRegistration($fresh);
-                        app(VendorVendorNotifier::class)->registrationSubmitted($fresh);
-                    }
-                })->afterResponse();
+                $fresh = Vendor::query()->with(['profile', 'user'])->find($vendorId);
+                if ($fresh) {
+                    app(VendorAdminNotifier::class)->newRegistration($fresh);
+                    app(VendorVendorNotifier::class)->registrationSubmitted($fresh);
+                }
             }
 
             $targetStatus = $initialStatus ?? VendorStatus::Pending;

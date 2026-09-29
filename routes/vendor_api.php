@@ -25,18 +25,15 @@ Route::prefix('vendor')->group(function () {
     Route::post('/auth/register', [VendorAuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']); // body: email, password, roles: "vendor"
     Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
-    Route::get('/auth/registration-schema', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
 
     Route::get('/compare/products/{productId}', [VendorComparisonController::class, 'byProduct']);
     Route::post('/compare/products', [VendorComparisonController::class, 'byProducts']);
 });
 
-// Contractor aliases (same handlers — client naming for contractor registration app)
+// Contractor registration — single multipart endpoint only.
 Route::prefix('contractor')->group(function () {
     Route::post('/auth/register', [VendorAuthController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']);
-    Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
-    Route::get('/auth/registration-schema', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
 });
 
 /*
