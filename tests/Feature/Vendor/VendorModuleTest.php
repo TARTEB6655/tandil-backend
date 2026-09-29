@@ -117,7 +117,7 @@ class VendorModuleTest extends TestCase
         Notification::assertSentTo(
             $admin,
             AdminNotification::class,
-            fn (AdminNotification $notification) => ($notification->toArray($admin)['title'] ?? null) === 'New Vendor Registration'
+            fn (AdminNotification $notification) => ($notification->toArray($admin)['title'] ?? null) === 'New Contractor Registration'
                 && ($notification->toArray($admin)['meta']['entity'] ?? null) === 'vendor'
         );
     }
