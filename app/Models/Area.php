@@ -17,6 +17,7 @@ class Area extends Model
         'location',
         'country',
         'is_active',
+        'contractor_signup_enabled',
         'priority',
         'latitude',
         'longitude',
@@ -25,6 +26,7 @@ class Area extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
         'priority' => 'integer',
         'latitude' => 'float',
         'longitude' => 'float',

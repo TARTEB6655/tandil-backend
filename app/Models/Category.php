@@ -28,6 +28,7 @@ class Category extends Model
         'image',
         'icon',
         'is_active',
+        'contractor_signup_enabled',
         'sort_order',
         'shipping_cost',
         'shipping_type',
@@ -36,6 +37,7 @@ class Category extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
         'sort_order' => 'integer',
         'shipping_cost' => 'float',
         'tax_percentage' => 'float',

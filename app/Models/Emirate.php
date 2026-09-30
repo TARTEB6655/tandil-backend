@@ -12,10 +12,12 @@ class Emirate extends Model
         'name',
         'slug',
         'is_active',
+        'contractor_signup_enabled',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
     ];
 
     public function scopeActive(Builder $query): Builder

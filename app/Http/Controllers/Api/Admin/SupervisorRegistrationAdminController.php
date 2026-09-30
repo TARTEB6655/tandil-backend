@@ -48,7 +48,7 @@ class SupervisorRegistrationAdminController extends Controller
             ],
             'settings_link' => [
                 'label' => 'Categories / Services / Locations',
-                'endpoint' => '/api/admin/contractor-registration/fields',
+                'endpoint' => '/api/admin/contractor-signup-options',
             ],
         ]);
     }

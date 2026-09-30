@@ -13,11 +13,13 @@ class ContractorCity extends Model
         'name',
         'name_ar',
         'is_active',
+        'contractor_signup_enabled',
         'sort_order',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
         'sort_order' => 'integer',
     ];
 

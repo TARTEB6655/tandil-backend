@@ -28714,6 +28714,120 @@
                     ]
                 },
                 {
+                    "name": "N3. Admin – Contractor Signup Options",
+                    "description": "Contractor signup options screen — master registration toggle + Categories / Subcategories / Services / Emirates / Cities / Coverage CRUD, enable/disable, delete.\n\n**Auth:** admin Bearer {{token}}.",
+                    "item": [
+                        {
+                            "name": "1. Screen (tab list)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options?tab=categories",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options"],
+                                    "query": [
+                                        { "key": "tab", "value": "categories", "description": "categories|subcategories|services|emirates|cities|coverage" }
+                                    ]
+                                },
+                                "description": "GET /api/admin/contractor-signup-options?tab=...\n\nResponse: registration{is_open,title,subtitle}, tabs[], summary{total,active,label}, items[{id,name,slug,subtitle,is_active,actions}]."
+                            }
+                        },
+                        {
+                            "name": "2. Toggle registration open/closed",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"is_open\": true\n}" },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/settings",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options", "settings"]
+                                },
+                                "description": "PUT .../settings — Master Contractor registration toggle."
+                            }
+                        },
+                        {
+                            "name": "3. Add option (+)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\",\n  \"is_active\": true\n}" },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options"]
+                                },
+                                "description": "POST — Add. Body always includes `tab`. Subcategories need parent_id; services may send category_id; cities may send emirate_id."
+                            }
+                        },
+                        {
+                            "name": "4. Edit option",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\"\n}" },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options", "{{signup_option_id}}"]
+                                },
+                                "description": "PUT .../{id}? or body tab= — Edit pencil."
+                            }
+                        },
+                        {
+                            "name": "5. Toggle option active on signup",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" },
+                                    { "key": "Content-Type", "value": "application/json" }
+                                ],
+                                "body": { "mode": "raw", "raw": "{\n  \"tab\": \"categories\",\n  \"is_active\": true\n}" },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}/toggle",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options", "{{signup_option_id}}", "toggle"]
+                                },
+                                "description": "POST .../{id}/toggle — Per-item enable/disable for signup form."
+                            }
+                        },
+                        {
+                            "name": "6. Delete option",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    { "key": "Authorization", "value": "Bearer {{token}}" },
+                                    { "key": "Accept", "value": "application/json" }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}?tab=categories",
+                                    "host": ["{{base_url}}"],
+                                    "path": ["api", "admin", "contractor-signup-options", "{{signup_option_id}}"],
+                                    "query": [{ "key": "tab", "value": "categories" }]
+                                },
+                                "description": "DELETE .../{id}?tab= — Trash icon."
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "O. Admin – Marketplace",
                     "description": "Marketplace-wide admin endpoints (commission, product approval, vendor orders, document verification). Admin token.",
                     "item": [

@@ -517,6 +517,16 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::delete('/supervisor-registrations/{id}', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'destroy'])->whereNumber('id');
     Route::post('/supervisor-registrations/{id}/delete', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'destroy'])->whereNumber('id');
 
+    // Contractor signup options (Categories / Services / Locations screen)
+    Route::get('/contractor-signup-options', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'index']);
+    Route::put('/contractor-signup-options/settings', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'updateSettings']);
+    Route::post('/contractor-signup-options/settings', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'updateSettings']);
+    Route::post('/contractor-signup-options', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'store']);
+    Route::put('/contractor-signup-options/{id}', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'update'])->whereNumber('id');
+    Route::post('/contractor-signup-options/{id}', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'update'])->whereNumber('id');
+    Route::post('/contractor-signup-options/{id}/toggle', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'toggle'])->whereNumber('id');
+    Route::delete('/contractor-signup-options/{id}', [\App\Http\Controllers\Api\Admin\ContractorSignupOptionsAdminController::class, 'destroy'])->whereNumber('id');
+
     Route::get('/areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'index']);
     Route::get('/operational-areas', [\App\Http\Controllers\Api\Admin\AreaController::class, 'operationalAreas']);
     Route::post('/operational-areas/{id}/toggle-active', [\App\Http\Controllers\Api\Admin\AreaController::class, 'toggleOperationalArea']);

@@ -24,6 +24,12 @@ class SupervisorRegistrationService
      */
     public function register(array $data, array $files = []): SupervisorRegistration
     {
+        if (! app(\App\Services\Supervisor\ContractorSignupOptionsService::class)->isRegistrationOpen()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'registration' => ['Contractor registration is currently closed. Please try again later.'],
+            ]);
+        }
+
         $prepared = [];
         foreach ($files as $type => $file) {
             if (! $file instanceof UploadedFile) {

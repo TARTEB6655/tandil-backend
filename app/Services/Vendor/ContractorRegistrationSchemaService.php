@@ -104,7 +104,10 @@ class ContractorRegistrationSchemaService
         }
 
         if (Schema::hasTable('emirates')) {
-            $emirates = Emirate::query()->active()->orderBy('name')->get()
+            $emirates = Emirate::query()
+                ->active()
+                ->when(Schema::hasColumn('emirates', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->orderBy('name')->get()
                 ->map(fn (Emirate $e) => [
                     'id' => $e->id,
                     'value' => $e->name,
@@ -116,7 +119,10 @@ class ContractorRegistrationSchemaService
         }
 
         if (Schema::hasTable('contractor_cities')) {
-            $cities = ContractorCity::query()->active()->ordered()->get()
+            $cities = ContractorCity::query()
+                ->active()
+                ->when(Schema::hasColumn('contractor_cities', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->ordered()->get()
                 ->map(fn (ContractorCity $c) => [
                     'id' => $c->id,
                     'value' => $c->name,
@@ -132,6 +138,7 @@ class ContractorRegistrationSchemaService
             $hasParent = Schema::hasColumn('categories', 'parent_id');
             $base = Category::query()
                 ->when(Schema::hasColumn('categories', 'is_active'), fn ($q) => $q->where('is_active', true))
+                ->when(Schema::hasColumn('categories', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
                 ->when(Schema::hasColumn('categories', 'sort_order'), fn ($q) => $q->orderBy('sort_order'))
                 ->orderBy('name');
 
@@ -161,6 +168,7 @@ class ContractorRegistrationSchemaService
         if (Schema::hasTable('services')) {
             $services = Service::query()
                 ->where('is_active', true)
+                ->when(Schema::hasColumn('services', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
                 ->orderBy('sort_order')
                 ->orderBy('name')
                 ->get(['id', 'name', 'slug', 'category_id'])
@@ -178,6 +186,7 @@ class ContractorRegistrationSchemaService
         if (Schema::hasTable('areas')) {
             $areas = Area::query()
                 ->when(Schema::hasColumn('areas', 'is_active'), fn ($q) => $q->where('is_active', true))
+                ->when(Schema::hasColumn('areas', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
                 ->orderBy('name')
                 ->get(['id', 'name'])
                 ->map(fn (Area $a) => ['id' => $a->id, 'value' => $a->id, 'name' => $a->name])

@@ -17,6 +17,7 @@ class Service extends Model
         'image',
         'icon',
         'is_active',
+        'contractor_signup_enabled',
         'category_id',
         'sort_order',
         'pricing_type',
@@ -26,6 +27,7 @@ class Service extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
         'sort_order' => 'integer',
         'price' => 'float',
         'price_includes' => 'array',
