@@ -174,6 +174,105 @@ class SupervisorRegistrationService
         });
     }
 
+    public function suspend(SupervisorRegistration $registration, User $admin, ?string $notes = null): SupervisorRegistration
+    {
+        return DB::transaction(function () use ($registration, $admin, $notes) {
+            if ($registration->status !== SupervisorRegistration::STATUS_APPROVED) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'action' => ['Only approved contractors can be suspended.'],
+                ]);
+            }
+
+            $user = $registration->user;
+            if ($user) {
+                $user->update(['status' => 'suspended']);
+                try {
+                    $user->tokens()->delete();
+                } catch (\Throwable) {
+                }
+            }
+
+            if ($notes) {
+                $registration->update([
+                    'admin_review_message' => $notes,
+                    'reviewed_by' => $admin->id,
+                ]);
+            }
+
+            return $registration->fresh(['documents', 'user']);
+        });
+    }
+
+    public function activate(SupervisorRegistration $registration, User $admin, ?string $notes = null): SupervisorRegistration
+    {
+        return DB::transaction(function () use ($registration, $admin, $notes) {
+            if ($registration->status !== SupervisorRegistration::STATUS_APPROVED) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'action' => ['Only approved contractors can be activated.'],
+                ]);
+            }
+
+            $user = $registration->user;
+            if ($user) {
+                $user->update(['status' => 'active', 'role' => 'supervisor']);
+                $this->ensureSupervisorRole($user);
+            }
+
+            $registration->update([
+                'admin_review_message' => $notes ?? $registration->admin_review_message,
+                'reviewed_by' => $admin->id,
+            ]);
+
+            return $registration->fresh(['documents', 'user']);
+        });
+    }
+
+    /**
+     * Permanently delete contractor registration + linked supervisor user.
+     *
+     * @return array{registration_id: int, supervisor_id: int|null, deleted: true}
+     */
+    public function permanentlyDelete(SupervisorRegistration $registration): array
+    {
+        return DB::transaction(function () use ($registration) {
+            $registrationId = $registration->id;
+            $userId = $registration->user_id;
+            $user = $registration->user;
+
+            $registration->loadMissing('documents');
+            foreach ($registration->documents as $doc) {
+                try {
+                    if ($doc->file_path) {
+                        Storage::disk('public')->delete($doc->file_path);
+                    }
+                } catch (\Throwable) {
+                }
+            }
+
+            try {
+                Storage::disk('public')->deleteDirectory('supervisors/'.$registrationId);
+            } catch (\Throwable) {
+            }
+
+            $registration->documents()->delete();
+            $registration->delete();
+
+            if ($user) {
+                try {
+                    $user->tokens()->delete();
+                } catch (\Throwable) {
+                }
+                $user->delete();
+            }
+
+            return [
+                'registration_id' => $registrationId,
+                'supervisor_id' => $userId,
+                'deleted' => true,
+            ];
+        });
+    }
+
     private function moveDocument(string $relativePath, int $registrationId): string
     {
         $relativePath = ltrim(str_replace('\\', '/', $relativePath), '/');
