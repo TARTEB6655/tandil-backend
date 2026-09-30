@@ -28719,6 +28719,25 @@
                     "item": [
                         {
                             "name": "1. Screen (tab list)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    var items = (j.data && j.data.items) || [];",
+                                            "    if (items.length && items[0].id) {",
+                                            "        pm.collectionVariables.set('signup_option_id', String(items[0].id));",
+                                            "        pm.environment.set('signup_option_id', String(items[0].id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -28733,7 +28752,7 @@
                                         { "key": "tab", "value": "categories", "description": "categories|subcategories|services|emirates|cities|coverage" }
                                     ]
                                 },
-                                "description": "GET /api/admin/contractor-signup-options?tab=...\n\nResponse: registration{is_open,title,subtitle}, tabs[], summary{total,active,label}, items[{id,name,slug,subtitle,is_active,actions}]."
+                                "description": "GET /api/admin/contractor-signup-options?tab=...\n\nResponse: registration{is_open,title,subtitle}, tabs[], summary{total,active,label}, items[{id,name,slug,subtitle,is_active,actions}]. Sets {{signup_option_id}}."
                             }
                         },
                         {
@@ -28756,6 +28775,24 @@
                         },
                         {
                             "name": "3. Add option (+)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    var j = pm.response.json();",
+                                            "    var id = j.data && j.data.item && j.data.item.id;",
+                                            "    if (id) {",
+                                            "        pm.collectionVariables.set('signup_option_id', String(id));",
+                                            "        pm.environment.set('signup_option_id', String(id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -28769,7 +28806,7 @@
                                     "host": ["{{base_url}}"],
                                     "path": ["api", "admin", "contractor-signup-options"]
                                 },
-                                "description": "POST — Add. Body always includes `tab`. Subcategories need parent_id; services may send category_id; cities may send emirate_id."
+                                "description": "POST — Add. Body always includes `tab`. Subcategories need parent_id; services may send category_id; cities may send emirate_id. Sets {{signup_option_id}}."
                             }
                         },
                         {
@@ -29662,6 +29699,12 @@
             "value": "",
             "type": "string",
             "description": "Set by Login Contractor (roles: supervisor)."
+        },
+        {
+            "key": "signup_option_id",
+            "value": "",
+            "type": "string",
+            "description": "Set by N3 Add option or Screen list first item. Used by edit/toggle/delete on /api/admin/contractor-signup-options/{id}."
         }
     ]
 }
