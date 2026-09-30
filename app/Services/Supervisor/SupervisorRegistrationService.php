@@ -295,13 +295,24 @@ class SupervisorRegistrationService
     private function ensureSupervisorRole(User $user): void
     {
         try {
-            $role = Role::findOrCreate('supervisor', 'web');
-            DB::table(config('permission.table_names.model_has_roles'))->insertOrIgnore([
-                'role_id' => $role->id,
-                'model_type' => $user->getMorphClass(),
-                'model_id' => $user->getKey(),
-            ]);
-        } catch (\Throwable) {
+            Role::findOrCreate('supervisor', 'web');
+            if (! $user->hasRole('supervisor')) {
+                $user->assignRole('supervisor');
+            }
+            if ($user->role !== 'supervisor') {
+                $user->forceFill(['role' => 'supervisor'])->save();
+            }
+        } catch (\Throwable $e) {
+            try {
+                $role = Role::findOrCreate('supervisor', 'web');
+                DB::table(config('permission.table_names.model_has_roles'))->insertOrIgnore([
+                    'role_id' => $role->id,
+                    'model_type' => $user->getMorphClass(),
+                    'model_id' => $user->getKey(),
+                ]);
+            } catch (\Throwable) {
+            }
+            Log::warning('ensureSupervisorRole fallback: '.$e->getMessage(), ['user_id' => $user->id]);
         }
     }
 

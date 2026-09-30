@@ -4,11 +4,15 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Some Apache / PHP-FPM hosts strip the Authorization header before Laravel sees it.
  * Normalize Bearer tokens (trim, quotes, duplicate "Bearer" prefix).
+ *
+ * When a Bearer token is present, clear session/web auth so Sanctum uses the token
+ * instead of a leftover web/admin login overriding the supervisor/client token.
  */
 class ResolveAuthorizationHeader
 {
@@ -25,8 +29,17 @@ class ResolveAuthorizationHeader
         }
 
         $normalized = $this->normalizeBearerHeader($raw);
-        if ($normalized !== null) {
-            $request->headers->set('Authorization', $normalized);
+        if ($normalized === null) {
+            return $next($request);
+        }
+
+        $request->headers->set('Authorization', $normalized);
+
+        // Bearer token must win over any authenticated web/session user.
+        try {
+            Auth::guard('web')->forgetUser();
+            Auth::forgetGuards();
+        } catch (\Throwable) {
         }
 
         return $next($request);
