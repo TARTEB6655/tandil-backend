@@ -1,17 +1,17 @@
 {
     "info": {
-        "name": "Tandil Backend - Flow-Based Collection (v3.6.45)",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **5. Admin Dashboard** (Areas/Zones under admin) / Supervisor zones as documented.\n\n**Client shop & orders:** folder **4. Client Dashboard → O. Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **5 → L. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
+        "name": "Tandil Backend - Flow-Based Collection (v3.6.46)",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **5. Admin Dashboard** (Areas/Zones under admin) / Supervisor zones as documented.\n\n**Client shop & orders:** folder **4. Client Dashboard → O. Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **5 → N. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.45"
+        "version": "3.6.46"
     },
     "item": [
         {
             "name": "1. Health Check - START HERE",
             "item": [
                 {
-                    "name": "Health Check",
+                    "name": "1. Health Check",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -34,7 +34,7 @@
                     }
                 },
                 {
-                    "name": "Debug Performance",
+                    "name": "2. Debug Performance",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -58,10 +58,10 @@
                     }
                 },
                 {
-                    "name": "Language APIs (All Dashboards)",
+                    "name": "3. Language APIs (All Dashboards)",
                     "item": [
                         {
-                            "name": "Get Preferred Language",
+                            "name": "1. Get Preferred Language",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -89,7 +89,7 @@
                             }
                         },
                         {
-                            "name": "Update Preferred Language",
+                            "name": "2. Update Preferred Language",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -128,10 +128,10 @@
                     "description": "Set and verify app language quickly while validating API health."
                 },
                 {
-                    "name": "Localized articles (multilingual demo)",
+                    "name": "4. Localized articles (multilingual demo)",
                     "item": [
                         {
-                            "name": "List localized articles",
+                            "name": "1. List localized articles",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -159,7 +159,7 @@
                             }
                         },
                         {
-                            "name": "Get localized article (welcome-guide)",
+                            "name": "2. Get localized article (welcome-guide)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -203,10 +203,10 @@
                     "description": "Example multilingual content API (Spatie laravel-translatable). See docs/API_LOCALIZATION.md in repo."
                 },
                 {
-                    "name": "Admin Wallet APIs",
+                    "name": "5. Admin Wallet APIs",
                     "item": [
                         {
-                            "name": "Admin Wallet Overview",
+                            "name": "1. Admin Wallet Overview",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -235,7 +235,7 @@
                             }
                         },
                         {
-                            "name": "Admin Wallet Credits Ledger",
+                            "name": "2. Admin Wallet Credits Ledger",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -280,7 +280,7 @@
                             }
                         },
                         {
-                            "name": "Admin Wallet Client Detail",
+                            "name": "3. Admin Wallet Client Detail",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -332,11 +332,11 @@
             "description": "Single place for all notification APIs. Subfolders = role or route family. Auth: Bearer {{token}} with matching role. Optional query audience_role on list/mark-all/clear where supported.",
             "item": [
                 {
-                    "name": "Admin – /api/admin/notifications",
+                    "name": "A. Admin – /api/admin/notifications",
                     "description": "role:admin. Inbox + broadcast + delivery analytics. Register specific paths before generic list.",
                     "item": [
                         {
-                            "name": "Delivery analytics",
+                            "name": "1. Delivery analytics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -377,7 +377,7 @@
                             }
                         },
                         {
-                            "name": "Broadcast send",
+                            "name": "2. Broadcast send",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -454,7 +454,7 @@
                             }
                         },
                         {
-                            "name": "Broadcasts list",
+                            "name": "3. Broadcasts list",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -489,7 +489,7 @@
                             }
                         },
                         {
-                            "name": "Broadcast detail",
+                            "name": "4. Broadcast detail",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -519,7 +519,7 @@
                             }
                         },
                         {
-                            "name": "Statics list (with filters)",
+                            "name": "5. Statics list (with filters)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -573,7 +573,7 @@
                             }
                         },
                         {
-                            "name": "Mark as read",
+                            "name": "6. Mark as read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -603,7 +603,7 @@
                             }
                         },
                         {
-                            "name": "Mark all as read",
+                            "name": "7. Mark all as read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -632,7 +632,7 @@
                             }
                         },
                         {
-                            "name": "Delete one",
+                            "name": "8. Delete one",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -661,7 +661,7 @@
                             }
                         },
                         {
-                            "name": "Clear all",
+                            "name": "9. Clear all",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -692,11 +692,11 @@
                     ]
                 },
                 {
-                    "name": "Vendor – /api/vendor/notifications",
+                    "name": "B. Vendor – /api/vendor/notifications",
                     "description": "role:vendor + vendor_token. Vendor inbox (pending or approved vendors).",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -729,7 +729,7 @@
                             }
                         },
                         {
-                            "name": "Mark as read",
+                            "name": "2. Mark as read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -758,7 +758,7 @@
                             }
                         },
                         {
-                            "name": "Clear all",
+                            "name": "3. Clear all",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -2464,7 +2464,7 @@
                     "name": "E. Payment Methods & Wallet",
                     "item": [
                         {
-                            "name": "1. Wallet & Payment Methods",
+                            "name": "A. Wallet & Payment Methods",
                             "description": "Existing client APIs: saved payment methods, wallet balance summary, and credits history (view only).",
                             "item": [
                                 {
@@ -2567,7 +2567,7 @@
                             ]
                         },
                         {
-                            "name": "2. Add Money",
+                            "name": "B. Add Money",
                             "description": "Add money via Stripe card or Apple Pay. payment_method values: stripe | apple_pay.",
                             "item": [
                                 {
@@ -2798,7 +2798,7 @@
                             }
                         },
                         {
-                            "name": "Client notifications (/api/client/notifications)",
+                            "name": "3. Client notifications (/api/client/notifications)",
                             "description": "Database notification inbox under /api/client/notifications. Optional query: per_page (1-100), audience_role (admin-style JSON filter; usually omit for client). Response includes notifications (paginated) and unread_count.",
                             "item": [
                                 {
@@ -3359,7 +3359,7 @@
                     "name": "J. Subscriptions",
                     "item": [
                         {
-                            "name": "Membership Screen (Active + Upgrade Plans + Your Memberships)",
+                            "name": "1. Membership Screen (Active + Upgrade Plans + Your Memberships)",
                             "event": [
                                 {
                                     "listen": "test",
@@ -3405,7 +3405,7 @@
                             }
                         },
                         {
-                            "name": "List My Memberships",
+                            "name": "2. List My Memberships",
                             "event": [
                                 {
                                     "listen": "test",
@@ -3448,7 +3448,7 @@
                             }
                         },
                         {
-                            "name": "Get Membership Details",
+                            "name": "3. Get Membership Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3476,7 +3476,7 @@
                             }
                         },
                         {
-                            "name": "Get Upgrade Options",
+                            "name": "4. Get Upgrade Options",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3506,7 +3506,7 @@
                             }
                         },
                         {
-                            "name": "Renew – Create Payment Intent",
+                            "name": "5. Renew – Create Payment Intent",
                             "event": [
                                 {
                                     "listen": "test",
@@ -3565,7 +3565,7 @@
                             }
                         },
                         {
-                            "name": "Upgrade – Create Payment Intent",
+                            "name": "6. Upgrade – Create Payment Intent",
                             "event": [
                                 {
                                     "listen": "test",
@@ -3630,7 +3630,7 @@
                             }
                         },
                         {
-                            "name": "Confirm Membership Payment",
+                            "name": "7. Confirm Membership Payment",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3703,7 +3703,7 @@
                     "description": "Banner management - Get active banners for customer home screen (Public - no auth required)"
                 },
                 {
-                    "name": "K2. Video Banner (Public)",
+                    "name": "L. Video Banner (Public)",
                     "item": [
                         {
                             "name": "1. Get Active Video Banners",
@@ -3732,7 +3732,7 @@
                     "description": "Video banner for the customer home \"Featured Video\" section (Public - no auth required). Returns active video banners only."
                 },
                 {
-                    "name": "L. Packages (Public)",
+                    "name": "M. Packages (Public)",
                     "item": [
                         {
                             "name": "1. List Packages",
@@ -3761,10 +3761,10 @@
                     "description": "Customer home page packages. Public endpoint."
                 },
                 {
-                    "name": "M. Visits",
+                    "name": "N. Visits",
                     "item": [
                         {
-                            "name": "List Visits",
+                            "name": "1. List Visits",
                             "event": [
                                 {
                                     "listen": "test",
@@ -3808,7 +3808,7 @@
                             }
                         },
                         {
-                            "name": "Get Available Slots",
+                            "name": "2. Get Available Slots",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3848,7 +3848,7 @@
                             }
                         },
                         {
-                            "name": "List Areas (for visit creation)",
+                            "name": "3. List Areas (for visit creation)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3883,7 +3883,7 @@
                             }
                         },
                         {
-                            "name": "Resolve Area from Location",
+                            "name": "4. Resolve Area from Location",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -3970,7 +3970,7 @@
                             }
                         },
                         {
-                            "name": "Get Visit Details",
+                            "name": "5. Get Visit Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -3998,7 +3998,7 @@
                             }
                         },
                         {
-                            "name": "Create Visit",
+                            "name": "6. Create Visit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4138,7 +4138,7 @@
                             }
                         },
                         {
-                            "name": "Update Visit",
+                            "name": "7. Update Visit",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -4228,10 +4228,10 @@
                     "description": "Visit management – list, create, show, update. Maintenance photos for the client app are managed by admin only (folder **5g**). Client views photos in folder **8b**."
                 },
                 {
-                    "name": "N. Reports",
+                    "name": "O. Reports",
                     "item": [
                         {
-                            "name": "List Reports",
+                            "name": "1. List Reports",
                             "event": [
                                 {
                                     "listen": "test",
@@ -4274,7 +4274,7 @@
                             }
                         },
                         {
-                            "name": "Get Report Details",
+                            "name": "2. Get Report Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -4302,7 +4302,7 @@
                             }
                         },
                         {
-                            "name": "Create Report",
+                            "name": "3. Create Report",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -4340,7 +4340,7 @@
                     "description": "Report management - Supervisor reports with recommendations"
                 },
                 {
-                    "name": "O. Shop & Orders",
+                    "name": "P. Shop & Orders",
                     "item": [
                         {
                             "name": "A. Shop settings & order totals",
@@ -5002,7 +5002,7 @@
                                     }
                                 },
                                 {
-                                    "name": "6b. Orders - Rate Service",
+                                    "name": "7. Orders - Rate Service",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -5039,7 +5039,7 @@
                                     }
                                 },
                                 {
-                                    "name": "6c. Orders - Get Rating",
+                                    "name": "8. Orders - Get Rating",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -5068,7 +5068,7 @@
                                     }
                                 },
                                 {
-                                    "name": "7. Orders - Cancel Track",
+                                    "name": "9. Orders - Cancel Track",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -5097,7 +5097,7 @@
                                     }
                                 },
                                 {
-                                    "name": "8. Orders - Cancel",
+                                    "name": "10. Orders - Cancel",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -5134,7 +5134,7 @@
                                     }
                                 },
                                 {
-                                    "name": "9. Orders - Update",
+                                    "name": "11. Orders - Update",
                                     "request": {
                                         "method": "PUT",
                                         "header": [
@@ -5170,7 +5170,7 @@
                                     }
                                 },
                                 {
-                                    "name": "10. Orders - Rate",
+                                    "name": "12. Orders - Rate",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -5797,7 +5797,7 @@
                                     }
                                 },
                                 {
-                                    "name": "8b. POST Stripe PaymentIntent — Buy Now (is_buy_now true)",
+                                    "name": "9. POST Stripe PaymentIntent — Buy Now (is_buy_now true)",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -5853,7 +5853,7 @@
                                     }
                                 },
                                 {
-                                    "name": "9. POST Checkout confirm (mobile — after Payment Sheet)",
+                                    "name": "10. POST Checkout confirm (mobile — after Payment Sheet)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -5890,7 +5890,7 @@
                                     }
                                 },
                                 {
-                                    "name": "10. POST Stripe webhook (alias — /shop/stripe/webhook)",
+                                    "name": "11. POST Stripe webhook (alias — /shop/stripe/webhook)",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -6524,7 +6524,7 @@
                     "name": "A. Stats, Users & HR",
                     "item": [
                         {
-                            "name": "Admin Dashboard Statistics",
+                            "name": "1. Admin Dashboard Statistics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6553,7 +6553,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Recent Activities",
+                            "name": "2. Admin Dashboard Recent Activities",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6589,7 +6589,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Order Statistics",
+                            "name": "3. Admin Dashboard Order Statistics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6618,7 +6618,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Order Statistics - Orders Buckets",
+                            "name": "4. Admin Dashboard Order Statistics - Orders Buckets",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6655,7 +6655,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Quick Overview",
+                            "name": "5. Admin Dashboard Quick Overview",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6684,7 +6684,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Profile",
+                            "name": "6. Admin Dashboard Profile",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6713,7 +6713,7 @@
                             }
                         },
                         {
-                            "name": "PUT/POST Admin Dashboard Profile (Update)",
+                            "name": "7. PUT/POST Admin Dashboard Profile (Update)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -6770,7 +6770,7 @@
                             }
                         },
                         {
-                            "name": "Admin Dashboard Top Selling Products",
+                            "name": "8. Admin Dashboard Top Selling Products",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6811,7 +6811,7 @@
                             }
                         },
                         {
-                            "name": "Admin Users Statistics",
+                            "name": "9. Admin Users Statistics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6840,7 +6840,7 @@
                             }
                         },
                         {
-                            "name": "Admin Users List",
+                            "name": "10. Admin Users List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6895,7 +6895,7 @@
                             }
                         },
                         {
-                            "name": "Users - List",
+                            "name": "11. Users - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -6923,7 +6923,7 @@
                             }
                         },
                         {
-                            "name": "Users - Create",
+                            "name": "12. Users - Create",
                             "event": [
                                 {
                                     "listen": "test",
@@ -6975,7 +6975,7 @@
                             }
                         },
                         {
-                            "name": "Users - Get",
+                            "name": "13. Users - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7004,7 +7004,7 @@
                             }
                         },
                         {
-                            "name": "Users - Update",
+                            "name": "14. Users - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -7041,7 +7041,7 @@
                             }
                         },
                         {
-                            "name": "Users - Delete",
+                            "name": "15. Users - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -7070,7 +7070,7 @@
                             }
                         },
                         {
-                            "name": "Roles - List",
+                            "name": "16. Roles - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7098,7 +7098,7 @@
                             }
                         },
                         {
-                            "name": "Roles - Create",
+                            "name": "17. Roles - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7134,7 +7134,7 @@
                             }
                         },
                         {
-                            "name": "HR - Employees - List",
+                            "name": "18. HR - Employees - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7163,7 +7163,7 @@
                             }
                         },
                         {
-                            "name": "HR - Employees - Create",
+                            "name": "19. HR - Employees - Create",
                             "event": [
                                 {
                                     "listen": "test",
@@ -7216,7 +7216,7 @@
                             }
                         },
                         {
-                            "name": "HR - Employees - Get",
+                            "name": "20. HR - Employees - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7246,7 +7246,7 @@
                             }
                         },
                         {
-                            "name": "HR - Employees - Update",
+                            "name": "21. HR - Employees - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -7284,7 +7284,7 @@
                             }
                         },
                         {
-                            "name": "HR - Employees - Delete",
+                            "name": "22. HR - Employees - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -7314,11 +7314,11 @@
                             }
                         },
                         {
-                            "name": "Admin Notifications (Dedicated API)",
+                            "name": "23. Admin Notifications (Dedicated API)",
                             "description": "Admin notifications under /api/admin/notifications: inbox CRUD, broadcast send/history, GET delivery-stats (aggregate counts by notification type and audience / customers, technicians, …). Register specific paths before generic /notifications.",
                             "item": [
                                 {
-                                    "name": "Notifications - Delivery analytics",
+                                    "name": "1. Notifications - Delivery analytics",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7359,7 +7359,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Broadcast options (roles)",
+                                    "name": "2. Notifications - Broadcast options (roles)",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7389,7 +7389,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Broadcast recipients by role",
+                                    "name": "3. Notifications - Broadcast recipients by role",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7435,7 +7435,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Broadcast send",
+                                    "name": "4. Notifications - Broadcast send",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -7512,7 +7512,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Broadcasts list",
+                                    "name": "5. Notifications - Broadcasts list",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7548,7 +7548,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Broadcast detail",
+                                    "name": "6. Notifications - Broadcast detail",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7578,7 +7578,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - List",
+                                    "name": "7. Notifications - List",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -7633,7 +7633,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Mark as Read",
+                                    "name": "8. Notifications - Mark as Read",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -7663,7 +7663,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Mark All as Read",
+                                    "name": "9. Notifications - Mark All as Read",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -7692,7 +7692,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Delete",
+                                    "name": "10. Notifications - Delete",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [
@@ -7721,7 +7721,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Notifications - Clear All",
+                                    "name": "11. Notifications - Clear All",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -7758,7 +7758,7 @@
                     "name": "B. Reports Management",
                     "item": [
                         {
-                            "name": "Get All Reports",
+                            "name": "1. Get All Reports",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7808,7 +7808,7 @@
                             }
                         },
                         {
-                            "name": "Get Report Statistics",
+                            "name": "2. Get Report Statistics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7837,7 +7837,7 @@
                             }
                         },
                         {
-                            "name": "Generate Report",
+                            "name": "3. Generate Report",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7874,7 +7874,7 @@
                             }
                         },
                         {
-                            "name": "Schedule Report",
+                            "name": "4. Schedule Report",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -7911,7 +7911,7 @@
                             }
                         },
                         {
-                            "name": "Get Single Report",
+                            "name": "5. Get Single Report",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7940,7 +7940,7 @@
                             }
                         },
                         {
-                            "name": "Download Report",
+                            "name": "6. Download Report",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -7966,7 +7966,7 @@
                             }
                         },
                         {
-                            "name": "Cancel Scheduled Report",
+                            "name": "7. Cancel Scheduled Report",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -7996,7 +7996,7 @@
                             }
                         },
                         {
-                            "name": "Delete Report",
+                            "name": "8. Delete Report",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -8410,7 +8410,7 @@
                     "description": "Admin Settings API for React Native Settings screen. Base URL: `/api/admin/settings`. Auth: Bearer token + admin role. **Legal & Contact Content** subfolder at bottom — edit client/vendor policy pages shown in their dashboards.",
                     "item": [
                         {
-                            "name": "Get All Settings",
+                            "name": "1. Get All Settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8438,7 +8438,7 @@
                             }
                         },
                         {
-                            "name": "Get System Settings",
+                            "name": "2. Get System Settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8467,7 +8467,7 @@
                             }
                         },
                         {
-                            "name": "Update System Settings",
+                            "name": "3. Update System Settings",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8504,7 +8504,7 @@
                             }
                         },
                         {
-                            "name": "Get Theme",
+                            "name": "4. Get Theme",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8533,7 +8533,7 @@
                             }
                         },
                         {
-                            "name": "Update Theme",
+                            "name": "5. Update Theme",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8570,7 +8570,7 @@
                             }
                         },
                         {
-                            "name": "Get Language",
+                            "name": "6. Get Language",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8599,7 +8599,7 @@
                             }
                         },
                         {
-                            "name": "Update Language",
+                            "name": "7. Update Language",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8636,7 +8636,7 @@
                             }
                         },
                         {
-                            "name": "Get Payment Settings",
+                            "name": "8. Get Payment Settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8665,7 +8665,7 @@
                             }
                         },
                         {
-                            "name": "Update Payment Settings",
+                            "name": "9. Update Payment Settings",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8702,7 +8702,7 @@
                             }
                         },
                         {
-                            "name": "Get Shop Settings (Shipping & Tax)",
+                            "name": "10. Get Shop Settings (Shipping & Tax)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8731,7 +8731,7 @@
                             }
                         },
                         {
-                            "name": "Update Shop Settings (Shipping & Tax)",
+                            "name": "11. Update Shop Settings (Shipping & Tax)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8768,7 +8768,7 @@
                             }
                         },
                         {
-                            "name": "Get Instant Order Fee",
+                            "name": "12. Get Instant Order Fee",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8797,7 +8797,7 @@
                             }
                         },
                         {
-                            "name": "Update Instant Order Fee",
+                            "name": "13. Update Instant Order Fee",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -8834,7 +8834,7 @@
                             }
                         },
                         {
-                            "name": "Get Service Pricing Settings",
+                            "name": "14. Get Service Pricing Settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -8863,7 +8863,7 @@
                             }
                         },
                         {
-                            "name": "Update Service Pricing Settings (form-data)",
+                            "name": "15. Update Service Pricing Settings (form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -8934,7 +8934,7 @@
                             }
                         },
                         {
-                            "name": "Update Service Pricing Settings (PUT form-data)",
+                            "name": "16. Update Service Pricing Settings (PUT form-data)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -9003,7 +9003,7 @@
                             }
                         },
                         {
-                            "name": "Export Data",
+                            "name": "17. Export Data",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -9040,7 +9040,7 @@
                             }
                         },
                         {
-                            "name": "Legal & Contact Content",
+                            "name": "18. Legal & Contact Content",
                             "description": "Admin mobile Legal and Contact Content editor. Form-data PUT or POST (not JSON). Folder A = client app pages, B = vendor app pages. Location: Module 5 > D. Settings (Mobile).",
                             "item": [
                                 {
@@ -9271,7 +9271,7 @@
                                             }
                                         },
                                         {
-                                            "name": "5b. Save Terms and Conditions - POST form-data",
+                                            "name": "6. Save Terms and Conditions - POST form-data",
                                             "request": {
                                                 "method": "POST",
                                                 "header": [
@@ -9315,7 +9315,7 @@
                                             }
                                         },
                                         {
-                                            "name": "6. Get Privacy Policy",
+                                            "name": "7. Get Privacy Policy",
                                             "request": {
                                                 "method": "GET",
                                                 "header": [
@@ -9343,7 +9343,7 @@
                                             }
                                         },
                                         {
-                                            "name": "7. Save Privacy Policy - form-data",
+                                            "name": "8. Save Privacy Policy - form-data",
                                             "request": {
                                                 "method": "PUT",
                                                 "header": [
@@ -9991,7 +9991,7 @@
                     "description": "Admin only. Create Banner: one request; leave image empty to create without image, or attach 1 file. Update Banner: add or change image anytime. Customer: GET /api/banners."
                 },
                 {
-                    "name": "E2. Video Banner",
+                    "name": "F. Video Banner",
                     "item": [
                         {
                             "name": "1. List All Video Banners (Admin)",
@@ -10240,7 +10240,7 @@
                     "description": "Admin only. Featured Video banner for the customer home screen. Fields: title, video, badge_text, button_text, is_active. Customer: GET /api/video-banners."
                 },
                 {
-                    "name": "E3. Loyalty Points (Admin)",
+                    "name": "G. Loyalty Points (Admin)",
                     "item": [
                         {
                             "name": "A. Dashboard",
@@ -10979,7 +10979,7 @@
                     "description": "Admin Loyalty Points APIs matching RN app screens.\n\n**A. Dashboard** = GET/PUT toggle `/api/admin/loyalty` (stats only; no manage menu).\n**B. Loyalty Settings** = GET/PUT `/api/admin/loyalty/settings` (expiry, cities, customer_targeting all|specific + specific_customer_ids/specific_customers chips, campaign_periods_only).\n**C. Rewards** · **D. Customers & Points** · **E. Campaigns** · **F. Reports & Export** (filters + **PDF** download).\nAuth: admin Bearer {{token}}."
                 },
                 {
-                    "name": "F. Packages",
+                    "name": "H. Packages",
                     "item": [
                         {
                             "name": "1. List Packages (Admin)",
@@ -11086,7 +11086,7 @@
                     "description": "Admin: set/update package price and image; view orders count per package."
                 },
                 {
-                    "name": "G. Orders Export",
+                    "name": "I. Orders Export",
                     "item": [
                         {
                             "name": "1. Export Orders (CSV)",
@@ -11273,7 +11273,7 @@
                     "description": "Admin: export orders to Excel (CSV); send export by email to supplier (manual or use cron for automatic)."
                 },
                 {
-                    "name": "H. Coupons",
+                    "name": "J. Coupons",
                     "item": [
                         {
                             "name": "1. List coupons (GET)",
@@ -11733,7 +11733,7 @@
                     "description": "Admin mobile **Coupons** screen (create/edit/list/delete only). Auth: Bearer **admin**.\n\n**Checkout Apply button is NOT here** — use folder **8 → K. Shop – Coupons** → **2. Apply coupon at checkout** → `POST /api/shop/coupons/apply` (client token).\n\n**Add coupon:** `POST /api/admin/coupons` — items **3** (percentage) and **4** (fixed_amount) are examples only.\n\n**Fields:** code, title, description, discount_type (`percentage` | `fixed_amount`), discount_value, min_order_amount, max_discount_amount, starts_at, ends_at, is_active (`0`/`1`), usage_limit, usage_limit_per_user, applies_to, category_ids, service_ids (`service_ids[]` on form-data).\n\n**Seed:** `TwoCouponsSeeder` (SAVE10, FLAT20). Spec: `docs/COUPON_API.md`"
                 },
                 {
-                    "name": "I. Maintenance Photos",
+                    "name": "K. Maintenance Photos",
                     "item": [
                         {
                             "name": "1. List maintenance photos (GET)",
@@ -12130,10 +12130,10 @@
                     "description": "Admin only — before/after maintenance showcase for client app.\n\n**Flow:** 1 List → 2 Get detail (edit screen) → 3 Add / 4–5 Update → 6 Delete.\n\n**Fields only:** title, before_image, after_image, priority, active.\n\n**Image URLs** in responses use `/media/` (e.g. `.../media/maintenance_photos/before/xxx.jpg`).\n\nClient read-only: folder **8 → L**. Auth: Bearer **admin** token. Use form-data for uploads."
                 },
                 {
-                    "name": "J. Subscriptions",
+                    "name": "L. Subscriptions",
                     "item": [
                         {
-                            "name": "Get Plans (Public)",
+                            "name": "1. Get Plans (Public)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -12157,7 +12157,7 @@
                             }
                         },
                         {
-                            "name": "Create Subscription",
+                            "name": "2. Create Subscription",
                             "event": [
                                 {
                                     "listen": "test",
@@ -12282,7 +12282,7 @@
                             }
                         },
                         {
-                            "name": "List Subscriptions (All Clients)",
+                            "name": "3. List Subscriptions (All Clients)",
                             "event": [
                                 {
                                     "listen": "test",
@@ -12325,7 +12325,7 @@
                             }
                         },
                         {
-                            "name": "Get Subscription Details (Admin)",
+                            "name": "4. Get Subscription Details (Admin)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -12353,7 +12353,7 @@
                             }
                         },
                         {
-                            "name": "Update Subscription",
+                            "name": "5. Update Subscription",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -12467,7 +12467,7 @@
                             }
                         },
                         {
-                            "name": "Mark Subscription Paid",
+                            "name": "6. Mark Subscription Paid",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -12496,7 +12496,7 @@
                             }
                         },
                         {
-                            "name": "Delete Subscription",
+                            "name": "7. Delete Subscription",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -12527,7 +12527,7 @@
                     "description": "Admin subscription management (Bearer admin token). Create is admin-only; List here returns every client's subscriptions; Update covers plan/amount/payment_status/dates/picture. For a client paying to renew or upgrade their own membership, see **4. Client Dashboard → J. Subscriptions** (real Stripe/Apple Pay checkout — this folder's Update/Mark-Paid are manual admin overrides, not a payment gateway)."
                 },
                 {
-                    "name": "K. Job Scheduling",
+                    "name": "M. Job Scheduling",
                     "description": "Admin Job Scheduling (K): Working hours, Time slots, Blocked dates, Jobs calendar. Auth: Bearer admin.\n\n**Shop booking rule:** Time slots / working hours / blocked dates here are **GLOBAL** (same for every product). Capacity is **per product** on `GET /api/shop/products/{id}` — Product A filling 9–10 AM does not fill Product B.\n\nCalendar: `GET /api/admin/job-scheduling/calendar?view=day|week|month&date=YYYY-MM-DD`.",
                     "item": [
                         {
@@ -12968,7 +12968,7 @@
                             ]
                         },
                         {
-                            "name": "C2. Product Time Slots (optional / unused by shop)",
+                            "name": "D. Product Time Slots (optional / unused by shop)",
                             "description": "Optional admin CRUD for product_time_slots rows. **Shop product booking does NOT use these** — clients always see global folder K time slots; only booking **capacity** is per product. Prefer configuring times under **B. Time slots**.",
                             "item": [
                                 {
@@ -13211,7 +13211,7 @@
                             ]
                         },
                         {
-                            "name": "D. Jobs Calendar",
+                            "name": "E. Jobs Calendar",
                             "item": [
                                 {
                                     "name": "1. Jobs Calendar - Day view",
@@ -13446,7 +13446,7 @@
                     ]
                 },
                 {
-                    "name": "L. Admin – Supervisor (Contractor) Registrations",
+                    "name": "N. Admin – Supervisor (Contractor) Registrations",
                     "description": "Contractor Management UI (supervisor registrations — not marketplace vendors).\n\n**Screens:** List (summary + chips) · Dashboard Recent · Application detail.\n\n**Auth:** admin Bearer {{token}}. Vars: {{supervisor_registration_id}}, {{supervisor_id}}.",
                     "item": [
                         {
@@ -13761,7 +13761,7 @@
                     ]
                 },
                 {
-                    "name": "M. Admin – Contractor Signup Options",
+                    "name": "O. Admin – Contractor Signup Options",
                     "description": "Contractor signup options screen — master registration toggle + Categories / Subcategories / Services / Emirates / Cities / Coverage CRUD, enable/disable, delete.\n\n**Auth:** admin Bearer {{token}}.",
                     "item": [
                         {
@@ -14031,7 +14031,7 @@
                     "name": "A. Dashboard",
                     "item": [
                         {
-                            "name": "GET Technician – Dashboard",
+                            "name": "1. GET Technician – Dashboard",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14064,7 +14064,7 @@
                     "name": "B. Profile",
                     "item": [
                         {
-                            "name": "GET Technician – Profile",
+                            "name": "1. GET Technician – Profile",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14092,7 +14092,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Profile update",
+                            "name": "2. PUT Technician – Profile update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -14140,7 +14140,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Profile update",
+                            "name": "3. POST Technician – Profile update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14208,7 +14208,7 @@
                     "name": "C. Visits & Tasks",
                     "item": [
                         {
-                            "name": "Technician - Get Assigned Visits",
+                            "name": "1. Technician - Get Assigned Visits",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14236,7 +14236,7 @@
                             }
                         },
                         {
-                            "name": "Technician - Accept Visit",
+                            "name": "2. Technician - Accept Visit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14266,7 +14266,7 @@
                             }
                         },
                         {
-                            "name": "Technician - Start Visit",
+                            "name": "3. Technician - Start Visit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14296,7 +14296,7 @@
                             }
                         },
                         {
-                            "name": "Technician - Complete Visit",
+                            "name": "4. Technician - Complete Visit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14334,7 +14334,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Tasks list",
+                            "name": "5. GET Technician – Tasks list",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14373,7 +14373,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Task by ID",
+                            "name": "6. GET Technician – Task by ID",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14402,7 +14402,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Task details",
+                            "name": "7. GET Technician – Task details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14432,7 +14432,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Task status",
+                            "name": "8. PUT Technician – Task status",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -14477,7 +14477,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Task accept",
+                            "name": "9. POST Technician – Task accept",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14507,7 +14507,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Task reject",
+                            "name": "10. POST Technician – Task reject",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14547,7 +14547,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Jobs history",
+                            "name": "11. GET Technician – Jobs history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14586,7 +14586,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Jobs (accepted)",
+                            "name": "12. GET Technician – Jobs (accepted)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14626,7 +14626,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Jobs (rejected)",
+                            "name": "13. GET Technician – Jobs (rejected)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14666,7 +14666,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Jobs status counts",
+                            "name": "14. GET Technician – Jobs status counts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14707,7 +14707,7 @@
                     "name": "D. Reports & Field Notes",
                     "item": [
                         {
-                            "name": "Technician - Submit Field Report to Supervisor",
+                            "name": "1. Technician - Submit Field Report to Supervisor",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14759,7 +14759,7 @@
                             }
                         },
                         {
-                            "name": "Technician - Field notes (list)",
+                            "name": "2. Technician - Field notes (list)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14799,7 +14799,7 @@
                     "name": "E. Leave Requests",
                     "item": [
                         {
-                            "name": "Leave Request Types",
+                            "name": "1. Leave Request Types",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14827,7 +14827,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - List",
+                            "name": "2. Leave Requests - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14866,7 +14866,7 @@
                             }
                         },
                         {
-                            "name": "Leave Request - Submit",
+                            "name": "3. Leave Request - Submit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -14923,7 +14923,7 @@
                             }
                         },
                         {
-                            "name": "Leave Request - Show",
+                            "name": "4. Leave Request - Show",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14957,7 +14957,7 @@
                     "name": "F. Alerts",
                     "item": [
                         {
-                            "name": "Alerts - List",
+                            "name": "1. Alerts - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -14996,7 +14996,7 @@
                     "name": "G. Service Areas & Specializations",
                     "item": [
                         {
-                            "name": "GET Technician – Service areas",
+                            "name": "1. GET Technician – Service areas",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15024,7 +15024,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Service areas",
+                            "name": "2. PUT Technician – Service areas",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -15069,7 +15069,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Specializations",
+                            "name": "3. GET Technician – Specializations",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15097,7 +15097,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Specializations (form-data)",
+                            "name": "4. POST Technician – Specializations (form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15141,7 +15141,7 @@
                     "name": "H. Availability & Schedule",
                     "item": [
                         {
-                            "name": "GET Technician – Leave types",
+                            "name": "1. GET Technician – Leave types",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15169,7 +15169,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Availability",
+                            "name": "2. GET Technician – Availability",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15209,7 +15209,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Availability update",
+                            "name": "3. PUT Technician – Availability update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -15290,7 +15290,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Schedule",
+                            "name": "4. GET Technician – Schedule",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15333,7 +15333,7 @@
                     "name": "I. Payout & Bank",
                     "item": [
                         {
-                            "name": "GET Technician – Payout summary",
+                            "name": "1. GET Technician – Payout summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15361,7 +15361,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Payout history",
+                            "name": "2. GET Technician – Payout history",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15389,7 +15389,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Payout settings",
+                            "name": "3. GET Technician – Payout settings",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15418,7 +15418,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Payout settings",
+                            "name": "4. PUT Technician – Payout settings",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -15462,7 +15462,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Bank accounts",
+                            "name": "5. GET Technician – Bank accounts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15490,7 +15490,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Bank account add",
+                            "name": "6. POST Technician – Bank account add",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15548,7 +15548,7 @@
                             }
                         },
                         {
-                            "name": "PUT Technician – Bank account update",
+                            "name": "7. PUT Technician – Bank account update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -15592,7 +15592,7 @@
                             }
                         },
                         {
-                            "name": "DELETE Technician – Bank account delete",
+                            "name": "8. DELETE Technician – Bank account delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -15627,7 +15627,7 @@
                     "description": "Dedicated notifications APIs under /api/technician/notifications.",
                     "item": [
                         {
-                            "name": "Notifications - List",
+                            "name": "1. Notifications - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15677,7 +15677,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark as Read",
+                            "name": "2. Notifications - Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15707,7 +15707,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark All as Read",
+                            "name": "3. Notifications - Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15736,7 +15736,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Delete",
+                            "name": "4. Notifications - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -15765,7 +15765,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Clear All",
+                            "name": "5. Notifications - Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15799,7 +15799,7 @@
                     "name": "K. Support",
                     "item": [
                         {
-                            "name": "GET Technician – Support help center",
+                            "name": "1. GET Technician – Support help center",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15828,7 +15828,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Support FAQs",
+                            "name": "2. GET Technician – Support FAQs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15857,7 +15857,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Support submit ticket",
+                            "name": "3. POST Technician – Support submit ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -15895,7 +15895,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Support list my tickets",
+                            "name": "4. GET Technician – Support list my tickets",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15934,7 +15934,7 @@
                             }
                         },
                         {
-                            "name": "GET Technician – Support get ticket by ID (chat thread)",
+                            "name": "5. GET Technician – Support get ticket by ID (chat thread)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -15963,7 +15963,7 @@
                             }
                         },
                         {
-                            "name": "POST Technician – Support reply to ticket",
+                            "name": "6. POST Technician – Support reply to ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16016,7 +16016,7 @@
                     "name": "A. Dashboard",
                     "item": [
                         {
-                            "name": "Dashboard - Summary",
+                            "name": "1. Dashboard - Summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16045,7 +16045,7 @@
                             }
                         },
                         {
-                            "name": "Dashboard - KPIs",
+                            "name": "2. Dashboard - KPIs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16074,7 +16074,7 @@
                             }
                         },
                         {
-                            "name": "Dashboard - Alerts",
+                            "name": "3. Dashboard - Alerts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16108,7 +16108,7 @@
                     "name": "B. My Team",
                     "item": [
                         {
-                            "name": "Areas - List (for service area)",
+                            "name": "1. Areas - List (for service area)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16136,7 +16136,7 @@
                             }
                         },
                         {
-                            "name": "Team (My Team)",
+                            "name": "2. Team (My Team)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16164,7 +16164,7 @@
                             }
                         },
                         {
-                            "name": "Team Stats",
+                            "name": "3. Team Stats",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16192,7 +16192,7 @@
                             }
                         },
                         {
-                            "name": "Team Member - Detail (by id)",
+                            "name": "4. Team Member - Detail (by id)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16221,7 +16221,7 @@
                             }
                         },
                         {
-                            "name": "Team Member - Update (POST form-data)",
+                            "name": "5. Team Member - Update (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16290,7 +16290,7 @@
                             }
                         },
                         {
-                            "name": "Team Members - Bulk Update (POST form-data)",
+                            "name": "6. Team Members - Bulk Update (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16369,7 +16369,7 @@
                             }
                         },
                         {
-                            "name": "Technician Signup Requests (GET)",
+                            "name": "7. Technician Signup Requests (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16397,7 +16397,7 @@
                             }
                         },
                         {
-                            "name": "Technician Signup Request - Confirm (POST)",
+                            "name": "8. Technician Signup Request - Confirm (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16427,7 +16427,7 @@
                             }
                         },
                         {
-                            "name": "Technician Signup Request - Cancel (POST)",
+                            "name": "9. Technician Signup Request - Cancel (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16466,7 +16466,7 @@
                     "name": "C. Assign Tasks",
                     "item": [
                         {
-                            "name": "Assignments - List",
+                            "name": "1. Assignments - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16501,7 +16501,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - New Jobs (GET)",
+                            "name": "2. Assignments - New Jobs (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16537,7 +16537,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - One detail (GET)",
+                            "name": "3. Assignments - One detail (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16566,7 +16566,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - Claim job (POST)",
+                            "name": "4. Assignments - Claim job (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16596,7 +16596,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - Reject job (POST)",
+                            "name": "5. Assignments - Reject job (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16626,7 +16626,7 @@
                             }
                         },
                         {
-                            "name": "Assign tasks page (team + tasks)",
+                            "name": "6. Assign tasks page (team + tasks)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16654,7 +16654,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - Assign task (POST form-data)",
+                            "name": "7. Assignments - Assign task (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16700,7 +16700,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - Update (POST)",
+                            "name": "8. Assignments - Update (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16733,7 +16733,7 @@
                             }
                         },
                         {
-                            "name": "Assignments - Reassign (POST form-data)",
+                            "name": "9. Assignments - Reassign (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16783,7 +16783,7 @@
                     "name": "D. Reports",
                     "item": [
                         {
-                            "name": "Reports - List",
+                            "name": "1. Reports - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16817,7 +16817,7 @@
                             }
                         },
                         {
-                            "name": "Reports - List Pending (Pending Field Reports)",
+                            "name": "2. Reports - List Pending (Pending Field Reports)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -16855,7 +16855,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Accept (field report)",
+                            "name": "3. Reports - Accept (field report)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16885,7 +16885,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Reject (field report)",
+                            "name": "4. Reports - Reject (field report)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16915,7 +16915,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Generate (POST form-data)",
+                            "name": "5. Reports - Generate (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -16973,7 +16973,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Show",
+                            "name": "6. Reports - Show",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17002,7 +17002,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Download CSV",
+                            "name": "7. Reports - Download CSV",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17032,7 +17032,7 @@
                             }
                         },
                         {
-                            "name": "Visit Report - Review Visit",
+                            "name": "8. Visit Report - Review Visit",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17060,7 +17060,7 @@
                             }
                         },
                         {
-                            "name": "Visit Report - Recommend Products (POST form-data)",
+                            "name": "9. Visit Report - Recommend Products (POST form-data)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17099,7 +17099,7 @@
                             }
                         },
                         {
-                            "name": "Visit Report - Finalize / Share to Client (POST)",
+                            "name": "10. Visit Report - Finalize / Share to Client (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17142,7 +17142,7 @@
                     "name": "E. Leave Requests",
                     "item": [
                         {
-                            "name": "Leave Request Types",
+                            "name": "1. Leave Request Types",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17170,7 +17170,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - List",
+                            "name": "2. Leave Requests - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17209,7 +17209,7 @@
                             }
                         },
                         {
-                            "name": "Leave Request - Submit",
+                            "name": "3. Leave Request - Submit",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17272,7 +17272,7 @@
                             }
                         },
                         {
-                            "name": "Leave Request - Show",
+                            "name": "4. Leave Request - Show",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17306,7 +17306,7 @@
                     "name": "F. Alerts",
                     "item": [
                         {
-                            "name": "Alerts - List",
+                            "name": "1. Alerts - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17346,7 +17346,7 @@
                     "description": "GET profile (includes service_areas = zones assigned by admin). PUT/POST profile with form-data: name, email, phone, profile_picture only. No password, no area_ids (zones are set by admin only).",
                     "item": [
                         {
-                            "name": "Profile - Get",
+                            "name": "1. Profile - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17374,7 +17374,7 @@
                             }
                         },
                         {
-                            "name": "Profile - Update (form-data)",
+                            "name": "2. Profile - Update (form-data)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -17428,7 +17428,7 @@
                             }
                         },
                         {
-                            "name": "Profile - Preferences",
+                            "name": "3. Profile - Preferences",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17462,7 +17462,7 @@
                     "description": "Supervisor – Support ticket chat with admin. Same APIs as client/technician. Use /api/support/* with supervisor Bearer token.",
                     "item": [
                         {
-                            "name": "Support – Help Center",
+                            "name": "1. Support – Help Center",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17490,7 +17490,7 @@
                             }
                         },
                         {
-                            "name": "Support – FAQs",
+                            "name": "2. Support – FAQs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17518,7 +17518,7 @@
                             }
                         },
                         {
-                            "name": "Support – Submit ticket",
+                            "name": "3. Support – Submit ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17559,7 +17559,7 @@
                             }
                         },
                         {
-                            "name": "Support – List my tickets",
+                            "name": "4. Support – List my tickets",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17593,7 +17593,7 @@
                             }
                         },
                         {
-                            "name": "Support – Get ticket by ID (chat thread)",
+                            "name": "5. Support – Get ticket by ID (chat thread)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17622,7 +17622,7 @@
                             }
                         },
                         {
-                            "name": "Support – Reply to ticket",
+                            "name": "6. Support – Reply to ticket",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17671,7 +17671,7 @@
                     "description": "Dedicated notifications APIs under /api/supervisor/notifications.",
                     "item": [
                         {
-                            "name": "Notifications - List",
+                            "name": "1. Notifications - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17706,7 +17706,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark as Read",
+                            "name": "2. Notifications - Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17736,7 +17736,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark All as Read",
+                            "name": "3. Notifications - Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17765,7 +17765,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Delete",
+                            "name": "4. Notifications - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -17794,7 +17794,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Clear All",
+                            "name": "5. Notifications - Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -17831,10 +17831,10 @@
             "name": "8. Products - All APIs",
             "item": [
                 {
-                    "name": "Public (no auth)",
+                    "name": "A. Public (no auth)",
                     "item": [
                         {
-                            "name": "List Products",
+                            "name": "1. List Products",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17865,7 +17865,7 @@
                             }
                         },
                         {
-                            "name": "Featured Products",
+                            "name": "2. Featured Products",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17897,7 +17897,7 @@
                             }
                         },
                         {
-                            "name": "Get Product Details",
+                            "name": "3. Get Product Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17929,7 +17929,7 @@
                             }
                         },
                         {
-                            "name": "Search Products",
+                            "name": "4. Search Products",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17963,7 +17963,7 @@
                             }
                         },
                         {
-                            "name": "Get Categories",
+                            "name": "5. Get Categories",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -17988,7 +17988,7 @@
                             }
                         },
                         {
-                            "name": "Get Products by Category",
+                            "name": "6. Get Products by Category",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18017,10 +18017,10 @@
                     "description": "Public product APIs – no Authorization header. Use for customer/storefront app."
                 },
                 {
-                    "name": "Admin (Bearer token)",
+                    "name": "B. Admin (Bearer token)",
                     "item": [
                         {
-                            "name": "List Products",
+                            "name": "1. List Products",
                             "request": {
                                 "method": "GET",
                                 "event": [
@@ -18083,7 +18083,7 @@
                             }
                         },
                         {
-                            "name": "Add Product (Multipart – with image files)",
+                            "name": "2. Add Product (Multipart – with image files)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18216,7 +18216,7 @@
                             }
                         },
                         {
-                            "name": "Add Platform Simple Product (checkout only — NO vendor_id)",
+                            "name": "3. Add Platform Simple Product (checkout only — NO vendor_id)",
                             "event": [
                                 {
                                     "listen": "test",
@@ -18317,7 +18317,7 @@
                             }
                         },
                         {
-                            "name": "Add Service Product (type=service)",
+                            "name": "4. Add Service Product (type=service)",
                             "event": [
                                 {
                                     "listen": "test",
@@ -18424,7 +18424,7 @@
                             }
                         },
                         {
-                            "name": "Get Product Details",
+                            "name": "5. Get Product Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18453,7 +18453,7 @@
                             }
                         },
                         {
-                            "name": "Update Product (POST multipart – recommended)",
+                            "name": "6. Update Product (POST multipart – recommended)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18581,7 +18581,7 @@
                             }
                         },
                         {
-                            "name": "Update Product (PUT JSON – partial, no files)",
+                            "name": "7. Update Product (PUT JSON – partial, no files)",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -18618,7 +18618,7 @@
                             }
                         },
                         {
-                            "name": "Delete Product",
+                            "name": "8. Delete Product",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -18647,7 +18647,7 @@
                             }
                         },
                         {
-                            "name": "Toggle Status",
+                            "name": "9. Toggle Status",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18677,7 +18677,7 @@
                             }
                         },
                         {
-                            "name": "Reorder Products (drag-and-drop)",
+                            "name": "10. Reorder Products (drag-and-drop)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18714,7 +18714,7 @@
                             }
                         },
                         {
-                            "name": "Bulk Delete",
+                            "name": "11. Bulk Delete",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18751,7 +18751,7 @@
                             }
                         },
                         {
-                            "name": "Bulk Update Status",
+                            "name": "12. Bulk Update Status",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18788,7 +18788,7 @@
                             }
                         },
                         {
-                            "name": "Bulk Update Stock",
+                            "name": "13. Bulk Update Stock",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -18838,7 +18838,7 @@
                     "name": "A. Dashboard",
                     "item": [
                         {
-                            "name": "Dashboard - Summary",
+                            "name": "1. Dashboard - Summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18867,7 +18867,7 @@
                             }
                         },
                         {
-                            "name": "Dashboard - Alerts",
+                            "name": "2. Dashboard - Alerts",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18896,7 +18896,7 @@
                             }
                         },
                         {
-                            "name": "Region Map",
+                            "name": "3. Region Map",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18929,7 +18929,7 @@
                     "name": "B. Teams",
                     "item": [
                         {
-                            "name": "Teams - List",
+                            "name": "1. Teams - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18957,7 +18957,7 @@
                             }
                         },
                         {
-                            "name": "Teams - Detail",
+                            "name": "2. Teams - Detail",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -18986,7 +18986,7 @@
                             }
                         },
                         {
-                            "name": "Teams - Jobs",
+                            "name": "3. Teams - Jobs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19028,7 +19028,7 @@
                             }
                         },
                         {
-                            "name": "Teams - Members",
+                            "name": "4. Teams - Members",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19058,7 +19058,7 @@
                             }
                         },
                         {
-                            "name": "Teams - Member Jobs",
+                            "name": "5. Teams - Member Jobs",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19111,7 +19111,7 @@
                     "name": "C. Analytics",
                     "item": [
                         {
-                            "name": "Analytics",
+                            "name": "1. Analytics",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19151,7 +19151,7 @@
                     "name": "D. Reports",
                     "item": [
                         {
-                            "name": "Reports - List",
+                            "name": "1. Reports - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19186,7 +19186,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Generate",
+                            "name": "2. Reports - Generate",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19230,7 +19230,7 @@
                             }
                         },
                         {
-                            "name": "Generated Reports - List",
+                            "name": "3. Generated Reports - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19258,7 +19258,7 @@
                             }
                         },
                         {
-                            "name": "Generated Reports - Download",
+                            "name": "4. Generated Reports - Download",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19284,7 +19284,7 @@
                             }
                         },
                         {
-                            "name": "Generated Reports - View",
+                            "name": "5. Generated Reports - View",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19315,7 +19315,7 @@
                     "name": "E. Profile",
                     "item": [
                         {
-                            "name": "Profile - Get",
+                            "name": "1. Profile - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19343,7 +19343,7 @@
                             }
                         },
                         {
-                            "name": "Profile - Update",
+                            "name": "2. Profile - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -19403,7 +19403,7 @@
                     "description": "Dedicated Area Manager notification APIs under /api/area-manager/notifications. Auth: Bearer {{token}} (area_manager). Expected events include team leave submissions (technician/supervisor), admin support-ticket replies, and admin tips.",
                     "item": [
                         {
-                            "name": "Notifications - List",
+                            "name": "1. Notifications - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19438,7 +19438,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark as Read",
+                            "name": "2. Notifications - Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19468,7 +19468,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark All as Read",
+                            "name": "3. Notifications - Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19497,7 +19497,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Delete",
+                            "name": "4. Notifications - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -19526,7 +19526,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Clear All",
+                            "name": "5. Notifications - Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19561,7 +19561,7 @@
                     "description": "Talk to admin (same as technician). All under /api/area-manager/support/*. Auth: Bearer {{token}} (area_manager).",
                     "item": [
                         {
-                            "name": "Help Center (GET)",
+                            "name": "1. Help Center (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19590,7 +19590,7 @@
                             "description": "Full help center: heading, tagline, get_support, contact_info, submit_ticket (endpoint, fields), social_links, faqs."
                         },
                         {
-                            "name": "FAQs (GET)",
+                            "name": "2. FAQs (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19619,7 +19619,7 @@
                             "description": "List FAQs. Response: data[] (id, question, answer, sort_order)."
                         },
                         {
-                            "name": "Submit ticket (POST)",
+                            "name": "3. Submit ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19661,7 +19661,7 @@
                             "description": "Create a support ticket. Body: subject, email, description (required)."
                         },
                         {
-                            "name": "List my tickets (GET)",
+                            "name": "4. List my tickets (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19696,7 +19696,7 @@
                             "description": "List my support tickets (area manager). Paginated."
                         },
                         {
-                            "name": "Get ticket by ID (GET)",
+                            "name": "5. Get ticket by ID (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19726,7 +19726,7 @@
                             "description": "Get one ticket with full chat thread. Set {{ticket_id}}."
                         },
                         {
-                            "name": "Reply to ticket (POST)",
+                            "name": "6. Reply to ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -19772,11 +19772,11 @@
                     ]
                 },
                 {
-                    "name": "Legacy – Team Leaders",
+                    "name": "H. Legacy – Team Leaders",
                     "description": "Same as B. Teams; prefer /teams and /teams/{id}/jobs.",
                     "item": [
                         {
-                            "name": "Team Leaders - List (legacy)",
+                            "name": "1. Team Leaders - List (legacy)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19804,7 +19804,7 @@
                             }
                         },
                         {
-                            "name": "Team Leader - Detail (legacy)",
+                            "name": "2. Team Leader - Detail (legacy)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19833,7 +19833,7 @@
                             }
                         },
                         {
-                            "name": "Team Leader - Jobs (legacy)",
+                            "name": "3. Team Leader - Jobs (legacy)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19884,7 +19884,7 @@
                     "name": "A. Dashboard",
                     "item": [
                         {
-                            "name": "Dashboard - Summary",
+                            "name": "1. Dashboard - Summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19913,7 +19913,7 @@
                             }
                         },
                         {
-                            "name": "Dashboard - Visit Assignments",
+                            "name": "2. Dashboard - Visit Assignments",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19947,7 +19947,7 @@
                     "name": "B. Employees",
                     "item": [
                         {
-                            "name": "Positions - List",
+                            "name": "1. Positions - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -19975,7 +19975,7 @@
                             }
                         },
                         {
-                            "name": "Employees - List",
+                            "name": "2. Employees - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20015,7 +20015,7 @@
                             }
                         },
                         {
-                            "name": "Employees - Create",
+                            "name": "3. Employees - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20096,7 +20096,7 @@
                             }
                         },
                         {
-                            "name": "Employees - Show",
+                            "name": "4. Employees - Show",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20125,7 +20125,7 @@
                             }
                         },
                         {
-                            "name": "Employees - Update",
+                            "name": "5. Employees - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -20207,7 +20207,7 @@
                             }
                         },
                         {
-                            "name": "Employees - Delete",
+                            "name": "6. Employees - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -20241,7 +20241,7 @@
                     "name": "C. Leave Requests",
                     "item": [
                         {
-                            "name": "Leave Requests - Create",
+                            "name": "1. Leave Requests - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20304,7 +20304,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - List",
+                            "name": "2. Leave Requests - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20344,7 +20344,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - Show",
+                            "name": "3. Leave Requests - Show",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20373,7 +20373,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - Approve",
+                            "name": "4. Leave Requests - Approve",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20403,7 +20403,7 @@
                             }
                         },
                         {
-                            "name": "Leave Requests - Reject",
+                            "name": "5. Leave Requests - Reject",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20438,7 +20438,7 @@
                     "name": "D. Profile",
                     "item": [
                         {
-                            "name": "Profile - Get",
+                            "name": "1. Profile - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20466,7 +20466,7 @@
                             }
                         },
                         {
-                            "name": "Profile - Update",
+                            "name": "2. Profile - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -20526,7 +20526,7 @@
                     "description": "Talk to admin (same as Area Manager / Client). All under /api/hr/support/*. Auth: Bearer {{token}} (hr or admin).",
                     "item": [
                         {
-                            "name": "Help Center (GET)",
+                            "name": "1. Help Center (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20555,7 +20555,7 @@
                             "description": "Help center content. GET /api/hr/support/help-center."
                         },
                         {
-                            "name": "FAQs (GET)",
+                            "name": "2. FAQs (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20584,7 +20584,7 @@
                             "description": "List FAQs. GET /api/hr/support/faqs. Response: data[] (id, question, answer, sort_order)."
                         },
                         {
-                            "name": "Submit ticket (POST)",
+                            "name": "3. Submit ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20626,7 +20626,7 @@
                             "description": "Create a support ticket. Body: subject, email, description (required)."
                         },
                         {
-                            "name": "List my tickets (GET)",
+                            "name": "4. List my tickets (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20661,7 +20661,7 @@
                             "description": "List my support tickets (HR). Paginated. GET /api/hr/support/tickets."
                         },
                         {
-                            "name": "Get ticket by ID (GET)",
+                            "name": "5. Get ticket by ID (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20691,7 +20691,7 @@
                             "description": "Get one ticket with full chat thread. Set {{ticket_id}}."
                         },
                         {
-                            "name": "Reply to ticket (POST)",
+                            "name": "6. Reply to ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20740,7 +20740,7 @@
                     "name": "F. Visit assignments & Monthly reports",
                     "item": [
                         {
-                            "name": "Visit assignments - List",
+                            "name": "1. Visit assignments - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20794,7 +20794,7 @@
                             }
                         },
                         {
-                            "name": "Visit assignments - Summary",
+                            "name": "2. Visit assignments - Summary",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20845,7 +20845,7 @@
                             }
                         },
                         {
-                            "name": "Visit assignments - Assign screen",
+                            "name": "3. Visit assignments - Assign screen",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20880,7 +20880,7 @@
                             }
                         },
                         {
-                            "name": "Visit assignments - Offer to technician (POST)",
+                            "name": "4. Visit assignments - Offer to technician (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -20922,7 +20922,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Technician monthly preview (GET)",
+                            "name": "5. Reports - Technician monthly preview (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -20966,7 +20966,7 @@
                             }
                         },
                         {
-                            "name": "Reports - List my generated (GET)",
+                            "name": "6. Reports - List my generated (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21010,7 +21010,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Generate PDF (POST)",
+                            "name": "7. Reports - Generate PDF (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21052,7 +21052,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Download (GET)",
+                            "name": "8. Reports - Download (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21078,7 +21078,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Download Public URL (GET)",
+                            "name": "9. Reports - Download Public URL (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [],
@@ -21099,7 +21099,7 @@
                             }
                         },
                         {
-                            "name": "Reports - Delete (DELETE)",
+                            "name": "10. Reports - Delete (DELETE)",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -21134,7 +21134,7 @@
                     "description": "Dedicated HR notification APIs under /api/hr/notifications. Auth: Bearer {{token}} (hr or admin). Expected events include visit completed, technician/supervisor leave submissions, admin support-ticket replies, and admin tips.",
                     "item": [
                         {
-                            "name": "Notifications - List",
+                            "name": "1. Notifications - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21169,7 +21169,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark as Read",
+                            "name": "2. Notifications - Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21199,7 +21199,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark All as Read",
+                            "name": "3. Notifications - Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21228,7 +21228,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Delete",
+                            "name": "4. Notifications - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -21257,7 +21257,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Clear All",
+                            "name": "5. Notifications - Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21298,7 +21298,7 @@
                     "description": "Same /api/support/* APIs for all these roles. Use Bearer token of the logged-in role (client, technician, supervisor, area_manager, or hr). For role-specific folders see: Module 3 (Client), Module 9 (Technician), Module 10 (Supervisor). Admin uses Module 13.",
                     "item": [
                         {
-                            "name": "Help Center (GET)",
+                            "name": "1. Help Center (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21326,7 +21326,7 @@
                             }
                         },
                         {
-                            "name": "FAQs (GET)",
+                            "name": "2. FAQs (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21354,7 +21354,7 @@
                             }
                         },
                         {
-                            "name": "Submit ticket (POST)",
+                            "name": "3. Submit ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21395,7 +21395,7 @@
                             }
                         },
                         {
-                            "name": "List my tickets (GET)",
+                            "name": "4. List my tickets (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21429,7 +21429,7 @@
                             }
                         },
                         {
-                            "name": "Get ticket by ID – chat thread (GET)",
+                            "name": "5. Get ticket by ID – chat thread (GET)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21458,7 +21458,7 @@
                             }
                         },
                         {
-                            "name": "Reply to ticket (POST)",
+                            "name": "6. Reply to ticket (POST)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21507,7 +21507,7 @@
                     "description": "Exclusive offers for home screen. Public: List, Get by ID (no auth) – response shape same as admin (data array with image, image_url, is_active). Admin: List, Create, Get, Update, Delete (Bearer + admin). image_url = full URL for display; image = storage path.",
                     "item": [
                         {
-                            "name": "List (Public)",
+                            "name": "1. List (Public)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21530,7 +21530,7 @@
                             }
                         },
                         {
-                            "name": "Get by ID (Public)",
+                            "name": "2. Get by ID (Public)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21554,7 +21554,7 @@
                             }
                         },
                         {
-                            "name": "Admin - List",
+                            "name": "3. Admin - List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21582,7 +21582,7 @@
                             }
                         },
                         {
-                            "name": "Admin - Create",
+                            "name": "4. Admin - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21680,7 +21680,7 @@
                             }
                         },
                         {
-                            "name": "Admin - Get",
+                            "name": "5. Admin - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21709,7 +21709,7 @@
                             }
                         },
                         {
-                            "name": "Admin - Update",
+                            "name": "6. Admin - Update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -21808,7 +21808,7 @@
                             }
                         },
                         {
-                            "name": "Admin - Delete",
+                            "name": "7. Admin - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -21843,7 +21843,7 @@
                     "description": "Complaints API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "event": [
                                 {
                                     "listen": "test",
@@ -21887,7 +21887,7 @@
                             }
                         },
                         {
-                            "name": "Complaints - Create",
+                            "name": "2. Complaints - Create",
                             "event": [
                                 {
                                     "listen": "test",
@@ -21939,7 +21939,7 @@
                             }
                         },
                         {
-                            "name": "Complaints - Get",
+                            "name": "3. Complaints - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -21968,7 +21968,7 @@
                             }
                         },
                         {
-                            "name": "Complaints - Update",
+                            "name": "4. Complaints - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -22005,7 +22005,7 @@
                             }
                         },
                         {
-                            "name": "Complaints - Delete",
+                            "name": "5. Complaints - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -22040,7 +22040,7 @@
                     "description": "Tips API – List, Create, Get, Update, Delete. Auth: Bearer token.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "event": [
                                 {
                                     "listen": "test",
@@ -22083,7 +22083,7 @@
                             }
                         },
                         {
-                            "name": "Tips - Create/Send",
+                            "name": "2. Tips - Create/Send",
                             "event": [
                                 {
                                     "listen": "test",
@@ -22134,7 +22134,7 @@
                             }
                         },
                         {
-                            "name": "Tips - Get Details",
+                            "name": "3. Tips - Get Details",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -22162,7 +22162,7 @@
                             }
                         },
                         {
-                            "name": "Tips - Update",
+                            "name": "4. Tips - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -22198,7 +22198,7 @@
                             }
                         },
                         {
-                            "name": "Tips - Delete",
+                            "name": "5. Tips - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -22232,7 +22232,7 @@
                     "description": "App notifications – List, Mark as Read, Mark All as Read. Auth: Bearer token.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "event": [
                                 {
                                     "listen": "test",
@@ -22275,7 +22275,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark as Read",
+                            "name": "2. Notifications - Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22304,7 +22304,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Mark All as Read",
+                            "name": "3. Notifications - Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22332,7 +22332,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Delete",
+                            "name": "4. Notifications - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -22360,7 +22360,7 @@
                             }
                         },
                         {
-                            "name": "Notifications - Clear All",
+                            "name": "5. Notifications - Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22394,7 +22394,7 @@
                     "description": "Admin: Service categories (add/update/delete). Used for Services. Auth: Bearer token, admin role.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "event": [
                                 {
                                     "listen": "test",
@@ -22445,7 +22445,7 @@
                             }
                         },
                         {
-                            "name": "Categories - Create",
+                            "name": "2. Categories - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22526,7 +22526,7 @@
                             }
                         },
                         {
-                            "name": "Categories - Get",
+                            "name": "3. Categories - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -22555,7 +22555,7 @@
                             }
                         },
                         {
-                            "name": "Categories - Update",
+                            "name": "4. Categories - Update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22640,7 +22640,7 @@
                             }
                         },
                         {
-                            "name": "Categories - Toggle Status",
+                            "name": "5. Categories - Toggle Status",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -22670,7 +22670,7 @@
                             }
                         },
                         {
-                            "name": "Categories - Delete",
+                            "name": "6. Categories - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -22701,7 +22701,7 @@
                     ]
                 },
                 {
-                    "name": "F2. Admin - Vendor Types & Emirates",
+                    "name": "G. Admin - Vendor Types & Emirates",
                     "description": "Admin mobile **Vendor types & Emirates** screen (tabs + add/edit/delete).\n\n**Auth:** Login as admin → Bearer {{token}}.\n\n**Form fields only (no extras):** `name`, `slug` (optional — empty auto from name), `is_active` (`1`/`0`).\n\n**Response shape:** `{ id, name, slug, is_active }`.\n\n**Public dropdowns for vendor registration:** `GET /api/vendor/auth/registration-options` (active only).\n\nEnv: `vendor_type_id`, `emirate_id` (auto-set from List/Create).",
                     "item": [
                         {
@@ -22709,7 +22709,7 @@
                             "description": "CRUD for vendor types tab. Form-data create/update.",
                             "item": [
                                 {
-                                    "name": "List vendor type",
+                                    "name": "1. List vendor type",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -22761,7 +22761,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Create vendor type",
+                                    "name": "2. Create vendor type",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -22826,7 +22826,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Get vendor type",
+                                    "name": "3. Get vendor type",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -22855,7 +22855,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Update vendor type",
+                                    "name": "4. Update vendor type",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -22907,7 +22907,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Toggle vendor type status",
+                                    "name": "5. Toggle vendor type status",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -22937,7 +22937,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Delete vendor type",
+                                    "name": "6. Delete vendor type",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [
@@ -22972,7 +22972,7 @@
                             "description": "CRUD for Emirates tab. Form-data create/update.",
                             "item": [
                                 {
-                                    "name": "List emirate",
+                                    "name": "1. List emirate",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -23024,7 +23024,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Create emirate",
+                                    "name": "2. Create emirate",
                                     "event": [
                                         {
                                             "listen": "test",
@@ -23089,7 +23089,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Get emirate",
+                                    "name": "3. Get emirate",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -23118,7 +23118,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Update emirate",
+                                    "name": "4. Update emirate",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -23170,7 +23170,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Toggle emirate status",
+                                    "name": "5. Toggle emirate status",
                                     "request": {
                                         "method": "POST",
                                         "header": [
@@ -23200,7 +23200,7 @@
                                     }
                                 },
                                 {
-                                    "name": "Delete emirate",
+                                    "name": "6. Delete emirate",
                                     "request": {
                                         "method": "DELETE",
                                         "header": [
@@ -23235,7 +23235,7 @@
                             "description": "Public (no auth). Used by vendor registration wizard dropdowns — active vendor types + emirates only.",
                             "item": [
                                 {
-                                    "name": "Get registration options",
+                                    "name": "1. Get registration options",
                                     "request": {
                                         "method": "GET",
                                         "header": [
@@ -23264,11 +23264,11 @@
                     ]
                 },
                 {
-                    "name": "G. Admin - Services",
+                    "name": "H. Admin - Services",
                     "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
                     "item": [
                         {
-                            "name": "Services - List",
+                            "name": "1. Services - List",
                             "event": [
                                 {
                                     "listen": "test",
@@ -23324,7 +23324,7 @@
                             }
                         },
                         {
-                            "name": "Services - Create",
+                            "name": "2. Services - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -23393,7 +23393,7 @@
                             }
                         },
                         {
-                            "name": "Services - Get",
+                            "name": "3. Services - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23422,7 +23422,7 @@
                             }
                         },
                         {
-                            "name": "Services - Update",
+                            "name": "4. Services - Update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -23495,7 +23495,7 @@
                             }
                         },
                         {
-                            "name": "Services - Toggle Status",
+                            "name": "5. Services - Toggle Status",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -23525,7 +23525,7 @@
                             }
                         },
                         {
-                            "name": "Services - Delete",
+                            "name": "6. Services - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -23556,11 +23556,11 @@
                     ]
                 },
                 {
-                    "name": "H. Admin - Areas (Zones)",
+                    "name": "I. Admin - Areas (Zones)",
                     "description": "Admin Zones, Technicians, Supervisors & Teams. APIs: (1) Areas: GET all (?all=1, search), POST create (form-data: location, supervisor_id), GET one, PUT update, DELETE. Response: id, location, supervisor_id only. (2) Technicians: GET /api/admin/technicians (all + search). (3) Supervisors: GET /api/admin/supervisors (all + search), GET/POST/DELETE .../supervisors/:id/team. (4) Technicians for Zones / Supervisors for Zones: list for zone assignment. Auth: Bearer token (admin).",
                     "item": [
                         {
-                            "name": "Areas - Get All",
+                            "name": "1. Areas - Get All",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23600,7 +23600,7 @@
                             }
                         },
                         {
-                            "name": "Operational Areas - Dashboard (App UI)",
+                            "name": "2. Operational Areas - Dashboard (App UI)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23653,7 +23653,7 @@
                             "response": []
                         },
                         {
-                            "name": "Operational Areas - Toggle Active",
+                            "name": "3. Operational Areas - Toggle Active",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -23690,7 +23690,7 @@
                             "response": []
                         },
                         {
-                            "name": "All Technicians (Admin)",
+                            "name": "4. All Technicians (Admin)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23729,7 +23729,7 @@
                             }
                         },
                         {
-                            "name": "Technicians for Zones (list)",
+                            "name": "5. Technicians for Zones (list)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23763,7 +23763,7 @@
                             }
                         },
                         {
-                            "name": "Supervisors for Zones (list)",
+                            "name": "6. Supervisors for Zones (list)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23797,7 +23797,7 @@
                             }
                         },
                         {
-                            "name": "All Supervisors (Admin)",
+                            "name": "7. All Supervisors (Admin)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23836,7 +23836,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor Team (get)",
+                            "name": "8. Supervisor Team (get)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -23866,7 +23866,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor Team - Add member",
+                            "name": "9. Supervisor Team - Add member",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -23907,7 +23907,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor Team - Remove member",
+                            "name": "10. Supervisor Team - Remove member",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -23944,7 +23944,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Create",
+                            "name": "11. Areas - Create",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24002,7 +24002,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Consolidate Duplicates",
+                            "name": "12. Areas - Consolidate Duplicates",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24042,7 +24042,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Remove One Supervisor",
+                            "name": "13. Areas - Remove One Supervisor",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -24073,7 +24073,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Get",
+                            "name": "14. Areas - Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24102,7 +24102,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Update",
+                            "name": "15. Areas - Update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24161,7 +24161,7 @@
                             }
                         },
                         {
-                            "name": "Areas - Delete",
+                            "name": "16. Areas - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -24192,10 +24192,10 @@
                     ]
                 },
                 {
-                    "name": "I. Alternative Routes - Technician (under /api/auth/tech)",
+                    "name": "J. Alternative Routes - Technician (under /api/auth/tech)",
                     "item": [
                         {
-                            "name": "Tech - Get Assigned Visits (Auth)",
+                            "name": "1. Tech - Get Assigned Visits (Auth)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24224,7 +24224,7 @@
                             }
                         },
                         {
-                            "name": "Tech - Accept Visit (Auth)",
+                            "name": "2. Tech - Accept Visit (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24255,7 +24255,7 @@
                             }
                         },
                         {
-                            "name": "Tech - Start Visit (Auth)",
+                            "name": "3. Tech - Start Visit (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24286,7 +24286,7 @@
                             }
                         },
                         {
-                            "name": "Tech - Complete Visit (Auth)",
+                            "name": "4. Tech - Complete Visit (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24328,10 +24328,10 @@
                     "description": "Alternative technician routes under /api/auth/tech (duplicate of /api/tech routes)"
                 },
                 {
-                    "name": "J. Alternative Routes - Supervisor (under /api/auth/supervisor)",
+                    "name": "K. Alternative Routes - Supervisor (under /api/auth/supervisor)",
                     "item": [
                         {
-                            "name": "Supervisor - List Visits (Auth)",
+                            "name": "1. Supervisor - List Visits (Auth)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24360,7 +24360,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - Review Visit (Auth)",
+                            "name": "2. Supervisor - Review Visit (Auth)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24390,7 +24390,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - Recommend Products (Auth)",
+                            "name": "3. Supervisor - Recommend Products (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24429,7 +24429,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - Finalize Report (Auth)",
+                            "name": "4. Supervisor - Finalize Report (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24468,7 +24468,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - Update Visit Status (Auth)",
+                            "name": "5. Supervisor - Update Visit Status (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24507,7 +24507,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - List Areas (Auth)",
+                            "name": "6. Supervisor - List Areas (Auth)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24536,7 +24536,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - List Complaints (Auth)",
+                            "name": "7. Supervisor - List Complaints (Auth)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24565,7 +24565,7 @@
                             }
                         },
                         {
-                            "name": "Supervisor - Escalate Complaint (Auth)",
+                            "name": "8. Supervisor - Escalate Complaint (Auth)",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -24607,11 +24607,11 @@
                     "description": "Alternative supervisor routes under /api/auth/supervisor (duplicate of /api/supervisor routes)"
                 },
                 {
-                    "name": "K. Services (Public)",
+                    "name": "L. Services (Public)",
                     "description": "Public Services API – categories (filters) and products (services). No auth. Flow: GET /api/services or /api/services/categories → then GET /api/services/category/:id for products in a category. Env: base_url, service_id (category id for single service), category_id (for Get by Category).",
                     "item": [
                         {
-                            "name": "List (paginated)",
+                            "name": "1. List (paginated)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24653,7 +24653,7 @@
                             }
                         },
                         {
-                            "name": "Get single service (category)",
+                            "name": "2. Get single service (category)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24677,7 +24677,7 @@
                             }
                         },
                         {
-                            "name": "Get all products of services",
+                            "name": "3. Get all products of services",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24726,7 +24726,7 @@
                             }
                         },
                         {
-                            "name": "Get products by service",
+                            "name": "4. Get products by service",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24751,7 +24751,7 @@
                             }
                         },
                         {
-                            "name": "Get Categories",
+                            "name": "5. Get Categories",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24775,7 +24775,7 @@
                             }
                         },
                         {
-                            "name": "Get by Category (category + products)",
+                            "name": "6. Get by Category (category + products)",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24802,11 +24802,11 @@
                     ]
                 },
                 {
-                    "name": "L. User Profile",
+                    "name": "M. User Profile",
                     "description": "User profile – Get, Update. Auth: Bearer token.",
                     "item": [
                         {
-                            "name": "Get",
+                            "name": "1. Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24834,7 +24834,7 @@
                             }
                         },
                         {
-                            "name": "User Profile - Update",
+                            "name": "2. User Profile - Update",
                             "request": {
                                 "method": "PUT",
                                 "header": [
@@ -24872,11 +24872,11 @@
                     ]
                 },
                 {
-                    "name": "M. User Addresses",
+                    "name": "N. User Addresses",
                     "description": "Checkout Address step. List (GET), Create (POST form-data), Update (POST form-data or PUT JSON), Delete. Auth: Bearer token. Create/Update accept multipart form-data. Response: id, type (home|office|other), full_name, phone_number, street_address, city, state, zip_code, country, is_default. type = local address label.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -24904,7 +24904,7 @@
                             }
                         },
                         {
-                            "name": "Create",
+                            "name": "2. Create",
                             "event": [
                                 {
                                     "listen": "test",
@@ -25007,7 +25007,7 @@
                             }
                         },
                         {
-                            "name": "Update",
+                            "name": "3. Update",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -25087,7 +25087,7 @@
                             }
                         },
                         {
-                            "name": "User Addresses - Delete",
+                            "name": "4. User Addresses - Delete",
                             "request": {
                                 "method": "DELETE",
                                 "header": [
@@ -25118,11 +25118,11 @@
                     ]
                 },
                 {
-                    "name": "N. User Payment Methods",
+                    "name": "O. User Payment Methods",
                     "description": "Saved payment methods for Profile screen. Placeholder: returns empty list until saved cards are implemented.",
                     "item": [
                         {
-                            "name": "Get",
+                            "name": "1. Get",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -25152,11 +25152,11 @@
                     ]
                 },
                 {
-                    "name": "O. User Notifications",
+                    "name": "P. User Notifications",
                     "description": "GET/POST /api/user/notifications – database inbox (UUID ids). Response shape matches /api/client/notifications: data.notifications + data.unread_count. Clear-all deletes rows (returns deleted_count). Auth: Bearer.",
                     "item": [
                         {
-                            "name": "List",
+                            "name": "1. List",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -25196,7 +25196,7 @@
                             }
                         },
                         {
-                            "name": "Mark as Read",
+                            "name": "2. Mark as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -25226,7 +25226,7 @@
                             }
                         },
                         {
-                            "name": "Mark All as Read",
+                            "name": "3. Mark All as Read",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -25262,7 +25262,7 @@
                             }
                         },
                         {
-                            "name": "Clear All",
+                            "name": "4. Clear All",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -27313,7 +27313,7 @@
                             }
                         },
                         {
-                            "name": "12. Resend delivery OTP",
+                            "name": "9. Resend delivery OTP",
                             "request": {
                                 "method": "POST",
                                 "header": [
