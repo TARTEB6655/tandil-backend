@@ -26,7 +26,7 @@ class OrderController extends Controller
         $user = $request->user();
 
         $isAdminLike = $this->userIsAdminLike($user);
-        $relations = ['items.product'];
+        $relations = ['items.product.primaryImage'];
         if ($isAdminLike) {
             $relations[] = 'user';
         }
@@ -1199,10 +1199,20 @@ class OrderController extends Controller
             return null;
         }
 
+        $imagePath = null;
+        if ($product->relationLoaded('primaryImage') && $product->primaryImage?->image_path) {
+            $imagePath = $product->primaryImage->image_path;
+        } elseif (! empty($product->image)) {
+            $imagePath = $product->image;
+        }
+
         return [
             'id' => $product->id,
             'name' => $product->name,
-            'image_url' => $product->image_url,
+            'image_url' => $imagePath
+                ? (\App\Models\ProductImage::buildThumbUrl($imagePath, 192)
+                    ?? \App\Models\ProductImage::buildFullUrl($imagePath))
+                : null,
             'job_duration' => $product->job_duration,
             'estimated_arrival' => $product->estimated_arrival,
         ];

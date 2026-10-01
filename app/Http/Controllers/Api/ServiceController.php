@@ -121,12 +121,14 @@ class ServiceController extends Controller
             });
         }
 
-        $products = $query->with(['primaryImage', 'category'])
+        $products = $query->with(['primaryImage', 'category', 'services:id,name'])
             ->orderBy('name')
             ->paginate($perPage);
 
         $data = $products->getCollection()->map(function (Product $product) {
-            $serviceNames = $product->services()->pluck('name')->values()->all();
+            $serviceNames = $product->relationLoaded('services')
+                ? $product->services->pluck('name')->values()->all()
+                : [];
             $productData = $this->productToApiData($product);
 
             return array_merge($productData, [

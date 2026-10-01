@@ -574,9 +574,9 @@ class ProductCatalogWriter
     /**
      * @return array<string, mixed>
      */
-    public function productToApiData(Product $product): array
+    public function productToApiData(Product $product, bool $forList = false): array
     {
-        return $this->adminProducts->serializeProductForApi($product);
+        return $this->adminProducts->serializeProductForApi($product, $forList);
     }
 
   /**

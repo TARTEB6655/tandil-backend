@@ -1648,9 +1648,9 @@ class ProductController extends Controller
      *
      * @return array<string, mixed>
      */
-    public function serializeProductForApi(Product $product): array
+    public function serializeProductForApi(Product $product, bool $forList = false): array
     {
-        return $this->productToApiData($product);
+        return $this->productToApiData($product, $forList);
     }
 
     /**

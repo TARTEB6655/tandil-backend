@@ -77,6 +77,13 @@ Route::get('/media/{path}', function (string $path) {
 
     $width = request()->query('w');
     $widthInt = is_numeric($width) ? (int) $width : null;
+
+    // Path-based thumbs: /media/cache/thumbs/w384/products/foo.jpg
+    if (preg_match('#^cache/thumbs/w(\d+)/(.+)$#i', $path, $thumbMatch)) {
+        $widthInt = (int) $thumbMatch[1];
+        $path = $thumbMatch[2];
+    }
+
     $resolved = \App\Support\MediaThumbCache::resolve($path, $widthInt);
     if ($resolved === null) {
         abort(404);
@@ -111,6 +118,9 @@ Route::get('/media/{path}', function (string $path) {
         $size = @filesize($fullPath) ?: 0;
         $headers['ETag'] = '"'.md5($resolved['path'].'|'.$mtime.'|'.$size).'"';
         $headers['Last-Modified'] = gmdate('D, d M Y H:i:s', $mtime).' GMT';
+        if ($size > 0) {
+            $headers['Content-Length'] = (string) $size;
+        }
     }
 
     if ($extension === 'csv') {

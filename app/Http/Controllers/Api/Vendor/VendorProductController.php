@@ -19,7 +19,7 @@ class VendorProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $vendor = $request->attributes->get('vendor');
-        $items = VendorProduct::with(['product.category', 'inventory', 'currentPrice'])
+        $items = VendorProduct::with(['product.category', 'product.primaryImage', 'inventory', 'currentPrice'])
             ->where('vendor_id', $vendor->id)
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->query('status')))
             ->when($request->filled('category_id'), function ($q) use ($request) {
@@ -34,7 +34,7 @@ class VendorProductController extends Controller
             ->paginate(min((int) $request->query('per_page', 15), 100));
 
         return ApiResponse::success('Products retrieved.', [
-            'items' => collect($items->items())->map(fn (VendorProduct $vp) => $this->products->formatApiResponse($vp))->all(),
+            'items' => collect($items->items())->map(fn (VendorProduct $vp) => $this->products->formatApiResponse($vp, true))->all(),
             'pagination' => [
                 'current_page' => $items->currentPage(),
                 'last_page' => $items->lastPage(),

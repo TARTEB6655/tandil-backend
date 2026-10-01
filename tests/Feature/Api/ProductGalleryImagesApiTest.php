@@ -80,8 +80,8 @@ class ProductGalleryImagesApiTest extends TestCase
         $item = collect($response->json('data'))->firstWhere('id', $product->id);
         $this->assertNotNull($item);
         $this->assertSame('main-list.jpg', $item['main_image']['image_path'] ?? null);
-        $this->assertCount(1, $item['gallery_images'] ?? []);
-        $this->assertSame('extra-list.jpg', $item['gallery_images'][0]['image_path'] ?? null);
+        // List payloads omit gallery so grids only download the primary thumb.
+        $this->assertSame([], $item['gallery_images'] ?? null);
         $this->assertStringContainsString('w=384', (string) ($item['image_url'] ?? ''));
         $this->assertStringContainsString('w=384', (string) ($item['main_image']['image_url'] ?? ''));
         $this->assertStringContainsString('w=384', (string) ($item['image_thumb_url'] ?? ''));

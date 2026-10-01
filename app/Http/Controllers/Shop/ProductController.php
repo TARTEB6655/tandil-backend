@@ -32,7 +32,6 @@ class ProductController extends Controller
 
             $products = Product::with([
                 'category',
-                'images',
                 'primaryImage',
             ])
                 ->visibleInClientShop()
@@ -76,7 +75,6 @@ class ProductController extends Controller
 
             $query = Product::with([
                 'category',
-                'images',
                 'primaryImage',
             ])
                 ->visibleInClientShop();
@@ -198,7 +196,8 @@ class ProductController extends Controller
                         'image_url' => $url($img->image_path),
                     ];
                 }
-            } else {
+            } elseif (! $forList) {
+                // List/card screens only need the primary thumb — skip gallery downloads.
                 $galleryImages[] = [
                     'id' => $img->id,
                     'image_path' => $img->image_path,

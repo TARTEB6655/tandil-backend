@@ -206,10 +206,10 @@ class VendorProductService
     /**
      * @return array<string, mixed>
      */
-    public function formatApiResponse(VendorProduct $vendorProduct): array
+    public function formatApiResponse(VendorProduct $vendorProduct, bool $forList = false): array
     {
         $product = $vendorProduct->product;
-        $productData = $product ? $this->catalog->productToApiData($product) : null;
+        $productData = $product ? $this->catalog->productToApiData($product, $forList) : null;
 
         return [
             'id' => $vendorProduct->id,

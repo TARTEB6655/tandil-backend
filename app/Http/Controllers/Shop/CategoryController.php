@@ -74,7 +74,7 @@ class CategoryController extends Controller
             }])
             ->with(['products' => function ($query) {
                 $query->visibleInClientShop()
-                    ->with(['images', 'primaryImage'])
+                    ->with(['primaryImage'])
                     ->orderBy('created_at', 'desc')
                     ->take(3);
             }])
@@ -125,7 +125,7 @@ class CategoryController extends Controller
 
         $productsQuery = $category->products()
             ->visibleInClientShop()
-            ->with(['category', 'images', 'primaryImage']);
+            ->with(['category', 'primaryImage']);
 
         if ($minPrice !== null) {
             $productsQuery->where('price', '>=', $minPrice);
