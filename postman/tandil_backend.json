@@ -13574,6 +13574,38 @@
                         },
                         {
                             "name": "03. Show contractor application",
+                            "event": [
+                                {
+                                    "listen": "prerequest",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "const id = (pm.collectionVariables.get('supervisor_registration_id')",
+                                            "  || pm.environment.get('supervisor_registration_id')",
+                                            "  || '').toString().trim();",
+                                            "if (!id || id === '{{supervisor_registration_id}}') {",
+                                            "  throw new Error('Set supervisor_registration_id first (run 01. List, or put numeric id in collection var). Empty id hits LIST, not Show — no documents.');",
+                                            "}"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Show returns application detail (not list)', function () {",
+                                            "  const j = pm.response.json();",
+                                            "  pm.expect(j.message).to.eql('Contractor application retrieved.');",
+                                            "  pm.expect(j.data).to.have.property('personal');",
+                                            "  pm.expect(j.data).to.have.property('company');",
+                                            "  pm.expect(j.data).to.have.property('documents');",
+                                            "  pm.expect(j.data).to.not.have.property('summary');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -13598,7 +13630,7 @@
                                         "{{supervisor_registration_id}}"
                                     ]
                                 },
-                                "description": "GET .../{id} — Contractor application detail: personal (full_name/email/phone), company (trade_license/expiry/trn/emirate/city/address/trade_license_file), actions approve/reject/delete."
+                                "description": "GET .../{id} — full application: personal, company (+ trade_license_file, vat_certificate_file), bank (+ bank_confirmation_letter_file), coverage, documents[].\n\nIMPORTANT: set {{supervisor_registration_id}} first (run 01. List). If id is empty, Laravel hits LIST (`summary`/`items`) with no documents."
                             }
                         },
                         {

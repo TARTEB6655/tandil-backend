@@ -91,13 +91,38 @@ class SupervisorRegistration extends Model
         return $this->hasMany(SupervisorDocument::class);
     }
 
-    public function tradeLicenseDocument(): ?SupervisorDocument
+    public function documentByType(string $type): ?SupervisorDocument
     {
         if ($this->relationLoaded('documents')) {
-            return $this->documents->firstWhere('type', 'trade_license');
+            return $this->documents->firstWhere('type', $type);
         }
 
-        return $this->documents()->where('type', 'trade_license')->first();
+        return $this->documents()->where('type', $type)->first();
+    }
+
+    public function tradeLicenseDocument(): ?SupervisorDocument
+    {
+        return $this->documentByType('trade_license');
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function documentFilePayload(?SupervisorDocument $doc): ?array
+    {
+        if (! $doc) {
+            return null;
+        }
+
+        return [
+            'id' => $doc->id,
+            'type' => $doc->type,
+            'name' => $doc->original_name ?: basename((string) $doc->file_path),
+            'file_name' => $doc->original_name ?: basename((string) $doc->file_path),
+            'url' => $doc->file_url,
+            'file_url' => $doc->file_url,
+            'verification_status' => $doc->verification_status,
+        ];
     }
 
     /**
@@ -196,7 +221,6 @@ class SupervisorRegistration extends Model
      */
     public function toAdminDetailArray(): array
     {
-        $tradeDoc = $this->tradeLicenseDocument();
         $list = $this->toAdminListArray();
 
         return array_merge($list, [
@@ -217,13 +241,8 @@ class SupervisorRegistration extends Model
                 'city_id' => $this->city_id,
                 'address' => $this->company_address,
                 'company_address' => $this->company_address,
-                'trade_license_file' => $tradeDoc ? [
-                    'id' => $tradeDoc->id,
-                    'name' => $tradeDoc->original_name ?: basename((string) $tradeDoc->file_path),
-                    'file_name' => $tradeDoc->original_name ?: basename((string) $tradeDoc->file_path),
-                    'url' => $tradeDoc->file_url,
-                    'file_url' => $tradeDoc->file_url,
-                ] : null,
+                'trade_license_file' => $this->documentFilePayload($this->documentByType('trade_license')),
+                'vat_certificate_file' => $this->documentFilePayload($this->documentByType('vat_certificate')),
             ],
             'bank' => [
                 'bank_name' => $this->bank_name,
@@ -231,6 +250,7 @@ class SupervisorRegistration extends Model
                 'account_holder_name' => $this->account_holder_name,
                 'bank_account_number' => $this->bank_account_number,
                 'iban' => $this->iban,
+                'bank_confirmation_letter_file' => $this->documentFilePayload($this->documentByType('bank_confirmation_letter')),
             ],
             'coverage' => [
                 'main_service_categories' => $this->main_service_categories ?? [],
