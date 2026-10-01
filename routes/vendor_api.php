@@ -32,6 +32,7 @@ Route::prefix('vendor')->group(function () {
 
 // Contractor = supervisor signup (multipart only). Not marketplace vendor.
 Route::prefix('contractor')->group(function () {
+    Route::get('/auth/registration-options', \App\Http\Controllers\Api\Vendor\VendorRegistrationOptionsController::class);
     Route::post('/auth/register', [\App\Http\Controllers\Api\Supervisor\SupervisorRegistrationController::class, 'register']);
     Route::post('/auth/login', [AuthController::class, 'login']); // body: email, password, roles: "supervisor"
 });

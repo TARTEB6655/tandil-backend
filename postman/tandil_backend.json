@@ -1145,7 +1145,32 @@
                                 "registration-options"
                             ]
                         },
-                        "description": "Public. Load active vendor types + emirates for the **legacy marketplace vendor** registration wizard. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active}). Not used for contractor signup."
+                        "description": "Public. Load active vendor types + emirates for the **legacy marketplace vendor** registration wizard. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active}).\n\n**For contractor app dropdowns use:** `GET /api/contractor/auth/registration-options` (same schema; preferred)."
+                    }
+                },
+                {
+                    "name": "Registration options (contractor dropdowns)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Accept",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/contractor/auth/registration-options",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "contractor",
+                                "auth",
+                                "registration-options"
+                            ]
+                        },
+                        "description": "GET /api/contractor/auth/registration-options — Public (no token).\n\nUse this before **Register Contractor** to fill dropdowns. Returns signup-enabled options from admin Contractor signup options:\n- data.options.main_service_categories\n- data.options.service_subcategories\n- data.options.selected_services\n- data.options.emirates\n- data.options.cities\n- data.options.service_coverage_areas\n\nAlso returns form sections schema (version contractor-registration-v2). Same payload as legacy `/api/vendor/auth/registration-options`."
                     }
                 },
                 {

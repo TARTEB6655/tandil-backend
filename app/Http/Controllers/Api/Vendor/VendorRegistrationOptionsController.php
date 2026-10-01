@@ -7,7 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Services\Vendor\ContractorRegistrationSchemaService;
 
 /**
- * Dynamic contractor/vendor registration form schema for the mobile app.
+ * Dynamic contractor registration form schema for the mobile app.
+ *
+ * Preferred: GET /api/contractor/auth/registration-options
+ * Legacy alias: GET /api/vendor/auth/registration-options (same payload)
  */
 class VendorRegistrationOptionsController extends Controller
 {

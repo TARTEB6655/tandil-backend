@@ -196,4 +196,63 @@ class ContractorSignupOptionsAdminApiTest extends TestCase
         $this->assertNotEmpty($schema['emirates']);
         $this->assertNotEmpty($schema['service_coverage_areas']);
     }
+
+    public function test_contractor_registration_options_endpoint_returns_signup_enabled_catalog(): void
+    {
+        $category = Category::query()->create([
+            'name' => 'Cleaning Public',
+            'slug' => 'cleaning_public',
+            'is_active' => true,
+            'contractor_signup_enabled' => true,
+        ]);
+        $sub = Category::query()->create([
+            'name' => 'Deep Clean Sub',
+            'slug' => 'deep_clean_sub',
+            'is_active' => true,
+            'parent_id' => $category->id,
+            'contractor_signup_enabled' => true,
+        ]);
+        $service = Service::query()->create([
+            'name' => 'Sofa Clean',
+            'slug' => 'sofa_clean',
+            'is_active' => true,
+            'contractor_signup_enabled' => true,
+            'category_id' => $category->id,
+        ]);
+        $emirate = Emirate::query()->firstOrCreate(
+            ['slug' => 'dubai_public'],
+            ['name' => 'Dubai Public', 'is_active' => true, 'contractor_signup_enabled' => true]
+        );
+        $area = Area::query()->create([
+            'name' => 'Public Zone',
+            'is_active' => true,
+            'contractor_signup_enabled' => true,
+        ]);
+
+        $response = $this->getJson('/api/contractor/auth/registration-options')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'data' => [
+                    'options' => [
+                        'main_service_categories',
+                        'service_subcategories',
+                        'selected_services',
+                        'emirates',
+                        'cities',
+                        'service_coverage_areas',
+                    ],
+                ],
+            ]);
+
+        $options = $response->json('data.options');
+        $this->assertContains($category->id, collect($options['main_service_categories'])->pluck('id')->all());
+        $this->assertContains($sub->id, collect($options['service_subcategories'])->pluck('id')->all());
+        $this->assertContains($service->id, collect($options['selected_services'])->pluck('id')->all());
+        $this->assertContains($emirate->id, collect($options['emirates'])->pluck('id')->all());
+        $this->assertContains($area->id, collect($options['service_coverage_areas'])->pluck('id')->all());
+
+        // Legacy vendor path still works (same handler).
+        $this->getJson('/api/vendor/auth/registration-options')->assertOk();
+    }
 }
