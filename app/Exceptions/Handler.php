@@ -1,0 +1,210 @@
+<?php
+
+namespace App\Exceptions;
+
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Throwable;
+use Illuminate\Http\Request;
+use Illuminate\Auth\AuthenticationException;
+use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\JsonResponse;
+
+class Handler extends ExceptionHandler
+{
+    /**
+     * A list of the exception types that are not reported.
+     *
+     * @var array
+     */
+    protected $dontReport = [
+        //
+    ];
+
+    /**
+     * A list of the inputs that are never flashed for validation exceptions.
+     *
+     * @var array
+     */
+    protected $dontFlash = [
+        'current_password',
+        'password',
+        'password_confirmation',
+    ];
+
+    /**
+     * Render an exception into an HTTP response.
+     */
+    public function render($request, Throwable $e): Response
+    {
+        // Handle AuthorizationException for web requests - redirect to login instead of showing error
+        if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return $this->handleApiException($request, $e);
+            }
+            // For web requests, redirect to login (no error shown)
+            return redirect()->guest(route('login'))->with('error', 'You do not have permission to access this page.');
+        }
+
+        // For API requests, ALWAYS return JSON (never HTML, even in debug mode)
+        if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson() || $request->header('Accept') === 'application/json') {
+            return $this->handleApiException($request, $e);
+        }
+
+        return parent::render($request, $e);
+    }
+
+    /**
+     * Handle API exceptions and return JSON responses.
+     */
+    protected function handleApiException($request, Throwable $e): JsonResponse
+    {
+        $isDebug = config('app.debug');
+        $exceptionClass = get_class($e);
+        $file = $e->getFile();
+        $line = $e->getLine();
+        $message = $e->getMessage() ?: 'An error occurred';
+
+        // Handle ValidationException - Use standardized format with success
+        if ($e instanceof \Illuminate\Validation\ValidationException) {
+            $errors = $e->errors();
+            $firstError = collect($errors)->flatten()->first();
+            $message = $e->getMessage() ?: ($firstError ?: 'The given data was invalid.');
+            
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'errors' => $errors,
+            ], 422);
+        }
+
+        // Handle AuthenticationException
+        if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please provide a valid authentication token.',
+            ], 401);
+        }
+
+        // Handle AuthorizationException
+        if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to perform this action.',
+            ], 403);
+        }
+
+        // Handle ModelNotFoundException
+        if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Resource not found.',
+            ], 404);
+        }
+
+        // Handle QueryException — never leak raw SQL to mobile clients.
+        if ($e instanceof \Illuminate\Database\QueryException) {
+            $sqlMessage = $e->getMessage();
+
+            if (
+                str_contains($sqlMessage, 'users_phone_unique')
+                || str_contains($sqlMessage, 'users_phone_role_unique')
+                || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'phone'))
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This phone number is already registered. Please log in or use a different phone number.',
+                    'errors' => [
+                        'phone' => ['This phone number is already registered. Please log in or use a different phone number.'],
+                    ],
+                ], 422);
+            }
+
+            if (
+                str_contains($sqlMessage, 'users_email_unique')
+                || str_contains($sqlMessage, 'users_email_role_unique')
+                || (str_contains($sqlMessage, 'Duplicate entry') && str_contains($sqlMessage, 'email'))
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This email is already registered. Please log in or use a different email.',
+                    'errors' => [
+                        'email' => ['This email is already registered. Please log in or use a different email.'],
+                    ],
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => $isDebug
+                    ? $message
+                    : 'Unable to complete the request. Please try again or contact support.',
+            ], 500);
+        }
+
+        // Handle NotFoundHttpException - Always return clean JSON
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\NotFoundHttpException) {
+            // Extract route from exception message if available
+            $routeMessage = $e->getMessage();
+            $route = 'unknown';
+            
+            // Try to extract route path from various message formats
+            if (preg_match('/route\s+([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
+                $route = $matches[1];
+            } elseif (preg_match('/([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
+                $route = $matches[1];
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => "The route {$route} could not be found.",
+            ], 404);
+        }
+
+        // Handle MethodNotAllowedHttpException
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Method not allowed for this route.',
+            ], 405);
+        }
+
+        // Handle HttpException
+        if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpException) {
+            $statusCode = $e->getStatusCode();
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+            ], $statusCode);
+        }
+
+        // Generic error handling
+        $statusCode = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+
+        // For API routes: always show the actual error message so the client knows what to fix
+        $payload = [
+            'success' => false,
+            'message' => $message,
+        ];
+        if ($statusCode >= 500 && $isDebug) {
+            $payload['exception'] = $exceptionClass;
+            $payload['file'] = $file . ':' . $line;
+        }
+
+        return response()->json($payload, $statusCode);
+    }
+
+    /**
+     * Convert an authentication exception into an unauthenticated response.
+     */
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated. Please provide a valid authentication token.',
+            ], 401);
+        }
+
+        return redirect()->guest(route('login'));
+    }
+}

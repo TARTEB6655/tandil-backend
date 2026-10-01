@@ -1,0 +1,112 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class Service extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'vendor_id',
+        'name',
+        'slug',
+        'description',
+        'image',
+        'icon',
+        'is_active',
+        'contractor_signup_enabled',
+        'category_id',
+        'sort_order',
+        'pricing_type',
+        'price',
+        'price_includes',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'contractor_signup_enabled' => 'boolean',
+        'sort_order' => 'integer',
+        'price' => 'float',
+        'price_includes' => 'array',
+    ];
+
+    protected $appends = ['image_url', 'coming_soon'];
+
+    public function getComingSoonAttribute(): bool
+    {
+        return isset($this->attributes['is_active']) && ! (bool) $this->attributes['is_active'];
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        $image = $this->attributes['image'] ?? null;
+
+        return \App\Support\MediaUrl::thumb(is_string($image) ? $image : null, 384)
+            ?? \App\Support\MediaUrl::full(is_string($image) ? $image : null);
+    }
+
+    public function scopeForVendorCatalog($query, ?int $vendorId)
+    {
+        return $query->where(function ($q) use ($vendorId) {
+            $q->whereNull('vendor_id');
+            if ($vendorId !== null) {
+                $q->orWhere('vendor_id', $vendorId);
+            }
+        });
+    }
+
+    /**
+     * Admin-managed services vendors may link to products.
+     */
+    public function scopePlatformCatalog($query)
+    {
+        return $query->whereNull('vendor_id');
+    }
+
+    /**
+     * Platform services vendors can link to products (matches GET /api/vendor/services).
+     */
+    public function scopeVendorAssignable($query)
+    {
+        return $query->platformCatalog()->where(function ($q) {
+            $q->where('is_active', true)->orWhereNull('is_active');
+        });
+    }
+
+    /**
+     * Optional product-category filter for vendor dropdowns.
+     * Includes services linked to the category plus global services (category_id null).
+     */
+    public function scopeForProductCategory($query, ?int $categoryId)
+    {
+        if ($categoryId === null || $categoryId < 1) {
+            return $query;
+        }
+
+        return $query->where(function ($q) use ($categoryId) {
+            $q->where('category_id', $categoryId)
+                ->orWhereNull('category_id');
+        });
+    }
+
+    public function vendorAccount()
+    {
+        return $this->belongsTo(Vendor::class, 'vendor_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Products linked to this service (many-to-many).
+     */
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_service');
+    }
+}

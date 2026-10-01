@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
+class OrderItem extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'product_name',
+        'quantity',
+        'pricing_type',
+        'required_area',
+        'price_includes',
+        'price',
+        'subtotal',
+        'booking_date',
+        'booking_slot',
+    ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (OrderItem $item) {
+            if (filled($item->product_name)) {
+                return;
+            }
+            $name = $item->product?->name;
+            if (! is_string($name) || trim($name) === '') {
+                $productId = (int) ($item->product_id ?? 0);
+                if ($productId > 0) {
+                    $name = Product::query()->whereKey($productId)->value('name');
+                }
+            }
+            if (is_string($name) && trim($name) !== '') {
+                $item->product_name = trim($name);
+            }
+        });
+    }
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'required_area' => 'decimal:2',
+        'price_includes' => 'array',
+        'booking_date' => 'date:Y-m-d',
+    ];
+
+    /**
+     * Get the order that owns this item.
+     */
+    public function order()
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the product for this order item.
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
+    }
+
+    /**
+     * The Visit (job) dispatched for this specific order item, if any.
+     */
+    public function visit()
+    {
+        return $this->hasOne(Visit::class);
+    }
+}
