@@ -1,10 +1,10 @@
 {
     "info": {
-        "name": "Tandil Backend - Flow-Based Collection (v3.6.46)",
+        "name": "Tandil Backend - Flow-Based Collection (v3.6.47)",
         "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **5. Admin Dashboard** (Areas/Zones under admin) / Supervisor zones as documented.\n\n**Client shop & orders:** folder **4. Client Dashboard → O. Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **5 → N. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.46"
+        "version": "3.6.47"
     },
     "item": [
         {
@@ -793,982 +793,1006 @@
             "name": "3. Authentication",
             "item": [
                 {
-                    "name": "1. Register",
-                    "event": [
+                    "name": "A. Client",
+                    "description": "Client app auth: register, login picker roles, social sign-in, delete account.",
+                    "item": [
                         {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 201) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    if (jsonData.token) {",
-                                    "        pm.environment.set('token', jsonData.token);",
-                                    "        pm.environment.set('user_id', jsonData.user.id);",
-                                    "        pm.environment.set('role', jsonData.role);",
-                                    "        console.log('Token saved:', jsonData.token);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+971501234567\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/register",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "register"
-                            ]
-                        },
-                        "description": "✅ STEP 2: Register a new user account"
-                    }
-                },
-                {
-                    "name": "2. App roles (login picker)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/app-roles",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "app-roles"
-                            ]
-                        },
-                        "description": "GET /api/auth/app-roles. Public. Each item: slug, role (display title), description (body text), icon, plus title/subtitle mirrors for older clients."
-                    }
-                },
-                {
-                    "name": "3. Login",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    var d = jsonData.data || jsonData;",
-                                    "    if (d.token) {",
-                                    "        pm.environment.set('token', d.token);",
-                                    "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                                    "        if (d.role) pm.environment.set('role', d.role);",
-                                    "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                                    "        console.log('Token saved:', d.token);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"roles\": \"admin\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/login",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "login"
-                            ]
-                        },
-                        "description": "POST /api/auth/login. Body: email, password, required roles (single slug from GET /api/auth/app-roles, or JSON array of one slug). Token is scoped to that slug; the account must have that role. Response data.slug."
-                    }
-                },
-                {
-                    "name": "4. Delete Account (POST)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    pm.environment.unset('token');",
-                                    "    pm.environment.unset('user_id');",
-                                    "    console.log('Account deleted. Token cleared — use Register or Login again.');",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/delete-account",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "delete-account"
-                            ]
-                        },
-                        "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple 5.1.1). Run **Login** first for {{token}}. **No request body** — user is taken from Bearer token. Success: account and personal data deleted; clear token locally. Aliases: DELETE /api/user/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
-                    }
-                },
-                {
-                    "name": "5. Google sign-in (client)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    var d = jsonData.data || jsonData;",
-                                    "    if (d.token) {",
-                                    "        pm.environment.set('token', d.token);",
-                                    "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                                    "        if (d.role) pm.environment.set('role', d.role);",
-                                    "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"id_token\": \"<google_id_token_from_mobile_sdk>\",\n  \"roles\": \"client\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/google",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "google"
-                            ]
-                        },
-                        "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
-                    }
-                },
-                {
-                    "name": "6. Apple sign-in (client)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var jsonData = pm.response.json();",
-                                    "    var d = jsonData.data || jsonData;",
-                                    "    if (d.token) {",
-                                    "        pm.environment.set('token', d.token);",
-                                    "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                                    "        if (d.role) pm.environment.set('role', d.role);",
-                                    "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                                    "    }",
-                                    "}"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"id_token\": \"<apple_identity_token>\",\n  \"roles\": \"client\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@privaterelay.appleid.com\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/apple",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "apple"
-                            ]
-                        },
-                        "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
-                    }
-                },
-                {
-                    "name": "7. Technician signup - List areas (GET)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/technician-signup-areas",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "technician-signup-areas"
-                            ]
-                        },
-                        "description": "GET /api/auth/technician-signup-areas (alias: GET /api/technician-signup-areas — same JSON). Public. Returns zones (id, name, location, country) with at least one supervisor. If you get 404, server needs latest deploy + run: php artisan route:clear && php artisan optimize:clear. base_url must not already end with /api."
-                    }
-                },
-                {
-                    "name": "8. Register Technician",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"name\": \"New Technician\",\n  \"email\": \"new.tech@example.com\",\n  \"phone\": \"+971500001234\",\n  \"service_area\": \"Dubai Marina\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/auth/register-technician",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "auth",
-                                "register-technician"
-                            ]
-                        },
-                        "description": "POST /api/auth/register-technician. Required: name, email, phone, password, password_confirmation, and either service_area (any free-text / map / worldwide address) OR area_id. Optional: if text matches a supervised zone, area_id is stored for routing; otherwise area_id is null and the raw location is saved. Supervisor sees null-area requests too; on approve they attach to one of their zones."
-                    }
-                },
-                {
-                    "name": "9. Registration options (vendor types & emirates)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/vendor/auth/registration-options",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "vendor",
-                                "auth",
-                                "registration-options"
-                            ]
-                        },
-                        "description": "Public. Load active vendor types + emirates for the **legacy marketplace vendor** registration wizard. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active}).\n\n**For contractor app dropdowns use:** `GET /api/contractor/auth/registration-options` (same schema; preferred)."
-                    }
-                },
-                {
-                    "name": "10. Registration options (contractor dropdowns)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/contractor/auth/registration-options",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "contractor",
-                                "auth",
-                                "registration-options"
-                            ]
-                        },
-                        "description": "GET /api/contractor/auth/registration-options — Public (no token).\n\nUse this before **Register Contractor** to fill dropdowns. Returns signup-enabled options from admin Contractor signup options:\n- data.options.main_service_categories\n- data.options.service_subcategories\n- data.options.selected_services\n- data.options.emirates\n- data.options.cities\n- data.options.service_coverage_areas\n\nAlso returns form sections schema (version contractor-registration-v2). Same payload as legacy `/api/vendor/auth/registration-options`."
-                    }
-                },
-                {
-                    "name": "11. Register Contractor (supervisor – multipart)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status is 201 Created', function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "pm.test('Contractor registration succeeded (pending supervisor)', function () {",
-                                    "    var j = pm.response.json();",
-                                    "    pm.expect(j.success).to.eql(true);",
-                                    "    pm.expect(j.data).to.have.property('registration_id');",
-                                    "    pm.expect(j.data).to.have.property('supervisor_id');",
-                                    "    pm.expect(j.data.status).to.eql('pending');",
-                                    "    if (j.data.registration_id) {",
-                                    "        pm.environment.set('supervisor_registration_id', j.data.registration_id);",
-                                    "        pm.collectionVariables.set('supervisor_registration_id', String(j.data.registration_id));",
-                                    "    }",
-                                    "    if (j.data.supervisor_id) {",
-                                    "        pm.environment.set('supervisor_id', j.data.supervisor_id);",
-                                    "        pm.collectionVariables.set('supervisor_id', String(j.data.supervisor_id));",
-                                    "    }",
-                                    "});",
-                                    "pm.test('Documents uploaded', function () {",
-                                    "    var j = pm.response.json();",
-                                    "    pm.expect(j.data.documents).to.be.an('array').with.lengthOf.at.least(2);",
-                                    "});"
-                                ],
-                                "type": "text/javascript"
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
+                            "name": "1. Register",
+                            "event": [
                                 {
-                                    "key": "name",
-                                    "value": "Sam Contractor",
-                                    "type": "text",
-                                    "description": "Personal — Full name. Required."
-                                },
-                                {
-                                    "key": "phone",
-                                    "value": "+971500009901",
-                                    "type": "text",
-                                    "description": "Mobile number. Required. Unique for supervisor role."
-                                },
-                                {
-                                    "key": "email",
-                                    "value": "contractor@example.com",
-                                    "type": "text",
-                                    "description": "Email. Required. Unique."
-                                },
-                                {
-                                    "key": "password",
-                                    "value": "secret12",
-                                    "type": "text",
-                                    "description": "Password (min 6). Required."
-                                },
-                                {
-                                    "key": "password_confirmation",
-                                    "value": "secret12",
-                                    "type": "text",
-                                    "description": "Confirm password. Required."
-                                },
-                                {
-                                    "key": "company_name",
-                                    "value": "Contractor Co LLC",
-                                    "type": "text",
-                                    "description": "Company name. Required."
-                                },
-                                {
-                                    "key": "trade_license_number",
-                                    "value": "TL-CONTRACTOR-1",
-                                    "type": "text",
-                                    "description": "Trade license number. Required."
-                                },
-                                {
-                                    "key": "trade_license_upload",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Trade license PDF/image. Required. Alias maps to trade_license."
-                                },
-                                {
-                                    "key": "trade_license_expiry_date",
-                                    "value": "2027-12-31",
-                                    "type": "text",
-                                    "description": "Trade license expiry (Y-m-d). Required."
-                                },
-                                {
-                                    "key": "trn",
-                                    "value": "TRN123456",
-                                    "type": "text",
-                                    "description": "TRN / VAT number (optional)."
-                                },
-                                {
-                                    "key": "vat_certificate",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "VAT certificate PDF/image (optional)."
-                                },
-                                {
-                                    "key": "emirate",
-                                    "value": "Dubai",
-                                    "type": "text",
-                                    "description": "Company emirate name. Required."
-                                },
-                                {
-                                    "key": "city",
-                                    "value": "Dubai",
-                                    "type": "text",
-                                    "description": "Company city name (or city id from admin cities). Required."
-                                },
-                                {
-                                    "key": "company_address",
-                                    "value": "Dubai Marina, WH-2",
-                                    "type": "text",
-                                    "description": "Company address. Required."
-                                },
-                                {
-                                    "key": "bank_name",
-                                    "value": "Emirates NBD",
-                                    "type": "text",
-                                    "description": "Bank name (selectable from admin banks). Required."
-                                },
-                                {
-                                    "key": "account_holder_name",
-                                    "value": "Contractor Co LLC",
-                                    "type": "text",
-                                    "description": "Account holder name. Required."
-                                },
-                                {
-                                    "key": "bank_account_number",
-                                    "value": "1234567890",
-                                    "type": "text",
-                                    "description": "Bank account number. Required."
-                                },
-                                {
-                                    "key": "iban",
-                                    "value": "AE070331234567890123456",
-                                    "type": "text",
-                                    "description": "IBAN. Required."
-                                },
-                                {
-                                    "key": "bank_confirmation_letter",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Bank account confirmation letter PDF/image. Required."
-                                },
-                                {
-                                    "key": "main_service_categories[]",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Main service category id(s). Repeat key for multi-select. Required."
-                                },
-                                {
-                                    "key": "service_subcategories[]",
-                                    "value": "2",
-                                    "type": "text",
-                                    "description": "Service subcategory id(s). Optional. Repeat key for multi-select."
-                                },
-                                {
-                                    "key": "selected_services[]",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Available service id(s). Repeat key for multi-select. Required."
-                                },
-                                {
-                                    "key": "emirates[]",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Coverage emirate id(s). Repeat key for multi-select. Required."
-                                },
-                                {
-                                    "key": "cities[]",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Coverage city id(s). Optional. Repeat key for multi-select."
-                                },
-                                {
-                                    "key": "service_coverage_areas[]",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Service coverage area/zone id(s). Repeat key for multi-select. Required."
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    if (jsonData.token) {",
+                                            "        pm.environment.set('token', jsonData.token);",
+                                            "        pm.environment.set('user_id', jsonData.user.id);",
+                                            "        pm.environment.set('role', jsonData.role);",
+                                            "        console.log('Token saved:', jsonData.token);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
                                 }
-                            ]
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/contractor/auth/register",
-                            "host": [
-                                "{{base_url}}"
                             ],
-                            "path": [
-                                "api",
-                                "contractor",
-                                "auth",
-                                "register"
-                            ]
-                        },
-                        "description": "POST /api/contractor/auth/register — **only contractor signup API** (multipart/form-data).\n\nCreates a **supervisor** user + `supervisor_registrations` row with status **pending**. Does **not** create a marketplace vendor. Admins receive **New Contractor Registration**; supervisor receives **Registration Under Review** (EN+AR).\n\nResponse: `data.registration_id`, `data.supervisor_id`, `data.status`.\n\n**Exact fields only:**\n- Personal: name, phone, email, password, password_confirmation\n- Company: company_name, trade_license_number, trade_license_upload, trade_license_expiry_date, trn, vat_certificate, emirate, city, company_address\n- Bank: bank_name, account_holder_name, bank_account_number, iban, bank_confirmation_letter\n- Coverage: main_service_categories[], service_subcategories[], selected_services[], emirates[], cities[], service_coverage_areas[]\n\n**File uploads:** trade_license_upload, vat_certificate (optional), bank_confirmation_letter.\n\nAdmin review: `/api/admin/supervisor-registrations/{id}/approve|reject|request-documents`."
-                    }
-                },
-                {
-                    "name": "12. Login Contractor (supervisor role)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "type": "text/javascript",
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var d = pm.response.json();",
-                                    "    var t = d.data && (d.data.token || d.data.access_token);",
-                                    "    if (t) {",
-                                    "        pm.collectionVariables.set('token', t);",
-                                    "        pm.collectionVariables.set('supervisor_token', t);",
-                                    "        pm.environment.set('token', t);",
-                                    "        pm.environment.set('supervisor_token', t);",
-                                    "    }",
-                                    "}"
-                                ]
-                            }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"email\": \"contractor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"supervisor\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/contractor/auth/login",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "contractor",
-                                "auth",
-                                "login"
-                            ]
-                        },
-                        "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
-                    },
-                    "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
-                },
-                {
-                    "name": "13. Register Vendor (form-data – full signup)",
-                    "event": [
-                        {
-                            "listen": "test",
-                            "script": {
-                                "exec": [
-                                    "pm.test('Status is 201 Created', function () {",
-                                    "    pm.response.to.have.status(201);",
-                                    "});",
-                                    "pm.test('Vendor registration succeeded', function () {",
-                                    "    var j = pm.response.json();",
-                                    "    pm.expect(j.success).to.eql(true);",
-                                    "    pm.expect(j.data).to.have.property('vendor_id');",
-                                    "    pm.expect(j.data.status).to.eql('pending');",
-                                    "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
-                                    "});",
-                                    "pm.test('Multi-select vendor_type was saved', function () {",
-                                    "    var j = pm.response.json();",
-                                    "    pm.expect(j.data.profile).to.have.property('vendor_types');",
-                                    "    pm.expect(j.data.profile.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
-                                    "    pm.expect(j.data.profile.vendor_type_label).to.contain(',');",
-                                    "});"
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
                                 ],
-                                "type": "text/javascript"
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+971501234567\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/register",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "register"
+                                    ]
+                                },
+                                "description": "✅ STEP 2: Register a new user account"
                             }
-                        }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "formdata",
-                            "formdata": [
-                                {
-                                    "key": "company_name",
-                                    "value": "Green Farms LLC",
-                                    "type": "text",
-                                    "description": "Company & account — Company name (alias: business_name). Required."
-                                },
-                                {
-                                    "key": "authorized_person_name",
-                                    "value": "Ali Vendor",
-                                    "type": "text",
-                                    "description": "Authorized person name (alias: owner_name). Required."
-                                },
-                                {
-                                    "key": "email",
-                                    "value": "vendor@example.com",
-                                    "type": "text",
-                                    "description": "Required. Unique."
-                                },
-                                {
-                                    "key": "phone",
-                                    "value": "+971500000000",
-                                    "type": "text",
-                                    "description": "Phone number. Required. Must be unique on users.phone — duplicate returns 422 (not SQL)."
-                                },
-                                {
-                                    "key": "trade_license_number",
-                                    "value": "TL-12345",
-                                    "type": "text",
-                                    "description": "Trade license number. Required."
-                                },
-                                {
-                                    "key": "trade_license",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Trade license (PDF or JPEG/PNG/WebP). Required. Images up to 100 MB auto-compress under 2 MB; PDFs must already be under 2 MB."
-                                },
-                                {
-                                    "key": "address",
-                                    "value": "Industrial Area 1, Warehouse 5",
-                                    "type": "text",
-                                    "description": "Address. Required."
-                                },
-                                {
-                                    "key": "password",
-                                    "value": "secret12",
-                                    "type": "text",
-                                    "description": "Required (min 6)."
-                                },
-                                {
-                                    "key": "password_confirmation",
-                                    "value": "secret12",
-                                    "type": "text",
-                                    "description": "Required."
-                                },
-                                {
-                                    "key": "logo",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Company logo (optional). JPEG/PNG/WebP up to 100 MB — auto-compressed under 2 MB before save. HEIC not supported."
-                                },
-                                {
-                                    "key": "vat_number",
-                                    "value": "TRN123456789",
-                                    "type": "text",
-                                    "description": "VAT / TRN number (optional)."
-                                },
-                                {
-                                    "key": "emirates_id",
-                                    "type": "file",
-                                    "src": [],
-                                    "description": "Emirates ID of authorized person (PDF or image). Required."
-                                },
-                                {
-                                    "key": "vendor_type[]",
-                                    "value": "fruits",
-                                    "type": "text",
-                                    "description": "Required. Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type — this is the format mobile must send for multiple selections. A single plain 'vendor_type' key (no brackets) still works for one value. Preferred slugs: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values are dropped; if none resolve, falls back to other."
-                                },
-                                {
-                                    "key": "vendor_type[]",
-                                    "value": "vegetables",
-                                    "type": "text",
-                                    "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
-                                },
-                                {
-                                    "key": "emirate",
-                                    "value": "Dubai",
-                                    "type": "text",
-                                    "description": "Required. Abu Dhabi|Dubai|Sharjah|Ajman|Umm Al Quwain|Ras Al Khaimah|Fujairah"
-                                },
-                                {
-                                    "key": "city",
-                                    "value": "Dubai",
-                                    "type": "text",
-                                    "description": "City or area (optional)."
-                                },
-                                {
-                                    "key": "google_maps_location",
-                                    "value": "25.2048,55.2708",
-                                    "type": "text",
-                                    "description": "Required. lat,lng or Google Maps URL."
-                                },
-                                {
-                                    "key": "bank_name",
-                                    "value": "Emirates NBD",
-                                    "type": "text",
-                                    "description": "Bank details — bank name. Required."
-                                },
-                                {
-                                    "key": "iban",
-                                    "value": "AE070331234567890123456",
-                                    "type": "text",
-                                    "description": "IBAN. Required."
-                                },
-                                {
-                                    "key": "account_holder_name",
-                                    "value": "Green Farms LLC",
-                                    "type": "text",
-                                    "description": "Account holder name. Required."
-                                },
-                                {
-                                    "key": "delivery_radius",
-                                    "value": "25",
-                                    "type": "text",
-                                    "description": "Operations — delivery radius in km. Required."
-                                },
-                                {
-                                    "key": "opens_at",
-                                    "value": "08:00",
-                                    "type": "text",
-                                    "description": "Opens at (HH:MM). Required unless operating_hours sent."
-                                },
-                                {
-                                    "key": "closes_at",
-                                    "value": "22:00",
-                                    "type": "text",
-                                    "description": "Closes at (HH:MM). Required unless operating_hours sent."
-                                },
-                                {
-                                    "key": "minimum_order_amount",
-                                    "value": "50",
-                                    "type": "text",
-                                    "description": "Minimum order amount (AED). Required."
-                                },
-                                {
-                                    "key": "terms_accepted",
-                                    "value": "1",
-                                    "type": "text",
-                                    "description": "Required. 1 = accept Terms & Conditions."
-                                }
-                            ]
                         },
-                        "url": {
-                            "raw": "{{base_url}}/api/vendor/auth/register",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "vendor",
-                                "auth",
-                                "register"
-                            ]
-                        },
-                        "description": "Public multipart sign-up matching the mobile Vendor Registration wizard (marketplace). Creates user + vendor (`pending`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to select more than one type; a single `vendor_type` field still works for one value. Response `data.profile.vendor_types` returns the full selection ({id,name,slug}[]) and `data.profile.vendor_type_label` joins all selected names.\n\n**For contractor app use:** `POST /api/contractor/auth/register` (Register Contractor) — that is the only contractor signup API."
-                    }
-                },
-                {
-                    "name": "14. Login Vendor",
-                    "event": [
                         {
-                            "listen": "test",
-                            "script": {
-                                "type": "text/javascript",
-                                "exec": [
-                                    "if (pm.response.code === 200) {",
-                                    "    var d = pm.response.json();",
-                                    "    var t = d.data && (d.data.token || d.data.access_token);",
-                                    "    if (t) {",
-                                    "        pm.collectionVariables.set('token', t);",
-                                    "        pm.collectionVariables.set('vendor_token', t);",
-                                    "        pm.environment.set('token', t);",
-                                    "        pm.environment.set('vendor_token', t);",
-                                    "    }",
-                                    "    if (d.data && d.data.vendor) {",
-                                    "        if (d.data.vendor.vendor_id) {",
-                                    "            pm.collectionVariables.set('vendor_id', String(d.data.vendor.vendor_id));",
-                                    "            pm.environment.set('vendor_id', String(d.data.vendor.vendor_id));",
-                                    "        }",
-                                    "    }",
-                                    "}",
-                                    "pm.test('Login returns vendor context', function () {",
-                                    "    var d = pm.response.json();",
-                                    "    pm.expect(d.data).to.have.property('vendor');",
-                                    "    pm.expect(d.data.vendor).to.have.property('is_approved');",
-                                    "});"
-                                ]
+                            "name": "2. App roles (login picker)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/app-roles",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "app-roles"
+                                    ]
+                                },
+                                "description": "GET /api/auth/app-roles. Public. Each item: slug, role (display title), description (body text), icon, plus title/subtitle mirrors for older clients."
+                            }
+                        },
+                        {
+                            "name": "3. Login",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    var d = jsonData.data || jsonData;",
+                                            "    if (d.token) {",
+                                            "        pm.environment.set('token', d.token);",
+                                            "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                                            "        if (d.role) pm.environment.set('role', d.role);",
+                                            "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                                            "        console.log('Token saved:', d.token);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"roles\": \"admin\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "login"
+                                    ]
+                                },
+                                "description": "POST /api/auth/login. Body: email, password, required roles (single slug from GET /api/auth/app-roles, or JSON array of one slug). Token is scoped to that slug; the account must have that role. Response data.slug."
+                            }
+                        },
+                        {
+                            "name": "4. Delete Account (POST)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    pm.environment.unset('token');",
+                                            "    pm.environment.unset('user_id');",
+                                            "    console.log('Account deleted. Token cleared — use Register or Login again.');",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/delete-account",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "delete-account"
+                                    ]
+                                },
+                                "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple 5.1.1). Run **Login** first for {{token}}. **No request body** — user is taken from Bearer token. Success: account and personal data deleted; clear token locally. Aliases: DELETE /api/user/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
+                            }
+                        },
+                        {
+                            "name": "5. Google sign-in (client)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    var d = jsonData.data || jsonData;",
+                                            "    if (d.token) {",
+                                            "        pm.environment.set('token', d.token);",
+                                            "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                                            "        if (d.role) pm.environment.set('role', d.role);",
+                                            "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"id_token\": \"<google_id_token_from_mobile_sdk>\",\n  \"roles\": \"client\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/google",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "google"
+                                    ]
+                                },
+                                "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
+                            }
+                        },
+                        {
+                            "name": "6. Apple sign-in (client)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var jsonData = pm.response.json();",
+                                            "    var d = jsonData.data || jsonData;",
+                                            "    if (d.token) {",
+                                            "        pm.environment.set('token', d.token);",
+                                            "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                                            "        if (d.role) pm.environment.set('role', d.role);",
+                                            "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                                            "    }",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"id_token\": \"<apple_identity_token>\",\n  \"roles\": \"client\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@privaterelay.appleid.com\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/apple",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "apple"
+                                    ]
+                                },
+                                "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
                             }
                         }
-                    ],
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json"
-                            }
-                        ],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"
-                        },
-                        "url": {
-                            "raw": "{{base_url}}/api/vendor/auth/login",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "vendor",
-                                "auth",
-                                "login"
-                            ]
-                        },
-                        "description": "Login as vendor once — saves **vendor_token** + **token** to collection AND environment (persists across requests). Re-login does not invalidate the previous token. Use folder 18 vendor APIs without logging in again. Logout only revokes the token used for that logout call."
-                    }
+                    ]
                 },
                 {
-                    "name": "15. Validate vendor token (auth/me)",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{vendor_token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "B. Technician",
+                    "description": "Technician signup areas + register.",
+                    "item": [
+                        {
+                            "name": "1. Technician signup - List areas (GET)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/technician-signup-areas",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "technician-signup-areas"
+                                    ]
+                                },
+                                "description": "GET /api/auth/technician-signup-areas (alias: GET /api/technician-signup-areas — same JSON). Public. Returns zones (id, name, location, country) with at least one supervisor. If you get 404, server needs latest deploy + run: php artisan route:clear && php artisan optimize:clear. base_url must not already end with /api."
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/vendor/auth/me",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "vendor",
-                                "auth",
-                                "me"
-                            ]
                         },
-                        "description": "Check saved vendor token is still valid without re-login. Use {{vendor_token}} from Login Vendor."
-                    }
+                        {
+                            "name": "2. Register Technician",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"name\": \"New Technician\",\n  \"email\": \"new.tech@example.com\",\n  \"phone\": \"+971500001234\",\n  \"service_area\": \"Dubai Marina\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/auth/register-technician",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "auth",
+                                        "register-technician"
+                                    ]
+                                },
+                                "description": "POST /api/auth/register-technician. Required: name, email, phone, password, password_confirmation, and either service_area (any free-text / map / worldwide address) OR area_id. Optional: if text matches a supervised zone, area_id is stored for routing; otherwise area_id is null and the raw location is saved. Supervisor sees null-area requests too; on approve they attach to one of their zones."
+                            }
+                        }
+                    ]
                 },
                 {
-                    "name": "16. Logout Vendor",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Authorization",
-                                "value": "Bearer {{token}}"
-                            },
-                            {
-                                "key": "Accept",
-                                "value": "application/json"
+                    "name": "C. Contractor",
+                    "description": "Contractor (= supervisor) signup.\n\n1) Registration options (dropdowns)\n2) Register\n3) Login (after admin approve) → {{supervisor_token}}",
+                    "item": [
+                        {
+                            "name": "1. Registration options (contractor dropdowns)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/contractor/auth/registration-options",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "contractor",
+                                        "auth",
+                                        "registration-options"
+                                    ]
+                                },
+                                "description": "GET /api/contractor/auth/registration-options — Public (no token).\n\nUse this before **Register Contractor** to fill dropdowns. Returns signup-enabled options from admin Contractor signup options:\n- data.options.main_service_categories\n- data.options.service_subcategories\n- data.options.selected_services\n- data.options.emirates\n- data.options.cities\n- data.options.service_coverage_areas\n\nAlso returns form sections schema (version contractor-registration-v2). Same payload as legacy `/api/vendor/auth/registration-options`."
                             }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/vendor/auth/logout",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "vendor",
-                                "auth",
-                                "logout"
-                            ]
                         },
-                        "description": "Revoke the current vendor access token."
-                    }
+                        {
+                            "name": "2. Register Contractor (supervisor – multipart)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "pm.test('Status is 201 Created', function () {",
+                                            "    pm.response.to.have.status(201);",
+                                            "});",
+                                            "pm.test('Contractor registration succeeded (pending supervisor)', function () {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.success).to.eql(true);",
+                                            "    pm.expect(j.data).to.have.property('registration_id');",
+                                            "    pm.expect(j.data).to.have.property('supervisor_id');",
+                                            "    pm.expect(j.data.status).to.eql('pending');",
+                                            "    if (j.data.registration_id) {",
+                                            "        pm.environment.set('supervisor_registration_id', j.data.registration_id);",
+                                            "        pm.collectionVariables.set('supervisor_registration_id', String(j.data.registration_id));",
+                                            "    }",
+                                            "    if (j.data.supervisor_id) {",
+                                            "        pm.environment.set('supervisor_id', j.data.supervisor_id);",
+                                            "        pm.collectionVariables.set('supervisor_id', String(j.data.supervisor_id));",
+                                            "    }",
+                                            "});",
+                                            "pm.test('Documents uploaded', function () {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.data.documents).to.be.an('array').with.lengthOf.at.least(2);",
+                                            "});"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "name",
+                                            "value": "Sam Contractor",
+                                            "type": "text",
+                                            "description": "Personal — Full name. Required."
+                                        },
+                                        {
+                                            "key": "phone",
+                                            "value": "+971500009901",
+                                            "type": "text",
+                                            "description": "Mobile number. Required. Unique for supervisor role."
+                                        },
+                                        {
+                                            "key": "email",
+                                            "value": "contractor@example.com",
+                                            "type": "text",
+                                            "description": "Email. Required. Unique."
+                                        },
+                                        {
+                                            "key": "password",
+                                            "value": "secret12",
+                                            "type": "text",
+                                            "description": "Password (min 6). Required."
+                                        },
+                                        {
+                                            "key": "password_confirmation",
+                                            "value": "secret12",
+                                            "type": "text",
+                                            "description": "Confirm password. Required."
+                                        },
+                                        {
+                                            "key": "company_name",
+                                            "value": "Contractor Co LLC",
+                                            "type": "text",
+                                            "description": "Company name. Required."
+                                        },
+                                        {
+                                            "key": "trade_license_number",
+                                            "value": "TL-CONTRACTOR-1",
+                                            "type": "text",
+                                            "description": "Trade license number. Required."
+                                        },
+                                        {
+                                            "key": "trade_license_upload",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Trade license PDF/image. Required. Alias maps to trade_license."
+                                        },
+                                        {
+                                            "key": "trade_license_expiry_date",
+                                            "value": "2027-12-31",
+                                            "type": "text",
+                                            "description": "Trade license expiry (Y-m-d). Required."
+                                        },
+                                        {
+                                            "key": "trn",
+                                            "value": "TRN123456",
+                                            "type": "text",
+                                            "description": "TRN / VAT number (optional)."
+                                        },
+                                        {
+                                            "key": "vat_certificate",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "VAT certificate PDF/image (optional)."
+                                        },
+                                        {
+                                            "key": "emirate",
+                                            "value": "Dubai",
+                                            "type": "text",
+                                            "description": "Company emirate name. Required."
+                                        },
+                                        {
+                                            "key": "city",
+                                            "value": "Dubai",
+                                            "type": "text",
+                                            "description": "Company city name (or city id from admin cities). Required."
+                                        },
+                                        {
+                                            "key": "company_address",
+                                            "value": "Dubai Marina, WH-2",
+                                            "type": "text",
+                                            "description": "Company address. Required."
+                                        },
+                                        {
+                                            "key": "bank_name",
+                                            "value": "Emirates NBD",
+                                            "type": "text",
+                                            "description": "Bank name (selectable from admin banks). Required."
+                                        },
+                                        {
+                                            "key": "account_holder_name",
+                                            "value": "Contractor Co LLC",
+                                            "type": "text",
+                                            "description": "Account holder name. Required."
+                                        },
+                                        {
+                                            "key": "bank_account_number",
+                                            "value": "1234567890",
+                                            "type": "text",
+                                            "description": "Bank account number. Required."
+                                        },
+                                        {
+                                            "key": "iban",
+                                            "value": "AE070331234567890123456",
+                                            "type": "text",
+                                            "description": "IBAN. Required."
+                                        },
+                                        {
+                                            "key": "bank_confirmation_letter",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Bank account confirmation letter PDF/image. Required."
+                                        },
+                                        {
+                                            "key": "main_service_categories[]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Main service category id(s). Repeat key for multi-select. Required."
+                                        },
+                                        {
+                                            "key": "service_subcategories[]",
+                                            "value": "2",
+                                            "type": "text",
+                                            "description": "Service subcategory id(s). Optional. Repeat key for multi-select."
+                                        },
+                                        {
+                                            "key": "selected_services[]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Available service id(s). Repeat key for multi-select. Required."
+                                        },
+                                        {
+                                            "key": "emirates[]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Coverage emirate id(s). Repeat key for multi-select. Required."
+                                        },
+                                        {
+                                            "key": "cities[]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Coverage city id(s). Optional. Repeat key for multi-select."
+                                        },
+                                        {
+                                            "key": "service_coverage_areas[]",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Service coverage area/zone id(s). Repeat key for multi-select. Required."
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/contractor/auth/register",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "contractor",
+                                        "auth",
+                                        "register"
+                                    ]
+                                },
+                                "description": "POST /api/contractor/auth/register — **only contractor signup API** (multipart/form-data).\n\nCreates a **supervisor** user + `supervisor_registrations` row with status **pending**. Does **not** create a marketplace vendor. Admins receive **New Contractor Registration**; supervisor receives **Registration Under Review** (EN+AR).\n\nResponse: `data.registration_id`, `data.supervisor_id`, `data.status`.\n\n**Exact fields only:**\n- Personal: name, phone, email, password, password_confirmation\n- Company: company_name, trade_license_number, trade_license_upload, trade_license_expiry_date, trn, vat_certificate, emirate, city, company_address\n- Bank: bank_name, account_holder_name, bank_account_number, iban, bank_confirmation_letter\n- Coverage: main_service_categories[], service_subcategories[], selected_services[], emirates[], cities[], service_coverage_areas[]\n\n**File uploads:** trade_license_upload, vat_certificate (optional), bank_confirmation_letter.\n\nAdmin review: `/api/admin/supervisor-registrations/{id}/approve|reject|request-documents`."
+                            }
+                        },
+                        {
+                            "name": "3. Login Contractor (supervisor role)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var d = pm.response.json();",
+                                            "    var t = d.data && (d.data.token || d.data.access_token);",
+                                            "    if (t) {",
+                                            "        pm.collectionVariables.set('token', t);",
+                                            "        pm.collectionVariables.set('supervisor_token', t);",
+                                            "        pm.environment.set('token', t);",
+                                            "        pm.environment.set('supervisor_token', t);",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"contractor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"supervisor\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/contractor/auth/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "contractor",
+                                        "auth",
+                                        "login"
+                                    ]
+                                },
+                                "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
+                            },
+                            "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
+                        }
+                    ]
+                },
+                {
+                    "name": "D. Vendor",
+                    "description": "Marketplace vendor signup/login (not contractor).",
+                    "item": [
+                        {
+                            "name": "1. Registration options (vendor types & emirates)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/auth/registration-options",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "auth",
+                                        "registration-options"
+                                    ]
+                                },
+                                "description": "Public. Load active vendor types + emirates for the **legacy marketplace vendor** registration wizard. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active}).\n\n**For contractor app dropdowns use:** `GET /api/contractor/auth/registration-options` (same schema; preferred)."
+                            }
+                        },
+                        {
+                            "name": "2. Register Vendor (form-data – full signup)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "pm.test('Status is 201 Created', function () {",
+                                            "    pm.response.to.have.status(201);",
+                                            "});",
+                                            "pm.test('Vendor registration succeeded', function () {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.success).to.eql(true);",
+                                            "    pm.expect(j.data).to.have.property('vendor_id');",
+                                            "    pm.expect(j.data.status).to.eql('pending');",
+                                            "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
+                                            "});",
+                                            "pm.test('Multi-select vendor_type was saved', function () {",
+                                            "    var j = pm.response.json();",
+                                            "    pm.expect(j.data.profile).to.have.property('vendor_types');",
+                                            "    pm.expect(j.data.profile.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
+                                            "    pm.expect(j.data.profile.vendor_type_label).to.contain(',');",
+                                            "});"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": [
+                                        {
+                                            "key": "company_name",
+                                            "value": "Green Farms LLC",
+                                            "type": "text",
+                                            "description": "Company & account — Company name (alias: business_name). Required."
+                                        },
+                                        {
+                                            "key": "authorized_person_name",
+                                            "value": "Ali Vendor",
+                                            "type": "text",
+                                            "description": "Authorized person name (alias: owner_name). Required."
+                                        },
+                                        {
+                                            "key": "email",
+                                            "value": "vendor@example.com",
+                                            "type": "text",
+                                            "description": "Required. Unique."
+                                        },
+                                        {
+                                            "key": "phone",
+                                            "value": "+971500000000",
+                                            "type": "text",
+                                            "description": "Phone number. Required. Must be unique on users.phone — duplicate returns 422 (not SQL)."
+                                        },
+                                        {
+                                            "key": "trade_license_number",
+                                            "value": "TL-12345",
+                                            "type": "text",
+                                            "description": "Trade license number. Required."
+                                        },
+                                        {
+                                            "key": "trade_license",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Trade license (PDF or JPEG/PNG/WebP). Required. Images up to 100 MB auto-compress under 2 MB; PDFs must already be under 2 MB."
+                                        },
+                                        {
+                                            "key": "address",
+                                            "value": "Industrial Area 1, Warehouse 5",
+                                            "type": "text",
+                                            "description": "Address. Required."
+                                        },
+                                        {
+                                            "key": "password",
+                                            "value": "secret12",
+                                            "type": "text",
+                                            "description": "Required (min 6)."
+                                        },
+                                        {
+                                            "key": "password_confirmation",
+                                            "value": "secret12",
+                                            "type": "text",
+                                            "description": "Required."
+                                        },
+                                        {
+                                            "key": "logo",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Company logo (optional). JPEG/PNG/WebP up to 100 MB — auto-compressed under 2 MB before save. HEIC not supported."
+                                        },
+                                        {
+                                            "key": "vat_number",
+                                            "value": "TRN123456789",
+                                            "type": "text",
+                                            "description": "VAT / TRN number (optional)."
+                                        },
+                                        {
+                                            "key": "emirates_id",
+                                            "type": "file",
+                                            "src": [],
+                                            "description": "Emirates ID of authorized person (PDF or image). Required."
+                                        },
+                                        {
+                                            "key": "vendor_type[]",
+                                            "value": "fruits",
+                                            "type": "text",
+                                            "description": "Required. Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type — this is the format mobile must send for multiple selections. A single plain 'vendor_type' key (no brackets) still works for one value. Preferred slugs: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values are dropped; if none resolve, falls back to other."
+                                        },
+                                        {
+                                            "key": "vendor_type[]",
+                                            "value": "vegetables",
+                                            "type": "text",
+                                            "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
+                                        },
+                                        {
+                                            "key": "emirate",
+                                            "value": "Dubai",
+                                            "type": "text",
+                                            "description": "Required. Abu Dhabi|Dubai|Sharjah|Ajman|Umm Al Quwain|Ras Al Khaimah|Fujairah"
+                                        },
+                                        {
+                                            "key": "city",
+                                            "value": "Dubai",
+                                            "type": "text",
+                                            "description": "City or area (optional)."
+                                        },
+                                        {
+                                            "key": "google_maps_location",
+                                            "value": "25.2048,55.2708",
+                                            "type": "text",
+                                            "description": "Required. lat,lng or Google Maps URL."
+                                        },
+                                        {
+                                            "key": "bank_name",
+                                            "value": "Emirates NBD",
+                                            "type": "text",
+                                            "description": "Bank details — bank name. Required."
+                                        },
+                                        {
+                                            "key": "iban",
+                                            "value": "AE070331234567890123456",
+                                            "type": "text",
+                                            "description": "IBAN. Required."
+                                        },
+                                        {
+                                            "key": "account_holder_name",
+                                            "value": "Green Farms LLC",
+                                            "type": "text",
+                                            "description": "Account holder name. Required."
+                                        },
+                                        {
+                                            "key": "delivery_radius",
+                                            "value": "25",
+                                            "type": "text",
+                                            "description": "Operations — delivery radius in km. Required."
+                                        },
+                                        {
+                                            "key": "opens_at",
+                                            "value": "08:00",
+                                            "type": "text",
+                                            "description": "Opens at (HH:MM). Required unless operating_hours sent."
+                                        },
+                                        {
+                                            "key": "closes_at",
+                                            "value": "22:00",
+                                            "type": "text",
+                                            "description": "Closes at (HH:MM). Required unless operating_hours sent."
+                                        },
+                                        {
+                                            "key": "minimum_order_amount",
+                                            "value": "50",
+                                            "type": "text",
+                                            "description": "Minimum order amount (AED). Required."
+                                        },
+                                        {
+                                            "key": "terms_accepted",
+                                            "value": "1",
+                                            "type": "text",
+                                            "description": "Required. 1 = accept Terms & Conditions."
+                                        }
+                                    ]
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/auth/register",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "auth",
+                                        "register"
+                                    ]
+                                },
+                                "description": "Public multipart sign-up matching the mobile Vendor Registration wizard (marketplace). Creates user + vendor (`pending`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to select more than one type; a single `vendor_type` field still works for one value. Response `data.profile.vendor_types` returns the full selection ({id,name,slug}[]) and `data.profile.vendor_type_label` joins all selected names.\n\n**For contractor app use:** `POST /api/contractor/auth/register` (Register Contractor) — that is the only contractor signup API."
+                            }
+                        },
+                        {
+                            "name": "3. Login Vendor",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 200) {",
+                                            "    var d = pm.response.json();",
+                                            "    var t = d.data && (d.data.token || d.data.access_token);",
+                                            "    if (t) {",
+                                            "        pm.collectionVariables.set('token', t);",
+                                            "        pm.collectionVariables.set('vendor_token', t);",
+                                            "        pm.environment.set('token', t);",
+                                            "        pm.environment.set('vendor_token', t);",
+                                            "    }",
+                                            "    if (d.data && d.data.vendor) {",
+                                            "        if (d.data.vendor.vendor_id) {",
+                                            "            pm.collectionVariables.set('vendor_id', String(d.data.vendor.vendor_id));",
+                                            "            pm.environment.set('vendor_id', String(d.data.vendor.vendor_id));",
+                                            "        }",
+                                            "    }",
+                                            "}",
+                                            "pm.test('Login returns vendor context', function () {",
+                                            "    var d = pm.response.json();",
+                                            "    pm.expect(d.data).to.have.property('vendor');",
+                                            "    pm.expect(d.data.vendor).to.have.property('is_approved');",
+                                            "});"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/auth/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "auth",
+                                        "login"
+                                    ]
+                                },
+                                "description": "Login as vendor once — saves **vendor_token** + **token** to collection AND environment (persists across requests). Re-login does not invalidate the previous token. Use folder 18 vendor APIs without logging in again. Logout only revokes the token used for that logout call."
+                            }
+                        },
+                        {
+                            "name": "4. Validate vendor token (auth/me)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{vendor_token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/auth/me",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "auth",
+                                        "me"
+                                    ]
+                                },
+                                "description": "Check saved vendor token is still valid without re-login. Use {{vendor_token}} from Login Vendor."
+                            }
+                        },
+                        {
+                            "name": "5. Logout Vendor",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/vendor/auth/logout",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "vendor",
+                                        "auth",
+                                        "logout"
+                                    ]
+                                },
+                                "description": "Revoke the current vendor access token."
+                            }
+                        }
+                    ]
                 }
             ],
-            "description": "Authentication endpoints - Register, Login, Google/Apple sign-in, Delete Account (after login). Vendor auth (Register/Login/Logout) is also here; vendor account deletion uses the common Delete Account endpoint."
+            "description": "Auth for all apps.\n\n| Subfolder | Use |\n|-----------|-----|\n| **A. Client** | Customer register / login / social |\n| **B. Technician** | Technician signup |\n| **C. Contractor** | Contractor dropdowns + register + login |\n| **D. Vendor** | Marketplace vendor |\n\nContractor dropdowns API: `GET /api/contractor/auth/registration-options` → **C → 1**."
         },
         {
             "name": "4. Client Dashboard",
