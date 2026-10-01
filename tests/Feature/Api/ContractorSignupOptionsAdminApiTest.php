@@ -236,7 +236,7 @@ class ContractorSignupOptionsAdminApiTest extends TestCase
                 'data' => [
                     'main_service_categories',
                     'service_subcategories',
-                    'selected_services',
+                    'available_services',
                     'emirates',
                     'service_coverage_areas',
                 ],
@@ -247,12 +247,13 @@ class ContractorSignupOptionsAdminApiTest extends TestCase
             [
                 'main_service_categories',
                 'service_subcategories',
-                'selected_services',
+                'available_services',
                 'emirates',
                 'service_coverage_areas',
             ],
             array_keys($data)
         );
+        $this->assertArrayNotHasKey('selected_services', $data);
         $this->assertArrayNotHasKey('cities', $data);
         $this->assertArrayNotHasKey('banks', $data);
         $this->assertArrayNotHasKey('sections', $data);
@@ -260,7 +261,7 @@ class ContractorSignupOptionsAdminApiTest extends TestCase
 
         $this->assertContains($category->id, collect($data['main_service_categories'])->pluck('id')->all());
         $this->assertContains($sub->id, collect($data['service_subcategories'])->pluck('id')->all());
-        $this->assertContains($service->id, collect($data['selected_services'])->pluck('id')->all());
+        $this->assertContains($service->id, collect($data['available_services'])->pluck('id')->all());
         $this->assertContains($emirate->id, collect($data['emirates'])->pluck('id')->all());
         $this->assertContains($area->id, collect($data['service_coverage_areas'])->pluck('id')->all());
 

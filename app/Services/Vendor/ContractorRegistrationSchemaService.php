@@ -215,7 +215,7 @@ class ContractorRegistrationSchemaService
      * @return array{
      *   main_service_categories: list<array<string, mixed>>,
      *   service_subcategories: list<array<string, mixed>>,
-     *   selected_services: list<array<string, mixed>>,
+     *   available_services: list<array<string, mixed>>,
      *   emirates: list<array<string, mixed>>,
      *   service_coverage_areas: list<array<string, mixed>>
      * }
@@ -227,7 +227,8 @@ class ContractorRegistrationSchemaService
         return [
             'main_service_categories' => $catalog['main_service_categories'] ?? [],
             'service_subcategories' => $catalog['service_subcategories'] ?? [],
-            'selected_services' => $catalog['selected_services'] ?? [],
+            // UI label: "Available Services" (register still posts selected_services[])
+            'available_services' => $catalog['selected_services'] ?? [],
             'emirates' => $catalog['emirates'] ?? [],
             'service_coverage_areas' => $catalog['service_coverage_areas'] ?? [],
         ];

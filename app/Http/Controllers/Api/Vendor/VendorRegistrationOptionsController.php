@@ -28,7 +28,7 @@ class VendorRegistrationOptionsController extends Controller
             return ApiResponse::success('Registration options retrieved successfully.', [
                 'main_service_categories' => $options['main_service_categories'],
                 'service_subcategories' => $options['service_subcategories'],
-                'selected_services' => $options['selected_services'],
+                'available_services' => $options['available_services'],
                 'emirates' => $options['emirates'],
                 'service_coverage_areas' => $options['service_coverage_areas'],
             ])->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
