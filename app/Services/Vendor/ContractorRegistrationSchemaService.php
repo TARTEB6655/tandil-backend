@@ -209,6 +209,30 @@ class ContractorRegistrationSchemaService
         ];
     }
 
+    /**
+     * Slim catalog for contractor app signup dropdowns only.
+     *
+     * @return array{
+     *   main_service_categories: list<array<string, mixed>>,
+     *   service_subcategories: list<array<string, mixed>>,
+     *   selected_services: list<array<string, mixed>>,
+     *   emirates: list<array<string, mixed>>,
+     *   service_coverage_areas: list<array<string, mixed>>
+     * }
+     */
+    public function contractorSignupOptions(): array
+    {
+        $catalog = $this->optionCatalog();
+
+        return [
+            'main_service_categories' => $catalog['main_service_categories'] ?? [],
+            'service_subcategories' => $catalog['service_subcategories'] ?? [],
+            'selected_services' => $catalog['selected_services'] ?? [],
+            'emirates' => $catalog['emirates'] ?? [],
+            'service_coverage_areas' => $catalog['service_coverage_areas'] ?? [],
+        ];
+    }
+
     public function ensureDefaultsSeeded(): void
     {
         if (! Schema::hasTable('contractor_registration_fields')) {

@@ -234,25 +234,39 @@ class ContractorSignupOptionsAdminApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonStructure([
                 'data' => [
-                    'options' => [
-                        'main_service_categories',
-                        'service_subcategories',
-                        'selected_services',
-                        'emirates',
-                        'cities',
-                        'service_coverage_areas',
-                    ],
+                    'main_service_categories',
+                    'service_subcategories',
+                    'selected_services',
+                    'emirates',
+                    'service_coverage_areas',
                 ],
             ]);
 
-        $options = $response->json('data.options');
-        $this->assertContains($category->id, collect($options['main_service_categories'])->pluck('id')->all());
-        $this->assertContains($sub->id, collect($options['service_subcategories'])->pluck('id')->all());
-        $this->assertContains($service->id, collect($options['selected_services'])->pluck('id')->all());
-        $this->assertContains($emirate->id, collect($options['emirates'])->pluck('id')->all());
-        $this->assertContains($area->id, collect($options['service_coverage_areas'])->pluck('id')->all());
+        $data = $response->json('data');
+        $this->assertSame(
+            [
+                'main_service_categories',
+                'service_subcategories',
+                'selected_services',
+                'emirates',
+                'service_coverage_areas',
+            ],
+            array_keys($data)
+        );
+        $this->assertArrayNotHasKey('cities', $data);
+        $this->assertArrayNotHasKey('banks', $data);
+        $this->assertArrayNotHasKey('sections', $data);
+        $this->assertArrayNotHasKey('options', $data);
 
-        // Legacy vendor path still works (same handler).
-        $this->getJson('/api/vendor/auth/registration-options')->assertOk();
+        $this->assertContains($category->id, collect($data['main_service_categories'])->pluck('id')->all());
+        $this->assertContains($sub->id, collect($data['service_subcategories'])->pluck('id')->all());
+        $this->assertContains($service->id, collect($data['selected_services'])->pluck('id')->all());
+        $this->assertContains($emirate->id, collect($data['emirates'])->pluck('id')->all());
+        $this->assertContains($area->id, collect($data['service_coverage_areas'])->pluck('id')->all());
+
+        // Legacy vendor path still returns full schema.
+        $this->getJson('/api/vendor/auth/registration-options')
+            ->assertOk()
+            ->assertJsonStructure(['data' => ['options', 'sections']]);
     }
 }
