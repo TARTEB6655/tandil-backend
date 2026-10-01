@@ -1,10 +1,10 @@
 {
     "info": {
-        "name": "Tandil Backend - Flow-Based Collection (v3.6.41)",
-        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **17 → H. Admin - Areas (Zones)**.\n\n**Client shop & orders:** folder **8. Client Dashboard – Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **12 → N2. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
+        "name": "Tandil Backend - Flow-Based Collection (v3.6.45)",
+        "description": "Tandil Backend API. All responses JSON. Set env: base_url, token. Use Bearer token for protected routes. Technician and Supervisor leave-request submit: use form-data (leave_type, start_date, end_date, reason).\n\n**Technician → Supervisor report:** Technician sends report with POST /api/technician/report/{{visit_id}} (visit_id in URL; form-data: technician_notes, before_photo, after_photo). Supervisor sees reports with GET /api/supervisor/reports. Set {{visit_id}} to the job id when testing.\n\nAdmin Zones & Teams: Areas (zones) list/create/get/update/delete with supervisor name and location; All Technicians (with search); All Supervisors (with search); Supervisor Team get/add/remove member. See folder **5. Admin Dashboard** (Areas/Zones under admin) / Supervisor zones as documented.\n\n**Client shop & orders:** folder **4. Client Dashboard → O. Shop & Orders** uses subfolders **A→K** (A–J as before, **K** = Coupons validate/checkout, **I** = Stripe / PayPal / React Native PaymentIntent + webhooks). **Hosted Checkout + PayPal + RN** requests live under folder **8** → **I. Shop – Payments**. Organized by dashboard: ADMIN (Stats, Users & HR, Support Tickets, Reports, Settings) · CLIENT · TECHNICIAN (folder 9) · SUPERVISOR (folder 10). Support ticket (chat) APIs per role: Client = Module 3 (Help and Support 10–14). Technician = Module 9 (Support help center, FAQs, submit, list my tickets, get by ID, reply). Supervisor = Module 10 (F. Support Tickets). Area Manager / HR = same /api/support/* with their token – see Module 15 'Support Tickets – All roles'. Admin = Module 13 (list/respond to all tickets). Admin profile update: form-data only, no current_password; use password + password_confirmation to change password.\n\n**Area Manager:** Dashboard (summary, alerts, region-map), Teams (list → detail → members → member jobs). Use {{team_id}} from Teams list for GET /teams/{{team_id}}, /teams/{{team_id}}/members, and for Member Jobs add ?team_id={{team_id}} so job counts match members. Analytics: GET /api/area-manager/analytics?period=today|week|month.\n\n**Postman 3.3.6:** Admin **GET /api/admin/notifications/delivery-stats** (by_audience + by_audience_labeled + by_notification_type); broadcast send/list/detail; /api/user/notifications and /api/client/notifications document per_page, optional audience_role; clear-all deletes with deleted_count.\n\n**Notifications hub:** Folder **Notifications - All roles (hub)** lists every notification API by role (Shared, User profile, Client, Technician, Supervisor, Area Manager, HR, Admin). **17. Other Modules** uses subfolders **A→O** (Support, Offers, Complaints, Tips, Admin catalog, User profile, etc.).\n\n**Coupons:** **5f** admin CRUD · **8 → K** client: `GET browse?category_id|service_id` (promos on catalog) · `POST checkout-offers` (choose promo modal) · `POST apply` (**body: `code` only** — % or fixed discount → `order_summary` + optional `payment_intent_id`) · `POST validate` · payment-intent with `coupon_code`. Spec: `docs/COUPON_API.md`.\n\n**Instant Order fee (admin):** folder **5. Admin Dashboard → D. Settings (Mobile)** — `GET/PUT /api/admin/settings/instant-order-fee` body `{ \"instant_order_fee_amount\": 15 }` (`0` = off). **Do not** use `PUT /api/admin/settings/shop` for fee. Applies to **shop/product** checkout only (not booking/service). Checkout: `instant_order_fee`, `is_instant_order` in order summary.\n\n**Service pricing / Product Settings (admin, global):** same folder **5 → D. Settings (Mobile)** — `GET` + `POST|PUT` (form-data) `/api/admin/settings/service-pricing`. **No service_id / product_id.** Fields: `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes[...]`. Applies to **ALL services** only. Shop/category products keep Instant Order Fee. Client cart: send `required_area` (m²) when `pricing_type=per_m2` → line total = area × price.\n\n**Maintenance Photos:** Admin **5g** — `GET list` → `GET /api/admin/maintenance-photos/{id}` (**edit screen detail**) → create/update/delete. Body fields only: title, before_image, after_image, priority, active. Image URLs: `/media/maintenance_photos/...` (not `/storage/`). Client **8b** — `GET /api/maintenance-photos` read-only (active, by priority).\n\n**Vendor marketplace:** folder **2** + **18**. **M** Compare vendors (`compare_vendors.available` on product detail; same **product name** + category; `GET /compare-vendors`) · **P** Vendor Store (`GET /api/shop/vendors/{id}` — vendor + products in one response). **L. Orders:** `GET /api/vendor/orders/{id}` + `GET /api/vendor/orders/{id}/track` (Order Details screen: `status_timeline`, `status_options`, `order_info`, display labels). Demo seed: `php artisan vendor:compare-demo-seed`. Auth: `{{vendor_token}}` for vendor portal only.\n---\n\n## Product vs Service fulfillment (v3.6.28)\n\n**Same rule for Vendor catalog AND Admin/client catalog products.**\n\n| Catalog type | How to create | After payment | Client Track timeline | Notifications |\n|--------------|---------------|---------------|----------------------|---------------|\n| **Simple / physical product** | `type=product` (or omit) + **`vendor_id`** (fulfillment vendor) | Stays vendor OTP flow (`pending` → ship → OTP → delivered). **No** supervisor claim / “goes to supervisor”. | `fulfillment_type=product`, **horizontal** timeline, `delivery_otp` when shipped (in-app, 5 min) | Vendor notified; client gets **Delivery OTP** in-app notification. No supervisor pool alerts. |\n| **Service product** | `type=service` and/or link `service_id` | Supervisor area pool → claim → technician visit | `fulfillment_type=service`, **vertical** timeline with supervisor steps | Supervisor / technician alerts as before |\n\n**Where to test in Postman:**\n1. **Admin catalog CRUD:** `8. Products - All APIs` → **Admin (Bearer token)** → Add Simple Product / Add Service Product\n2. **Vendor catalog CRUD:** `12. Vendor Dashboard` → **J. Products**\n3. **Client track:** `4. Client Dashboard` → **O. Shop & Orders** → **E** (auth track) / **F** (guest track)\n4. **Vendor OTP:** `12` → **L. Orders** → Update status (`shipped`) → Confirm delivery (OTP) / Resend OTP\n5. **Login:** `3. Authentication` → Login (admin/client) or Login Vendor\n---\n\n## API separation — do NOT mix (v3.6.29)\n\n| Who | Product type | Postman folder | Endpoint | Notes |\n|-----|--------------|----------------|----------|-------|\n| **Client** | Browse / buy only | `4. Client Dashboard` → `O. Shop & Orders` | `/api/shop/products`, `/api/orders/{id}/track` | Client **never** creates products. **No vendor_id** in any client request. |\n| **Admin — platform catalog** | Simple (checkout only) | `8. Products - All APIs` → `Admin` → **Add Platform Simple Product** | `POST /api/admin/products` | **No vendor_id**, **no OTP**. `fulfillment_type=platform` on track after paid. |\n| **Admin — platform catalog** | Service | Same → **Add Service Product** | `POST /api/admin/products` | `type=service` / `service_id`. Supervisor flow. |\n| **Vendor** | Simple (OTP) | `12. Vendor Dashboard` → `J. Products` | `/api/vendor/products` | Vendor-owned; OTP after ship. |\n| **Admin — vendor management** | Vendor's products | `12` → `N. Admin – Vendor Management` | `POST /api/admin/vendors/{vendor_id}/products` | Admin creates product **for a vendor** — different from platform catalog. |\n\n\n**Contractor registration (= Supervisor, not Vendor):** Public signup `POST /api/contractor/auth/register` creates a pending **supervisor** + `supervisor_registrations` (response: `registration_id`, `supervisor_id` — never `vendor_id`). Login: `POST /api/contractor/auth/login` with `roles: supervisor`. Admin review: **5 → L. Admin – Supervisor (Contractor) Registrations** (`/api/admin/supervisor-registrations`). Marketplace shop vendors stay on `/api/vendor/auth/register` and **N. Admin – Vendor Management**.\n",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "_exporter_id": "tandil-backend",
-        "version": "3.6.41"
+        "version": "3.6.45"
     },
     "item": [
         {
@@ -793,7 +793,7 @@
             "name": "3. Authentication",
             "item": [
                 {
-                    "name": "Register",
+                    "name": "1. Register",
                     "event": [
                         {
                             "listen": "test",
@@ -844,7 +844,7 @@
                     }
                 },
                 {
-                    "name": "App roles (login picker)",
+                    "name": "2. App roles (login picker)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -868,7 +868,7 @@
                     }
                 },
                 {
-                    "name": "Login",
+                    "name": "3. Login",
                     "event": [
                         {
                             "listen": "test",
@@ -921,7 +921,7 @@
                     }
                 },
                 {
-                    "name": "Delete Account (POST)",
+                    "name": "4. Delete Account (POST)",
                     "event": [
                         {
                             "listen": "test",
@@ -964,7 +964,7 @@
                     }
                 },
                 {
-                    "name": "Google sign-in (client)",
+                    "name": "5. Google sign-in (client)",
                     "event": [
                         {
                             "listen": "test",
@@ -1016,7 +1016,7 @@
                     }
                 },
                 {
-                    "name": "Apple sign-in (client)",
+                    "name": "6. Apple sign-in (client)",
                     "event": [
                         {
                             "listen": "test",
@@ -1068,7 +1068,7 @@
                     }
                 },
                 {
-                    "name": "Technician signup - List areas (GET)",
+                    "name": "7. Technician signup - List areas (GET)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1092,7 +1092,7 @@
                     }
                 },
                 {
-                    "name": "Register Technician",
+                    "name": "8. Register Technician",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -1124,7 +1124,7 @@
                     }
                 },
                 {
-                    "name": "Registration options (vendor types & emirates)",
+                    "name": "9. Registration options (vendor types & emirates)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1149,7 +1149,7 @@
                     }
                 },
                 {
-                    "name": "Registration options (contractor dropdowns)",
+                    "name": "10. Registration options (contractor dropdowns)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1174,7 +1174,7 @@
                     }
                 },
                 {
-                    "name": "Register Contractor (supervisor – multipart)",
+                    "name": "11. Register Contractor (supervisor – multipart)",
                     "event": [
                         {
                             "listen": "test",
@@ -1386,7 +1386,7 @@
                     }
                 },
                 {
-                    "name": "Login Contractor (supervisor role)",
+                    "name": "12. Login Contractor (supervisor role)",
                     "event": [
                         {
                             "listen": "test",
@@ -1435,12 +1435,12 @@
                                 "login"
                             ]
                         },
-                        "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (N2 Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
+                        "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
                     },
-                    "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (N2 Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
+                    "description": "POST /api/contractor/auth/login — body: email, password, roles: \\\"supervisor\\\". Account must be **approved (active)** first (L Approve). Saves {{supervisor_token}} and {{token}}. Use {{supervisor_token}} for folder **7. Supervisor Dashboard**."
                 },
                 {
-                    "name": "Register Vendor (form-data – full signup)",
+                    "name": "13. Register Vendor (form-data – full signup)",
                     "event": [
                         {
                             "listen": "test",
@@ -1646,7 +1646,7 @@
                     }
                 },
                 {
-                    "name": "Login Vendor",
+                    "name": "14. Login Vendor",
                     "event": [
                         {
                             "listen": "test",
@@ -1710,7 +1710,7 @@
                     }
                 },
                 {
-                    "name": "Validate vendor token (auth/me)",
+                    "name": "15. Validate vendor token (auth/me)",
                     "request": {
                         "method": "GET",
                         "header": [
@@ -1739,7 +1739,7 @@
                     }
                 },
                 {
-                    "name": "Logout Vendor",
+                    "name": "16. Logout Vendor",
                     "request": {
                         "method": "POST",
                         "header": [
@@ -13444,6 +13444,582 @@
                             ]
                         }
                     ]
+                },
+                {
+                    "name": "L. Admin – Supervisor (Contractor) Registrations",
+                    "description": "Contractor Management UI (supervisor registrations — not marketplace vendors).\n\n**Screens:** List (summary + chips) · Dashboard Recent · Application detail.\n\n**Auth:** admin Bearer {{token}}. Vars: {{supervisor_registration_id}}, {{supervisor_id}}.",
+                    "item": [
+                        {
+                            "name": "1. List (Contractor Management)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    var items = (j.data && j.data.items) || [];",
+                                            "    if (items.length) {",
+                                            "        pm.collectionVariables.set('supervisor_registration_id', String(items[0].registration_id || items[0].id));",
+                                            "        pm.environment.set('supervisor_registration_id', String(items[0].registration_id || items[0].id));",
+                                            "        if (items[0].supervisor_id) pm.collectionVariables.set('supervisor_id', String(items[0].supervisor_id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations?status=pending&per_page=15&search=",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "status",
+                                            "value": "pending",
+                                            "description": "pending|active|inactive|suspended|rejected|all"
+                                        },
+                                        {
+                                            "key": "per_page",
+                                            "value": "15"
+                                        },
+                                        {
+                                            "key": "search",
+                                            "value": "",
+                                            "description": "company, name, email"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/supervisor-registrations — Contractor Management.\n\nResponse: `summary` (pending/active/total), `filters` chip counts, `items[]` with company_name, contact_line, status_label (Pending approval), status_badge, actions.approve/cancel/delete."
+                            }
+                        },
+                        {
+                            "name": "2. Recent contractor requests (dashboard)",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/recent?limit=5",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "recent"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "limit",
+                                            "value": "5"
+                                        }
+                                    ]
+                                },
+                                "description": "GET .../recent — Dashboard Recent Contractor Requests. Items: company_name, PENDING badge, email, approve/cancel, view_all."
+                            }
+                        },
+                        {
+                            "name": "3. Show contractor application",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}"
+                                    ]
+                                },
+                                "description": "GET .../{id} — Contractor application detail: personal (full_name/email/phone), company (trade_license/expiry/trn/emirate/city/address/trade_license_file), actions approve/reject/delete."
+                            }
+                        },
+                        {
+                            "name": "4. Approve",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "approve"
+                                    ]
+                                },
+                                "description": "POST .../approve — Green Approve / check. Response status=active, status_label=Active."
+                            }
+                        },
+                        {
+                            "name": "5. Reject (Cancel)",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"reason\": \"Trade license is expired.\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/reject",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "reject"
+                                    ]
+                                },
+                                "description": "POST .../reject — Cancel / Reject button. reason required."
+                            }
+                        },
+                        {
+                            "name": "6. Request missing documents",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"message\": \"Please upload a clear VAT certificate and updated trade license.\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/request-documents",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "request-documents"
+                                    ]
+                                },
+                                "description": "POST .../request-documents — UI stays Pending approval; registration_status=documents_requested."
+                            }
+                        },
+                        {
+                            "name": "7. Suspend / Activate account",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"action\": \"suspend\",\n  \"notes\": \"Temporary hold\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/account-status",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}",
+                                        "account-status"
+                                    ]
+                                },
+                                "description": "POST .../account-status — action: suspend | activate (Suspended / Active chips)."
+                            }
+                        },
+                        {
+                            "name": "8. Delete contractor",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "supervisor-registrations",
+                                        "{{supervisor_registration_id}}"
+                                    ]
+                                },
+                                "description": "DELETE .../{id} — Delete contractor button. Removes registration + supervisor user."
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "M. Admin – Contractor Signup Options",
+                    "description": "Contractor signup options screen — master registration toggle + Categories / Subcategories / Services / Emirates / Cities / Coverage CRUD, enable/disable, delete.\n\n**Auth:** admin Bearer {{token}}.",
+                    "item": [
+                        {
+                            "name": "1. Screen (tab list)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                                            "if (pm.response.code === 200) {",
+                                            "    var j = pm.response.json();",
+                                            "    var items = (j.data && j.data.items) || [];",
+                                            "    if (items.length && items[0].id) {",
+                                            "        pm.collectionVariables.set('signup_option_id', String(items[0].id));",
+                                            "        pm.environment.set('signup_option_id', String(items[0].id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options?tab=categories",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "tab",
+                                            "value": "categories",
+                                            "description": "categories|subcategories|services|emirates|cities|coverage"
+                                        }
+                                    ]
+                                },
+                                "description": "GET /api/admin/contractor-signup-options?tab=...\n\nResponse: registration{is_open,title,subtitle}, tabs[], summary{total,active,label}, items[{id,name,slug,subtitle,is_active,actions}]. Sets {{signup_option_id}}."
+                            }
+                        },
+                        {
+                            "name": "2. Toggle registration open/closed",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"is_open\": true\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/settings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options",
+                                        "settings"
+                                    ]
+                                },
+                                "description": "PUT .../settings — Master Contractor registration toggle."
+                            }
+                        },
+                        {
+                            "name": "3. Add option (+)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "type": "text/javascript",
+                                        "exec": [
+                                            "if (pm.response.code === 201) {",
+                                            "    var j = pm.response.json();",
+                                            "    var id = j.data && j.data.item && j.data.item.id;",
+                                            "    if (id) {",
+                                            "        pm.collectionVariables.set('signup_option_id', String(id));",
+                                            "        pm.environment.set('signup_option_id', String(id));",
+                                            "    }",
+                                            "}"
+                                        ]
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\",\n  \"is_active\": true\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options"
+                                    ]
+                                },
+                                "description": "POST — Add. Body always includes `tab`. Subcategories need parent_id; services may send category_id; cities may send emirate_id. Sets {{signup_option_id}}."
+                            }
+                        },
+                        {
+                            "name": "4. Edit option",
+                            "request": {
+                                "method": "PUT",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\"\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options",
+                                        "{{signup_option_id}}"
+                                    ]
+                                },
+                                "description": "PUT .../{id}? or body tab= — Edit pencil."
+                            }
+                        },
+                        {
+                            "name": "5. Toggle option active on signup",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n  \"tab\": \"categories\",\n  \"is_active\": true\n}"
+                                },
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}/toggle",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options",
+                                        "{{signup_option_id}}",
+                                        "toggle"
+                                    ]
+                                },
+                                "description": "POST .../{id}/toggle — Per-item enable/disable for signup form."
+                            }
+                        },
+                        {
+                            "name": "6. Delete option",
+                            "request": {
+                                "method": "DELETE",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{token}}"
+                                    },
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}?tab=categories",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "contractor-signup-options",
+                                        "{{signup_option_id}}"
+                                    ],
+                                    "query": [
+                                        {
+                                            "key": "tab",
+                                            "value": "categories"
+                                        }
+                                    ]
+                                },
+                                "description": "DELETE .../{id}?tab= — Trash icon."
+                            }
+                        }
+                    ]
                 }
             ]
         },
@@ -17249,7 +17825,7 @@
                     ]
                 }
             ],
-            "description": "Separate, clearly visible Supervisor Dashboard module for mobile app testing.\n\n**Auth:** Bearer {{supervisor_token}} from **3. Authentication → Login Contractor (supervisor role)** after N2 Approve. Do not use admin {{token}} here."
+            "description": "Separate, clearly visible Supervisor Dashboard module for mobile app testing.\n\n**Auth:** Bearer {{supervisor_token}} from **3. Authentication → Login Contractor (supervisor role)** after L Approve. Do not use admin {{token}} here."
         },
         {
             "name": "8. Products - All APIs",
@@ -24727,7 +25303,7 @@
         },
         {
             "name": "12. Vendor Dashboard – All APIs",
-            "description": "Login: `2. Authentication` → Login Vendor.\n\n**Subfolders A → R (alphabetical):**\n| Letter | Folder | Purpose |\n|--------|--------|--------|\n| A | Business Profile | Edit profile, business info, location, payment methods |\n| B | Application & Onboarding | Vendor application submit/resubmit |\n| C | Documents | Trade license, Emirates ID uploads |\n| D | Dashboard | Stats & summary (approved only) |\n| E | Performance Analytics | Analytics dashboard, PDF export, share |\n| F | Support & Live Chat | Vendor support chat |\n| G | Add Product – Dropdown options | Category/service dropdowns |\n| H | Categories | Platform categories (read-only) |\n| I | Services | Platform services (read-only) |\n| J | Products | Create/list/update vendor products |\n| K | Inventory | Stock per product |\n| L | Orders | Order list, detail, contact, invoice, status |\n| M | Compare vendors & prices | Client compare screen (public) |\n| N | Admin – Vendor Management | Mobile vendor management + approval actions |\n| O | Admin – Marketplace | Marketplace settings (admin token) |\n| P | Vendor Store (client) | Client vendor store page (public) |\n| Q | Legal & Contact | Public policy/contact pages |\n| R | Notifications | Vendor inbox (list, read, delete) |\n\n**Vendor products:** Admin approval only — unlimited products after approval.\n\n**Edit Profile POST:** `profile_picture`, `logo`, `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.\n**Product vs Service (v3.6.28):** Vendor **J. Products** simple listings and Admin catalog simple listings both use OTP + horizontal track. Service listings use supervisor vertical track. Client APIs: folder **4 → O → E/F**. OTP APIs: **L. Orders** items 8–9.",
+            "description": "Login: `3. Authentication` → Login Vendor.\n\n**Subfolders A → R (alphabetical):**\n| Letter | Folder | Purpose |\n|--------|--------|--------|\n| A | Business Profile | Edit profile, business info, location, payment methods |\n| B | Application & Onboarding | Vendor application submit/resubmit |\n| C | Documents | Trade license, Emirates ID uploads |\n| D | Dashboard | Stats & summary (approved only) |\n| E | Performance Analytics | Analytics dashboard, PDF export, share |\n| F | Support & Live Chat | Vendor support chat |\n| G | Add Product – Dropdown options | Category/service dropdowns |\n| H | Categories | Platform categories (read-only) |\n| I | Services | Platform services (read-only) |\n| J | Products | Create/list/update vendor products |\n| K | Inventory | Stock per product |\n| L | Orders | Order list, detail, contact, invoice, status |\n| M | Compare vendors & prices | Client compare screen (public) |\n| N | Admin – Vendor Management | Mobile vendor management + approval actions |\n| O | Admin – Marketplace | Marketplace settings (admin token) |\n| P | Vendor Store (client) | Client vendor store page (public) |\n| Q | Legal & Contact | Public policy/contact pages |\n| R | Notifications | Vendor inbox (list, read, delete) |\n\n**Vendor products:** Admin approval only — unlimited products after approval.\n\n**Edit Profile POST:** `profile_picture`, `logo`, `business_name`, `contact_person`, `phone`, `address`, `city`, `store_description`, `opens_at`, `closes_at`, `delivery_radius_km`, `minimum_order_amount`, `bank_name`, `iban`, `account_holder_name`.\n**Product vs Service (v3.6.28):** Vendor **J. Products** simple listings and Admin catalog simple listings both use OTP + horizontal track. Service listings use supervisor vertical track. Client APIs: folder **4 → O → E/F**. OTP APIs: **L. Orders** items 8–9.\n\n**Admin contractor APIs moved to:** `5. Admin Dashboard` → **L** (registrations) · **M** (signup options).",
             "event": [
                 {
                     "listen": "prerequest",
@@ -24741,7 +25317,7 @@
                             "        vt = String(vt).trim().replace(/^Bearer\\s+/i, '').replace(/^\"|\"$/g, '');",
                             "        pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + vt });",
                             "    } else {",
-                            "        console.warn('vendor_token missing — run 2. Authentication → Login Vendor first.');",
+                            "        console.warn('vendor_token missing — run 3. Authentication → Login Vendor first.');",
                             "    }",
                             "}"
                         ]
@@ -25486,7 +26062,7 @@
                 },
                 {
                     "name": "F. Support & Live Chat",
-                    "description": "Profile → Support & Help → **Live Chat** (vendor ↔ admin).\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET support/chat | Open chat — session + all messages |\n| 2 | GET support/chat/messages?after_id= | Poll new messages (~3s) |\n| 3 | POST support/chat/messages | Send message to admin |\n\nAuth: `{{vendor_token}}` (`vendor.account` — pending vendors OK). Admin replies via folder **15. Admin – Support Live Chat**.",
+                    "description": "Profile → Support & Help → **Live Chat** (vendor ↔ admin).\n\n| # | API | Screen |\n|---|-----|--------|\n| 1 | GET support/chat | Open chat — session + all messages |\n| 2 | GET support/chat/messages?after_id= | Poll new messages (~3s) |\n| 3 | POST support/chat/messages | Send message to admin |\n\nAuth: `{{vendor_token}}` (`vendor.account` — pending vendors OK). Admin replies via folder **5 → C. Support** (Admin live chat).",
                     "item": [
                         {
                             "name": "1. Open live chat",
@@ -27009,11 +27585,11 @@
                 },
                 {
                     "name": "N. Admin – Vendor Management",
-                    "description": "Admin vendor APIs split into two flows. **Login:** `2. Authentication` → Login (roles: admin). Bearer {{token}}. {{vendor_id}} and {{vendor_product_id}} auto-set by test scripts. Mobile folder A includes create/show/update/toggle/delete for vendor products.",
+                    "description": "Admin vendor APIs split into two flows. **Login:** `3. Authentication` → Login (roles: admin). Bearer {{token}}. {{vendor_id}} and {{vendor_product_id}} auto-set by test scripts. Mobile folder A includes create/show/update/toggle/delete for vendor products.",
                     "item": [
                         {
                             "name": "A. Vendor Management (Mobile)",
-                            "description": "**Vendor Management dashboard** — monitor approved vendors, products, revenue.\n\n**Login first:** `2. Authentication` → **Login** (roles: `admin`) — sets {{token}}.\n\n**Test order:** **1** list → **2** vendor detail → **3** create product → **4** show product → **5** update product → **6** toggle → **7** delete → **8** account status.\n\nDetail (`2`) returns `products.create` plus per-item `actions.show|update|toggle|delete`. Auto-sets {{vendor_id}} (1) and {{vendor_product_id}} (2/3).",
+                            "description": "**Vendor Management dashboard** — monitor approved vendors, products, revenue.\n\n**Login first:** `3. Authentication` → **Login** (roles: `admin`) — sets {{token}}.\n\n**Test order:** **1** list → **2** vendor detail → **3** create product → **4** show product → **5** update product → **6** toggle → **7** delete → **8** account status.\n\nDetail (`2`) returns `products.create` plus per-item `actions.show|update|toggle|delete`. Auto-sets {{vendor_id}} (1) and {{vendor_product_id}} (2/3).",
                             "item": [
                                 {
                                     "name": "1. Vendor management (mobile dashboard)",
@@ -28572,582 +29148,6 @@
                     ]
                 },
                 {
-                    "name": "N2. Admin – Supervisor (Contractor) Registrations",
-                    "description": "Contractor Management UI (supervisor registrations — not marketplace vendors).\n\n**Screens:** List (summary + chips) · Dashboard Recent · Application detail.\n\n**Auth:** admin Bearer {{token}}. Vars: {{supervisor_registration_id}}, {{supervisor_id}}.",
-                    "item": [
-                        {
-                            "name": "1. List (Contractor Management)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "type": "text/javascript",
-                                        "exec": [
-                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                                            "if (pm.response.code === 200) {",
-                                            "    var j = pm.response.json();",
-                                            "    var items = (j.data && j.data.items) || [];",
-                                            "    if (items.length) {",
-                                            "        pm.collectionVariables.set('supervisor_registration_id', String(items[0].registration_id || items[0].id));",
-                                            "        pm.environment.set('supervisor_registration_id', String(items[0].registration_id || items[0].id));",
-                                            "        if (items[0].supervisor_id) pm.collectionVariables.set('supervisor_id', String(items[0].supervisor_id));",
-                                            "    }",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations?status=pending&per_page=15&search=",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "status",
-                                            "value": "pending",
-                                            "description": "pending|active|inactive|suspended|rejected|all"
-                                        },
-                                        {
-                                            "key": "per_page",
-                                            "value": "15"
-                                        },
-                                        {
-                                            "key": "search",
-                                            "value": "",
-                                            "description": "company, name, email"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/admin/supervisor-registrations — Contractor Management.\n\nResponse: `summary` (pending/active/total), `filters` chip counts, `items[]` with company_name, contact_line, status_label (Pending approval), status_badge, actions.approve/cancel/delete."
-                            }
-                        },
-                        {
-                            "name": "2. Recent contractor requests (dashboard)",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/recent?limit=5",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "recent"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "limit",
-                                            "value": "5"
-                                        }
-                                    ]
-                                },
-                                "description": "GET .../recent — Dashboard Recent Contractor Requests. Items: company_name, PENDING badge, email, approve/cancel, view_all."
-                            }
-                        },
-                        {
-                            "name": "3. Show contractor application",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}"
-                                    ]
-                                },
-                                "description": "GET .../{id} — Contractor application detail: personal (full_name/email/phone), company (trade_license/expiry/trn/emirate/city/address/trade_license_file), actions approve/reject/delete."
-                            }
-                        },
-                        {
-                            "name": "4. Approve",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}",
-                                        "approve"
-                                    ]
-                                },
-                                "description": "POST .../approve — Green Approve / check. Response status=active, status_label=Active."
-                            }
-                        },
-                        {
-                            "name": "5. Reject (Cancel)",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"reason\": \"Trade license is expired.\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/reject",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}",
-                                        "reject"
-                                    ]
-                                },
-                                "description": "POST .../reject — Cancel / Reject button. reason required."
-                            }
-                        },
-                        {
-                            "name": "6. Request missing documents",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"message\": \"Please upload a clear VAT certificate and updated trade license.\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/request-documents",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}",
-                                        "request-documents"
-                                    ]
-                                },
-                                "description": "POST .../request-documents — UI stays Pending approval; registration_status=documents_requested."
-                            }
-                        },
-                        {
-                            "name": "7. Suspend / Activate account",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"action\": \"suspend\",\n  \"notes\": \"Temporary hold\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/account-status",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}",
-                                        "account-status"
-                                    ]
-                                },
-                                "description": "POST .../account-status — action: suspend | activate (Suspended / Active chips)."
-                            }
-                        },
-                        {
-                            "name": "8. Delete contractor",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "supervisor-registrations",
-                                        "{{supervisor_registration_id}}"
-                                    ]
-                                },
-                                "description": "DELETE .../{id} — Delete contractor button. Removes registration + supervisor user."
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "N3. Admin – Contractor Signup Options",
-                    "description": "Contractor signup options screen — master registration toggle + Categories / Subcategories / Services / Emirates / Cities / Coverage CRUD, enable/disable, delete.\n\n**Auth:** admin Bearer {{token}}.",
-                    "item": [
-                        {
-                            "name": "1. Screen (tab list)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "type": "text/javascript",
-                                        "exec": [
-                                            "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                                            "if (pm.response.code === 200) {",
-                                            "    var j = pm.response.json();",
-                                            "    var items = (j.data && j.data.items) || [];",
-                                            "    if (items.length && items[0].id) {",
-                                            "        pm.collectionVariables.set('signup_option_id', String(items[0].id));",
-                                            "        pm.environment.set('signup_option_id', String(items[0].id));",
-                                            "    }",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options?tab=categories",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "tab",
-                                            "value": "categories",
-                                            "description": "categories|subcategories|services|emirates|cities|coverage"
-                                        }
-                                    ]
-                                },
-                                "description": "GET /api/admin/contractor-signup-options?tab=...\n\nResponse: registration{is_open,title,subtitle}, tabs[], summary{total,active,label}, items[{id,name,slug,subtitle,is_active,actions}]. Sets {{signup_option_id}}."
-                            }
-                        },
-                        {
-                            "name": "2. Toggle registration open/closed",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"is_open\": true\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/settings",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options",
-                                        "settings"
-                                    ]
-                                },
-                                "description": "PUT .../settings — Master Contractor registration toggle."
-                            }
-                        },
-                        {
-                            "name": "3. Add option (+)",
-                            "event": [
-                                {
-                                    "listen": "test",
-                                    "script": {
-                                        "type": "text/javascript",
-                                        "exec": [
-                                            "if (pm.response.code === 201) {",
-                                            "    var j = pm.response.json();",
-                                            "    var id = j.data && j.data.item && j.data.item.id;",
-                                            "    if (id) {",
-                                            "        pm.collectionVariables.set('signup_option_id', String(id));",
-                                            "        pm.environment.set('signup_option_id', String(id));",
-                                            "    }",
-                                            "}"
-                                        ]
-                                    }
-                                }
-                            ],
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\",\n  \"is_active\": true\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options"
-                                    ]
-                                },
-                                "description": "POST — Add. Body always includes `tab`. Subcategories need parent_id; services may send category_id; cities may send emirate_id. Sets {{signup_option_id}}."
-                            }
-                        },
-                        {
-                            "name": "4. Edit option",
-                            "request": {
-                                "method": "PUT",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"tab\": \"categories\",\n  \"name\": \"Home Maintenance\",\n  \"slug\": \"home_maintenance\"\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options",
-                                        "{{signup_option_id}}"
-                                    ]
-                                },
-                                "description": "PUT .../{id}? or body tab= — Edit pencil."
-                            }
-                        },
-                        {
-                            "name": "5. Toggle option active on signup",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "body": {
-                                    "mode": "raw",
-                                    "raw": "{\n  \"tab\": \"categories\",\n  \"is_active\": true\n}"
-                                },
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}/toggle",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options",
-                                        "{{signup_option_id}}",
-                                        "toggle"
-                                    ]
-                                },
-                                "description": "POST .../{id}/toggle — Per-item enable/disable for signup form."
-                            }
-                        },
-                        {
-                            "name": "6. Delete option",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Authorization",
-                                        "value": "Bearer {{token}}"
-                                    },
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/contractor-signup-options/{{signup_option_id}}?tab=categories",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "contractor-signup-options",
-                                        "{{signup_option_id}}"
-                                    ],
-                                    "query": [
-                                        {
-                                            "key": "tab",
-                                            "value": "categories"
-                                        }
-                                    ]
-                                },
-                                "description": "DELETE .../{id}?tab= — Trash icon."
-                            }
-                        }
-                    ]
-                },
-                {
                     "name": "O. Admin – Marketplace",
                     "description": "Marketplace-wide admin endpoints (commission, product approval, vendor orders, document verification). Admin token.",
                     "item": [
@@ -29794,7 +29794,7 @@
             "key": "vendor_token",
             "value": "",
             "type": "string",
-            "description": "Set by 2. Authentication → Login Vendor. Persists vendor session; folder 18 auto-uses this for /api/vendor/* calls."
+            "description": "Set by 3. Authentication → Login Vendor. Persists vendor session; folder 18 auto-uses this for /api/vendor/* calls."
         },
         {
             "key": "support_chat_session_id",
