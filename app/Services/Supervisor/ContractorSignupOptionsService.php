@@ -131,6 +131,104 @@ class ContractorSignupOptionsService
     }
 
     /**
+     * Public contractor app dropdowns (supervisor signup). Not marketplace vendor.
+     *
+     * @return array{
+     *   main_service_categories: list<array<string, mixed>>,
+     *   service_subcategories: list<array<string, mixed>>,
+     *   available_services: list<array<string, mixed>>,
+     *   emirates: list<array<string, mixed>>,
+     *   service_coverage_areas: list<array<string, mixed>>
+     * }
+     */
+    public function appRegistrationOptions(): array
+    {
+        $hasParent = Schema::hasColumn('categories', 'parent_id');
+
+        $categoryBase = Category::query()
+            ->when(Schema::hasColumn('categories', 'is_active'), fn ($q) => $q->where('is_active', true))
+            ->when(Schema::hasColumn('categories', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+            ->when(Schema::hasColumn('categories', 'sort_order'), fn ($q) => $q->orderBy('sort_order'))
+            ->orderBy('name');
+
+        $mainCategories = (clone $categoryBase)
+            ->when($hasParent, fn ($q) => $q->whereNull('parent_id'))
+            ->get(['id', 'name', 'slug'])
+            ->map(fn (Category $c) => [
+                'id' => $c->id,
+                'value' => $c->id,
+                'name' => $c->name,
+                'slug' => $c->slug,
+            ])
+            ->values()
+            ->all();
+
+        $subcategories = $hasParent
+            ? (clone $categoryBase)->whereNotNull('parent_id')->get(['id', 'name', 'slug', 'parent_id'])
+                ->map(fn (Category $c) => [
+                    'id' => $c->id,
+                    'value' => $c->id,
+                    'name' => $c->name,
+                    'slug' => $c->slug,
+                    'parent_id' => $c->parent_id,
+                ])
+                ->values()
+                ->all()
+            : [];
+
+        $services = Service::query()
+            ->where('is_active', true)
+            ->when(Schema::hasColumn('services', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'category_id'])
+            ->map(fn (Service $s) => [
+                'id' => $s->id,
+                'value' => $s->id,
+                'name' => $s->name,
+                'slug' => $s->slug,
+                'category_id' => $s->category_id,
+            ])
+            ->values()
+            ->all();
+
+        $emirates = Emirate::query()
+            ->active()
+            ->when(Schema::hasColumn('emirates', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Emirate $e) => [
+                'id' => $e->id,
+                'value' => $e->name,
+                'name' => $e->name,
+                'slug' => $e->slug,
+            ])
+            ->values()
+            ->all();
+
+        $areas = Area::query()
+            ->when(Schema::hasColumn('areas', 'is_active'), fn ($q) => $q->where('is_active', true))
+            ->when(Schema::hasColumn('areas', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (Area $a) => [
+                'id' => $a->id,
+                'value' => $a->id,
+                'name' => $a->name,
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'main_service_categories' => $mainCategories,
+            'service_subcategories' => $subcategories,
+            'available_services' => $services,
+            'emirates' => $emirates,
+            'service_coverage_areas' => $areas,
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

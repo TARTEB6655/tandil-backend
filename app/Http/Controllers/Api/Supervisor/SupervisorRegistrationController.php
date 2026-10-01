@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Supervisor;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Supervisor\SupervisorRegistrationRequest;
+use App\Services\Supervisor\ContractorSignupOptionsService;
 use App\Services\Supervisor\SupervisorRegistrationService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -14,8 +15,21 @@ use Illuminate\Validation\ValidationException;
 class SupervisorRegistrationController extends Controller
 {
     public function __construct(
-        private readonly SupervisorRegistrationService $registration
+        private readonly SupervisorRegistrationService $registration,
+        private readonly ContractorSignupOptionsService $signupOptions
     ) {}
+
+    /**
+     * GET /api/contractor/auth/registration-options
+     * Contractor (= supervisor) signup dropdowns only — not marketplace vendor.
+     */
+    public function registrationOptions(): JsonResponse
+    {
+        $data = $this->signupOptions->appRegistrationOptions();
+
+        return ApiResponse::success('Registration options retrieved successfully.', $data)
+            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    }
 
     public function register(SupervisorRegistrationRequest $request): JsonResponse
     {
