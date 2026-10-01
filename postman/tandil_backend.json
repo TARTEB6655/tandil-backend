@@ -1161,7 +1161,7 @@
                                         "registration-options"
                                     ]
                                 },
-                                "description": "GET /api/contractor/auth/registration-options — Public (no token).\n\n**Only these 5 dropdown lists** (signup-enabled from admin):\n- `data.main_service_categories`\n- `data.service_subcategories`\n- `data.available_services`\n- `data.emirates`\n- `data.service_coverage_areas`\n\nNo `selected_services` / cities / banks / sections. On register still send `selected_services[]` (chosen IDs)."
+                                "description": "GET /api/contractor/auth/registration-options — Public (no token).\n\n**Contractor = supervisor** (not marketplace vendor). Handler: `SupervisorRegistrationController`.\n\n**Only these 5 dropdown lists** (signup-enabled from admin):\n- `data.main_service_categories`\n- `data.service_subcategories`\n- `data.available_services`\n- `data.emirates`\n- `data.service_coverage_areas`\n\nVendor uses separate `GET /api/vendor/auth/registration-options`. On register send `selected_services[]` (chosen IDs)."
                             }
                         },
                         {
