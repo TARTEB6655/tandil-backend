@@ -21,10 +21,10 @@ When you **add, change, or remove** an API route or controller action that affec
    - `body`: For POST/PUT/PATCH use `"mode": "raw"` with `"raw": "{\n  \"key\": \"value\"\n}"` for JSON, or `"mode": "formdata"` with `formdata` array for form-data.
    - `description`: One line summarizing route, method, path, main params/body, and response (e.g. "GET /api/admin/areas. Query: per_page, country, search. Response: data[], pagination.").
 
-3. **Numbering**: After any add/remove/move/rename in the collection, run:
+3. **Numbering**: After any add/remove/move/rename, **append at end of parent**, then run:
    `php scripts/renumber_postman_collection.php`
    then `php scripts/find_postman_gaps.php` (must report `count=0`).
-   All folders/subfolders/APIs use `01.` `02.` `03.` only — never letters (`A.`/`N.`). See `.cursor/rules/postman-numbering.mdc`.
+   Hierarchical only: `05.14.07.` — never letters, never hand numbers. See `.cursor/rules/postman-numbering.mdc`.
 
 4. **Version**: The renumber script bumps `info.version` automatically. If you skip renumber for a tiny body-only edit, bump `info.version` yourself.
 

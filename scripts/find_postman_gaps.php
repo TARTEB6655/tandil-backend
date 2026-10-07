@@ -1,50 +1,54 @@
 <?php
 
 /**
- * Verify every sibling group in Postman collection is 01..N sequential.
- * Exit code 1 if any gap/wrong prefix.
+ * Verify hierarchical numbering: each sibling group is parent.01, parent.02, …
+ * Exit 1 if any gap / wrong prefix / letter prefix.
  */
 
 $j = json_decode(file_get_contents(__DIR__.'/../postman/tandil_backend.json'), true);
 $issues = [];
 
-function strip(string $name): ?string
+function stripFull(string $name): ?string
 {
-    if (preg_match('/^([0-9]{1,3})\.\s+/u', $name, $m)) {
-        return str_pad((string) ((int) $m[1]), 2, '0', STR_PAD_LEFT);
+    if (preg_match('/^([0-9]+(?:\.[0-9]+)*)\.\s+/u', $name, $m)) {
+        return $m[1];
     }
 
     return null;
 }
 
-function walk(array $items, string $path): void
+function padSegment(int $index): string
+{
+    return str_pad((string) $index, 2, '0', STR_PAD_LEFT);
+}
+
+function walk(array $items, string $parentPrefix, string $path): void
 {
     global $issues;
-    $n = count($items);
-    for ($i = 1; $i <= $n; $i++) {
-        $want = str_pad((string) $i, 2, '0', STR_PAD_LEFT);
-        $name = (string) ($items[$i - 1]['name'] ?? '');
-        $got = strip($name);
+    foreach ($items as $i => $it) {
+        $segment = padSegment($i + 1);
+        $want = $parentPrefix === '' ? $segment : $parentPrefix.'.'.$segment;
+        $name = (string) ($it['name'] ?? '');
+        $got = stripFull($name);
+
         if ($got === null) {
             $issues[] = "MISSING under {$path} → {$name}";
         } elseif ($got !== $want) {
-            $issues[] = "SEQ {$path}[{$i}] want={$want} got={$got} → {$name}";
+            $issues[] = "SEQ {$path} want={$want} got={$got} → {$name}";
         }
-        // Reject leftover letter prefixes
-        if (preg_match('/^[A-Z]{1,3}\.\s+/u', $name)) {
+        if (preg_match('/^[A-Z]/u', $name)) {
             $issues[] = "LETTER_PREFIX under {$path} → {$name}";
         }
-    }
-    foreach ($items as $it) {
+
         if (isset($it['item']) && is_array($it['item'])) {
-            walk($it['item'], $path.' / '.($it['name'] ?? '?'));
+            walk($it['item'], $want, $path.' / '.$name);
         }
     }
 }
 
-walk($j['item'] ?? [], 'ROOT');
+walk($j['item'] ?? [], '', 'ROOT');
 echo 'count='.count($issues).PHP_EOL;
-foreach (array_slice($issues, 0, 100) as $x) {
+foreach (array_slice($issues, 0, 80) as $x) {
     echo $x, PHP_EOL;
 }
 exit(count($issues) > 0 ? 1 : 0);

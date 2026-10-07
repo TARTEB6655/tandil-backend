@@ -1,16 +1,21 @@
 ---
-description: Keep Postman folder/request numbering sequential and numeric-only
+description: Keep Postman hierarchical numbering stable at every folder/API level
 globs: postman/tandil_backend.json
 alwaysApply: false
 ---
 
 # Postman numbering (mandatory)
 
-When you **add, remove, move, or rename** anything in `postman/tandil_backend.json`:
+Collection uses **hierarchical** numbers only:
 
-1. Put the request/folder in the **correct parent**.
-2. **Never hand-pick prefixes** (`A.`, `N.`, `N1.`, `05→O`, etc.).
-3. After the structural edit, run:
+- Root: `01.`, `02.`, `03.`, …
+- Nested: `05.14.`, `05.14.01.`, `05.14.07.`, …
+
+## When adding / changing APIs
+
+1. Put the new request/folder in the **correct parent**.
+2. **Always APPEND at the end** of that parent (do not insert in the middle; do not reuse old letter prefixes).
+3. Run:
 
 ```bash
 php scripts/renumber_postman_collection.php
@@ -19,14 +24,16 @@ php scripts/find_postman_gaps.php
 
 `count=0` is required before commit.
 
-## Numbering rules (enforced by the script)
+4. Optionally refresh CSV:
 
-**Every** sibling group — root folders, subfolders, and APIs — uses zero-padded numbers only:
+```bash
+php scripts/export_postman_collection_to_csv.php
+```
 
-`01.`, `02.`, `03.`, …
+## Never
 
-## Stability rules
+- Hand-edit prefixes (`A.`, `N.`, `N1.`, random `07.` jumps)
+- Leave a new API unnumbered
+- Nest unrelated modules under `01. Health Check`
 
-- Prefer **appending** new folders/requests at the end of a group (keeps earlier numbers stable).
-- Do **not** nest unrelated modules under `01. Health Check`.
-- The renumber script bumps `info.version` automatically.
+The renumber script is the only source of truth for names/numbers.
