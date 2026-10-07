@@ -159,7 +159,7 @@ class ServiceTreePricingTest extends TestCase
     {
         ServiceTreePricing::saveGlobal(true, 50, 80);
 
-        // base 100 + (3 × 50) = 250
+        // base 100 + (3 × 50) = 250 — checkout shows base + Trees as separate lines
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', [
                 'is_buy_now' => true,
@@ -169,7 +169,54 @@ class ServiceTreePricingTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.order_summary.subtotal', 250)
-            ->assertJsonPath('data.order_summary.items.0.tree_quantity', 3);
+            ->assertJsonPath('data.order_summary.items.0.line_kind', 'service')
+            ->assertJsonPath('data.order_summary.items.0.line_total', 100)
+            ->assertJsonPath('data.order_summary.items.0.tree_quantity', 3)
+            ->assertJsonPath('data.order_summary.items.1.line_kind', 'tree_addon')
+            ->assertJsonPath('data.order_summary.items.1.quantity', 3)
+            ->assertJsonPath('data.order_summary.items.1.line_total', 150);
+    }
+
+    public function test_buy_now_summary_shows_palm_trees_as_separate_line_item(): void
+    {
+        ServiceTreePricing::saveGlobal(true, 50, 80);
+
+        // base 100 + (2 × 80) = 260
+        $response = $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'is_buy_now' => true,
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'palm_tree_quantity' => 2,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 260)
+            ->assertJsonPath('data.order_summary.items.0.line_kind', 'service')
+            ->assertJsonPath('data.order_summary.items.0.line_total', 100)
+            ->assertJsonPath('data.order_summary.items.1.line_kind', 'palm_addon')
+            ->assertJsonPath('data.order_summary.items.1.quantity', 2)
+            ->assertJsonPath('data.order_summary.items.1.unit_price', 80)
+            ->assertJsonPath('data.order_summary.items.1.line_total', 160);
+
+        $palmName = (string) data_get($response->json(), 'data.order_summary.items.1.name');
+        $this->assertStringContainsString('Palm Trees', $palmName);
+        $this->assertStringContainsString('2', $palmName);
+    }
+
+    public function test_buy_now_summary_omits_addon_lines_when_quantity_omitted(): void
+    {
+        ServiceTreePricing::saveGlobal(true, 50, 80);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'is_buy_now' => true,
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 100)
+            ->assertJsonPath('data.order_summary.items.0.line_total', 100)
+            ->assertJsonCount(1, 'data.order_summary.items');
     }
 
     public function test_tree_options_hidden_when_admin_toggle_off(): void

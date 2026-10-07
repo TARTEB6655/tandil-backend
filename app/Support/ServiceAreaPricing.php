@@ -904,17 +904,19 @@ final class ServiceAreaPricing
         $palmQty = isset($item->palm_tree_quantity) ? (int) $item->palm_tree_quantity : null;
         $treeRate = isset($item->price_per_tree) ? (float) $item->price_per_tree : null;
         $palmRate = isset($item->price_per_palm_tree) ? (float) $item->price_per_palm_tree : null;
+        $addon = ServiceTreePricing::addonTotal(
+            $treeQty > 0 ? $treeQty : null,
+            $palmQty > 0 ? $palmQty : null,
+            $treeRate,
+            $palmRate
+        );
+        $baseTotal = round(max(0, $lineTotal - $addon), 2);
         $treeFields = [
             'tree_quantity' => $treeQty > 0 ? $treeQty : null,
             'palm_tree_quantity' => $palmQty > 0 ? $palmQty : null,
             'price_per_tree' => $treeRate !== null && $treeRate > 0 ? round($treeRate, 2) : null,
             'price_per_palm_tree' => $palmRate !== null && $palmRate > 0 ? round($palmRate, 2) : null,
-            'tree_palm_addon' => ServiceTreePricing::addonTotal(
-                $treeQty > 0 ? $treeQty : null,
-                $palmQty > 0 ? $palmQty : null,
-                $treeRate,
-                $palmRate
-            ),
+            'tree_palm_addon' => $addon,
         ];
         $treeFields['tree_palm_addon_label'] = self::formatMoney($treeFields['tree_palm_addon']);
 
@@ -926,6 +928,9 @@ final class ServiceAreaPricing
             'unit_price_label' => $isPerM2
                 ? self::formatMoney($unitPrice).' / m²'
                 : self::formatMoney($unitPrice),
+            'base_line_total' => $baseTotal,
+            'base_line_total_label' => self::formatMoney($baseTotal),
+            // Combined persisted subtotal (base + add-ons). Checkout UI expands via expandCheckoutDisplayLines.
             'line_total' => $lineTotal,
             'line_total_label' => self::formatMoney($lineTotal),
             'price_includes' => $includes,
@@ -935,9 +940,9 @@ final class ServiceAreaPricing
                 'area_label' => rtrim(rtrim(number_format($area, 2, '.', ''), '0'), '.').' m²',
                 'unit_price' => $unitPrice,
                 'unit_price_label' => self::formatMoney($unitPrice).'/m²',
-                'total' => $lineTotal,
-                'total_label' => self::formatMoney($lineTotal),
-                'formula' => $area.' × '.$unitPrice.' = '.$lineTotal,
+                'total' => $baseTotal,
+                'total_label' => self::formatMoney($baseTotal),
+                'formula' => $area.' × '.$unitPrice.' = '.$baseTotal,
             ] : null,
             ...$treeFields,
         ];

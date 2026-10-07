@@ -303,7 +303,7 @@ final class ShopBookingSlotHelper
                 $palmQty
             );
 
-            $lines[] = array_merge([
+            $merged = array_merge([
                 'product_id' => (int) $payload['product_id'],
                 'name' => (string) $cart->product->name,
                 'quantity' => $qty,
@@ -316,6 +316,11 @@ final class ShopBookingSlotHelper
                 'booking_slot' => $payload['booking_slot'] ?? null,
                 'selected_option_ids' => $payload['selected_options'] ?? [],
             ], $pricing);
+
+            // Base service + optional Trees / Palm Trees as separate checkout lines.
+            foreach (\App\Support\ServiceTreePricing::expandCheckoutDisplayLines($merged) as $displayLine) {
+                $lines[] = $displayLine;
+            }
         }
 
         return $lines;

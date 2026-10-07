@@ -214,12 +214,20 @@ class CartController extends Controller
         );
         $summary['items'] = $items;
 
-        if (count($items) === 1) {
-            $summary['booking_date'] = $items[0]['booking_date'] ?? null;
-            $summary['booking_slot'] = $items[0]['booking_slot'] ?? null;
-        } elseif ($items !== []) {
-            $dates = array_values(array_unique(array_filter(array_column($items, 'booking_date'))));
-            $slots = array_values(array_unique(array_filter(array_column($items, 'booking_slot'))));
+        // Prefer service lines (ignore tree/palm add-on rows which have null booking).
+        $bookable = array_values(array_filter(
+            $items,
+            static fn (array $row): bool => ($row['is_addon'] ?? false) !== true
+                && (($row['line_kind'] ?? 'service') === 'service')
+        ));
+        $bookable = $bookable !== [] ? $bookable : $items;
+
+        if (count($bookable) === 1) {
+            $summary['booking_date'] = $bookable[0]['booking_date'] ?? null;
+            $summary['booking_slot'] = $bookable[0]['booking_slot'] ?? null;
+        } elseif ($bookable !== []) {
+            $dates = array_values(array_unique(array_filter(array_column($bookable, 'booking_date'))));
+            $slots = array_values(array_unique(array_filter(array_column($bookable, 'booking_slot'))));
             if (count($dates) === 1) {
                 $summary['booking_date'] = $dates[0];
             }

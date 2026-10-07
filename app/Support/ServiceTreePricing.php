@@ -463,6 +463,129 @@ final class ServiceTreePricing
     }
 
     /**
+     * Checkout / order UI: split optional Trees / Palm Trees into separate line items.
+     *
+     * - Qty 0 / null → only the base service line (base price only).
+     * - Qty > 0 → base line (base price) + one row per selected add-on.
+     *   Example name: "Palm Trees (2 × AED 50)" with line_total 100.
+     * Does not change cart/order persistence (still one DB row); display/payload only.
+     *
+     * @param  array<string, mixed>  $line
+     * @return list<array<string, mixed>>
+     */
+    public static function expandCheckoutDisplayLines(array $line): array
+    {
+        $treeQty = isset($line['tree_quantity']) ? (int) $line['tree_quantity'] : 0;
+        $palmQty = isset($line['palm_tree_quantity']) ? (int) $line['palm_tree_quantity'] : 0;
+        $treeRate = isset($line['price_per_tree']) ? (float) $line['price_per_tree'] : 0.0;
+        $palmRate = isset($line['price_per_palm_tree']) ? (float) $line['price_per_palm_tree'] : 0.0;
+
+        $addon = isset($line['tree_palm_addon'])
+            ? round((float) $line['tree_palm_addon'], 2)
+            : self::addonTotal(
+                $treeQty > 0 ? $treeQty : null,
+                $palmQty > 0 ? $palmQty : null,
+                $treeRate > 0 ? $treeRate : null,
+                $palmRate > 0 ? $palmRate : null
+            );
+
+        $fullTotal = isset($line['line_total']) ? round((float) $line['line_total'], 2) : 0.0;
+        $baseTotal = isset($line['base_line_total'])
+            ? round((float) $line['base_line_total'], 2)
+            : round(max(0, $fullTotal - $addon), 2);
+
+        $base = $line;
+        $base['line_kind'] = 'service';
+        $base['is_addon'] = false;
+        $base['line_total'] = $baseTotal;
+        $base['line_total_label'] = ServiceAreaPricing::formatMoney($baseTotal);
+        $base['base_line_total'] = $baseTotal;
+        $base['base_line_total_label'] = ServiceAreaPricing::formatMoney($baseTotal);
+        // Keep qty/rate metadata on the base row for editors; money is base-only.
+        $base['tree_palm_addon'] = $addon;
+        $base['tree_palm_addon_label'] = ServiceAreaPricing::formatMoney($addon);
+
+        if ($addon <= 0) {
+            return [$base];
+        }
+
+        $parentProductId = isset($line['product_id']) ? (int) $line['product_id'] : null;
+        $lines = [$base];
+
+        if ($treeQty > 0 && $treeRate > 0) {
+            $lines[] = self::addonDisplayLine(
+                kind: 'tree_addon',
+                label: 'Trees',
+                quantity: $treeQty,
+                unitPrice: $treeRate,
+                parentProductId: $parentProductId,
+                currency: isset($line['currency']) ? (string) $line['currency'] : null,
+            );
+        }
+
+        if ($palmQty > 0 && $palmRate > 0) {
+            $lines[] = self::addonDisplayLine(
+                kind: 'palm_addon',
+                label: 'Palm Trees',
+                quantity: $palmQty,
+                unitPrice: $palmRate,
+                parentProductId: $parentProductId,
+                currency: isset($line['currency']) ? (string) $line['currency'] : null,
+            );
+        }
+
+        return $lines;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function addonDisplayLine(
+        string $kind,
+        string $label,
+        int $quantity,
+        float $unitPrice,
+        ?int $parentProductId,
+        ?string $currency = null,
+    ): array {
+        $unitPrice = round(max(0, $unitPrice), 2);
+        $lineTotal = round($quantity * $unitPrice, 2);
+        $unitLabel = ServiceAreaPricing::formatMoney($unitPrice);
+        $name = $label.' ('.$quantity.' × '.$unitLabel.')';
+
+        $row = [
+            'line_kind' => $kind,
+            'is_addon' => true,
+            'product_id' => $parentProductId,
+            'parent_product_id' => $parentProductId,
+            'name' => $name,
+            'quantity' => $quantity,
+            'unit_price' => $unitPrice,
+            'unit_price_label' => $unitLabel,
+            'line_total' => $lineTotal,
+            'line_total_label' => ServiceAreaPricing::formatMoney($lineTotal),
+            'base_line_total' => $lineTotal,
+            'base_line_total_label' => ServiceAreaPricing::formatMoney($lineTotal),
+            'tree_quantity' => $kind === 'tree_addon' ? $quantity : null,
+            'palm_tree_quantity' => $kind === 'palm_addon' ? $quantity : null,
+            'price_per_tree' => $kind === 'tree_addon' ? $unitPrice : null,
+            'price_per_palm_tree' => $kind === 'palm_addon' ? $unitPrice : null,
+            'tree_palm_addon' => $lineTotal,
+            'tree_palm_addon_label' => ServiceAreaPricing::formatMoney($lineTotal),
+            'required_area' => null,
+            'booking_date' => null,
+            'booking_slot' => null,
+            'selected_option_ids' => [],
+        ];
+
+        if ($currency !== null && $currency !== '') {
+            $row['currency'] = $currency;
+        }
+
+        return $row;
+    }
+
+    /**
      * Normalize admin form-data for tree pricing fields onto the request.
      */
     public static function normalizeAdminFormData(Request $request): void

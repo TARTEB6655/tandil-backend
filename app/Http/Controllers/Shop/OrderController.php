@@ -1243,16 +1243,7 @@ class OrderController extends Controller
             'delivered_at' => $deliveredAt?->format('c'),
             'created_at' => $order->created_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
-            'items' => $order->items->map(fn (OrderItem $item) => array_merge([
-                'id' => $item->id,
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'price' => (float) $item->price,
-                'subtotal' => (float) $item->subtotal,
-                'booking_date' => $item->booking_date?->toDateString(),
-                'booking_slot' => $item->booking_slot,
-                'product' => $this->mapOrderItemProductForApi($item),
-            ], \App\Support\ServiceAreaPricing::orderItemApiFields($item)))->values()->all(),
+            'items' => $this->mapOrderItemsForCheckoutApi($order),
         ];
     }
 
@@ -1280,17 +1271,55 @@ class OrderController extends Controller
             'updated_at' => $order->updated_at?->format('c'),
             'paid_at' => $order->paid_at?->format('c'),
             'shipping_address' => $order->getShippingAddressForApi(),
-            'items' => $order->items->map(fn (OrderItem $item) => array_merge([
+            'items' => $this->mapOrderItemsForCheckoutApi($order),
+        ];
+    }
+
+    /**
+     * Client checkout/order detail: base service + optional Trees / Palm Trees as separate lines.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function mapOrderItemsForCheckoutApi(Order $order): array
+    {
+        $lines = [];
+
+        foreach ($order->items as $item) {
+            /** @var OrderItem $item */
+            $productPayload = $this->mapOrderItemProductForApi($item);
+            $merged = array_merge([
                 'id' => $item->id,
                 'product_id' => $item->product_id,
+                'name' => is_array($productPayload) ? (string) ($productPayload['name'] ?? 'Service') : 'Service',
                 'quantity' => $item->quantity,
                 'price' => (float) $item->price,
                 'subtotal' => (float) $item->subtotal,
                 'booking_date' => $item->booking_date?->toDateString(),
                 'booking_slot' => $item->booking_slot,
-                'product' => $this->mapOrderItemProductForApi($item),
-            ], \App\Support\ServiceAreaPricing::orderItemApiFields($item)))->values()->all(),
-        ];
+                'product' => $productPayload,
+            ], \App\Support\ServiceAreaPricing::orderItemApiFields($item));
+
+            foreach (\App\Support\ServiceTreePricing::expandCheckoutDisplayLines($merged) as $displayLine) {
+                if (($displayLine['is_addon'] ?? false) === true) {
+                    // Addon rows: money on this row only; do not re-use combined order-item subtotal.
+                    $displayLine['price'] = (float) ($displayLine['unit_price'] ?? 0);
+                    $displayLine['subtotal'] = (float) ($displayLine['line_total'] ?? 0);
+                    $displayLine['product'] = [
+                        'id' => $displayLine['parent_product_id'] ?? $item->product_id,
+                        'name' => $displayLine['name'] ?? 'Add-on',
+                    ];
+                    unset($displayLine['id']);
+                } else {
+                    // Base service row: show base amount only (add-ons are sibling lines).
+                    $base = (float) ($displayLine['base_line_total'] ?? $displayLine['line_total'] ?? 0);
+                    $displayLine['subtotal'] = $base;
+                    $displayLine['price'] = (float) ($displayLine['unit_price'] ?? $item->price);
+                }
+                $lines[] = $displayLine;
+            }
+        }
+
+        return $lines;
     }
 
     /**
