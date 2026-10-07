@@ -513,7 +513,9 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/supervisor-registrations/{id}/approve', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'approve'])->whereNumber('id');
     Route::post('/supervisor-registrations/{id}/reject', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'reject'])->whereNumber('id');
     Route::post('/supervisor-registrations/{id}/request-documents', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'requestDocuments'])->whereNumber('id');
-    Route::post('/supervisor-registrations/{id}/account-status', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'accountStatus'])->whereNumber('id');
+    Route::post('/supervisor-registrations/{id}/account-status/{action}', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'accountStatus'])
+        ->whereNumber('id')
+        ->where('action', 'suspend|activate|inactive');
     Route::delete('/supervisor-registrations/{id}', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'destroy'])->whereNumber('id');
     Route::post('/supervisor-registrations/{id}/delete', [\App\Http\Controllers\Api\Admin\SupervisorRegistrationAdminController::class, 'destroy'])->whereNumber('id');
 

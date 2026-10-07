@@ -348,12 +348,9 @@ class ContractorApisProductionReadyTest extends TestCase
         ])->assertOk();
         $this->assertNotEmpty($login->json('data.token') ?? $login->json('data.access_token'));
 
-        // ── 12. Suspend / Activate ──────────────────────────────────────
+        // ── 12. Suspend / Inactive / Activate (URL action, no body) ─────
         $this->withToken($this->adminToken)
-            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/account-status", [
-                'action' => 'suspend',
-                'notes' => 'Temporary hold',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/account-status/suspend")
             ->assertOk()
             ->assertJsonPath('data.status', 'suspended')
             ->assertJsonPath('data.status_label', 'Suspended');
@@ -365,9 +362,13 @@ class ContractorApisProductionReadyTest extends TestCase
             ->assertJsonPath('data.items.0.registration_id', $registrationId);
 
         $this->withToken($this->adminToken)
-            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/account-status", [
-                'action' => 'activate',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/account-status/inactive")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'inactive')
+            ->assertJsonPath('data.status_label', 'Inactive');
+
+        $this->withToken($this->adminToken)
+            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/account-status/activate")
             ->assertOk()
             ->assertJsonPath('data.status', 'active');
 

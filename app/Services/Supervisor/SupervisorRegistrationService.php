@@ -215,56 +215,53 @@ class SupervisorRegistrationService
         return $result;
     }
 
-    public function suspend(SupervisorRegistration $registration, User $admin, ?string $notes = null): SupervisorRegistration
+    public function suspend(SupervisorRegistration $registration, User $admin): SupervisorRegistration
     {
-        $result = DB::transaction(function () use ($registration, $admin, $notes) {
+        return $this->setAccountUserStatus($registration, $admin, 'suspended');
+    }
+
+    public function deactivate(SupervisorRegistration $registration, User $admin): SupervisorRegistration
+    {
+        return $this->setAccountUserStatus($registration, $admin, 'inactive');
+    }
+
+    public function activate(SupervisorRegistration $registration, User $admin): SupervisorRegistration
+    {
+        return $this->setAccountUserStatus($registration, $admin, 'active', revokeTokens: false);
+    }
+
+    private function setAccountUserStatus(
+        SupervisorRegistration $registration,
+        User $admin,
+        string $userStatus,
+        bool $revokeTokens = true
+    ): SupervisorRegistration {
+        $result = DB::transaction(function () use ($registration, $admin, $userStatus, $revokeTokens) {
             if ($registration->status !== SupervisorRegistration::STATUS_APPROVED) {
                 throw \Illuminate\Validation\ValidationException::withMessages([
-                    'action' => ['Only approved contractors can be suspended.'],
+                    'action' => ['Only approved contractors can change account status.'],
                 ]);
             }
 
             $user = $registration->user;
             if ($user) {
-                $user->update(['status' => 'suspended']);
-                try {
-                    $user->tokens()->delete();
-                } catch (\Throwable) {
+                $payload = ['status' => $userStatus];
+                if ($userStatus === 'active') {
+                    $payload['role'] = 'supervisor';
+                }
+                $user->update($payload);
+                if ($userStatus === 'active') {
+                    $this->ensureSupervisorRole($user);
+                }
+                if ($revokeTokens && $userStatus !== 'active') {
+                    try {
+                        $user->tokens()->delete();
+                    } catch (\Throwable) {
+                    }
                 }
             }
 
-            if ($notes) {
-                $registration->update([
-                    'admin_review_message' => $notes,
-                    'reviewed_by' => $admin->id,
-                ]);
-            }
-
-            return $registration->fresh(['documents', 'user']);
-        });
-
-        $this->forgetStatusCountsCache();
-
-        return $result;
-    }
-
-    public function activate(SupervisorRegistration $registration, User $admin, ?string $notes = null): SupervisorRegistration
-    {
-        $result = DB::transaction(function () use ($registration, $admin, $notes) {
-            if ($registration->status !== SupervisorRegistration::STATUS_APPROVED) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'action' => ['Only approved contractors can be activated.'],
-                ]);
-            }
-
-            $user = $registration->user;
-            if ($user) {
-                $user->update(['status' => 'active', 'role' => 'supervisor']);
-                $this->ensureSupervisorRole($user);
-            }
-
             $registration->update([
-                'admin_review_message' => $notes ?? $registration->admin_review_message,
                 'reviewed_by' => $admin->id,
             ]);
 

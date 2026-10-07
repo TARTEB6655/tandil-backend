@@ -245,10 +245,7 @@ class SupervisorContractorRegistrationApiTest extends TestCase
         $this->assertSame('active', $user->fresh()->status);
 
         $this->withToken($token)
-            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/account-status", [
-                'action' => 'suspend',
-                'notes' => 'Policy breach',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/account-status/suspend")
             ->assertOk()
             ->assertJsonPath('data.status', 'suspended')
             ->assertJsonPath('data.status_label', 'Suspended');
@@ -256,9 +253,15 @@ class SupervisorContractorRegistrationApiTest extends TestCase
         $this->assertSame('suspended', $user->fresh()->status);
 
         $this->withToken($token)
-            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/account-status", [
-                'action' => 'activate',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/account-status/inactive")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'inactive')
+            ->assertJsonPath('data.status_label', 'Inactive');
+
+        $this->assertSame('inactive', $user->fresh()->status);
+
+        $this->withToken($token)
+            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/account-status/activate")
             ->assertOk()
             ->assertJsonPath('data.status', 'active');
 

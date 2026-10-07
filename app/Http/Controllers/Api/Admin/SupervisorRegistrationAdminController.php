@@ -153,25 +153,30 @@ class SupervisorRegistrationAdminController extends Controller
     }
 
     /**
-     * Suspend or reactivate an approved contractor account.
-     * Body: { "action": "suspend"|"activate", "notes": "..." }
+     * Change approved contractor account status via URL only (no body).
+     * POST .../account-status/{action}  action = suspend|activate|inactive
      */
-    public function accountStatus(Request $request, int $id): JsonResponse
+    public function accountStatus(Request $request, int $id, string $action): JsonResponse
     {
-        $data = $request->validate([
-            'action' => ['required', 'string', 'in:suspend,activate'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
+        $action = strtolower(trim($action));
+        if (! in_array($action, ['suspend', 'activate', 'inactive'], true)) {
+            return ApiResponse::error('Invalid action. Use suspend, activate, or inactive in the URL.', 422);
+        }
 
         $row = SupervisorRegistration::query()->with(['documents', 'user'])->findOrFail($id);
-        $row = $data['action'] === 'suspend'
-            ? $this->registration->suspend($row, $request->user(), $data['notes'] ?? null)
-            : $this->registration->activate($row, $request->user(), $data['notes'] ?? null);
+        $row = match ($action) {
+            'suspend' => $this->registration->suspend($row, $request->user()),
+            'inactive' => $this->registration->deactivate($row, $request->user()),
+            default => $this->registration->activate($row, $request->user()),
+        };
 
-        return ApiResponse::success(
-            $data['action'] === 'suspend' ? 'Contractor suspended.' : 'Contractor activated.',
-            $row->toAdminDetailArray()
-        );
+        $message = match ($action) {
+            'suspend' => 'Contractor suspended.',
+            'inactive' => 'Contractor set to inactive.',
+            default => 'Contractor activated.',
+        };
+
+        return ApiResponse::success($message, $row->toAdminDetailArray());
     }
 
     public function destroy(Request $request, int $id): JsonResponse
