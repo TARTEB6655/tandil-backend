@@ -56,34 +56,21 @@ function cmpKeys(array $a, array $b): int
 }
 
 /**
- * Sort siblings: all requests (by number) then all folders (by number).
+ * Sort siblings strictly by numeric prefix (folders + requests mixed together).
  *
  * @param  list<array<string, mixed>>  $items
  * @return list<array<string, mixed>>
  */
 function sortSiblings(array $items): array
 {
-    $requests = [];
-    $folders = [];
-    foreach ($items as $it) {
-        if (isset($it['item']) && is_array($it['item'])) {
-            $folders[] = $it;
-        } else {
-            $requests[] = $it;
-        }
-    }
-
-    $byNum = function (array $x, array $y): int {
+    usort($items, function (array $x, array $y): int {
         return cmpKeys(
             numberKey((string) ($x['name'] ?? '')),
             numberKey((string) ($y['name'] ?? ''))
         );
-    };
+    });
 
-    usort($requests, $byNum);
-    usort($folders, $byNum);
-
-    return array_merge($requests, $folders);
+    return $items;
 }
 
 /**
@@ -182,10 +169,10 @@ Tandil Backend API. Env: base_url, token.
 
 NUMBERING (fixed order in file = order in Postman sidebar):
 - Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)
-- Requests come before nested folders in each group (so sidebar never shows 23 above 01)
-- After ANY add/edit: php scripts/renumber_postman_collection.php && php scripts/find_postman_gaps.php
-- Always APPEND new APIs at the end of the parent folder, then run renumber
-- In Postman: delete old collection → Import this file (do not keep a duplicate)
+- Sort rule: numeric prefix ascending for every sibling (folders + requests)
+- After ANY add/edit: php scripts/force_sort_postman_collection.php
+- Always APPEND new APIs at the end of the parent folder, then run sort
+- In Postman: DELETE old collection → Import this file (do not Merge / do not keep a duplicate)
 
 Key paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor
 MD;

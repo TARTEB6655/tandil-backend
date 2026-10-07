@@ -1,10 +1,10 @@
 {
   "info": {
-    "name": "Tandil Backend - Flow-Based Collection (v3.6.56)",
-    "description": "Tandil Backend API. Env: base_url, token.\n\nNUMBERING (fixed order in file = order in Postman sidebar):\n- Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)\n- Requests come before nested folders in each group (so sidebar never shows 23 above 01)\n- After ANY add/edit: php scripts/renumber_postman_collection.php && php scripts/find_postman_gaps.php\n- Always APPEND new APIs at the end of the parent folder, then run renumber\n- In Postman: delete old collection → Import this file (do not keep a duplicate)\n\nKey paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor",
+    "name": "Tandil Backend - Flow-Based Collection (v3.7.0)",
+    "description": "Tandil Backend API. Env: base_url, token.\n\nLAST_SORTED_AT: 2026-10-07T10:08:15Z\nSORT_RULE: numeric prefix ascending at every folder/request level (01, 02, 03…).\n\nNUMBERING:\n- Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)\n- After ANY add/edit: php scripts/force_sort_postman_collection.php\n- In Postman: DELETE old collection → Import this file (do not Merge)\n\nKey paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-backend",
-    "version": "3.6.56"
+    "version": "3.7.0"
   },
   "item": [
     {
