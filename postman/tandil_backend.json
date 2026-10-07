@@ -1,11 +1,11 @@
 {
   "info": {
-    "name": "Tandil Backend v5.2.0 NUMBER ORDER",
-    "description": "Tandil Backend API. Env: base_url, token.\n\nORDERING: number order only (1, 2, 3…) = JSON array order.\nNo Sort-by-name, no zero-padding for name sort.\n\nIMPORT:\n1) DELETE every old Tandil Backend collection\n2) Import as NEW (do not Merge)\n3) Title must be: Tandil Backend v5.2.0 NUMBER ORDER\n4) In Postman sidebar: turn OFF \"Sort by name\" → use Default / manual order\n\nLAST_SORTED_AT: 2026-10-07T11:47:28Z\nCOLLECTION_ID: 24166a2b-ed90-4f2a-bbc2-6edf9506774e",
+    "name": "Tandil Backend v6.0.0 BY NUMBER",
+    "description": "Tandil Backend API. Env: base_url, token.\n\n*** ORDER = BY NUMBER ONLY (1, 2, 3 … 19, 20) ***\n- Every folder / subfolder / request is numbered in JSON array order\n- NOT sorted by name (ASCII). Sort key = integer number only.\n\nIMPORT STEPS (required):\n1) Postman → DELETE all old \"Tandil Backend…\" collections\n2) Import this file as NEW (never Merge / Update)\n3) Collection title must be: Tandil Backend v6.0.0 BY NUMBER\n4) Sidebar → click collection → turn OFF \"Sort by name\" (use Default)\n\nIf Sort by name stays ON, Postman will show 1,10,18,2… — that is Postman UI, not this file.\n\nLAST_SORTED_AT: 2026-10-07T11:56:06Z\nCOLLECTION_ID: e3797e45-0f99-40d9-8f21-1703eedfee5f",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "tandil-num-24166a2b",
-    "version": "5.2.0",
-    "_postman_id": "24166a2b-ed90-4f2a-bbc2-6edf9506774e"
+    "_exporter_id": "tandil-bynum-e3797e45",
+    "version": "6.0.0",
+    "_postman_id": "e3797e45-0f99-40d9-8f21-1703eedfee5f"
   },
   "item": [
     {
