@@ -1,8 +1,13 @@
 <?php
 
 /**
- * End-to-end smoke test: every folder/subfolder/API must be 1,2,3… in array order.
- * Exit 1 on any failure. Prints a full report.
+ * E2E smoke: every folder must display correctly in Postman even with Sort by name.
+ *
+ * Postman "Sort by name" = ASCII string sort.
+ * Plain "1." / "10." / "18." / "2." SCRAMBLES → FAIL.
+ * Zero-padded "01." / "02." / "10." / "18." stays correct → PASS.
+ *
+ * Also checks: array index == number, no jumps, no stale item ids.
  */
 
 $path = __DIR__.'/../postman/tandil_backend.json';
@@ -15,95 +20,74 @@ if (! is_array($j)) {
 $issues = [];
 $folderCount = 0;
 $requestCount = 0;
-$maxDepth = 0;
+$padWidth = 2;
 
-function walk(array $items, string $path, int $depth): void
+function walk(array $items, string $path): void
 {
-    global $issues, $folderCount, $requestCount, $maxDepth;
-    $maxDepth = max($maxDepth, $depth);
-    $prevNum = 0;
+    global $issues, $folderCount, $requestCount, $padWidth;
 
+    $names = [];
     foreach ($items as $i => $it) {
-        $want = $i + 1;
+        $want = str_pad((string) ($i + 1), $padWidth, '0', STR_PAD_LEFT);
         $name = (string) ($it['name'] ?? '');
         $isFolder = isset($it['item']) && is_array($it['item']);
-        if ($isFolder) {
-            $folderCount++;
-        } else {
-            $requestCount++;
-        }
+        $isFolder ? $folderCount++ : $requestCount++;
+        $names[] = $name;
 
         if (! preg_match('/^(\d+)\.\s+(.+)$/u', $name, $m)) {
             $issues[] = "NO_NUMBER {$path} [{$i}] {$name}";
             continue;
         }
-        $num = (int) $m[1];
-        // Reject zero-padded "01" style if user wants plain 1,2,3 — allow but flag leading zero
-        if (strlen($m[1]) > 1 && $m[1][0] === '0') {
-            $issues[] = "ZERO_PAD {$path} got={$name} (want plain 1,2,3 not 01)";
+
+        // Must be zero-padded to padWidth (Postman Sort-by-name safe)
+        if (! preg_match('/^([0-9]{'.$padWidth.'})\.\s+/u', $name, $pm) || $pm[1] !== $want) {
+            $issues[] = "PAD_OR_SEQ {$path} index=".($i + 1)." want={$want}. … got={$name}";
         }
-        if ($num !== $want) {
-            $issues[] = "SEQ {$path} index=".($i + 1)." want={$want} got={$num} name={$name}";
-        }
-        if ($num !== $prevNum + 1 && $i > 0) {
-            $issues[] = "JUMP {$path} after {$prevNum} got {$num} ({$name})";
-        }
-        $prevNum = $num;
 
         if (! empty($it['id']) || ! empty($it['_postman_id'])) {
             $issues[] = "STALE_ID {$path} / {$name}";
         }
 
-        // Detect string-sort trap risk for this sibling group (informational via issues if broken seq)
         if ($isFolder) {
-            walk($it['item'], $path.' / '.$name, $depth + 1);
+            walk($it['item'], $path.' / '.$name);
         }
     }
 
-    // Sibling group: simulate ASCII name-sort vs number order
-    if (count($items) >= 2) {
-        $names = array_map(static fn ($it) => (string) ($it['name'] ?? ''), $items);
-        $byNum = $names;
+    if (count($names) >= 2) {
         $alpha = $names;
-        usort($byNum, static function ($a, $b) {
-            preg_match('/^(\d+)/', $a, $ma);
-            preg_match('/^(\d+)/', $b, $mb);
-
-            return ((int) ($ma[1] ?? 0)) <=> ((int) ($mb[1] ?? 0));
-        });
         sort($alpha, SORT_STRING);
-        if ($names !== $byNum) {
-            $issues[] = "ARRAY_NOT_NUMBER_SORTED {$path}";
-        }
-        // Note only: alpha differs from number (expected with plain 1..20)
-        if ($alpha !== $byNum) {
-            // not an error — Postman Sort-by-name would break; file uses number order
+        if ($alpha !== $names) {
+            $issues[] = "POSTMAN_SORT_BY_NAME_WOULD_SCRAMBLE {$path}";
+            $issues[] = "  file_order: ".implode(' | ', array_map(static function ($n) {
+                return preg_match('/^(\d+)\./', $n, $m) ? $m[1] : '?';
+            }, $names));
+            $issues[] = "  name_sort:  ".implode(' | ', array_map(static function ($n) {
+                return preg_match('/^(\d+)\./', $n, $m) ? $m[1] : '?';
+            }, $alpha));
         }
     }
 }
 
-echo "=== SMOKE: Postman number order E2E ===\n";
+echo "=== SMOKE E2E (Postman display-safe number order) ===\n";
 echo 'collection: '.($j['info']['name'] ?? '')."\n";
 echo 'version: '.($j['info']['version'] ?? '')."\n";
-echo '_postman_id: '.($j['info']['_postman_id'] ?? '')."\n\n";
+echo "pad_width={$padWidth} (required so Sort-by-name == number order)\n\n";
 
-walk($j['item'] ?? [], 'ROOT', 0);
+walk($j['item'] ?? [], 'ROOT');
 
-echo "folders={$folderCount} requests={$requestCount} max_depth={$maxDepth}\n";
+echo "folders={$folderCount} requests={$requestCount}\n";
 echo 'issues='.count($issues)."\n";
-foreach (array_slice($issues, 0, 80) as $x) {
+foreach (array_slice($issues, 0, 60) as $x) {
     echo " - {$x}\n";
 }
-if (count($issues) > 80) {
-    echo ' ... +'.(count($issues) - 80)." more\n";
+if (count($issues) > 60) {
+    echo ' ... +'.(count($issues) - 60)." more\n";
 }
 
-// Print Admin → Settings sample
 function find(array $items, string $needle): ?array
 {
     foreach ($items as $it) {
-        $n = (string) ($it['name'] ?? '');
-        if (stripos($n, $needle) !== false && isset($it['item'])) {
+        if (stripos((string) ($it['name'] ?? ''), $needle) !== false && isset($it['item'])) {
             return $it;
         }
         if (isset($it['item'])) {
@@ -118,14 +102,11 @@ function find(array $items, string $needle): ?array
 }
 
 $set = find($j['item'] ?? [], 'Settings (Mobile)');
-echo "\n=== SAMPLE: 5 Admin → Settings (Mobile) ===\n";
+echo "\n=== Admin → Settings (Mobile) ===\n";
 foreach ($set['item'] ?? [] as $i => $it) {
     echo ($i + 1).'. '.($it['name'] ?? '')."\n";
 }
 
-echo "\n=== ROOT ===\n";
-foreach ($j['item'] ?? [] as $i => $it) {
-    echo ($i + 1).'. '.($it['name'] ?? '')."\n";
-}
-
-exit(count($issues) > 0 ? 1 : 0);
+$fail = count($issues) > 0;
+echo "\nRESULT: ".($fail ? 'FAIL — Postman sidebar will look wrong' : 'PASS — file order safe for Postman')."\n";
+exit($fail ? 1 : 0);

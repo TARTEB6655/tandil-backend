@@ -1,5 +1,5 @@
 <?php
 
-/** Verify 1..N plain number order in every folder (no zero-pad, no stale ids). */
-
-require __DIR__.'/smoke_postman_number_order.php';
+/** Alias: same as smoke_postman_number_order.php (display-safe E2E). */
+passthru('php '.escapeshellarg(__DIR__.'/smoke_postman_number_order.php'), $code);
+exit($code);
