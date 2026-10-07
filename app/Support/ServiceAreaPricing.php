@@ -351,13 +351,14 @@ final class ServiceAreaPricing
                 'checkout_rate_label' => self::formatMoney($rate).' / m²',
                 'currency' => 'AED',
                 'price_unit' => 'm²',
-                'requires_area' => true,
+                'requires_area' => false,
+                'area_optional' => true,
                 'price_includes' => $includes,
                 'price_includes_labels' => self::includeLabels($includes),
                 'customer_preview' => [
                     'price_display' => 'Listed: '.self::formatMoney($catalogPrice),
                     'checkout_rate_display' => 'Checkout rate: '.self::formatMoney($rate).' / m²',
-                    'note' => 'On the store list/detail card show price + price_label (catalog). On checkout use price_per_m2 × required_area. Do NOT show the global rate as every service list price.',
+                    'note' => 'Area (m²) is optional. With area: checkout = price_per_m2 × required_area. Without area: service unit price once. List/detail keep catalog price_label.',
                     'example' => [
                         'area' => 100,
                         'price_per_m2' => $rate,
@@ -596,9 +597,15 @@ final class ServiceAreaPricing
         if (! self::isPerM2($product)) {
             return null;
         }
+
+        // Area (m²) is optional — customer may continue with service price only.
+        if ($areaRaw === null || $areaRaw === '') {
+            return null;
+        }
+
         $area = self::normalizeArea($areaRaw);
         if ($area === null) {
-            return 'Required Area (m²) is required and must be a positive number (e.g. 50, 100, 137.5). Send it as required_area (or area / requiredArea).';
+            return 'Area (m²) must be a positive number when provided (e.g. 50, 100, 137.5). Send it as required_area (or area / requiredArea).';
         }
 
         return null;
@@ -700,9 +707,12 @@ final class ServiceAreaPricing
     public static function lineTotal(Product $product, float $unitPrice, int $quantity, ?float $requiredArea): float
     {
         if (self::isPerM2($product)) {
-            $area = $requiredArea !== null && $requiredArea > 0 ? $requiredArea : 0.0;
+            // With area: rate × m². Without area: charge service unit price once (area optional).
+            if ($requiredArea !== null && $requiredArea > 0) {
+                return round($requiredArea * $unitPrice, 2);
+            }
 
-            return round($area * $unitPrice, 2);
+            return round(max(1, $quantity) * $unitPrice, 2);
         }
 
         return round(max(1, $quantity) * $unitPrice, 2);
@@ -756,7 +766,8 @@ final class ServiceAreaPricing
 
         return [
             'pricing_type' => $isPerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED,
-            'requires_area' => $isPerM2,
+            'requires_area' => false,
+            'area_optional' => $isPerM2,
             'required_area' => $area,
             'area_unit' => $isPerM2 ? 'm²' : null,
             'unit_price' => $unitPrice,

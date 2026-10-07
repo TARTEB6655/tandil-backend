@@ -135,7 +135,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
         $this->getJson('/api/shop/products/'.$service->id, $this->headers())
             ->assertOk()
             ->assertJsonPath('data.pricing_type', 'per_m2')
-            ->assertJsonPath('data.requires_area', true)
+            ->assertJsonPath('data.requires_area', false)
             ->assertJsonPath('data.price', 10)
             ->assertJsonPath('data.price_per_m2', 70);
 
@@ -146,7 +146,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.line_total', 7000)
-            ->assertJsonPath('data.requires_area', true);
+            ->assertJsonPath('data.requires_area', false);
 
         // Shop product: no area pricing, Instant Fee path only
         $this->getJson('/api/shop/products/'.$shop->id, $this->headers())

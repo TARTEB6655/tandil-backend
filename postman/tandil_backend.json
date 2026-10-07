@@ -4302,7 +4302,7 @@
                         "add"
                       ]
                     },
-                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** MUST send area:\n```json\n{ \"product_id\": 123, \"required_area\": 7, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nAliases accepted: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`.\nLine total = area × price per m² (e.g. 7 × 100 = 700).\n\nWithout area on per_m2 service → **422** Required Area error."
+                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** `required_area` is **optional**.\n```json\n{ \"product_id\": 123, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nWith area: line total = area × price per m² (e.g. 7 × 100 = 700).\nWithout area: continues with service unit price once (no 422).\nAliases: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`."
                   }
                 },
                 {

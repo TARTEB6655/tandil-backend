@@ -83,7 +83,7 @@ class ServiceAreaPricingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.price', 70)
-            ->assertJsonPath('data.requires_area', true)
+            ->assertJsonPath('data.requires_area', false)
             ->assertJsonPath('data.example_calculation.total', 7000)
             ->assertJsonPath('data.synced_services', 1)
             ->assertJsonPath('data.synced_products', 1);
@@ -100,7 +100,8 @@ class ServiceAreaPricingTest extends TestCase
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertSame('AED 10', $fields['price_label']);
         $this->assertSame('AED 70 / m²', $fields['unit_rate_label']);
-        $this->assertTrue($fields['requires_area']);
+        $this->assertFalse($fields['requires_area']);
+        $this->assertTrue($fields['area_optional']);
     }
 
     public function test_per_service_settings_do_not_overwrite_linked_product_catalog_price(): void
@@ -208,11 +209,17 @@ class ServiceAreaPricingTest extends TestCase
             'stock' => 999,
         ]);
 
+        // Area optional — without area, continue with service unit price once.
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,
             'quantity' => 1,
-        ])->assertStatus(422);
+        ])->assertCreated()
+            ->assertJsonPath('data.pricing_type', 'per_m2')
+            ->assertJsonPath('data.required_area', null)
+            ->assertJsonPath('data.line_total', 70)
+            ->assertJsonPath('data.unit_price', 70);
 
+        Cart::where('user_id', $this->client->id)->delete();
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,
             'required_area' => 100,
@@ -400,7 +407,7 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonPath('data.items.0.line_total', 700);
     }
 
-    public function test_buy_now_without_area_and_empty_cart_fails(): void
+    public function test_buy_now_without_area_and_empty_cart_uses_service_price(): void
     {
         ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
 
@@ -416,7 +423,9 @@ class ServiceAreaPricingTest extends TestCase
 
         $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
-            ->assertStatus(422);
+            ->assertOk()
+            ->assertJsonPath('data.items.0.required_area', null)
+            ->assertJsonPath('data.items.0.line_total', 7);
     }
 
     public function test_buy_now_summary_remembers_area_for_later_pay_without_area(): void
