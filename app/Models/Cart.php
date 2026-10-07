@@ -7,12 +7,25 @@ use Illuminate\Support\Collection;
 
 class Cart extends Model
 {
-    protected $fillable = ['user_id', 'product_id', 'quantity', 'selected_options', 'unit_price', 'required_area', 'booking_date', 'booking_slot'];
+    protected $fillable = [
+        'user_id',
+        'product_id',
+        'quantity',
+        'selected_options',
+        'unit_price',
+        'required_area',
+        'tree_quantity',
+        'palm_tree_quantity',
+        'booking_date',
+        'booking_slot',
+    ];
 
     protected $casts = [
         'selected_options' => 'array',
         'unit_price' => 'float',
         'required_area' => 'float',
+        'tree_quantity' => 'integer',
+        'palm_tree_quantity' => 'integer',
         'booking_date' => 'date:Y-m-d',
     ];
 
@@ -218,6 +231,12 @@ class Cart extends Model
             'quantity' => (int) $this->quantity,
             'unit_price' => $this->lineUnitPrice(),
             'required_area' => $this->required_area !== null ? round((float) $this->required_area, 2) : null,
+            'tree_quantity' => $this->tree_quantity !== null && (int) $this->tree_quantity > 0
+                ? (int) $this->tree_quantity
+                : null,
+            'palm_tree_quantity' => $this->palm_tree_quantity !== null && (int) $this->palm_tree_quantity > 0
+                ? (int) $this->palm_tree_quantity
+                : null,
             'selected_options' => self::normalizeSelectedOptionIds($this->selected_options),
             'booking_date' => $this->booking_date?->toDateString(),
             'booking_slot' => $this->booking_slot,
@@ -225,7 +244,7 @@ class Cart extends Model
     }
 
     /**
-     * Money total for this cart line (supports per-m² service pricing).
+     * Money total for this cart line (supports per-m² + optional tree/palm pricing).
      */
     public function lineTotalAmount(): float
     {
@@ -238,7 +257,9 @@ class Cart extends Model
             $product,
             $this->lineUnitPrice(),
             (int) $this->quantity,
-            $this->required_area !== null ? (float) $this->required_area : null
+            $this->required_area !== null ? (float) $this->required_area : null,
+            $this->tree_quantity !== null ? (int) $this->tree_quantity : null,
+            $this->palm_tree_quantity !== null ? (int) $this->palm_tree_quantity : null
         );
     }
 }

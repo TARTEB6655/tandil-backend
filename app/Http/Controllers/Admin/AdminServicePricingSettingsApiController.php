@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Support\ServiceAreaPricing;
+use App\Support\ServiceTreePricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -37,6 +38,9 @@ class AdminServicePricingSettingsApiController extends Controller
      * - pricing_type: fixed | per_m2
      * - price: 70
      * - price_includes[materials]: 1
+     * - show_tree_options: 1|0
+     * - price_per_tree: 50
+     * - price_per_palm_tree: 80
      * - ...
      */
     public function update(Request $request): JsonResponse
@@ -52,6 +56,9 @@ class AdminServicePricingSettingsApiController extends Controller
             'price_includes.labor' => 'nullable|boolean',
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
+            'show_tree_options' => 'nullable|boolean',
+            'price_per_tree' => 'nullable|numeric|min:0',
+            'price_per_palm_tree' => 'nullable|numeric|min:0',
         ], [
             'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
             'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
@@ -71,6 +78,15 @@ class AdminServicePricingSettingsApiController extends Controller
             $request->input('price_includes')
         );
 
+        $tree = ServiceTreePricing::validatedFromRequest($request);
+        if ($tree !== null) {
+            ServiceTreePricing::saveGlobal(
+                $tree['show_tree_options'],
+                $tree['price_per_tree'],
+                $tree['price_per_palm_tree']
+            );
+        }
+
         $payload = ServiceAreaPricing::globalAdminApiPayload();
         $payload['synced_services'] = $sync['synced_services'];
         $payload['synced_products'] = $sync['synced_products'];
@@ -84,6 +100,8 @@ class AdminServicePricingSettingsApiController extends Controller
 
     private function normalizeFormData(Request $request): void
     {
+        ServiceTreePricing::normalizeAdminFormData($request);
+
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);
             if (is_array($decoded)) {

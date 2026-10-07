@@ -328,6 +328,7 @@ final class ServiceAreaPricing
                 'price_includes' => null,
                 'price_includes_labels' => [],
                 'customer_preview' => null,
+                ...ServiceTreePricing::productApiFields($product),
             ];
         }
 
@@ -366,6 +367,7 @@ final class ServiceAreaPricing
                         'total_label' => self::formatMoney(round(100 * $rate, 2)),
                     ],
                 ],
+                ...ServiceTreePricing::productApiFields($product),
             ];
         }
 
@@ -401,6 +403,7 @@ final class ServiceAreaPricing
                 ],
                 'note' => 'Fixed mode: product base price + global Fixed price. No area field.',
             ],
+            ...ServiceTreePricing::productApiFields($product),
         ];
     }
 
@@ -491,6 +494,10 @@ final class ServiceAreaPricing
             'message' => $isService
                 ? null
                 : 'Area-based Product Settings apply only to services. Shop products always use Fixed Price.',
+            ...($isService ? ServiceTreePricing::adminSettingsFields() : [
+                'show_tree_options' => false,
+                'tree_pricing' => null,
+            ]),
         ];
     }
 
@@ -703,19 +710,37 @@ final class ServiceAreaPricing
     /**
      * Line total for a cart/order line.
      * Fixed: quantity × unitPrice. Per m²: required_area × unitPrice (quantity ignored for money).
+     * Optional tree/palm quantities add (qty × admin unit price) on top of the base service total.
      */
-    public static function lineTotal(Product $product, float $unitPrice, int $quantity, ?float $requiredArea): float
-    {
+    public static function lineTotal(
+        Product $product,
+        float $unitPrice,
+        int $quantity,
+        ?float $requiredArea,
+        ?int $treeQuantity = null,
+        ?int $palmTreeQuantity = null,
+        ?float $pricePerTree = null,
+        ?float $pricePerPalmTree = null
+    ): float {
         if (self::isPerM2($product)) {
             // With area: rate × m². Without area: charge service unit price once (area optional).
             if ($requiredArea !== null && $requiredArea > 0) {
-                return round($requiredArea * $unitPrice, 2);
+                $base = round($requiredArea * $unitPrice, 2);
+            } else {
+                $base = round(max(1, $quantity) * $unitPrice, 2);
             }
-
-            return round(max(1, $quantity) * $unitPrice, 2);
+        } else {
+            $base = round(max(1, $quantity) * $unitPrice, 2);
         }
 
-        return round(max(1, $quantity) * $unitPrice, 2);
+        if (! self::appliesToProduct($product)) {
+            return $base;
+        }
+
+        return round(
+            $base + ServiceTreePricing::addonTotal($treeQuantity, $palmTreeQuantity, $pricePerTree, $pricePerPalmTree),
+            2
+        );
     }
 
     /**
@@ -729,24 +754,47 @@ final class ServiceAreaPricing
     /**
      * Snapshot fields for order_items.
      *
-     * @return array{pricing_type: string, required_area: ?float, price_includes: ?array}
+     * @return array{
+     *     pricing_type: string,
+     *     required_area: ?float,
+     *     price_includes: ?array,
+     *     tree_quantity: ?int,
+     *     palm_tree_quantity: ?int,
+     *     price_per_tree: ?float,
+     *     price_per_palm_tree: ?float
+     * }
      */
-    public static function orderItemSnapshot(Product $product, ?float $requiredArea): array
-    {
+    public static function orderItemSnapshot(
+        Product $product,
+        ?float $requiredArea,
+        ?int $treeQuantity = null,
+        ?int $palmTreeQuantity = null
+    ): array {
         $isService = self::appliesToProduct($product);
         if ($isService) {
             $config = self::globalConfig();
             $type = $config['pricing_type'];
             $includes = $config['price_includes'];
+            $tree = ServiceTreePricing::resolveForCheckout($product, $treeQuantity, $palmTreeQuantity);
         } else {
             $type = self::TYPE_FIXED;
             $includes = null;
+            $tree = [
+                'tree_quantity' => null,
+                'palm_tree_quantity' => null,
+                'price_per_tree' => 0.0,
+                'price_per_palm_tree' => 0.0,
+            ];
         }
 
         return [
             'pricing_type' => $type,
             'required_area' => $type === self::TYPE_PER_M2 ? $requiredArea : null,
             'price_includes' => $includes,
+            'tree_quantity' => $tree['tree_quantity'],
+            'palm_tree_quantity' => $tree['palm_tree_quantity'],
+            'price_per_tree' => $tree['tree_quantity'] !== null ? $tree['price_per_tree'] : null,
+            'price_per_palm_tree' => $tree['palm_tree_quantity'] !== null ? $tree['price_per_palm_tree'] : null,
         ];
     }
 
@@ -755,16 +803,27 @@ final class ServiceAreaPricing
      *
      * @return array<string, mixed>
      */
-    public static function lineApiFields(Product $product, float $unitPrice, int $quantity, ?float $requiredArea): array
-    {
+    public static function lineApiFields(
+        Product $product,
+        float $unitPrice,
+        int $quantity,
+        ?float $requiredArea,
+        ?int $treeQuantity = null,
+        ?int $palmTreeQuantity = null
+    ): array {
         $isPerM2 = self::isPerM2($product);
         $area = $isPerM2 ? $requiredArea : null;
-        $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea);
+        $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea, $treeQuantity, $palmTreeQuantity);
         $includes = $isPerM2 || self::appliesToProduct($product)
             ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())
             : null;
+        $baseTotal = self::isPerM2($product)
+            ? (($requiredArea !== null && $requiredArea > 0)
+                ? round($requiredArea * $unitPrice, 2)
+                : round(max(1, $quantity) * $unitPrice, 2))
+            : round(max(1, $quantity) * $unitPrice, 2);
 
-        return [
+        return array_merge([
             'pricing_type' => $isPerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED,
             'requires_area' => false,
             'area_optional' => $isPerM2,
@@ -774,6 +833,8 @@ final class ServiceAreaPricing
             'unit_price_label' => $isPerM2
                 ? self::formatMoney($unitPrice).' / m²'
                 : self::formatMoney($unitPrice),
+            'base_line_total' => $baseTotal,
+            'base_line_total_label' => self::formatMoney($baseTotal),
             'line_total' => $lineTotal,
             'line_total_label' => self::formatMoney($lineTotal),
             'price_includes' => $includes,
@@ -783,11 +844,11 @@ final class ServiceAreaPricing
                 'area_label' => rtrim(rtrim(number_format($area, 2, '.', ''), '0'), '.').' m²',
                 'unit_price' => $unitPrice,
                 'unit_price_label' => self::formatMoney($unitPrice).'/m²',
-                'total' => $lineTotal,
-                'total_label' => self::formatMoney($lineTotal),
-                'formula' => $area.' × '.$unitPrice.' = '.$lineTotal,
+                'total' => $baseTotal,
+                'total_label' => self::formatMoney($baseTotal),
+                'formula' => $area.' × '.$unitPrice.' = '.$baseTotal,
             ] : null,
-        ];
+        ], ServiceTreePricing::lineApiFields($product, $treeQuantity, $palmTreeQuantity));
     }
 
     /**
@@ -805,6 +866,23 @@ final class ServiceAreaPricing
             ? array_merge(self::emptyIncludes(), $item->price_includes)
             : null;
         $lineTotal = round((float) $item->subtotal, 2);
+        $treeQty = isset($item->tree_quantity) ? (int) $item->tree_quantity : null;
+        $palmQty = isset($item->palm_tree_quantity) ? (int) $item->palm_tree_quantity : null;
+        $treeRate = isset($item->price_per_tree) ? (float) $item->price_per_tree : null;
+        $palmRate = isset($item->price_per_palm_tree) ? (float) $item->price_per_palm_tree : null;
+        $treeFields = [
+            'tree_quantity' => $treeQty > 0 ? $treeQty : null,
+            'palm_tree_quantity' => $palmQty > 0 ? $palmQty : null,
+            'price_per_tree' => $treeRate !== null && $treeRate > 0 ? round($treeRate, 2) : null,
+            'price_per_palm_tree' => $palmRate !== null && $palmRate > 0 ? round($palmRate, 2) : null,
+            'tree_palm_addon' => ServiceTreePricing::addonTotal(
+                $treeQty > 0 ? $treeQty : null,
+                $palmQty > 0 ? $palmQty : null,
+                $treeRate,
+                $palmRate
+            ),
+        ];
+        $treeFields['tree_palm_addon_label'] = self::formatMoney($treeFields['tree_palm_addon']);
 
         return [
             'pricing_type' => $type,
@@ -827,6 +905,7 @@ final class ServiceAreaPricing
                 'total_label' => self::formatMoney($lineTotal),
                 'formula' => $area.' × '.$unitPrice.' = '.$lineTotal,
             ] : null,
+            ...$treeFields,
         ];
     }
 }

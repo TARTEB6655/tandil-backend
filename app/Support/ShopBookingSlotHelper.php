@@ -292,11 +292,15 @@ final class ShopBookingSlotHelper
             $qty = (int) ($payload['quantity'] ?? 1);
             $unit = (float) ($payload['unit_price'] ?? 0);
             $area = isset($payload['required_area']) ? (float) $payload['required_area'] : null;
+            $treeQty = isset($payload['tree_quantity']) ? (int) $payload['tree_quantity'] : null;
+            $palmQty = isset($payload['palm_tree_quantity']) ? (int) $payload['palm_tree_quantity'] : null;
             $pricing = \App\Support\ServiceAreaPricing::lineApiFields(
                 $cart->product,
                 $unit,
                 $qty,
-                $area
+                $area,
+                $treeQty,
+                $palmQty
             );
 
             $lines[] = array_merge([
@@ -305,6 +309,8 @@ final class ShopBookingSlotHelper
                 'quantity' => $qty,
                 'unit_price' => $unit,
                 'required_area' => $area,
+                'tree_quantity' => $treeQty,
+                'palm_tree_quantity' => $palmQty,
                 'line_total' => $pricing['line_total'],
                 'booking_date' => $payload['booking_date'] ?? null,
                 'booking_slot' => $payload['booking_slot'] ?? null,

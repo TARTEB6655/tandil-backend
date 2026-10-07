@@ -4243,7 +4243,7 @@
                         "summary"
                       ]
                     },
-                    "description": "POST /api/shop/buy-now/summary — Wallet-focused summary from the authenticated user's current cart. Body: optional `use_wallet`, optional `wallet_amount`, optional **`coupon_code`** (remove or change for no coupon). **Do not send** `product_id`/`quantity` here. Auth: Bearer token.\n\nResponse returns `order_summary` with totals including **`instant_order_fee`**, **`is_instant_order`** when applicable. **`order_summary.wallet_available`:** **false** if user wallet <= 0 — wallet row fields are omitted and app pays full `total`. **true** if balance > 0 — wallet fields are present (`wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`). Send the same `wallet_amount_applied` as `wallet_amount` on checkout/start when using wallet.\n\n**Checkout wallet toggle (app UI):** call this same endpoint again with `use_wallet: true/false` and optional `wallet_amount`."
+                    "description": "POST /api/shop/buy-now/summary — Wallet-focused summary from the authenticated user's current cart. Body: optional `use_wallet`, optional `wallet_amount`, optional **`coupon_code`** (remove or change for no coupon). For product Buy Now also accept `product_id` + optional **`tree_quantity`/`trees`** and **`palm_tree_quantity`/`palms`** (services only; not required). Auth: Bearer token.\n\nResponse returns `order_summary` with totals including **`instant_order_fee`**, **`is_instant_order`** when applicable. **`order_summary.wallet_available`:** **false** if user wallet <= 0 — wallet row fields are omitted and app pays full `total`. **true** if balance > 0 — wallet fields are present (`wallet_balance`, `use_wallet`, `wallet_amount_applied`, `amount_due`). Send the same `wallet_amount_applied` as `wallet_amount` on checkout/start when using wallet.\n\n**Checkout wallet toggle (app UI):** call this same endpoint again with `use_wallet: true/false` and optional `wallet_amount`."
                   }
                 }
               ]
@@ -4302,7 +4302,7 @@
                         "add"
                       ]
                     },
-                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** `required_area` is **optional**.\n```json\n{ \"product_id\": 123, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nWith area: line total = area × price per m² (e.g. 7 × 100 = 700).\nWithout area: continues with service unit price once (no 422).\nAliases: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`."
+                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** `required_area` is **optional**.\n```json\n{ \"product_id\": 123, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nWith area: line total = area × price per m² (e.g. 7 × 100 = 700).\nWithout area: continues with service unit price once (no 422).\nAliases: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`.\n\n**Optional tree / palm quantities (services only, when admin enabled):**\n```json\n{ \"product_id\": 123, \"tree_quantity\": 2, \"palm_tree_quantity\": 1 }\n```\nSkip → normal/base service price. With qty → base + (trees × price_per_tree) + (palms × price_per_palm_tree).\nAliases: `trees` / `tree_quantity`, `palms` / `palm_tree_quantity`."
                   }
                 },
                 {
@@ -8616,7 +8616,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "GET /api/admin/settings/service-pricing — **Global** Product Settings for ALL services (no service_id / product_id).\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Response `data`:** `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes` (materials, installation, labor, transportation, delivery), `currency`, `note`.\n\nShop/category products are unchanged — Instant Order Fee still applies there."
+                "description": "GET /api/admin/settings/service-pricing — **Global** Product Settings for ALL services (no service_id / product_id).\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Response `data`:** `pricing_type` (`fixed`|`per_m2`), `price`, `price_includes` (materials, installation, labor, transportation, delivery), tree/palm block (`show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `tree_pricing`), `currency`, `note`.\n\nWhen `show_tree_options` is on, customer service products show optional tree/palm quantity rows (only rows with price > 0).\n\nShop/category products are unchanged — Instant Order Fee still applies there."
               }
             },
             {
@@ -8672,6 +8672,24 @@
                       "key": "price_includes[delivery]",
                       "value": "0",
                       "type": "text"
+                    },
+                    {
+                      "key": "show_tree_options",
+                      "value": "1",
+                      "type": "text",
+                      "description": "1 = show tree/palm qty on customer service products"
+                    },
+                    {
+                      "key": "price_per_tree",
+                      "value": "50",
+                      "type": "text",
+                      "description": "AED per tree (customer qty optional)"
+                    },
+                    {
+                      "key": "price_per_palm_tree",
+                      "value": "80",
+                      "type": "text",
+                      "description": "AED per palm (customer qty optional)"
                     }
                   ]
                 },
@@ -8687,7 +8705,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "POST form-data `/api/admin/settings/service-pricing` — **no ID**.\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Body (form-data):**\n- `pricing_type`: `fixed` | `per_m2`\n- `price`: e.g. `800` (Fixed = **addon** added to each service product base; per_m2 = rate × area)\n- `price_includes[materials|installation|labor|transportation|delivery]`: `0`|`1`\n\n**Fixed example:** product base AED 100 + Fixed 800 → customer sees **AED 900** on detail/cart.\n**Per m²:** Client must send `required_area` on cart add. Instant Order Fee is **not** applied on service-only checkout."
+                "description": "POST form-data `/api/admin/settings/service-pricing` — **no ID**.\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Body (form-data):**\n- `pricing_type`: `fixed` | `per_m2`\n- `price`: e.g. `800` (Fixed = **addon** added to each service product base; per_m2 = rate × area)\n- `price_includes[materials|installation|labor|transportation|delivery]`: `0`|`1`\n- `show_tree_options`: `0`|`1`\n- `price_per_tree`: e.g. `50`\n- `price_per_palm_tree`: e.g. `80`\n\n**Fixed example:** product base AED 100 + Fixed 800 → customer sees **AED 900** on detail/cart.\n**Tree/palm:** customer quantities are **optional**. Skip → base service price. Enter qty → base + (trees × rate) + (palms × rate).\n**Per m²:** `required_area` optional on cart add. Instant Order Fee is **not** applied on service-only checkout."
               }
             },
             {
@@ -8741,6 +8759,21 @@
                       "key": "price_includes[delivery]",
                       "value": "0",
                       "type": "text"
+                    },
+                    {
+                      "key": "show_tree_options",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_per_tree",
+                      "value": "50",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_per_palm_tree",
+                      "value": "80",
+                      "type": "text"
                     }
                   ]
                 },
@@ -8756,7 +8789,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "PUT form-data same global endpoint. Prefer POST if PUT multipart fails."
+                "description": "PUT form-data same global endpoint (includes optional `show_tree_options`, `price_per_tree`, `price_per_palm_tree`). Prefer POST if PUT multipart fails."
               }
             },
             {

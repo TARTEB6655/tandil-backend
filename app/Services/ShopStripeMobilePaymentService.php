@@ -1001,9 +1001,24 @@ class ShopStripeMobilePaymentService
             $requiredArea = isset($line['required_area'])
                 ? \App\Support\ServiceAreaPricing::normalizeArea($line['required_area'])
                 : (isset($line['area']) ? \App\Support\ServiceAreaPricing::normalizeArea($line['area']) : null);
-            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea);
+            $treeQty = \App\Support\ServiceTreePricing::normalizeQuantity(
+                \App\Support\ServiceTreePricing::resolveTreeQuantityFromArray($line)
+            );
+            $palmQty = \App\Support\ServiceTreePricing::normalizeQuantity(
+                \App\Support\ServiceTreePricing::resolvePalmQuantityFromArray($line)
+            );
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty);
             $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
-            $subtotal = \App\Support\ServiceAreaPricing::lineTotal($product, $unit, $qty, $requiredArea);
+            $subtotal = \App\Support\ServiceAreaPricing::lineTotal(
+                $product,
+                $unit,
+                $qty,
+                $requiredArea,
+                $snapshot['tree_quantity'],
+                $snapshot['palm_tree_quantity'],
+                $snapshot['price_per_tree'],
+                $snapshot['price_per_palm_tree']
+            );
             $lineBookingDate = is_string($line['booking_date'] ?? null) && trim($line['booking_date']) !== ''
                 ? trim($line['booking_date'])
                 : ($row->booking_date?->toDateString());
@@ -1016,6 +1031,10 @@ class ShopStripeMobilePaymentService
                 'quantity' => $qty,
                 'pricing_type' => $snapshot['pricing_type'],
                 'required_area' => $snapshot['required_area'],
+                'tree_quantity' => $snapshot['tree_quantity'],
+                'palm_tree_quantity' => $snapshot['palm_tree_quantity'],
+                'price_per_tree' => $snapshot['price_per_tree'],
+                'price_per_palm_tree' => $snapshot['price_per_palm_tree'],
                 'price_includes' => $snapshot['price_includes'],
                 'price' => $unit,
                 'subtotal' => $subtotal,

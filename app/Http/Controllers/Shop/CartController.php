@@ -450,7 +450,14 @@ class CartController extends Controller
         // Skip option images in cart payload — tiny labels only (faster add-to-cart / cart view).
         $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds, false);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
-        $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields($product, $price, (int) $item->quantity, $area);
+        $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields(
+            $product,
+            $price,
+            (int) $item->quantity,
+            $area,
+            $item->tree_quantity !== null ? (int) $item->tree_quantity : null,
+            $item->palm_tree_quantity !== null ? (int) $item->palm_tree_quantity : null
+        );
         $isService = InstantOrderFee::productIsExplicitService($product);
         $instantEligible = InstantOrderFee::productIsInstantEligible($product);
         $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product);
@@ -604,6 +611,11 @@ class CartController extends Controller
             'area_m2' => 'nullable',
             'areaM2' => 'nullable',
             'm2' => 'nullable',
+            // Optional tree / palm quantities (service products only).
+            'tree_quantity' => 'nullable',
+            'trees' => 'nullable',
+            'palm_tree_quantity' => 'nullable',
+            'palms' => 'nullable',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -632,6 +644,14 @@ class CartController extends Controller
         if ($requiredArea !== null) {
             ServiceAreaPricing::rememberBuyNowArea((int) $user->id, (int) $product->id, $requiredArea);
         }
+
+        $treeRaw = \App\Support\ServiceTreePricing::resolveTreeQuantityFromRequest($request);
+        $palmRaw = \App\Support\ServiceTreePricing::resolvePalmQuantityFromRequest($request);
+        $treeError = \App\Support\ServiceTreePricing::validateQuantitiesMessage($product, $treeRaw, $palmRaw);
+        if ($treeError !== null) {
+            return ApiResponse::error($treeError, 422);
+        }
+        $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
 
         $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
 
@@ -689,6 +709,8 @@ class CartController extends Controller
             }
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
+            $cartItem->tree_quantity = $treeResolved['tree_quantity'];
+            $cartItem->palm_tree_quantity = $treeResolved['palm_tree_quantity'];
             $cartItem->save();
         } else {
             $cartItem = Cart::create([
@@ -698,6 +720,8 @@ class CartController extends Controller
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
+                'tree_quantity' => $treeResolved['tree_quantity'],
+                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $bookingDate,
                 'booking_slot' => $bookingSlot,
             ]);
@@ -738,6 +762,10 @@ class CartController extends Controller
                 'area' => 'nullable|numeric|min:0.01',
                 'area_m2' => 'nullable|numeric|min:0.01',
                 'm2' => 'nullable|numeric|min:0.01',
+                'tree_quantity' => 'nullable',
+                'trees' => 'nullable',
+                'palm_tree_quantity' => 'nullable',
+                'palms' => 'nullable',
             ], self::optionIdsValidationRules()));
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $request->input('product_id'));
@@ -754,6 +782,25 @@ class CartController extends Controller
             if ($requiredArea !== null) {
                 ServiceAreaPricing::rememberBuyNowArea($userId, (int) $product->id, $requiredArea);
             }
+            $treeRaw = \App\Support\ServiceTreePricing::resolveTreeQuantityFromRequest($request);
+            $palmRaw = \App\Support\ServiceTreePricing::resolvePalmQuantityFromRequest($request);
+            $treeError = \App\Support\ServiceTreePricing::validateQuantitiesMessage($product, $treeRaw, $palmRaw);
+            if ($treeError !== null) {
+                throw new \InvalidArgumentException($treeError);
+            }
+            // Buy Now often omits tree qty after Product Details — reuse cart line if present.
+            if ($treeRaw === null && $palmRaw === null) {
+                $cartTree = Cart::query()
+                    ->where('user_id', $userId)
+                    ->where('product_id', (int) $product->id)
+                    ->orderByDesc('id')
+                    ->first(['tree_quantity', 'palm_tree_quantity']);
+                if ($cartTree) {
+                    $treeRaw = $cartTree->tree_quantity;
+                    $palmRaw = $cartTree->palm_tree_quantity;
+                }
+            }
+            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
             $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
             $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
@@ -769,6 +816,8 @@ class CartController extends Controller
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
+                'tree_quantity' => $treeResolved['tree_quantity'],
+                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $itemBooking['booking_date'],
                 'booking_slot' => $itemBooking['booking_slot'],
             ]);
@@ -846,6 +895,10 @@ class CartController extends Controller
             'items.*.qty' => 'sometimes|integer|min:1',
             'items.*.required_area' => 'nullable|numeric|min:0.01',
             'items.*.area' => 'nullable|numeric|min:0.01',
+            'items.*.tree_quantity' => 'nullable',
+            'items.*.trees' => 'nullable',
+            'items.*.palm_tree_quantity' => 'nullable',
+            'items.*.palms' => 'nullable',
             'items.*.booking_date' => 'nullable|date',
             'items.*.booking_slot' => 'nullable|string|max:255',
         ], self::optionIdsValidationRules()));
@@ -899,6 +952,24 @@ class CartController extends Controller
             if ($requiredArea !== null) {
                 ServiceAreaPricing::rememberBuyNowArea($userId, (int) $product->id, $requiredArea);
             }
+            $treeRaw = \App\Support\ServiceTreePricing::resolveTreeQuantityFromArray($row);
+            $palmRaw = \App\Support\ServiceTreePricing::resolvePalmQuantityFromArray($row);
+            $treeError = \App\Support\ServiceTreePricing::validateQuantitiesMessage($product, $treeRaw, $palmRaw);
+            if ($treeError !== null) {
+                throw new \InvalidArgumentException(((string) $product->name).': '.$treeError);
+            }
+            if ($treeRaw === null && $palmRaw === null) {
+                $cartTree = Cart::query()
+                    ->where('user_id', $userId)
+                    ->where('product_id', $product->id)
+                    ->orderByDesc('id')
+                    ->first(['tree_quantity', 'palm_tree_quantity']);
+                if ($cartTree) {
+                    $treeRaw = $cartTree->tree_quantity;
+                    $palmRaw = $cartTree->palm_tree_quantity;
+                }
+            }
+            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
             $qty = ServiceAreaPricing::effectiveQuantity(
                 $product,
                 max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1))
@@ -932,6 +1003,8 @@ class CartController extends Controller
                 'selected_options' => $optionIds,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
+                'tree_quantity' => $treeResolved['tree_quantity'],
+                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $booking['booking_date'],
                 'booking_slot' => $booking['booking_slot'],
             ]);
@@ -1670,6 +1743,10 @@ class CartController extends Controller
             'area' => 'nullable',
             'area_m2' => 'nullable',
             'm2' => 'nullable',
+            'tree_quantity' => 'nullable',
+            'trees' => 'nullable',
+            'palm_tree_quantity' => 'nullable',
+            'palms' => 'nullable',
             'booking_date' => 'nullable|date',
             'booking_slot' => 'nullable|string|max:255',
         ]);
@@ -1701,6 +1778,23 @@ class CartController extends Controller
             }
             $cartItem->quantity = $request->quantity;
             $cartItem->required_area = null;
+        }
+
+        if ($product) {
+            $treeRaw = \App\Support\ServiceTreePricing::resolveTreeQuantityFromRequest($request);
+            $palmRaw = \App\Support\ServiceTreePricing::resolvePalmQuantityFromRequest($request);
+            $hasTreeInput = $treeRaw !== null || $palmRaw !== null
+                || $request->exists('tree_quantity') || $request->exists('trees')
+                || $request->exists('palm_tree_quantity') || $request->exists('palms');
+            if ($hasTreeInput) {
+                $treeError = \App\Support\ServiceTreePricing::validateQuantitiesMessage($product, $treeRaw, $palmRaw);
+                if ($treeError !== null) {
+                    return ApiResponse::error($treeError, 422);
+                }
+                $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
+                $cartItem->tree_quantity = $treeResolved['tree_quantity'];
+                $cartItem->palm_tree_quantity = $treeResolved['palm_tree_quantity'];
+            }
         }
 
         if ($request->has('booking_date') || $request->has('bookingDate')) {
