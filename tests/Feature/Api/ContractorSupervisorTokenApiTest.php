@@ -62,7 +62,7 @@ class ContractorSupervisorTokenApiTest extends TestCase
 
         // Admin approve — next supervisor Bearer must still win (no leftover admin auth).
         $this->withToken($adminToken)
-            ->postJson("/api/admin/supervisor-registrations/{$regId}/approve", ['notes' => 'ok'])
+            ->postJson("/api/admin/supervisor-registrations/{$regId}/approve", [])
             ->assertOk();
 
         $login = $this->withoutToken()->postJson('/api/contractor/auth/login', [

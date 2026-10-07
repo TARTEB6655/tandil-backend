@@ -28,7 +28,7 @@ class SupervisorRegistrationController extends Controller
         $data = $this->signupOptions->appRegistrationOptions();
 
         return ApiResponse::success('Registration options retrieved successfully.', $data)
-            ->header('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+            ->header('Cache-Control', 'public, max-age=120, stale-while-revalidate=600');
     }
 
     public function register(SupervisorRegistrationRequest $request): JsonResponse

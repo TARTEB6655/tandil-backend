@@ -333,15 +333,11 @@ class ContractorApisProductionReadyTest extends TestCase
 
         // ── 11. Approve → Active ────────────────────────────────────────
         $this->withToken($this->adminToken)
-            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/approve", [
-                'notes' => 'Documents verified.',
-                'employee_id' => 'SUP-100',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$registrationId}/approve", [])
             ->assertOk()
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.registration_status', 'approved')
-            ->assertJsonPath('data.status_label', 'Active')
-            ->assertJsonPath('data.employee_id', 'SUP-100');
+            ->assertJsonPath('data.status_label', 'Active');
 
         $this->assertSame('active', $contractor->fresh()->status);
 

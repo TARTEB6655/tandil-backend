@@ -13653,7 +13653,7 @@
                                 ],
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n  \"notes\": \"Documents verified.\",\n  \"employee_id\": \"SUP-100\"\n}"
+                                    "raw": "{}"
                                 },
                                 "url": {
                                     "raw": "{{base_url}}/api/admin/supervisor-registrations/{{supervisor_registration_id}}/approve",
@@ -13668,7 +13668,7 @@
                                         "approve"
                                     ]
                                 },
-                                "description": "POST .../approve — Green Approve / check. Response status=active, status_label=Active."
+                                "description": "POST .../approve — body `{}` (optional `assigned_zone_ids` only). No `notes` / `employee_id`. Response status=active, status_label=Active."
                             }
                         },
                         {

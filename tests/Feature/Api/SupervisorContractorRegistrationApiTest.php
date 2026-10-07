@@ -236,15 +236,11 @@ class SupervisorContractorRegistrationApiTest extends TestCase
             ->assertJsonPath('data.status_label', 'Pending approval');
 
         $this->withToken($token)
-            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/approve", [
-                'notes' => 'All good',
-                'employee_id' => 'SUP-100',
-            ])
+            ->postJson("/api/admin/supervisor-registrations/{$reg->id}/approve", [])
             ->assertOk()
             ->assertJsonPath('data.status', 'active')
             ->assertJsonPath('data.registration_status', 'approved')
-            ->assertJsonPath('data.status_label', 'Active')
-            ->assertJsonPath('data.employee_id', 'SUP-100');
+            ->assertJsonPath('data.status_label', 'Active');
 
         $this->assertSame('active', $user->fresh()->status);
 

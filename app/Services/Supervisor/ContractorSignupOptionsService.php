@@ -9,6 +9,7 @@ use App\Models\Emirate;
 use App\Models\Service;
 use App\Models\Setting;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -35,8 +36,14 @@ class ContractorSignupOptionsService
     public function setRegistrationOpen(bool $open): array
     {
         Setting::set(self::SETTING_KEY, $open ? '1' : '0', 'boolean', 'contractor');
+        $this->forgetAppRegistrationOptionsCache();
 
         return $this->registrationPayload();
+    }
+
+    public function forgetAppRegistrationOptionsCache(): void
+    {
+        Cache::forget('contractor:app_registration_options_v1');
     }
 
     public function registrationPayload(): array
@@ -143,89 +150,100 @@ class ContractorSignupOptionsService
      */
     public function appRegistrationOptions(): array
     {
-        $hasParent = Schema::hasColumn('categories', 'parent_id');
+        return Cache::remember('contractor:app_registration_options_v1', 120, function () {
+            $hasParent = $this->tableHasColumn('categories', 'parent_id');
 
-        $categoryBase = Category::query()
-            ->when(Schema::hasColumn('categories', 'is_active'), fn ($q) => $q->where('is_active', true))
-            ->when(Schema::hasColumn('categories', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
-            ->when(Schema::hasColumn('categories', 'sort_order'), fn ($q) => $q->orderBy('sort_order'))
-            ->orderBy('name');
+            $categoryBase = Category::query()
+                ->when($this->tableHasColumn('categories', 'is_active'), fn ($q) => $q->where('is_active', true))
+                ->when($this->tableHasColumn('categories', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->when($this->tableHasColumn('categories', 'sort_order'), fn ($q) => $q->orderBy('sort_order'))
+                ->orderBy('name');
 
-        $mainCategories = (clone $categoryBase)
-            ->when($hasParent, fn ($q) => $q->whereNull('parent_id'))
-            ->get(['id', 'name', 'slug'])
-            ->map(fn (Category $c) => [
-                'id' => $c->id,
-                'value' => $c->id,
-                'name' => $c->name,
-                'slug' => $c->slug,
-            ])
-            ->values()
-            ->all();
-
-        $subcategories = $hasParent
-            ? (clone $categoryBase)->whereNotNull('parent_id')->get(['id', 'name', 'slug', 'parent_id'])
+            $mainCategories = (clone $categoryBase)
+                ->when($hasParent, fn ($q) => $q->whereNull('parent_id'))
+                ->get(['id', 'name', 'slug'])
                 ->map(fn (Category $c) => [
                     'id' => $c->id,
                     'value' => $c->id,
                     'name' => $c->name,
                     'slug' => $c->slug,
-                    'parent_id' => $c->parent_id,
                 ])
                 ->values()
-                ->all()
-            : [];
+                ->all();
 
-        $services = Service::query()
-            ->where('is_active', true)
-            ->when(Schema::hasColumn('services', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get(['id', 'name', 'slug', 'category_id'])
-            ->map(fn (Service $s) => [
-                'id' => $s->id,
-                'value' => $s->id,
-                'name' => $s->name,
-                'slug' => $s->slug,
-                'category_id' => $s->category_id,
-            ])
-            ->values()
-            ->all();
+            $subcategories = $hasParent
+                ? (clone $categoryBase)->whereNotNull('parent_id')->get(['id', 'name', 'slug', 'parent_id'])
+                    ->map(fn (Category $c) => [
+                        'id' => $c->id,
+                        'value' => $c->id,
+                        'name' => $c->name,
+                        'slug' => $c->slug,
+                        'parent_id' => $c->parent_id,
+                    ])
+                    ->values()
+                    ->all()
+                : [];
 
-        $emirates = Emirate::query()
-            ->active()
-            ->when(Schema::hasColumn('emirates', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
-            ->orderBy('name')
-            ->get()
-            ->map(fn (Emirate $e) => [
-                'id' => $e->id,
-                'value' => $e->name,
-                'name' => $e->name,
-                'slug' => $e->slug,
-            ])
-            ->values()
-            ->all();
+            $services = Service::query()
+                ->where('is_active', true)
+                ->when($this->tableHasColumn('services', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug', 'category_id'])
+                ->map(fn (Service $s) => [
+                    'id' => $s->id,
+                    'value' => $s->id,
+                    'name' => $s->name,
+                    'slug' => $s->slug,
+                    'category_id' => $s->category_id,
+                ])
+                ->values()
+                ->all();
 
-        $areas = Area::query()
-            ->when(Schema::hasColumn('areas', 'is_active'), fn ($q) => $q->where('is_active', true))
-            ->when(Schema::hasColumn('areas', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(fn (Area $a) => [
-                'id' => $a->id,
-                'value' => $a->id,
-                'name' => $a->name,
-            ])
-            ->values()
-            ->all();
+            $emirates = Emirate::query()
+                ->active()
+                ->when($this->tableHasColumn('emirates', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->orderBy('name')
+                ->get(['id', 'name', 'slug'])
+                ->map(fn (Emirate $e) => [
+                    'id' => $e->id,
+                    'value' => $e->name,
+                    'name' => $e->name,
+                    'slug' => $e->slug,
+                ])
+                ->values()
+                ->all();
 
-        return [
-            'main_service_categories' => $mainCategories,
-            'service_subcategories' => $subcategories,
-            'available_services' => $services,
-            'emirates' => $emirates,
-            'service_coverage_areas' => $areas,
-        ];
+            $areas = Area::query()
+                ->when($this->tableHasColumn('areas', 'is_active'), fn ($q) => $q->where('is_active', true))
+                ->when($this->tableHasColumn('areas', 'contractor_signup_enabled'), fn ($q) => $q->where('contractor_signup_enabled', true))
+                ->orderBy('name')
+                ->get(['id', 'name'])
+                ->map(fn (Area $a) => [
+                    'id' => $a->id,
+                    'value' => $a->id,
+                    'name' => $a->name,
+                ])
+                ->values()
+                ->all();
+
+            return [
+                'main_service_categories' => $mainCategories,
+                'service_subcategories' => $subcategories,
+                'available_services' => $services,
+                'emirates' => $emirates,
+                'service_coverage_areas' => $areas,
+            ];
+        });
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        return (bool) Cache::remember(
+            "schema_has_column:{$table}:{$column}",
+            3600,
+            fn () => Schema::hasColumn($table, $column)
+        );
     }
 
     /**
@@ -236,7 +254,7 @@ class ContractorSignupOptionsService
     {
         $tab = $this->normalizeTab($tab);
 
-        return match ($tab) {
+        $payload = match ($tab) {
             'categories' => $this->formatCategory($this->createCategory($data, null), $tab),
             'subcategories' => $this->formatCategory($this->createCategory($data, (int) ($data['parent_id'] ?? 0) ?: null), $tab),
             'services' => $this->formatService($this->createService($data)),
@@ -245,6 +263,9 @@ class ContractorSignupOptionsService
             'coverage' => $this->formatCoverage($this->createCoverage($data)),
             default => throw ValidationException::withMessages(['tab' => ['Unknown tab.']]),
         };
+        $this->forgetAppRegistrationOptionsCache();
+
+        return $payload;
     }
 
     /**
@@ -256,7 +277,7 @@ class ContractorSignupOptionsService
         $tab = $this->normalizeTab($tab);
         $model = $this->findModel($tab, $id);
 
-        return match ($tab) {
+        $payload = match ($tab) {
             'categories', 'subcategories' => $this->formatCategory($this->updateCategory($model, $data, $tab), $tab),
             'services' => $this->formatService($this->updateService($model, $data)),
             'emirates' => $this->formatEmirate($this->updateEmirate($model, $data)),
@@ -264,6 +285,9 @@ class ContractorSignupOptionsService
             'coverage' => $this->formatCoverage($this->updateCoverage($model, $data)),
             default => throw ValidationException::withMessages(['tab' => ['Unknown tab.']]),
         };
+        $this->forgetAppRegistrationOptionsCache();
+
+        return $payload;
     }
 
     /**
@@ -275,6 +299,7 @@ class ContractorSignupOptionsService
         $model = $this->findModel($tab, $id);
         $next = $force ?? ! $this->signupEnabled($model);
         $this->setSignupEnabled($model, $next);
+        $this->forgetAppRegistrationOptionsCache();
 
         return match ($tab) {
             'categories', 'subcategories' => $this->formatCategory($model->fresh(['parent']), $tab),
@@ -306,6 +331,7 @@ class ContractorSignupOptionsService
         }
 
         $model->delete();
+        $this->forgetAppRegistrationOptionsCache();
 
         return array_merge($payload, ['deleted' => true]);
     }

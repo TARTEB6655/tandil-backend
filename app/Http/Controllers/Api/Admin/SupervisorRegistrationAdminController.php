@@ -8,6 +8,7 @@ use App\Models\SupervisorRegistration;
 use App\Services\Supervisor\SupervisorRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class SupervisorRegistrationAdminController extends Controller
@@ -22,7 +23,10 @@ class SupervisorRegistrationAdminController extends Controller
     public function index(Request $request): JsonResponse
     {
         $filters = $this->statusCounts();
-        $query = SupervisorRegistration::query()->with(['documents', 'user'])->latest('id');
+        // List cards do not need documents — only user.status for display chips.
+        $query = SupervisorRegistration::query()
+            ->with(['user:id,status'])
+            ->latest('id');
 
         $this->applyUiStatusFilter($query, $request->query('status'));
         $this->applySearch($query, $request->query('search'));
@@ -69,7 +73,7 @@ class SupervisorRegistrationAdminController extends Controller
             ->count();
 
         $items = SupervisorRegistration::query()
-            ->with(['documents', 'user'])
+            ->with(['user:id,status'])
             ->whereIn('status', $pendingStatuses)
             ->latest('id')
             ->limit($limit)
@@ -103,8 +107,6 @@ class SupervisorRegistrationAdminController extends Controller
     public function approve(Request $request, int $id): JsonResponse
     {
         $data = $request->validate([
-            'notes' => ['nullable', 'string', 'max:2000'],
-            'employee_id' => ['nullable', 'string', 'max:64'],
             'assigned_zone_ids' => ['nullable', 'array'],
             'assigned_zone_ids.*' => ['integer', 'exists:areas,id'],
         ]);
@@ -113,8 +115,6 @@ class SupervisorRegistrationAdminController extends Controller
         $row = $this->registration->approve(
             $row,
             $request->user(),
-            $data['notes'] ?? null,
-            $data['employee_id'] ?? null,
             $data['assigned_zone_ids'] ?? null
         );
 
@@ -191,33 +191,35 @@ class SupervisorRegistrationAdminController extends Controller
      */
     private function statusCounts(): array
     {
-        $rows = SupervisorRegistration::query()
-            ->leftJoin('users', 'users.id', '=', 'supervisor_registrations.user_id')
-            ->select([
-                'supervisor_registrations.status as reg_status',
-                'users.status as user_status',
-                DB::raw('COUNT(*) as aggregate'),
-            ])
-            ->groupBy('supervisor_registrations.status', 'users.status')
-            ->get();
+        return Cache::remember(SupervisorRegistrationService::STATUS_COUNTS_CACHE_KEY, 20, function () {
+            $rows = SupervisorRegistration::query()
+                ->leftJoin('users', 'users.id', '=', 'supervisor_registrations.user_id')
+                ->select([
+                    'supervisor_registrations.status as reg_status',
+                    'users.status as user_status',
+                    DB::raw('COUNT(*) as aggregate'),
+                ])
+                ->groupBy('supervisor_registrations.status', 'users.status')
+                ->get();
 
-        $counts = [
-            'pending' => 0,
-            'active' => 0,
-            'inactive' => 0,
-            'suspended' => 0,
-            'rejected' => 0,
-            'all' => 0,
-        ];
+            $counts = [
+                'pending' => 0,
+                'active' => 0,
+                'inactive' => 0,
+                'suspended' => 0,
+                'rejected' => 0,
+                'all' => 0,
+            ];
 
-        foreach ($rows as $row) {
-            $n = (int) $row->aggregate;
-            $counts['all'] += $n;
-            $ui = $this->mapToUiStatus((string) $row->reg_status, $row->user_status);
-            $counts[$ui] = ($counts[$ui] ?? 0) + $n;
-        }
+            foreach ($rows as $row) {
+                $n = (int) $row->aggregate;
+                $counts['all'] += $n;
+                $ui = $this->mapToUiStatus((string) $row->reg_status, $row->user_status);
+                $counts[$ui] = ($counts[$ui] ?? 0) + $n;
+            }
 
-        return $counts;
+            return $counts;
+        });
     }
 
     private function mapToUiStatus(string $regStatus, mixed $userStatus): string
