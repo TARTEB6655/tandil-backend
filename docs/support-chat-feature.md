@@ -52,6 +52,6 @@
 
 ---
 
-## CSV rows (add to `all-dashboards-apis-status-ordered.csv`)
+## CSV rows (add to `postman/tandil_backend_api_index.csv` if needed)
 
 See `support-chat-apis-to-add.csv` for the 9 rows. Close the main CSV file first, then append those lines and renumber SNo 1–341.
