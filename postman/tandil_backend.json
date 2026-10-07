@@ -1,10 +1,11 @@
 {
   "info": {
-    "name": "Tandil Backend - Flow-Based Collection (v3.7.0)",
-    "description": "Tandil Backend API. Env: base_url, token.\n\nLAST_SORTED_AT: 2026-10-07T10:08:15Z\nSORT_RULE: numeric prefix ascending at every folder/request level (01, 02, 03…).\n\nNUMBERING:\n- Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)\n- After ANY add/edit: php scripts/force_sort_postman_collection.php\n- In Postman: DELETE old collection → Import this file (do not Merge)\n\nKey paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor",
+    "name": "Tandil Backend SORTED v3.8.0",
+    "description": "Tandil Backend API. Env: base_url, token.\n\n*** IMPORT INSTRUCTIONS (IMPORTANT) ***\n1) In Postman DELETE every old \"Tandil Backend...\" collection\n2) Import this file as NEW (do NOT Merge / Update)\n3) You must see collection name exactly: Tandil Backend SORTED v3.8.0\n4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products\n\nLAST_SORTED_AT: 2026-10-07T10:16:56Z\nCOLLECTION_ID: a535f266-b060-429a-a419-0e3ec654b873\nSORT: numeric 01..N; requests before folders in each group",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "tandil-backend",
-    "version": "3.7.0"
+    "_exporter_id": "tandil-backend-sorted-a535f266",
+    "version": "3.8.0",
+    "_postman_id": "a535f266-b060-429a-a419-0e3ec654b873"
   },
   "item": [
     {

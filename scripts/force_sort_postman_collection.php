@@ -1,14 +1,15 @@
 <?php
 
 /**
- * Force-sort Postman collection by numeric name prefix at every level.
- * Pure numeric order for ALL siblings (folders + requests mixed by number).
- * Writes a visible LAST_SORTED_AT marker so the file change is unmistakable.
+ * Force-sort Postman collection + give it a NEW identity so Postman cannot
+ * merge/keep the old broken sidebar order.
+ *
+ * Usage: php scripts/force_sort_postman_collection.php
  */
 
 $path = __DIR__.'/../postman/tandil_backend.json';
-$raw = (string) file_get_contents($path);
-$collection = json_decode($raw, true);
+$proofPath = __DIR__.'/../postman/SIDEBAR_ORDER_PROOF.txt';
+$collection = json_decode((string) file_get_contents($path), true);
 if (! is_array($collection)) {
     fwrite(STDERR, 'Invalid JSON: '.json_last_error_msg()."\n");
     exit(1);
@@ -48,73 +49,95 @@ function cmpKeys(array $a, array $b): int
 }
 
 /**
- * Sort every sibling by numeric prefix only (folder vs request does not matter).
+ * Numeric sort, then requests first / folders second (both groups sorted),
+ * then renumber 01..N so array index always matches the prefix.
  *
  * @param  list<array<string, mixed>>  $items
- * @return array{0: list<array<string, mixed>>, 1: int}
+ * @return list<array<string, mixed>>
  */
 function forceSortAndRenumber(array $items): array
 {
-    $moved = 0;
+    foreach ($items as &$it) {
+        if (isset($it['item']) && is_array($it['item'])) {
+            $it['item'] = forceSortAndRenumber($it['item']);
+        }
+        // Drop any stale Postman ids that can pin old order after merge
+        unset($it['id'], $it['_postman_id'], $it['uid']);
+    }
+    unset($it);
 
-    // 1) Force shuffle detection: capture before order
-    $before = array_map(fn ($it) => (string) ($it['name'] ?? ''), $items);
+    $requests = [];
+    $folders = [];
+    foreach ($items as $it) {
+        if (isset($it['item']) && is_array($it['item'])) {
+            $folders[] = $it;
+        } else {
+            $requests[] = $it;
+        }
+    }
 
-    // 2) Sort by existing numeric prefix
-    usort($items, function (array $x, array $y): int {
+    $byNum = static function (array $x, array $y): int {
         return cmpKeys(
             numberKey((string) ($x['name'] ?? '')),
             numberKey((string) ($y['name'] ?? ''))
         );
-    });
+    };
+    usort($requests, $byNum);
+    usort($folders, $byNum);
+    $items = array_merge($requests, $folders);
 
-    // 3) Recurse into folders first (so children are sorted before we rename parents)
-    foreach ($items as &$it) {
-        if (isset($it['item']) && is_array($it['item'])) {
-            [$kids, $c] = forceSortAndRenumber($it['item']);
-            $it['item'] = $kids;
-            $moved += $c;
-        }
-    }
-    unset($it);
-
-    // 4) Re-assign clean 01..N names
     foreach ($items as $i => &$it) {
         $prefix = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
-        $title = stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
-        $newName = $prefix.'. '.$title;
-        if (($it['name'] ?? '') !== $newName) {
-            $it['name'] = $newName;
-            $moved++;
-        }
+        $it['name'] = $prefix.'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
     }
     unset($it);
 
-    $after = array_map(fn ($it) => (string) ($it['name'] ?? ''), $items);
-    if ($before !== $after) {
-        $moved += count($before); // count as structural reorder
-    }
-
-    return [$items, $moved];
+    return array_values($items);
 }
 
-[$collection['item'], $changed] = forceSortAndRenumber($collection['item'] ?? []);
+function walkProof(array $items, string $indent, array &$lines): void
+{
+    foreach ($items as $i => $it) {
+        $name = (string) ($it['name'] ?? '');
+        $kind = isset($it['item']) ? 'FOLDER' : 'REQUEST';
+        $lines[] = $indent.($i + 1).". [{$kind}] {$name}";
+        if (isset($it['item']) && is_array($it['item'])) {
+            walkProof($it['item'], $indent.'  ', $lines);
+        }
+    }
+}
+
+$collection['item'] = forceSortAndRenumber($collection['item'] ?? []);
+
+$newId = sprintf(
+    '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+    random_int(0, 0xffff),
+    random_int(0, 0xffff),
+    random_int(0, 0xffff),
+    random_int(0, 0x0fff) | 0x4000,
+    random_int(0, 0x3fff) | 0x8000,
+    random_int(0, 0xffff),
+    random_int(0, 0xffff),
+    random_int(0, 0xffff)
+);
 
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
-$collection['info']['version'] = '3.7.0';
-$collection['info']['name'] = 'Tandil Backend - Flow-Based Collection (v3.7.0)';
+$collection['info']['_postman_id'] = $newId;
+$collection['info']['_exporter_id'] = 'tandil-backend-sorted-'.substr($newId, 0, 8);
+$collection['info']['version'] = '3.8.0';
+$collection['info']['name'] = 'Tandil Backend SORTED v3.8.0';
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
+*** IMPORT INSTRUCTIONS (IMPORTANT) ***
+1) In Postman DELETE every old "Tandil Backend..." collection
+2) Import this file as NEW (do NOT Merge / Update)
+3) You must see collection name exactly: Tandil Backend SORTED v3.8.0
+4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products
+
 LAST_SORTED_AT: {$sortedAt}
-SORT_RULE: numeric prefix ascending at every folder/request level (01, 02, 03…).
-
-NUMBERING:
-- Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)
-- After ANY add/edit: php scripts/force_sort_postman_collection.php
-- In Postman: DELETE old collection → Import this file (do not Merge)
-
-Key paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor
+COLLECTION_ID: {$newId}
+SORT: numeric 01..N; requests before folders in each group
 MD;
 
 $encoded = json_encode($collection, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -122,20 +145,45 @@ if ($encoded === false) {
     fwrite(STDERR, "JSON encode failed\n");
     exit(1);
 }
-// 2-space indent (Postman-friendly)
 $encoded = preg_replace_callback('/^(?:    )+/m', function (array $m): string {
     return str_repeat('  ', intdiv(strlen($m[0]), 4));
 }, $encoded);
-
 file_put_contents($path, $encoded."\n");
 
-echo "changed_units={$changed}\n";
-echo "version=3.7.0\n";
-echo "LAST_SORTED_AT={$sortedAt}\n";
-echo "path={$path}\n";
-echo "bytes=".filesize($path)."\n";
+$proof = [];
+$proof[] = 'Tandil Backend SORTED v3.8.0';
+$proof[] = 'LAST_SORTED_AT: '.$sortedAt;
+$proof[] = 'COLLECTION_ID: '.$newId;
+$proof[] = 'FILE: postman/tandil_backend.json';
+$proof[] = '';
+$proof[] = '=== EXPECTED POSTMAN SIDEBAR ORDER ===';
+walkProof($collection['item'], '', $proof);
+file_put_contents($proofPath, implode(PHP_EOL, $proof).PHP_EOL);
 
-echo "\nROOT ORDER NOW:\n";
+// Verify sequence
+$issues = 0;
+$verify = function (array $items, string $p) use (&$verify, &$issues): void {
+    foreach ($items as $i => $it) {
+        $want = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
+        $name = (string) ($it['name'] ?? '');
+        if (! str_starts_with($name, $want.'. ')) {
+            echo "BAD {$p} want {$want} got {$name}\n";
+            $issues++;
+        }
+        if (isset($it['item']) && is_array($it['item'])) {
+            $verify($it['item'], $p.'/'.$name);
+        }
+    }
+};
+$verify($collection['item'], 'ROOT');
+
+echo "version=3.8.0\n";
+echo "name=Tandil Backend SORTED v3.8.0\n";
+echo "collection_id={$newId}\n";
+echo "issues={$issues}\n";
+echo "proof={$proofPath}\n";
+echo "\nROOT:\n";
 foreach ($collection['item'] as $i => $it) {
     echo ($i + 1).'. '.($it['name'] ?? '').PHP_EOL;
 }
+exit($issues > 0 ? 1 : 0);
