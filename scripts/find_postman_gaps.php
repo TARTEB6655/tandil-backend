@@ -1,54 +1,45 @@
 <?php
 
 /**
- * Verify hierarchical numbering: each sibling group is parent.01, parent.02, …
- * Exit 1 if any gap / wrong prefix / letter prefix.
+ * Verify every sibling group is exactly 01..N in array order.
+ * Exit 1 on any mismatch. Also fails if a folder appears before a request
+ * in the same group (would look wrong in Postman).
  */
 
 $j = json_decode(file_get_contents(__DIR__.'/../postman/tandil_backend.json'), true);
 $issues = [];
 
-function stripFull(string $name): ?string
-{
-    if (preg_match('/^([0-9]+(?:\.[0-9]+)*)\.\s+/u', $name, $m)) {
-        return $m[1];
-    }
-
-    return null;
-}
-
-function padSegment(int $index): string
-{
-    return str_pad((string) $index, 2, '0', STR_PAD_LEFT);
-}
-
-function walk(array $items, string $parentPrefix, string $path): void
+function walk(array $items, string $path): void
 {
     global $issues;
+    $seenFolder = false;
     foreach ($items as $i => $it) {
-        $segment = padSegment($i + 1);
-        $want = $parentPrefix === '' ? $segment : $parentPrefix.'.'.$segment;
+        $want = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
         $name = (string) ($it['name'] ?? '');
-        $got = stripFull($name);
+        $isFolder = isset($it['item']) && is_array($it['item']);
 
-        if ($got === null) {
-            $issues[] = "MISSING under {$path} → {$name}";
-        } elseif ($got !== $want) {
-            $issues[] = "SEQ {$path} want={$want} got={$got} → {$name}";
+        if (! preg_match('/^([0-9]{2})\.\s+/u', $name, $m) || $m[1] !== $want) {
+            $issues[] = "SEQ {$path} want={$want} got={$name}";
         }
         if (preg_match('/^[A-Z]/u', $name)) {
-            $issues[] = "LETTER_PREFIX under {$path} → {$name}";
+            $issues[] = "LETTER {$path} → {$name}";
         }
 
-        if (isset($it['item']) && is_array($it['item'])) {
-            walk($it['item'], $want, $path.' / '.$name);
+        if ($isFolder) {
+            $seenFolder = true;
+        } elseif ($seenFolder) {
+            $issues[] = "ORDER {$path} request after folder → {$name} (requests must come before folders)";
+        }
+
+        if ($isFolder) {
+            walk($it['item'], $path.' / '.$name);
         }
     }
 }
 
-walk($j['item'] ?? [], '', 'ROOT');
+walk($j['item'] ?? [], 'ROOT');
 echo 'count='.count($issues).PHP_EOL;
-foreach (array_slice($issues, 0, 80) as $x) {
+foreach (array_slice($issues, 0, 60) as $x) {
     echo $x, PHP_EOL;
 }
 exit(count($issues) > 0 ? 1 : 0);

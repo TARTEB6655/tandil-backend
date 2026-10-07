@@ -1,39 +1,25 @@
 ---
-description: Keep Postman hierarchical numbering stable at every folder/API level
+description: Keep Postman folder/API order and 01..N numbering correct
 globs: postman/tandil_backend.json
 alwaysApply: false
 ---
 
-# Postman numbering (mandatory)
+# Postman numbering + order (mandatory)
 
-Collection uses **hierarchical** numbers only:
+Postman sidebar follows **JSON array order**. Numbers alone are not enough.
 
-- Root: `01.`, `02.`, `03.`, …
-- Nested: `05.14.`, `05.14.01.`, `05.14.07.`, …
+## Rules
 
-## When adding / changing APIs
-
-1. Put the new request/folder in the **correct parent**.
-2. **Always APPEND at the end** of that parent (do not insert in the middle; do not reuse old letter prefixes).
-3. Run:
+1. Every sibling group is numbered `01.`, `02.`, `03.`, … (restarts inside each folder).
+2. In each group: **all requests first**, then **nested folders** (stops “23 folder” appearing above “01”).
+3. New API → **append at end** of the parent folder (never insert randomly).
+4. Then ALWAYS run:
 
 ```bash
 php scripts/renumber_postman_collection.php
 php scripts/find_postman_gaps.php
 ```
 
-`count=0` is required before commit.
+`count=0` required before commit.
 
-4. Optionally refresh CSV:
-
-```bash
-php scripts/export_postman_collection_to_csv.php
-```
-
-## Never
-
-- Hand-edit prefixes (`A.`, `N.`, `N1.`, random `07.` jumps)
-- Leave a new API unnumbered
-- Nest unrelated modules under `01. Health Check`
-
-The renumber script is the only source of truth for names/numbers.
+5. Tell the user to **delete the old Postman collection and Import** `postman/tandil_backend.json` again (duplicates keep old wrong order).

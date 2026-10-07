@@ -1,24 +1,18 @@
 <?php
 
 /**
- * Hierarchical Postman numbering for tandil_backend.json
+ * Fix Postman sidebar order + numbering in one pass.
  *
- * Every level is sequence-ordered and nested under its parent:
- *   01. Health Check
- *     01.01 Health Check
- *     01.02 Debug Performance
- *   05. Admin Dashboard
- *     05.14 Admin – Supervisor (Contractor) Registrations
- *       05.14.01 List
- *       05.14.07 Suspend account
+ * 1) Sort every item[] by numeric prefix (so JSON order = 01,02,03…)
+ * 2) Re-assign clean numbers at EVERY level: 01, 02, 03… (restart per folder)
+ * 3) Sibling rule: requests first (in order), then folders (in order)
+ *    — stops Postman “folder floated to top” looking like 23 before 01
  *
- * Rules for NEW APIs (must follow):
- * 1. Append the new request/folder at the END of the correct parent.
- * 2. Run: php scripts/renumber_postman_collection.php
- * 3. Verify: php scripts/find_postman_gaps.php  (must be count=0)
- * Never hand-pick numbers. Never insert in the middle unless you accept renumber of later siblings.
- *
- * Usage: php scripts/renumber_postman_collection.php
+ * NEW API workflow:
+ *   - Append request at END of the correct parent folder
+ *   - Run: php scripts/renumber_postman_collection.php
+ *   - Check: php scripts/find_postman_gaps.php   (must be count=0)
+ *   - Re-import tandil_backend.json in Postman (replace old collection)
  */
 
 $path = __DIR__.'/../postman/tandil_backend.json';
@@ -31,7 +25,6 @@ if (! is_array($collection)) {
 function stripAllPrefixes(string $name): string
 {
     $title = trim($name);
-    // Strip "01. ", "05.14.03. ", "A. ", "N2. " repeatedly.
     while (preg_match('/^([0-9]+(?:\.[0-9]+)*|[A-Z]{1,3}[0-9]?)\.\s+(.+)$/u', $title, $m)) {
         $title = trim($m[2]);
     }
@@ -39,21 +32,71 @@ function stripAllPrefixes(string $name): string
     return $title !== '' ? $title : trim($name);
 }
 
-function padSegment(int $index): string
+function numberKey(string $name): array
 {
-    return str_pad((string) $index, 2, '0', STR_PAD_LEFT);
+    if (preg_match('/^([0-9]+(?:\.[0-9]+)*)\.\s+/u', $name, $m)) {
+        return array_map('intval', explode('.', $m[1]));
+    }
+
+    return [PHP_INT_MAX];
+}
+
+function cmpKeys(array $a, array $b): int
+{
+    $n = max(count($a), count($b));
+    for ($i = 0; $i < $n; $i++) {
+        $av = $a[$i] ?? 0;
+        $bv = $b[$i] ?? 0;
+        if ($av !== $bv) {
+            return $av <=> $bv;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Sort siblings: all requests (by number) then all folders (by number).
+ *
+ * @param  list<array<string, mixed>>  $items
+ * @return list<array<string, mixed>>
+ */
+function sortSiblings(array $items): array
+{
+    $requests = [];
+    $folders = [];
+    foreach ($items as $it) {
+        if (isset($it['item']) && is_array($it['item'])) {
+            $folders[] = $it;
+        } else {
+            $requests[] = $it;
+        }
+    }
+
+    $byNum = function (array $x, array $y): int {
+        return cmpKeys(
+            numberKey((string) ($x['name'] ?? '')),
+            numberKey((string) ($y['name'] ?? ''))
+        );
+    };
+
+    usort($requests, $byNum);
+    usort($folders, $byNum);
+
+    return array_merge($requests, $folders);
 }
 
 /**
  * @param  list<array<string, mixed>>  $items
  * @return array{0: list<array<string, mixed>>, 1: int}
  */
-function renumberItems(array $items, string $parentPrefix = ''): array
+function normalize(array $items): array
 {
     $changed = 0;
+    $items = sortSiblings($items);
+
     foreach ($items as $i => &$it) {
-        $segment = padSegment($i + 1);
-        $prefix = $parentPrefix === '' ? $segment : $parentPrefix.'.'.$segment;
+        $prefix = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
         $title = stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
         $newName = $prefix.'. '.$title;
         if (($it['name'] ?? '') !== $newName) {
@@ -61,9 +104,9 @@ function renumberItems(array $items, string $parentPrefix = ''): array
             $changed++;
         }
         if (isset($it['item']) && is_array($it['item'])) {
-            [$kids, $childChanged] = renumberItems($it['item'], $prefix);
+            [$kids, $c] = normalize($it['item']);
             $it['item'] = $kids;
-            $changed += $childChanged;
+            $changed += $c;
         }
     }
     unset($it);
@@ -72,8 +115,6 @@ function renumberItems(array $items, string $parentPrefix = ''): array
 }
 
 /**
- * Keep Health Check clean: move misplaced modules if they reappear.
- *
  * @param  list<array<string, mixed>>  $root
  * @return array{0: list<array<string, mixed>>, 1: int}
  */
@@ -98,28 +139,28 @@ function restructureHealthCheck(array $root): array
     }
 
     $keep = [];
-    $extras = [];
+    $toOther = [];
+    $toAdmin = [];
     foreach ($root[$healthIdx]['item'] ?? [] as $child) {
         $title = stripAllPrefixes((string) ($child['name'] ?? ''));
         if (stripos($title, 'Language APIs') !== false || stripos($title, 'Localized articles') !== false) {
-            $extras['other'][] = $child;
+            $toOther[] = $child;
             $moved++;
         } elseif (stripos($title, 'Admin Wallet') !== false) {
-            $extras['admin'][] = $child;
+            $toAdmin[] = $child;
             $moved++;
         } else {
             $keep[] = $child;
         }
     }
     $root[$healthIdx]['item'] = $keep;
-
-    if (! empty($extras['admin']) && $adminIdx !== null) {
-        foreach ($extras['admin'] as $child) {
+    if ($adminIdx !== null) {
+        foreach ($toAdmin as $child) {
             $root[$adminIdx]['item'][] = $child;
         }
     }
-    if (! empty($extras['other']) && $otherIdx !== null) {
-        foreach ($extras['other'] as $child) {
+    if ($otherIdx !== null) {
+        foreach ($toOther as $child) {
             $root[$otherIdx]['item'][] = $child;
         }
     }
@@ -128,30 +169,25 @@ function restructureHealthCheck(array $root): array
 }
 
 [$collection['item'], $moved] = restructureHealthCheck($collection['item'] ?? []);
-[$collection['item'], $changed] = renumberItems($collection['item'] ?? []);
+[$collection['item'], $changed] = normalize($collection['item'] ?? []);
 
-$version = (string) ($collection['info']['version'] ?? '3.6.53');
+$version = (string) ($collection['info']['version'] ?? '3.6.54');
 if (preg_match('/^(\d+)\.(\d+)\.(\d+)$/', $version, $vm)) {
     $collection['info']['version'] = $vm[1].'.'.$vm[2].'.'.((int) $vm[3] + 1);
 }
 $ver = $collection['info']['version'];
 $collection['info']['name'] = 'Tandil Backend - Flow-Based Collection (v'.$ver.')';
 $collection['info']['description'] = <<<'MD'
-Tandil Backend API. JSON responses. Env: base_url, token.
+Tandil Backend API. Env: base_url, token.
 
-NUMBERING (hierarchical — do not hand-edit):
-- Root: 01, 02, 03, …
-- Subfolders/APIs: 05.14, 05.14.01, 05.14.07, …
-- Always APPEND new items at the end of the parent folder, then run:
-  php scripts/renumber_postman_collection.php
-  php scripts/find_postman_gaps.php
+NUMBERING (fixed order in file = order in Postman sidebar):
+- Every folder / subfolder / API: 01, 02, 03… (restarts inside each folder)
+- Requests come before nested folders in each group (so sidebar never shows 23 above 01)
+- After ANY add/edit: php scripts/renumber_postman_collection.php && php scripts/find_postman_gaps.php
+- Always APPEND new APIs at the end of the parent folder, then run renumber
+- In Postman: delete old collection → Import this file (do not keep a duplicate)
 
-Key paths:
-- Contractor auth: 03.03
-- Admin contractor review: 05.14 (account-status/suspend|inactive|activate — no body)
-- Admin contractor signup options: 05.15
-- Client shop: 04.16
-- Vendor dashboard: 12
+Key paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor
 MD;
 
 $encoded = json_encode($collection, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -162,10 +198,9 @@ if ($encoded === false) {
 $encoded = preg_replace_callback('/^(?:    )+/m', function (array $m): string {
     return str_repeat('  ', intdiv(strlen($m[0]), 4));
 }, $encoded);
-
 file_put_contents($path, $encoded."\n");
 
 echo "Moved from Health Check: {$moved}\n";
-echo "Names updated: {$changed}\n";
+echo "Names/order updated: {$changed}\n";
 echo "Version: {$ver}\n";
 echo "OK {$path}\n";
