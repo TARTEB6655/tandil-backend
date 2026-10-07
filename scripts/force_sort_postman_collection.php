@@ -1,8 +1,11 @@
 <?php
 
 /**
- * Put every folder/request in true 1,2,3… order (no leading zeros).
- * Fresh IDs + new collection identity so Postman cannot keep a scrambled merge.
+ * Force-sort Postman collection + NEW identity.
+ *
+ * CRITICAL: Use 2-digit prefixes (01, 02, … 20).
+ * Unpadded "1." / "18." / "2." breaks Postman "Sort by name" (ASCII: 1,10,18,2…).
+ * Do NOT write item-level id/_postman_id — those can pin stale sidebar order on re-import.
  *
  * Usage: php scripts/force_sort_postman_collection.php
  */
@@ -14,6 +17,8 @@ if (! is_array($collection)) {
     fwrite(STDERR, 'Invalid JSON: '.json_last_error_msg()."\n");
     exit(1);
 }
+
+const PAD_WIDTH = 2;
 
 function stripAllPrefixes(string $name): string
 {
@@ -48,6 +53,11 @@ function cmpKeys(array $a, array $b): int
     return 0;
 }
 
+function padNum(int $n): string
+{
+    return str_pad((string) $n, PAD_WIDTH, '0', STR_PAD_LEFT);
+}
+
 function newUuid(): string
 {
     return sprintf(
@@ -64,9 +74,6 @@ function newUuid(): string
 }
 
 /**
- * Sort by current numeric prefix, requests before folders, renumber 1..N (no zero pad).
- * Assign a fresh id on every node so Postman merge cannot resurrect old order.
- *
  * @param  list<array<string, mixed>>  $items
  * @return list<array<string, mixed>>
  */
@@ -76,6 +83,8 @@ function forceSortAndRenumber(array $items): array
         if (isset($it['item']) && is_array($it['item'])) {
             $it['item'] = forceSortAndRenumber($it['item']);
         }
+        // Never persist item ids — Postman re-import/sync can pin old sidebar order from them.
+        unset($it['id'], $it['_postman_id'], $it['uid']);
     }
     unset($it);
 
@@ -100,9 +109,7 @@ function forceSortAndRenumber(array $items): array
     $items = array_merge($requests, $folders);
 
     foreach ($items as $i => &$it) {
-        $it['name'] = ($i + 1).'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
-        $it['id'] = newUuid();
-        unset($it['_postman_id'], $it['uid']);
+        $it['name'] = padNum($i + 1).'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
     }
     unset($it);
 
@@ -125,7 +132,7 @@ $collection['item'] = forceSortAndRenumber($collection['item'] ?? []);
 
 $newId = newUuid();
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
-$version = '5.0.0';
+$version = '5.1.0';
 $collectionName = 'Tandil Backend v'.$version.' SEQ';
 
 $collection['info']['_postman_id'] = $newId;
@@ -137,13 +144,13 @@ $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
 IMPORT:
-1) DELETE every old Tandil Backend collection in Postman
-2) Import this file as NEW (do not Merge)
-3) Name must be: {$collectionName}
-4) Sidebar → View → turn OFF "Sort by name" (use default / manual order)
+1) DELETE every old Tandil Backend collection
+2) Import as NEW (do not Merge / Update)
+3) Title must be: {$collectionName}
+4) Numbers are 01, 02, 03… (required so Postman Sort-by-name cannot become 1,10,18,2)
 
-Numbering: 1, 2, 3… inside every folder (no 001 / 01).
-File array order = sidebar order.
+BUG FIXED IN 5.1.0: v5.0.0 used unpadded 1/2/18 — Postman name-sort scrambled sidebar.
+Item-level UUIDs removed so re-import cannot pin stale order.
 
 LAST_SORTED_AT: {$sortedAt}
 COLLECTION_ID: {$newId}
@@ -173,10 +180,10 @@ $issues = 0;
 $verify = function (array $items, string $p) use (&$verify, &$issues): void {
     $seenFolder = false;
     foreach ($items as $i => $it) {
-        $want = (string) ($i + 1);
+        $want = padNum($i + 1);
         $name = (string) ($it['name'] ?? '');
         $isFolder = isset($it['item']) && is_array($it['item']);
-        if (! preg_match('/^(\d+)\.\s+/u', $name, $m) || $m[1] !== $want) {
+        if (! str_starts_with($name, $want.'. ')) {
             echo "BAD {$p} want {$want} got {$name}\n";
             $issues++;
         }
@@ -186,6 +193,10 @@ $verify = function (array $items, string $p) use (&$verify, &$issues): void {
             echo "BAD ORDER {$p} request after folder → {$name}\n";
             $issues++;
         }
+        if (! empty($it['id']) || ! empty($it['_postman_id'])) {
+            echo "BAD ID present on {$p}/{$name}\n";
+            $issues++;
+        }
         if ($isFolder) {
             $verify($it['item'], $p.'/'.$name);
         }
@@ -193,31 +204,33 @@ $verify = function (array $items, string $p) use (&$verify, &$issues): void {
 };
 $verify($collection['item'], 'ROOT');
 
+// Prove Sort-by-name is safe for Settings (Mobile)
+$admin = null;
+foreach ($collection['item'] as $it) {
+    if (stripos((string) ($it['name'] ?? ''), 'Admin Dashboard') !== false) {
+        $admin = $it;
+        break;
+    }
+}
+$set = null;
+foreach ($admin['item'] ?? [] as $it) {
+    if (stripos((string) ($it['name'] ?? ''), 'Settings (Mobile)') !== false) {
+        $set = $it;
+        break;
+    }
+}
+$names = array_map(static fn ($it) => (string) ($it['name'] ?? ''), $set['item'] ?? []);
+$alpha = $names;
+sort($alpha, SORT_STRING);
+$sortSafe = $names === $alpha;
+
 echo "version={$version}\n";
 echo "name={$collectionName}\n";
 echo "collection_id={$newId}\n";
 echo "issues={$issues}\n";
-echo "\nROOT:\n";
-foreach ($collection['item'] as $i => $it) {
+echo 'settings_sort_by_name_safe='.($sortSafe ? 'YES' : 'NO')."\n";
+echo "\nSETTINGS (Mobile):\n";
+foreach ($set['item'] ?? [] as $i => $it) {
     echo ($i + 1).'. '.($it['name'] ?? '').PHP_EOL;
 }
-echo "\nADMIN:\n";
-foreach ($collection['item'] as $it) {
-    if (stripos((string) ($it['name'] ?? ''), 'Admin Dashboard') !== false) {
-        foreach ($it['item'] ?? [] as $j => $child) {
-            echo ($j + 1).'. '.($child['name'] ?? '').PHP_EOL;
-        }
-        echo "\nSETTINGS (Mobile):\n";
-        foreach ($it['item'] ?? [] as $child) {
-            if (stripos((string) ($child['name'] ?? ''), 'Settings (Mobile)') !== false) {
-                foreach ($child['item'] ?? [] as $k => $req) {
-                    $m = $req['request']['method'] ?? (isset($req['item']) ? 'FOLDER' : '?');
-                    echo ($k + 1).". [{$m}] ".($req['name'] ?? '').PHP_EOL;
-                }
-                break;
-            }
-        }
-        break;
-    }
-}
-exit($issues > 0 ? 1 : 0);
+exit($issues > 0 || ! $sortSafe ? 1 : 0);
