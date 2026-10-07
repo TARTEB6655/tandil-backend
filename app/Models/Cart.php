@@ -29,6 +29,21 @@ class Cart extends Model
         'booking_date' => 'date:Y-m-d',
     ];
 
+    protected static function booted(): void
+    {
+        // Avoid SQL 500 when migration 2026_10_07_140000 has not been run yet.
+        static::saving(function (Cart $cart) {
+            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
+                return;
+            }
+            foreach (['tree_quantity', 'palm_tree_quantity'] as $col) {
+                if (array_key_exists($col, $cart->getAttributes())) {
+                    unset($cart->$col);
+                }
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);

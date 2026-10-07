@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Product;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Optional tree / palm-tree quantity pricing for service products only.
@@ -20,6 +21,54 @@ final class ServiceTreePricing
     public const SETTING_PRICE_PER_TREE = 'service_price_per_tree';
 
     public const SETTING_PRICE_PER_PALM = 'service_price_per_palm_tree';
+
+    private static ?bool $cartsTableReady = null;
+
+    private static ?bool $orderItemsTableReady = null;
+
+    /** Clear schema cache (tests / after migrate). */
+    public static function clearSchemaCache(): void
+    {
+        self::$cartsTableReady = null;
+        self::$orderItemsTableReady = null;
+    }
+
+    /**
+     * True when carts.tree_quantity / palm_tree_quantity exist (migration applied).
+     * Prevents cart/add 500 on servers that pulled code before migrate.
+     */
+    public static function cartsTableReady(): bool
+    {
+        if (self::$cartsTableReady === null) {
+            try {
+                self::$cartsTableReady = Schema::hasTable('carts')
+                    && Schema::hasColumn('carts', 'tree_quantity')
+                    && Schema::hasColumn('carts', 'palm_tree_quantity');
+            } catch (\Throwable) {
+                self::$cartsTableReady = false;
+            }
+        }
+
+        return self::$cartsTableReady;
+    }
+
+    /**
+     * True when order_items tree/palm columns exist.
+     */
+    public static function orderItemsTableReady(): bool
+    {
+        if (self::$orderItemsTableReady === null) {
+            try {
+                self::$orderItemsTableReady = Schema::hasTable('order_items')
+                    && Schema::hasColumn('order_items', 'tree_quantity')
+                    && Schema::hasColumn('order_items', 'palm_tree_quantity');
+            } catch (\Throwable) {
+                self::$orderItemsTableReady = false;
+            }
+        }
+
+        return self::$orderItemsTableReady;
+    }
 
     /**
      * @return array{

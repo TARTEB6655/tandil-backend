@@ -30,6 +30,14 @@ class OrderItem extends Model
     protected static function booted(): void
     {
         static::saving(function (OrderItem $item) {
+            if (! \App\Support\ServiceTreePricing::orderItemsTableReady()) {
+                foreach (['tree_quantity', 'palm_tree_quantity', 'price_per_tree', 'price_per_palm_tree'] as $col) {
+                    if (array_key_exists($col, $item->getAttributes())) {
+                        unset($item->$col);
+                    }
+                }
+            }
+
             if (filled($item->product_name)) {
                 return;
             }

@@ -29,6 +29,7 @@ class ServiceTreePricingTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        ServiceTreePricing::clearSchemaCache();
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->client = User::factory()->create(['role' => 'client']);
         $this->category = Category::create([

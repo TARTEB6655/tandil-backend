@@ -709,22 +709,27 @@ class CartController extends Controller
             }
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
-            $cartItem->tree_quantity = $treeResolved['tree_quantity'];
-            $cartItem->palm_tree_quantity = $treeResolved['palm_tree_quantity'];
+            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
+                $cartItem->tree_quantity = $treeResolved['tree_quantity'];
+                $cartItem->palm_tree_quantity = $treeResolved['palm_tree_quantity'];
+            }
             $cartItem->save();
         } else {
-            $cartItem = Cart::create([
+            $create = [
                 'user_id' => $user->id,
                 'product_id' => $request->product_id,
                 'quantity' => $requestedQty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
-                'tree_quantity' => $treeResolved['tree_quantity'],
-                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $bookingDate,
                 'booking_slot' => $bookingSlot,
-            ]);
+            ];
+            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
+                $create['tree_quantity'] = $treeResolved['tree_quantity'];
+                $create['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
+            }
+            $cartItem = Cart::create($create);
         }
 
         $cartItem->load(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options']);
@@ -789,7 +794,7 @@ class CartController extends Controller
                 throw new \InvalidArgumentException($treeError);
             }
             // Buy Now often omits tree qty after Product Details — reuse cart line if present.
-            if ($treeRaw === null && $palmRaw === null) {
+            if ($treeRaw === null && $palmRaw === null && \App\Support\ServiceTreePricing::cartsTableReady()) {
                 $cartTree = Cart::query()
                     ->where('user_id', $userId)
                     ->where('product_id', (int) $product->id)
@@ -809,18 +814,21 @@ class CartController extends Controller
                 $fallbackDate,
                 $fallbackSlot
             );
-            $cart = new Cart([
+            $cartAttrs = [
                 'user_id' => $userId,
                 'product_id' => $product->id,
                 'quantity' => $qty,
                 'selected_options' => $selectedOptionsNormalized,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
-                'tree_quantity' => $treeResolved['tree_quantity'],
-                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $itemBooking['booking_date'],
                 'booking_slot' => $itemBooking['booking_slot'],
-            ]);
+            ];
+            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
+                $cartAttrs['tree_quantity'] = $treeResolved['tree_quantity'];
+                $cartAttrs['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
+            }
+            $cart = new Cart($cartAttrs);
             $cart->setRelation('product', $product);
             $cart->id = 0;
             $subtotal = $cart->lineTotalAmount();
@@ -958,7 +966,7 @@ class CartController extends Controller
             if ($treeError !== null) {
                 throw new \InvalidArgumentException(((string) $product->name).': '.$treeError);
             }
-            if ($treeRaw === null && $palmRaw === null) {
+            if ($treeRaw === null && $palmRaw === null && \App\Support\ServiceTreePricing::cartsTableReady()) {
                 $cartTree = Cart::query()
                     ->where('user_id', $userId)
                     ->where('product_id', $product->id)
@@ -996,18 +1004,21 @@ class CartController extends Controller
                 ? round((float) $row['unit_price'], 2)
                 : Cart::calculateUnitPrice($product, $optionIds);
 
-            $cart = new Cart([
+            $cartAttrs = [
                 'user_id' => $userId,
                 'product_id' => $product->id,
                 'quantity' => $qty,
                 'selected_options' => $optionIds,
                 'unit_price' => $unitPrice,
                 'required_area' => $requiredArea,
-                'tree_quantity' => $treeResolved['tree_quantity'],
-                'palm_tree_quantity' => $treeResolved['palm_tree_quantity'],
                 'booking_date' => $booking['booking_date'],
                 'booking_slot' => $booking['booking_slot'],
-            ]);
+            ];
+            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
+                $cartAttrs['tree_quantity'] = $treeResolved['tree_quantity'];
+                $cartAttrs['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
+            }
+            $cart = new Cart($cartAttrs);
             $cart->setRelation('product', $product);
             $cart->id = 0;
             $items->push($cart);
@@ -1786,7 +1797,7 @@ class CartController extends Controller
             $hasTreeInput = $treeRaw !== null || $palmRaw !== null
                 || $request->exists('tree_quantity') || $request->exists('trees')
                 || $request->exists('palm_tree_quantity') || $request->exists('palms');
-            if ($hasTreeInput) {
+            if ($hasTreeInput && \App\Support\ServiceTreePricing::cartsTableReady()) {
                 $treeError = \App\Support\ServiceTreePricing::validateQuantitiesMessage($product, $treeRaw, $palmRaw);
                 if ($treeError !== null) {
                     return ApiResponse::error($treeError, 422);
