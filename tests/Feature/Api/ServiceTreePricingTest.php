@@ -258,4 +258,157 @@ class ServiceTreePricingTest extends TestCase
             ])
             ->assertStatus(422);
     }
+
+    public function test_all_palm_tree_related_apis_return_proper_responses(): void
+    {
+        // --- 1) Admin GET (defaults / empty) ---
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/settings/tree-palm-pricing')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonStructure([
+                'success',
+                'message',
+                'data' => [
+                    'show_tree_options',
+                    'price_per_tree',
+                    'price_per_palm_tree',
+                    'price_includes',
+                ],
+            ])
+            ->assertJsonMissingPath('data.pricing_type')
+            ->assertJsonMissingPath('data.price_per_m2');
+
+        // --- 2) Admin PUT UI fields only ---
+        $this->actingAs($this->admin, 'sanctum')
+            ->putJson('/api/admin/settings/tree-palm-pricing', [
+                'show_tree_options' => true,
+                'price_per_tree' => 50,
+                'price_per_palm_tree' => 80,
+                'price_includes' => [
+                    'materials' => true,
+                    'installation' => true,
+                    'labor' => true,
+                    'transportation' => false,
+                    'delivery' => false,
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.price_per_tree', 50)
+            ->assertJsonPath('data.price_per_palm_tree', 80)
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonPath('data.price_includes.transportation', false);
+
+        // --- 3) Admin GET after save ---
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/settings/tree-palm-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.price_per_palm_tree', 80);
+
+        // --- 4) Shop product detail exposes optional tree/palm options ---
+        $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.tree_pricing.enabled', true)
+            ->assertJsonPath('data.tree_pricing.optional', true)
+            ->assertJsonPath('data.tree_pricing.trees.unit_price', 50)
+            ->assertJsonPath('data.tree_pricing.palm_trees.unit_price', 80);
+
+        // --- 5) Cart add with trees + palms (merged line_total on cart row) ---
+        // base 100 + (2×50) + (2×80) = 360
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/cart/add', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'tree_quantity' => 2,
+                'palm_tree_quantity' => 2,
+            ])
+            ->assertCreated()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.line_total', 360)
+            ->assertJsonPath('data.base_line_total', 100)
+            ->assertJsonPath('data.tree_quantity', 2)
+            ->assertJsonPath('data.palm_tree_quantity', 2)
+            ->assertJsonPath('data.price_per_palm_tree', 80)
+            ->assertJsonPath('data.tree_palm_addon', 260);
+
+        // --- 6) GET cart ---
+        $cart = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/cart')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.palm_tree_quantity', 2)
+            ->assertJsonPath('data.items.0.line_total', 360)
+            ->assertJsonPath('data.order_summary.subtotal', 360);
+
+        // --- 7) GET order-summary: separate checkout lines ---
+        $orderSummary = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/order-summary')
+            ->assertOk()
+            ->assertJsonPath('data.subtotal', 360)
+            ->assertJsonPath('data.items.0.line_kind', 'service')
+            ->assertJsonPath('data.items.0.line_total', 100)
+            ->assertJsonPath('data.items.1.line_kind', 'tree_addon')
+            ->assertJsonPath('data.items.1.line_total', 100)
+            ->assertJsonPath('data.items.2.line_kind', 'palm_addon')
+            ->assertJsonPath('data.items.2.quantity', 2)
+            ->assertJsonPath('data.items.2.unit_price', 80)
+            ->assertJsonPath('data.items.2.line_total', 160)
+            ->assertJsonCount(3, 'data.items');
+
+        $palmName = (string) data_get($orderSummary->json(), 'data.items.2.name');
+        $this->assertStringContainsString('Palm Trees', $palmName);
+
+        // Sum of display lines equals subtotal
+        $itemSum = collect(data_get($orderSummary->json(), 'data.items', []))
+            ->sum(fn ($row) => (float) ($row['line_total'] ?? 0));
+        $this->assertSame(360.0, round($itemSum, 2));
+
+        // --- 8) Buy-now summary (same basket via product_id) ---
+        $buyNow = $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'is_buy_now' => true,
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'tree_quantity' => 2,
+                'palm_tree_quantity' => 2,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 360)
+            ->assertJsonPath('data.order_summary.items.0.line_kind', 'service')
+            ->assertJsonPath('data.order_summary.items.0.line_total', 100)
+            ->assertJsonPath('data.order_summary.items.1.line_kind', 'tree_addon')
+            ->assertJsonPath('data.order_summary.items.2.line_kind', 'palm_addon')
+            ->assertJsonPath('data.order_summary.items.2.line_total', 160)
+            ->assertJsonCount(3, 'data.order_summary.items');
+
+        // --- 9) Checkout review ---
+        $review = $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/checkout/review')
+            ->assertOk();
+
+        $reviewItems = data_get($review->json(), 'data.order_summary.items')
+            ?? data_get($review->json(), 'data.items');
+        $this->assertIsArray($reviewItems);
+        $this->assertCount(3, $reviewItems);
+        $this->assertSame('service', $reviewItems[0]['line_kind'] ?? null);
+        $this->assertSame('palm_addon', $reviewItems[2]['line_kind'] ?? null);
+        $this->assertSame(160.0, (float) ($reviewItems[2]['line_total'] ?? 0));
+        $this->assertSame(
+            360.0,
+            (float) (data_get($review->json(), 'data.order_summary.subtotal')
+                ?? data_get($review->json(), 'data.subtotal'))
+        );
+
+        // Persist a compact proof of real response shapes for manual review.
+        file_put_contents(
+            storage_path('app/palm_tree_api_response_proof.json'),
+            json_encode([
+                'cart_item' => data_get($cart->json(), 'data.items.0'),
+                'order_summary' => $orderSummary->json('data'),
+                'buy_now_order_summary' => $buyNow->json('data.order_summary'),
+                'checkout_review_items' => $reviewItems,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+    }
 }
