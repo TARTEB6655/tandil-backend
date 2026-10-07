@@ -124,15 +124,15 @@ $newId = sprintf(
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
 $collection['info']['_postman_id'] = $newId;
 $collection['info']['_exporter_id'] = 'tandil-backend-sorted-'.substr($newId, 0, 8);
-$collection['info']['version'] = '3.8.0';
-$collection['info']['name'] = 'Tandil Backend SORTED v3.8.0';
+$collection['info']['version'] = '3.9.0';
+$collection['info']['name'] = 'Tandil Backend SORTED v3.9.0';
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
 *** IMPORT INSTRUCTIONS (IMPORTANT) ***
 1) In Postman DELETE every old "Tandil Backend..." collection
 2) Import this file as NEW (do NOT Merge / Update)
-3) You must see collection name exactly: Tandil Backend SORTED v3.8.0
+3) You must see collection name exactly: Tandil Backend SORTED v3.9.0
 4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products
 
 LAST_SORTED_AT: {$sortedAt}
@@ -151,7 +151,7 @@ $encoded = preg_replace_callback('/^(?:    )+/m', function (array $m): string {
 file_put_contents($path, $encoded."\n");
 
 $proof = [];
-$proof[] = 'Tandil Backend SORTED v3.8.0';
+$proof[] = 'Tandil Backend SORTED v3.9.0';
 $proof[] = 'LAST_SORTED_AT: '.$sortedAt;
 $proof[] = 'COLLECTION_ID: '.$newId;
 $proof[] = 'FILE: postman/tandil_backend.json';
@@ -177,8 +177,8 @@ $verify = function (array $items, string $p) use (&$verify, &$issues): void {
 };
 $verify($collection['item'], 'ROOT');
 
-echo "version=3.8.0\n";
-echo "name=Tandil Backend SORTED v3.8.0\n";
+echo "version=3.9.0\n";
+echo "name=Tandil Backend SORTED v3.9.0\n";
 echo "collection_id={$newId}\n";
 echo "issues={$issues}\n";
 echo "proof={$proofPath}\n";

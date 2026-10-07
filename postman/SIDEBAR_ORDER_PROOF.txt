@@ -1,6 +1,6 @@
-Tandil Backend SORTED v3.8.0
-LAST_SORTED_AT: 2026-10-07T10:27:40Z
-COLLECTION_ID: c588b2de-0fd1-4f00-93d3-97ab52c3d8b0
+Tandil Backend SORTED v3.9.0
+LAST_SORTED_AT: 2026-10-07T10:41:17Z
+COLLECTION_ID: ffb83995-218a-435d-a505-f83a24f4460a
 FILE: postman/tandil_backend.json
 
 === EXPECTED POSTMAN SIDEBAR ORDER ===
@@ -268,9 +268,9 @@ FILE: postman/tandil_backend.json
     14. [REQUEST] 14. Get Service Pricing Settings
     15. [REQUEST] 15. Update Service Pricing Settings (form-data)
     16. [REQUEST] 16. Update Service Pricing Settings (PUT form-data)
-    17. [REQUEST] 17. Export Data
-    18. [REQUEST] 18. Get Tree Palm Pricing Settings
-    19. [REQUEST] 19. Update Tree Palm Pricing Settings (form-data)
+    17. [REQUEST] 17. Get Tree Palm Pricing Settings
+    18. [REQUEST] 18. Update Tree Palm Pricing Settings (form-data)
+    19. [REQUEST] 19. Export Data
     20. [FOLDER] 20. Legal & Contact Content
       1. [FOLDER] 01. Client - Legal Admin
         1. [REQUEST] 01. List pages
