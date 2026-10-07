@@ -3,14 +3,14 @@
 /**
  * Deterministic Postman numbering for tandil_backend.json
  *
- * Sibling rules:
- * - Root folders: 01, 02, 03, ...
- * - All-folder groups: A, B, C, ... (AA after Z)
- * - Requests or mixed request+folder groups: 01, 02, 03, ...
+ * EVERY sibling group (root folders, subfolders, APIs) uses:
+ *   01, 02, 03, ...  (zero-padded, position order)
+ *
+ * No A/B/C letter prefixes — letters were causing confusion when items moved.
  *
  * Also moves misplaced folders out of "Health Check":
  * - Language APIs + Localized articles → Other Modules (end)
- * - Admin Wallet APIs → Admin Dashboard (end, keeps N/O contractor letters stable)
+ * - Admin Wallet APIs → Admin Dashboard (end)
  *
  * Usage: php scripts/renumber_postman_collection.php
  */
@@ -32,19 +32,6 @@ function stripAllPrefixes(string $name): string
     return $title !== '' ? $title : trim($name);
 }
 
-function letterPrefix(int $index): string
-{
-    $n = $index;
-    $out = '';
-    while ($n > 0) {
-        $n--;
-        $out = chr(65 + ($n % 26)).$out;
-        $n = intdiv($n, 26);
-    }
-
-    return $out;
-}
-
 function numberPrefix(int $index): string
 {
     return str_pad((string) $index, 2, '0', STR_PAD_LEFT);
@@ -54,25 +41,15 @@ function numberPrefix(int $index): string
  * @param  list<array<string, mixed>>  $items
  * @return array{0: list<array<string, mixed>>, 1: int}
  */
-function renumberItems(array $items, bool $forceNumeric = false): array
+function renumberItems(array $items): array
 {
     $changed = 0;
     if ($items === []) {
         return [$items, 0];
     }
 
-    $allFolders = true;
-    foreach ($items as $it) {
-        if (! isset($it['item']) || ! is_array($it['item'])) {
-            $allFolders = false;
-            break;
-        }
-    }
-    $useLetters = ! $forceNumeric && $allFolders;
-
     foreach ($items as $i => &$it) {
-        $index = $i + 1;
-        $prefix = $useLetters ? letterPrefix($index) : numberPrefix($index);
+        $prefix = numberPrefix($i + 1);
         $title = stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
         $newName = $prefix.'. '.$title;
         if (($it['name'] ?? '') !== $newName) {
@@ -80,7 +57,7 @@ function renumberItems(array $items, bool $forceNumeric = false): array
             $changed++;
         }
         if (isset($it['item']) && is_array($it['item'])) {
-            [$childItems, $childChanged] = renumberItems($it['item'], false);
+            [$childItems, $childChanged] = renumberItems($it['item']);
             $it['item'] = $childItems;
             $changed += $childChanged;
         }
@@ -196,7 +173,7 @@ if ($healthIdx !== null) {
     }
 }
 
-[$root, $changed] = renumberItems($root, true);
+[$root, $changed] = renumberItems($root);
 $collection['item'] = $root;
 
 $version = (string) ($collection['info']['version'] ?? '3.6.48');
