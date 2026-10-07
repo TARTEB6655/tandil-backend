@@ -4,8 +4,8 @@
  * Fix Postman sidebar order + numbering in one pass.
  *
  * 1) Sort every item[] by numeric prefix (so JSON order = 01,02,03…)
- * 2) Re-assign clean numbers at EVERY level: 001, 002, 003… (restart per folder)
- * 3) Sibling rule: keep numeric order (force_sort puts folders first, then requests)
+ * 2) Re-assign clean numbers at EVERY level: 1, 2, 3… (restart per folder, no zero pad)
+ * 3) Sibling rule: keep numeric order (force_sort: requests then folders)
  *
  * NEW API workflow:
  *   - Append request at END of the correct parent folder
@@ -82,7 +82,7 @@ function normalize(array $items): array
     $items = sortSiblings($items);
 
     foreach ($items as $i => &$it) {
-        $prefix = str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
+        $prefix = (string) ($i + 1);
         $title = stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
         $newName = $prefix.'. '.$title;
         if (($it['name'] ?? '') !== $newName) {
@@ -167,9 +167,9 @@ $collection['info']['description'] = <<<'MD'
 Tandil Backend API. Env: base_url, token.
 
 NUMBERING (fixed order in file = order in Postman sidebar):
-- Every folder / subfolder / API: 001, 002, 003… (3-digit; restarts inside each folder)
+- Every folder / subfolder / API: 1, 2, 3… (restarts inside each folder; no 01/001)
 - After ANY add/edit: php scripts/force_sort_postman_collection.php
-- In Postman: DELETE old collection → Import as NEW (do not Merge)
+- In Postman: DELETE old collection → Import as NEW (do not Merge); turn OFF Sort by name
 
 Key paths: 03→03 Contractor · 05→14 Contractor registrations · 05→15 Signup options · 04→16 Shop · 12 Vendor
 MD;

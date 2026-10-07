@@ -1,10 +1,8 @@
 <?php
 
 /**
- * Force-sort Postman collection + NEW identity so Postman cannot merge old order.
- *
- * Numbering: 001, 002, 003… (3-digit) so "Sort by name" never becomes 1,12,2,3.
- * Sibling rule: requests first, then folders (keeps Legal / nested folders at end).
+ * Put every folder/request in true 1,2,3… order (no leading zeros).
+ * Fresh IDs + new collection identity so Postman cannot keep a scrambled merge.
  *
  * Usage: php scripts/force_sort_postman_collection.php
  */
@@ -16,8 +14,6 @@ if (! is_array($collection)) {
     fwrite(STDERR, 'Invalid JSON: '.json_last_error_msg()."\n");
     exit(1);
 }
-
-const PAD_WIDTH = 3;
 
 function stripAllPrefixes(string $name): string
 {
@@ -52,13 +48,24 @@ function cmpKeys(array $a, array $b): int
     return 0;
 }
 
-function padNum(int $n): string
+function newUuid(): string
 {
-    return str_pad((string) $n, PAD_WIDTH, '0', STR_PAD_LEFT);
+    return sprintf(
+        '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+        random_int(0, 0xffff),
+        random_int(0, 0xffff),
+        random_int(0, 0xffff),
+        random_int(0, 0x0fff) | 0x4000,
+        random_int(0, 0x3fff) | 0x8000,
+        random_int(0, 0xffff),
+        random_int(0, 0xffff),
+        random_int(0, 0xffff)
+    );
 }
 
 /**
- * Requests first, then folders; renumber 001..N so array index matches prefix.
+ * Sort by current numeric prefix, requests before folders, renumber 1..N (no zero pad).
+ * Assign a fresh id on every node so Postman merge cannot resurrect old order.
  *
  * @param  list<array<string, mixed>>  $items
  * @return list<array<string, mixed>>
@@ -69,7 +76,6 @@ function forceSortAndRenumber(array $items): array
         if (isset($it['item']) && is_array($it['item'])) {
             $it['item'] = forceSortAndRenumber($it['item']);
         }
-        unset($it['id'], $it['_postman_id'], $it['uid']);
     }
     unset($it);
 
@@ -94,7 +100,9 @@ function forceSortAndRenumber(array $items): array
     $items = array_merge($requests, $folders);
 
     foreach ($items as $i => &$it) {
-        $it['name'] = padNum($i + 1).'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
+        $it['name'] = ($i + 1).'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
+        $it['id'] = newUuid();
+        unset($it['_postman_id'], $it['uid']);
     }
     unset($it);
 
@@ -115,39 +123,27 @@ function walkProof(array $items, string $indent, array &$lines): void
 
 $collection['item'] = forceSortAndRenumber($collection['item'] ?? []);
 
-$newId = sprintf(
-    '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-    random_int(0, 0xffff),
-    random_int(0, 0xffff),
-    random_int(0, 0xffff),
-    random_int(0, 0x0fff) | 0x4000,
-    random_int(0, 0x3fff) | 0x8000,
-    random_int(0, 0xffff),
-    random_int(0, 0xffff),
-    random_int(0, 0xffff)
-);
-
+$newId = newUuid();
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
-$version = '4.0.0';
-$collectionName = 'Tandil Backend ORDERED v'.$version;
+$version = '5.0.0';
+$collectionName = 'Tandil Backend v'.$version.' SEQ';
 
 $collection['info']['_postman_id'] = $newId;
-$collection['info']['_exporter_id'] = 'tandil-ordered-'.substr($newId, 0, 8);
+$collection['info']['_exporter_id'] = 'tandil-seq-'.substr($newId, 0, 8);
 $collection['info']['version'] = $version;
 $collection['info']['name'] = $collectionName;
-$collection['info']['schema'] = $collection['info']['schema']
-    ?? 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json';
+$collection['info']['schema'] = 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json';
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
-*** IMPORT (REQUIRED) ***
-1) Postman → DELETE every old "Tandil Backend…" collection (all of them)
-2) File → Import → this JSON → **Import as new** (NOT Merge / Update)
-3) Collection title must be exactly: {$collectionName}
-4) Admin Dashboard folders must read: 001, 002, 003… 016 (never 1,12,2,3)
+IMPORT:
+1) DELETE every old Tandil Backend collection in Postman
+2) Import this file as NEW (do not Merge)
+3) Name must be: {$collectionName}
+4) Sidebar → View → turn OFF "Sort by name" (use default / manual order)
 
-NUMBERING: 001..N at every folder level (3-digit so name-sort cannot break).
-Turn OFF any "Sort by name" in Postman if order still looks wrong.
+Numbering: 1, 2, 3… inside every folder (no 001 / 01).
+File array order = sidebar order.
 
 LAST_SORTED_AT: {$sortedAt}
 COLLECTION_ID: {$newId}
@@ -177,10 +173,10 @@ $issues = 0;
 $verify = function (array $items, string $p) use (&$verify, &$issues): void {
     $seenFolder = false;
     foreach ($items as $i => $it) {
-        $want = padNum($i + 1);
+        $want = (string) ($i + 1);
         $name = (string) ($it['name'] ?? '');
         $isFolder = isset($it['item']) && is_array($it['item']);
-        if (! str_starts_with($name, $want.'. ')) {
+        if (! preg_match('/^(\d+)\.\s+/u', $name, $m) || $m[1] !== $want) {
             echo "BAD {$p} want {$want} got {$name}\n";
             $issues++;
         }
@@ -201,7 +197,6 @@ echo "version={$version}\n";
 echo "name={$collectionName}\n";
 echo "collection_id={$newId}\n";
 echo "issues={$issues}\n";
-echo "proof={$proofPath}\n";
 echo "\nROOT:\n";
 foreach ($collection['item'] as $i => $it) {
     echo ($i + 1).'. '.($it['name'] ?? '').PHP_EOL;
@@ -211,6 +206,16 @@ foreach ($collection['item'] as $it) {
     if (stripos((string) ($it['name'] ?? ''), 'Admin Dashboard') !== false) {
         foreach ($it['item'] ?? [] as $j => $child) {
             echo ($j + 1).'. '.($child['name'] ?? '').PHP_EOL;
+        }
+        echo "\nSETTINGS (Mobile):\n";
+        foreach ($it['item'] ?? [] as $child) {
+            if (stripos((string) ($child['name'] ?? ''), 'Settings (Mobile)') !== false) {
+                foreach ($child['item'] ?? [] as $k => $req) {
+                    $m = $req['request']['method'] ?? (isset($req['item']) ? 'FOLDER' : '?');
+                    echo ($k + 1).". [{$m}] ".($req['name'] ?? '').PHP_EOL;
+                }
+                break;
+            }
         }
         break;
     }

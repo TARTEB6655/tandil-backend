@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Verify every sibling group is exactly 001..N in array order.
+ * Verify every sibling group is exactly 1..N in array order (no leading zeros).
  * Requests must appear before folders in each group.
  */
 
@@ -13,14 +13,14 @@ function walk(array $items, string $path): void
     global $issues;
     $seenFolder = false;
     foreach ($items as $i => $it) {
-        $want = str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
+        $want = (string) ($i + 1);
         $name = (string) ($it['name'] ?? '');
         $isFolder = isset($it['item']) && is_array($it['item']);
 
-        if (! preg_match('/^([0-9]{3})\.\s+/u', $name, $m) || $m[1] !== $want) {
+        if (! preg_match('/^(\d+)\.\s+/u', $name, $m) || $m[1] !== $want) {
             $issues[] = "SEQ {$path} want={$want} got={$name}";
         }
-        if (preg_match('/^[A-Z]/u', $name)) {
+        if (preg_match('/^[A-Z]\.\s+/u', $name)) {
             $issues[] = "LETTER {$path} → {$name}";
         }
 
