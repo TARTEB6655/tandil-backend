@@ -21,6 +21,11 @@ When you **add, change, or remove** an API route or controller action that affec
    - `body`: For POST/PUT/PATCH use `"mode": "raw"` with `"raw": "{\n  \"key\": \"value\"\n}"` for JSON, or `"mode": "formdata"` with `formdata` array for form-data.
    - `description`: One line summarizing route, method, path, main params/body, and response (e.g. "GET /api/admin/areas. Query: per_page, country, search. Response: data[], pagination.").
 
-3. **Version**: When adding or changing requests, bump `info.version` in the same file (e.g. 2.82.0 → 2.83.0) so changes are trackable.
+3. **Numbering**: After any add/remove/move/rename in the collection, run:
+   `php scripts/renumber_postman_collection.php`
+   then `php scripts/find_postman_gaps.php` (must report `count=0`).
+   Never invent hand prefixes (`N1`, `N2`, `05→O`). See `.cursor/rules/postman-numbering.mdc`.
+
+4. **Version**: The renumber script bumps `info.version` automatically. If you skip renumber for a tiny body-only edit, bump `info.version` yourself.
 
 Do not skip Postman updates when the task includes creating or modifying API endpoints.
