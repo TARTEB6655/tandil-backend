@@ -1,13 +1,13 @@
 <?php
 
 /**
- * E2E smoke: every folder must display correctly in Postman even with Sort by name.
+ * E2E smoke — permanent Postman order guards.
  *
- * Postman "Sort by name" = ASCII string sort.
- * Plain "1." / "10." / "18." / "2." SCRAMBLES → FAIL.
- * Zero-padded "01." / "02." / "10." / "18." stays correct → PASS.
- *
- * Also checks: array index == number, no jumps, no stale item ids.
+ * FAIL if:
+ * 1) Any sibling group mixes requests + folders (Postman floats folders above requests)
+ * 2) Numbers not zero-padded 01..N matching array index
+ * 3) ASCII Sort-by-name would scramble the group
+ * 4) Stale item ids present
  */
 
 $path = __DIR__.'/../postman/tandil_backend.json';
@@ -22,35 +22,40 @@ $folderCount = 0;
 $requestCount = 0;
 $padWidth = 2;
 
+function isFolder(array $it): bool
+{
+    return isset($it['item']) && is_array($it['item']);
+}
+
 function walk(array $items, string $path): void
 {
     global $issues, $folderCount, $requestCount, $padWidth;
 
+    $hasR = false;
+    $hasF = false;
     $names = [];
+
     foreach ($items as $i => $it) {
         $want = str_pad((string) ($i + 1), $padWidth, '0', STR_PAD_LEFT);
         $name = (string) ($it['name'] ?? '');
-        $isFolder = isset($it['item']) && is_array($it['item']);
-        $isFolder ? $folderCount++ : $requestCount++;
+        $folder = isFolder($it);
+        $folder ? $folderCount++ : $requestCount++;
+        $folder ? $hasF = true : $hasR = true;
         $names[] = $name;
 
-        if (! preg_match('/^(\d+)\.\s+(.+)$/u', $name, $m)) {
-            $issues[] = "NO_NUMBER {$path} [{$i}] {$name}";
-            continue;
-        }
-
-        // Must be zero-padded to padWidth (Postman Sort-by-name safe)
-        if (! preg_match('/^([0-9]{'.$padWidth.'})\.\s+/u', $name, $pm) || $pm[1] !== $want) {
+        if (! preg_match('/^([0-9]{'.$padWidth.'})\.\s+/u', $name, $m) || $m[1] !== $want) {
             $issues[] = "PAD_OR_SEQ {$path} index=".($i + 1)." want={$want}. … got={$name}";
         }
-
         if (! empty($it['id']) || ! empty($it['_postman_id'])) {
             $issues[] = "STALE_ID {$path} / {$name}";
         }
-
-        if ($isFolder) {
+        if ($folder) {
             walk($it['item'], $path.' / '.$name);
         }
+    }
+
+    if ($hasR && $hasF) {
+        $issues[] = "MIXED_REQUEST_FOLDER_SIBLINGS {$path} — Postman will float folders above requests and scramble numbers";
     }
 
     if (count($names) >= 2) {
@@ -58,39 +63,29 @@ function walk(array $items, string $path): void
         sort($alpha, SORT_STRING);
         if ($alpha !== $names) {
             $issues[] = "POSTMAN_SORT_BY_NAME_WOULD_SCRAMBLE {$path}";
-            $issues[] = "  file_order: ".implode(' | ', array_map(static function ($n) {
-                return preg_match('/^(\d+)\./', $n, $m) ? $m[1] : '?';
-            }, $names));
-            $issues[] = "  name_sort:  ".implode(' | ', array_map(static function ($n) {
-                return preg_match('/^(\d+)\./', $n, $m) ? $m[1] : '?';
-            }, $alpha));
         }
     }
 }
 
-echo "=== SMOKE E2E (Postman display-safe number order) ===\n";
+echo "=== SMOKE E2E (Postman-safe permanent order) ===\n";
 echo 'collection: '.($j['info']['name'] ?? '')."\n";
-echo 'version: '.($j['info']['version'] ?? '')."\n";
-echo "pad_width={$padWidth} (required so Sort-by-name == number order)\n\n";
+echo 'version: '.($j['info']['version'] ?? '')."\n\n";
 
 walk($j['item'] ?? [], 'ROOT');
 
 echo "folders={$folderCount} requests={$requestCount}\n";
 echo 'issues='.count($issues)."\n";
-foreach (array_slice($issues, 0, 60) as $x) {
+foreach (array_slice($issues, 0, 80) as $x) {
     echo " - {$x}\n";
-}
-if (count($issues) > 60) {
-    echo ' ... +'.(count($issues) - 60)." more\n";
 }
 
 function find(array $items, string $needle): ?array
 {
     foreach ($items as $it) {
-        if (stripos((string) ($it['name'] ?? ''), $needle) !== false && isset($it['item'])) {
+        if (stripos((string) ($it['name'] ?? ''), $needle) !== false && isFolder($it)) {
             return $it;
         }
-        if (isset($it['item'])) {
+        if (isFolder($it)) {
             $f = find($it['item'], $needle);
             if ($f) {
                 return $f;
@@ -104,9 +99,15 @@ function find(array $items, string $needle): ?array
 $set = find($j['item'] ?? [], 'Settings (Mobile)');
 echo "\n=== Admin → Settings (Mobile) ===\n";
 foreach ($set['item'] ?? [] as $i => $it) {
-    echo ($i + 1).'. '.($it['name'] ?? '')."\n";
+    $kind = isFolder($it) ? 'FOLDER' : 'REQUEST';
+    echo ($i + 1).". [{$kind}] ".($it['name'] ?? '')."\n";
+    if (isFolder($it) && stripos((string) $it['name'], 'Settings APIs') !== false) {
+        foreach ($it['item'] as $j => $r) {
+            echo '   '.($j + 1).'. '.($r['name'] ?? '')."\n";
+        }
+    }
 }
 
 $fail = count($issues) > 0;
-echo "\nRESULT: ".($fail ? 'FAIL — Postman sidebar will look wrong' : 'PASS — file order safe for Postman')."\n";
+echo "\nRESULT: ".($fail ? 'FAIL' : 'PASS')."\n";
 exit($fail ? 1 : 0);

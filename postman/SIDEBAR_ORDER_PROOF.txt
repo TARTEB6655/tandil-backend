@@ -1,13 +1,39 @@
-Tandil Backend v6.1.0 FIXED ORDER
-BUGFIX: 2-digit pad so Postman Sort-by-name == number order
-LAST_SORTED_AT: 2026-10-07T12:03:57Z
-COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
+Tandil Backend v7.0.0 POSTMAN-SAFE
+FIX: no mixed request/folder siblings; 2-digit number order
+LAST_SORTED_AT: 2026-10-07T12:09:39Z
+COLLECTION_ID: 06fd2056-d6da-4c83-928c-f0d1fa577b8b
 
 === SIDEBAR ORDER ===
 1. [FOLDER] 01. Health Check - START HERE
   1. [REQUEST] 01. Health Check
   2. [REQUEST] 02. Debug Performance
-2. [FOLDER] 02. Notifications – All roles (hub)
+2. [FOLDER] 02. Dashboard
+  1. [REQUEST] 01. GET Technician – Dashboard
+3. [FOLDER] 03. Dashboard
+  1. [REQUEST] 01. Dashboard - Summary
+  2. [REQUEST] 02. Dashboard - KPIs
+  3. [REQUEST] 03. Dashboard - Alerts
+4. [FOLDER] 04. Public (no auth)
+  1. [REQUEST] 01. List Products
+  2. [REQUEST] 02. Featured Products
+  3. [REQUEST] 03. Get Product Details
+  4. [REQUEST] 04. Search Products
+  5. [REQUEST] 05. Get Categories
+  6. [REQUEST] 06. Get Products by Category
+5. [FOLDER] 05. Dashboard
+  1. [REQUEST] 01. Dashboard - Summary
+  2. [REQUEST] 02. Dashboard - Alerts
+  3. [REQUEST] 03. Region Map
+6. [FOLDER] 06. Dashboard
+  1. [REQUEST] 01. Dashboard - Summary
+  2. [REQUEST] 02. Dashboard - Visit Assignments
+7. [FOLDER] 07. Business Profile
+  1. [REQUEST] 01. Get profile
+  2. [REQUEST] 02. Update profile
+  3. [REQUEST] 03. Business Information
+  4. [REQUEST] 04. Location & Address
+  5. [REQUEST] 05. Payment Methods
+8. [FOLDER] 08. Notifications – All roles (hub)
   1. [FOLDER] 01. Admin – /api/admin/notifications
     1. [REQUEST] 01. Delivery analytics
     2. [REQUEST] 02. Broadcast send
@@ -22,7 +48,52 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     1. [REQUEST] 01. List
     2. [REQUEST] 02. Mark as read
     3. [REQUEST] 03. Clear all
-3. [FOLDER] 03. Authentication
+9. [FOLDER] 09. Profile
+  1. [REQUEST] 01. GET Technician – Profile
+  2. [REQUEST] 02. PUT Technician – Profile update
+  3. [REQUEST] 03. POST Technician – Profile update
+10. [FOLDER] 10. My Team
+  1. [REQUEST] 01. Areas - List (for service area)
+  2. [REQUEST] 02. Team (My Team)
+  3. [REQUEST] 03. Team Stats
+  4. [REQUEST] 04. Team Member - Detail (by id)
+  5. [REQUEST] 05. Team Member - Update (POST form-data)
+  6. [REQUEST] 06. Team Members - Bulk Update (POST form-data)
+  7. [REQUEST] 07. Technician Signup Requests (GET)
+  8. [REQUEST] 08. Technician Signup Request - Confirm (POST)
+  9. [REQUEST] 09. Technician Signup Request - Cancel (POST)
+11. [FOLDER] 11. Admin (Bearer token)
+  1. [REQUEST] 01. List Products
+  2. [REQUEST] 02. Add Product (Multipart – with image files)
+  3. [REQUEST] 03. Add Platform Simple Product (checkout only — NO vendor_id)
+  4. [REQUEST] 04. Add Service Product (type=service)
+  5. [REQUEST] 05. Get Product Details
+  6. [REQUEST] 06. Update Product (POST multipart – recommended)
+  7. [REQUEST] 07. Update Product (PUT JSON – partial, no files)
+  8. [REQUEST] 08. Delete Product
+  9. [REQUEST] 09. Toggle Status
+  10. [REQUEST] 10. Reorder Products (drag-and-drop)
+  11. [REQUEST] 11. Bulk Delete
+  12. [REQUEST] 12. Bulk Update Status
+  13. [REQUEST] 13. Bulk Update Stock
+12. [FOLDER] 12. Teams
+  1. [REQUEST] 01. Teams - List
+  2. [REQUEST] 02. Teams - Detail
+  3. [REQUEST] 03. Teams - Jobs
+  4. [REQUEST] 04. Teams - Members
+  5. [REQUEST] 05. Teams - Member Jobs
+13. [FOLDER] 13. Employees
+  1. [REQUEST] 01. Positions - List
+  2. [REQUEST] 02. Employees - List
+  3. [REQUEST] 03. Employees - Create
+  4. [REQUEST] 04. Employees - Show
+  5. [REQUEST] 05. Employees - Update
+  6. [REQUEST] 06. Employees - Delete
+14. [FOLDER] 14. Application & Onboarding
+  1. [REQUEST] 01. Get application status
+  2. [REQUEST] 02. Submit for approval
+  3. [REQUEST] 03. Resubmit (after rejection)
+15. [FOLDER] 15. Authentication
   1. [FOLDER] 01. Client
     1. [REQUEST] 01. Register
     2. [REQUEST] 02. App roles (login picker)
@@ -43,7 +114,44 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     3. [REQUEST] 03. Login Vendor
     4. [REQUEST] 04. Validate vendor token (auth/me)
     5. [REQUEST] 05. Logout Vendor
-4. [FOLDER] 04. Client Dashboard
+16. [FOLDER] 16. Visits & Tasks
+  1. [REQUEST] 01. Technician - Get Assigned Visits
+  2. [REQUEST] 02. Technician - Accept Visit
+  3. [REQUEST] 03. Technician - Start Visit
+  4. [REQUEST] 04. Technician - Complete Visit
+  5. [REQUEST] 05. GET Technician – Tasks list
+  6. [REQUEST] 06. GET Technician – Task by ID
+  7. [REQUEST] 07. GET Technician – Task details
+  8. [REQUEST] 08. PUT Technician – Task status
+  9. [REQUEST] 09. POST Technician – Task accept
+  10. [REQUEST] 10. POST Technician – Task reject
+  11. [REQUEST] 11. GET Technician – Jobs history
+  12. [REQUEST] 12. GET Technician – Jobs (accepted)
+  13. [REQUEST] 13. GET Technician – Jobs (rejected)
+  14. [REQUEST] 14. GET Technician – Jobs status counts
+17. [FOLDER] 17. Assign Tasks
+  1. [REQUEST] 01. Assignments - List
+  2. [REQUEST] 02. Assignments - New Jobs (GET)
+  3. [REQUEST] 03. Assignments - One detail (GET)
+  4. [REQUEST] 04. Assignments - Claim job (POST)
+  5. [REQUEST] 05. Assignments - Reject job (POST)
+  6. [REQUEST] 06. Assign tasks page (team + tasks)
+  7. [REQUEST] 07. Assignments - Assign task (POST form-data)
+  8. [REQUEST] 08. Assignments - Update (POST)
+  9. [REQUEST] 09. Assignments - Reassign (POST form-data)
+18. [FOLDER] 18. Analytics
+  1. [REQUEST] 01. Analytics
+19. [FOLDER] 19. Leave Requests
+  1. [REQUEST] 01. Leave Requests - Create
+  2. [REQUEST] 02. Leave Requests - List
+  3. [REQUEST] 03. Leave Requests - Show
+  4. [REQUEST] 04. Leave Requests - Approve
+  5. [REQUEST] 05. Leave Requests - Reject
+20. [FOLDER] 20. Documents
+  1. [REQUEST] 01. List documents
+  2. [REQUEST] 02. Upload document (multipart)
+  3. [REQUEST] 03. Delete document
+21. [FOLDER] 21. Client Dashboard
   1. [FOLDER] 01. Auth & Account
     1. [REQUEST] 01. Get Profile
     2. [REQUEST] 02. Logout
@@ -76,9 +184,10 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
       3. [REQUEST] 03. Payment Intent - Apple Pay (POST)
       4. [REQUEST] 04. Confirm (POST)
   6. [FOLDER] 06. Notifications
-    1. [REQUEST] 01. Notifications (GET)
-    2. [REQUEST] 02. Notifications – Clear All (POST)
-    3. [FOLDER] 03. Client notifications (/api/client/notifications)
+    1. [FOLDER] 01. Notifications APIs
+      1. [REQUEST] 01. Notifications (GET)
+      2. [REQUEST] 02. Notifications – Clear All (POST)
+    2. [FOLDER] 02. Client notifications (/api/client/notifications)
       1. [REQUEST] 01. Notifications - Statics list (with filters)
       2. [REQUEST] 02. Notifications - Mark as Read
       3. [REQUEST] 03. Notifications - Mark All as Read
@@ -194,31 +303,62 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
       10. [REQUEST] 10. Validate invalid code (expect 422)
     12. [FOLDER] 12. Client – Maintenance Photos
       1. [REQUEST] 01. List Maintenance Photos (GET)
-5. [FOLDER] 05. Admin Dashboard
-  1. [FOLDER] 01. Stats, Users & HR
-    1. [REQUEST] 01. Admin Dashboard Statistics
-    2. [REQUEST] 02. Admin Dashboard Recent Activities
-    3. [REQUEST] 03. Admin Dashboard Order Statistics
-    4. [REQUEST] 04. Admin Dashboard Order Statistics - Orders Buckets
-    5. [REQUEST] 05. Admin Dashboard Quick Overview
-    6. [REQUEST] 06. Admin Dashboard Profile
-    7. [REQUEST] 07. PUT/POST Admin Dashboard Profile (Update)
-    8. [REQUEST] 08. Admin Dashboard Top Selling Products
-    9. [REQUEST] 09. Admin Users Statistics
-    10. [REQUEST] 10. Admin Users List
-    11. [REQUEST] 11. Users - List
-    12. [REQUEST] 12. Users - Create
-    13. [REQUEST] 13. Users - Get
-    14. [REQUEST] 14. Users - Update
-    15. [REQUEST] 15. Users - Delete
-    16. [REQUEST] 16. Roles - List
-    17. [REQUEST] 17. Roles - Create
-    18. [REQUEST] 18. HR - Employees - List
-    19. [REQUEST] 19. HR - Employees - Create
-    20. [REQUEST] 20. HR - Employees - Get
-    21. [REQUEST] 21. HR - Employees - Update
-    22. [REQUEST] 22. HR - Employees - Delete
-    23. [FOLDER] 23. Admin Notifications (Dedicated API)
+22. [FOLDER] 22. Reports & Field Notes
+  1. [REQUEST] 01. Technician - Submit Field Report to Supervisor
+  2. [REQUEST] 02. Technician - Field notes (list)
+23. [FOLDER] 23. Reports
+  1. [REQUEST] 01. Reports - List
+  2. [REQUEST] 02. Reports - List Pending (Pending Field Reports)
+  3. [REQUEST] 03. Reports - Accept (field report)
+  4. [REQUEST] 04. Reports - Reject (field report)
+  5. [REQUEST] 05. Reports - Generate (POST form-data)
+  6. [REQUEST] 06. Reports - Show
+  7. [REQUEST] 07. Reports - Download CSV
+  8. [REQUEST] 08. Visit Report - Review Visit
+  9. [REQUEST] 09. Visit Report - Recommend Products (POST form-data)
+  10. [REQUEST] 10. Visit Report - Finalize / Share to Client (POST)
+24. [FOLDER] 24. Reports
+  1. [REQUEST] 01. Reports - List
+  2. [REQUEST] 02. Reports - Generate
+  3. [REQUEST] 03. Generated Reports - List
+  4. [REQUEST] 04. Generated Reports - Download
+  5. [REQUEST] 05. Generated Reports - View
+25. [FOLDER] 25. Profile
+  1. [REQUEST] 01. Profile - Get
+  2. [REQUEST] 02. Profile - Update
+26. [FOLDER] 26. Dashboard (approved only)
+  1. [REQUEST] 01. Dashboard stats
+  2. [REQUEST] 02. Dashboard summary (mobile cards)
+27. [FOLDER] 27. Admin Dashboard
+  1. [FOLDER] 01. Admin Dashboard APIs
+    1. [REQUEST] 01. Admin Wallet Overview
+    2. [REQUEST] 02. Admin Wallet Credits Ledger
+    3. [REQUEST] 03. Admin Wallet Client Detail
+  2. [FOLDER] 02. Stats, Users & HR
+    1. [FOLDER] 01. Stats, Users & HR APIs
+      1. [REQUEST] 01. Admin Dashboard Statistics
+      2. [REQUEST] 02. Admin Dashboard Recent Activities
+      3. [REQUEST] 03. Admin Dashboard Order Statistics
+      4. [REQUEST] 04. Admin Dashboard Order Statistics - Orders Buckets
+      5. [REQUEST] 05. Admin Dashboard Quick Overview
+      6. [REQUEST] 06. Admin Dashboard Profile
+      7. [REQUEST] 07. PUT/POST Admin Dashboard Profile (Update)
+      8. [REQUEST] 08. Admin Dashboard Top Selling Products
+      9. [REQUEST] 09. Admin Users Statistics
+      10. [REQUEST] 10. Admin Users List
+      11. [REQUEST] 11. Users - List
+      12. [REQUEST] 12. Users - Create
+      13. [REQUEST] 13. Users - Get
+      14. [REQUEST] 14. Users - Update
+      15. [REQUEST] 15. Users - Delete
+      16. [REQUEST] 16. Roles - List
+      17. [REQUEST] 17. Roles - Create
+      18. [REQUEST] 18. HR - Employees - List
+      19. [REQUEST] 19. HR - Employees - Create
+      20. [REQUEST] 20. HR - Employees - Get
+      21. [REQUEST] 21. HR - Employees - Update
+      22. [REQUEST] 22. HR - Employees - Delete
+    2. [FOLDER] 02. Admin Notifications (Dedicated API)
       1. [REQUEST] 01. Notifications - Delivery analytics
       2. [REQUEST] 02. Notifications - Broadcast options (roles)
       3. [REQUEST] 03. Notifications - Broadcast recipients by role
@@ -230,7 +370,7 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
       9. [REQUEST] 09. Notifications - Mark All as Read
       10. [REQUEST] 10. Notifications - Delete
       11. [REQUEST] 11. Notifications - Clear All
-  2. [FOLDER] 02. Reports Management
+  3. [FOLDER] 03. Reports Management
     1. [REQUEST] 01. Get All Reports
     2. [REQUEST] 02. Get Report Statistics
     3. [REQUEST] 03. Generate Report
@@ -239,7 +379,7 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     6. [REQUEST] 06. Download Report
     7. [REQUEST] 07. Cancel Scheduled Report
     8. [REQUEST] 08. Delete Report
-  3. [FOLDER] 03. Support
+  4. [FOLDER] 04. Support
     1. [FOLDER] 01. Support Tickets
       1. [REQUEST] 01. GET List Support Tickets
       2. [REQUEST] 02. GET Support Ticket by ID
@@ -251,27 +391,28 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
       3. [REQUEST] 03. Poll new messages
       4. [REQUEST] 04. Reply to vendor
       5. [REQUEST] 05. Update chat status
-  4. [FOLDER] 04. Settings (Mobile)
-    1. [REQUEST] 01. Get All Settings
-    2. [REQUEST] 02. Get System Settings
-    3. [REQUEST] 03. Update System Settings
-    4. [REQUEST] 04. Get Theme
-    5. [REQUEST] 05. Update Theme
-    6. [REQUEST] 06. Get Language
-    7. [REQUEST] 07. Update Language
-    8. [REQUEST] 08. Get Payment Settings
-    9. [REQUEST] 09. Update Payment Settings
-    10. [REQUEST] 10. Get Shop Settings (Shipping & Tax)
-    11. [REQUEST] 11. Update Shop Settings (Shipping & Tax)
-    12. [REQUEST] 12. Get Instant Order Fee
-    13. [REQUEST] 13. Update Instant Order Fee
-    14. [REQUEST] 14. Get Service Pricing Settings
-    15. [REQUEST] 15. Update Service Pricing Settings (form-data)
-    16. [REQUEST] 16. Update Service Pricing Settings (PUT form-data)
-    17. [REQUEST] 17. Get Tree Palm Pricing Settings
-    18. [REQUEST] 18. Update Tree Palm Pricing Settings (form-data)
-    19. [REQUEST] 19. Export Data
-    20. [FOLDER] 20. Legal & Contact Content
+  5. [FOLDER] 05. Settings (Mobile)
+    1. [FOLDER] 01. Settings APIs
+      1. [REQUEST] 01. Get All Settings
+      2. [REQUEST] 02. Get System Settings
+      3. [REQUEST] 03. Update System Settings
+      4. [REQUEST] 04. Get Theme
+      5. [REQUEST] 05. Update Theme
+      6. [REQUEST] 06. Get Language
+      7. [REQUEST] 07. Update Language
+      8. [REQUEST] 08. Get Payment Settings
+      9. [REQUEST] 09. Update Payment Settings
+      10. [REQUEST] 10. Get Shop Settings (Shipping & Tax)
+      11. [REQUEST] 11. Update Shop Settings (Shipping & Tax)
+      12. [REQUEST] 12. Get Instant Order Fee
+      13. [REQUEST] 13. Update Instant Order Fee
+      14. [REQUEST] 14. Get Service Pricing Settings
+      15. [REQUEST] 15. Update Service Pricing Settings (form-data)
+      16. [REQUEST] 16. Update Service Pricing Settings (PUT form-data)
+      17. [REQUEST] 17. Get Tree Palm Pricing Settings
+      18. [REQUEST] 18. Update Tree Palm Pricing Settings (form-data)
+      19. [REQUEST] 19. Export Data
+    2. [FOLDER] 02. Legal & Contact Content
       1. [FOLDER] 01. Client - Legal Admin
         1. [REQUEST] 01. List pages
         2. [REQUEST] 02. Get Contact Us
@@ -289,7 +430,7 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
         5. [REQUEST] 05. Save Terms and Conditions - form-data
         6. [REQUEST] 06. Get Privacy Policy
         7. [REQUEST] 07. Save Privacy Policy - form-data
-  5. [FOLDER] 05. Banners
+  6. [FOLDER] 06. Banners
     1. [REQUEST] 01. List All Banners (Admin)
     2. [REQUEST] 02. Create Banner
     3. [REQUEST] 03. Get Banner (Admin)
@@ -297,14 +438,14 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     5. [REQUEST] 05. Update Banner Order
     6. [REQUEST] 06. Toggle Banner Status
     7. [REQUEST] 07. Delete Banner
-  6. [FOLDER] 06. Video Banner
+  7. [FOLDER] 07. Video Banner
     1. [REQUEST] 01. List All Video Banners (Admin)
     2. [REQUEST] 02. Create Video Banner
     3. [REQUEST] 03. Get Video Banner (Admin)
     4. [REQUEST] 04. Update Video Banner
     5. [REQUEST] 05. Toggle Video Banner Status
     6. [REQUEST] 06. Delete Video Banner
-  7. [FOLDER] 07. Loyalty Points (Admin)
+  8. [FOLDER] 08. Loyalty Points (Admin)
     1. [FOLDER] 01. Dashboard
       1. [REQUEST] 01. Control Center (GET)
       2. [REQUEST] 02. Toggle Loyalty System (PUT)
@@ -330,31 +471,31 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     6. [FOLDER] 06. Reports & Export
       1. [REQUEST] 01. Reports (GET)
       2. [REQUEST] 02. Export PDF (GET)
-  8. [FOLDER] 08. Packages
+  9. [FOLDER] 09. Packages
     1. [REQUEST] 01. List Packages (Admin)
     2. [REQUEST] 02. Create Package
     3. [REQUEST] 03. Update Package
-  9. [FOLDER] 09. Orders Export
+  10. [FOLDER] 10. Orders Export
     1. [REQUEST] 01. Export Orders (CSV)
     2. [REQUEST] 02. Send Orders to Supplier
     3. [REQUEST] 03. Cancel Order (Admin)
     4. [REQUEST] 04. Bulk Delete Orders (Admin)
     5. [REQUEST] 05. Refund Order (Admin)
-  10. [FOLDER] 10. Coupons
+  11. [FOLDER] 11. Coupons
     1. [REQUEST] 01. List coupons (GET)
     2. [REQUEST] 02. Get coupon by id (GET)
     3. [REQUEST] 03. Add coupon – Percentage (form-data)
     4. [REQUEST] 04. Add coupon – Fixed amount (form-data)
     5. [REQUEST] 05. Edit coupon (form-data PUT)
     6. [REQUEST] 06. Delete coupon (DELETE)
-  11. [FOLDER] 11. Maintenance Photos
+  12. [FOLDER] 12. Maintenance Photos
     1. [REQUEST] 01. List maintenance photos (GET)
     2. [REQUEST] 02. Get maintenance photo detail (edit screen)
     3. [REQUEST] 03. Add maintenance photo (form-data POST)
     4. [REQUEST] 04. Update maintenance photo (form-data PUT)
     5. [REQUEST] 05. Update maintenance photo (form-data POST)
     6. [REQUEST] 06. Delete maintenance photo (DELETE)
-  12. [FOLDER] 12. Subscriptions
+  13. [FOLDER] 13. Subscriptions
     1. [REQUEST] 01. Get Plans (Public)
     2. [REQUEST] 02. Create Subscription
     3. [REQUEST] 03. List Subscriptions (All Clients)
@@ -362,7 +503,7 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     5. [REQUEST] 05. Update Subscription
     6. [REQUEST] 06. Mark Subscription Paid
     7. [REQUEST] 07. Delete Subscription
-  13. [FOLDER] 13. Job Scheduling
+  14. [FOLDER] 14. Job Scheduling
     1. [FOLDER] 01. Working Hours & Capacity
       1. [REQUEST] 01. Get Working Hours & Capacity
       2. [REQUEST] 02. Update Working Hours & Capacity
@@ -390,7 +531,7 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
       3. [REQUEST] 03. Jobs Calendar - Month view
       4. [REQUEST] 04. Booking Detail (tap a job on the calendar)
       5. [REQUEST] 05. Update Booking Detail (Save changes / Reschedule & notify)
-  14. [FOLDER] 14. Admin – Supervisor (Contractor) Registrations
+  15. [FOLDER] 15. Admin – Supervisor (Contractor) Registrations
     1. [REQUEST] 01. List (Contractor Management)
     2. [REQUEST] 02. Recent contractor requests (dashboard)
     3. [REQUEST] 03. Show contractor application
@@ -401,247 +542,147 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
     8. [REQUEST] 08. Set inactive
     9. [REQUEST] 09. Activate account
     10. [REQUEST] 10. Delete contractor
-  15. [FOLDER] 15. Admin – Contractor Signup Options
+  16. [FOLDER] 16. Admin – Contractor Signup Options
     1. [REQUEST] 01. Screen (tab list)
     2. [REQUEST] 02. Toggle registration open/closed
     3. [REQUEST] 03. Add option (+)
     4. [REQUEST] 04. Edit option
     5. [REQUEST] 05. Toggle option active on signup
     6. [REQUEST] 06. Delete option
-  16. [FOLDER] 16. Admin Wallet APIs
-    1. [REQUEST] 01. Admin Wallet Overview
-    2. [REQUEST] 02. Admin Wallet Credits Ledger
-    3. [REQUEST] 03. Admin Wallet Client Detail
-6. [FOLDER] 06. Technician Dashboard – All APIs
-  1. [FOLDER] 01. Dashboard
-    1. [REQUEST] 01. GET Technician – Dashboard
-  2. [FOLDER] 02. Profile
-    1. [REQUEST] 01. GET Technician – Profile
-    2. [REQUEST] 02. PUT Technician – Profile update
-    3. [REQUEST] 03. POST Technician – Profile update
-  3. [FOLDER] 03. Visits & Tasks
-    1. [REQUEST] 01. Technician - Get Assigned Visits
-    2. [REQUEST] 02. Technician - Accept Visit
-    3. [REQUEST] 03. Technician - Start Visit
-    4. [REQUEST] 04. Technician - Complete Visit
-    5. [REQUEST] 05. GET Technician – Tasks list
-    6. [REQUEST] 06. GET Technician – Task by ID
-    7. [REQUEST] 07. GET Technician – Task details
-    8. [REQUEST] 08. PUT Technician – Task status
-    9. [REQUEST] 09. POST Technician – Task accept
-    10. [REQUEST] 10. POST Technician – Task reject
-    11. [REQUEST] 11. GET Technician – Jobs history
-    12. [REQUEST] 12. GET Technician – Jobs (accepted)
-    13. [REQUEST] 13. GET Technician – Jobs (rejected)
-    14. [REQUEST] 14. GET Technician – Jobs status counts
-  4. [FOLDER] 04. Reports & Field Notes
-    1. [REQUEST] 01. Technician - Submit Field Report to Supervisor
-    2. [REQUEST] 02. Technician - Field notes (list)
-  5. [FOLDER] 05. Leave Requests
-    1. [REQUEST] 01. Leave Request Types
-    2. [REQUEST] 02. Leave Requests - List
-    3. [REQUEST] 03. Leave Request - Submit
-    4. [REQUEST] 04. Leave Request - Show
-  6. [FOLDER] 06. Alerts
-    1. [REQUEST] 01. Alerts - List
-  7. [FOLDER] 07. Service Areas & Specializations
-    1. [REQUEST] 01. GET Technician – Service areas
-    2. [REQUEST] 02. PUT Technician – Service areas
-    3. [REQUEST] 03. GET Technician – Specializations
-    4. [REQUEST] 04. POST Technician – Specializations (form-data)
-  8. [FOLDER] 08. Availability & Schedule
-    1. [REQUEST] 01. GET Technician – Leave types
-    2. [REQUEST] 02. GET Technician – Availability
-    3. [REQUEST] 03. PUT Technician – Availability update
-    4. [REQUEST] 04. GET Technician – Schedule
-  9. [FOLDER] 09. Payout & Bank
-    1. [REQUEST] 01. GET Technician – Payout summary
-    2. [REQUEST] 02. GET Technician – Payout history
-    3. [REQUEST] 03. GET Technician – Payout settings
-    4. [REQUEST] 04. PUT Technician – Payout settings
-    5. [REQUEST] 05. GET Technician – Bank accounts
-    6. [REQUEST] 06. POST Technician – Bank account add
-    7. [REQUEST] 07. PUT Technician – Bank account update
-    8. [REQUEST] 08. DELETE Technician – Bank account delete
-  10. [FOLDER] 10. Notifications
-    1. [REQUEST] 01. Notifications - List
-    2. [REQUEST] 02. Notifications - Mark as Read
-    3. [REQUEST] 03. Notifications - Mark All as Read
-    4. [REQUEST] 04. Notifications - Delete
-    5. [REQUEST] 05. Notifications - Clear All
-  11. [FOLDER] 11. Support
-    1. [REQUEST] 01. GET Technician – Support help center
-    2. [REQUEST] 02. GET Technician – Support FAQs
-    3. [REQUEST] 03. POST Technician – Support submit ticket
-    4. [REQUEST] 04. GET Technician – Support list my tickets
-    5. [REQUEST] 05. GET Technician – Support get ticket by ID (chat thread)
-    6. [REQUEST] 06. POST Technician – Support reply to ticket
-7. [FOLDER] 07. Supervisor Dashboard – All APIs
-  1. [FOLDER] 01. Dashboard
-    1. [REQUEST] 01. Dashboard - Summary
-    2. [REQUEST] 02. Dashboard - KPIs
-    3. [REQUEST] 03. Dashboard - Alerts
-  2. [FOLDER] 02. My Team
-    1. [REQUEST] 01. Areas - List (for service area)
-    2. [REQUEST] 02. Team (My Team)
-    3. [REQUEST] 03. Team Stats
-    4. [REQUEST] 04. Team Member - Detail (by id)
-    5. [REQUEST] 05. Team Member - Update (POST form-data)
-    6. [REQUEST] 06. Team Members - Bulk Update (POST form-data)
-    7. [REQUEST] 07. Technician Signup Requests (GET)
-    8. [REQUEST] 08. Technician Signup Request - Confirm (POST)
-    9. [REQUEST] 09. Technician Signup Request - Cancel (POST)
-  3. [FOLDER] 03. Assign Tasks
-    1. [REQUEST] 01. Assignments - List
-    2. [REQUEST] 02. Assignments - New Jobs (GET)
-    3. [REQUEST] 03. Assignments - One detail (GET)
-    4. [REQUEST] 04. Assignments - Claim job (POST)
-    5. [REQUEST] 05. Assignments - Reject job (POST)
-    6. [REQUEST] 06. Assign tasks page (team + tasks)
-    7. [REQUEST] 07. Assignments - Assign task (POST form-data)
-    8. [REQUEST] 08. Assignments - Update (POST)
-    9. [REQUEST] 09. Assignments - Reassign (POST form-data)
-  4. [FOLDER] 04. Reports
-    1. [REQUEST] 01. Reports - List
-    2. [REQUEST] 02. Reports - List Pending (Pending Field Reports)
-    3. [REQUEST] 03. Reports - Accept (field report)
-    4. [REQUEST] 04. Reports - Reject (field report)
-    5. [REQUEST] 05. Reports - Generate (POST form-data)
-    6. [REQUEST] 06. Reports - Show
-    7. [REQUEST] 07. Reports - Download CSV
-    8. [REQUEST] 08. Visit Report - Review Visit
-    9. [REQUEST] 09. Visit Report - Recommend Products (POST form-data)
-    10. [REQUEST] 10. Visit Report - Finalize / Share to Client (POST)
-  5. [FOLDER] 05. Leave Requests
-    1. [REQUEST] 01. Leave Request Types
-    2. [REQUEST] 02. Leave Requests - List
-    3. [REQUEST] 03. Leave Request - Submit
-    4. [REQUEST] 04. Leave Request - Show
-  6. [FOLDER] 06. Alerts
-    1. [REQUEST] 01. Alerts - List
-  7. [FOLDER] 07. Profile
-    1. [REQUEST] 01. Profile - Get
-    2. [REQUEST] 02. Profile - Update (form-data)
-    3. [REQUEST] 03. Profile - Preferences
-  8. [FOLDER] 08. Support Tickets (Chat)
-    1. [REQUEST] 01. Support – Help Center
-    2. [REQUEST] 02. Support – FAQs
-    3. [REQUEST] 03. Support – Submit ticket
-    4. [REQUEST] 04. Support – List my tickets
-    5. [REQUEST] 05. Support – Get ticket by ID (chat thread)
-    6. [REQUEST] 06. Support – Reply to ticket
-  9. [FOLDER] 09. Notifications
-    1. [REQUEST] 01. Notifications - List
-    2. [REQUEST] 02. Notifications - Mark as Read
-    3. [REQUEST] 03. Notifications - Mark All as Read
-    4. [REQUEST] 04. Notifications - Delete
-    5. [REQUEST] 05. Notifications - Clear All
-8. [FOLDER] 08. Products - All APIs
-  1. [FOLDER] 01. Public (no auth)
-    1. [REQUEST] 01. List Products
-    2. [REQUEST] 02. Featured Products
-    3. [REQUEST] 03. Get Product Details
-    4. [REQUEST] 04. Search Products
-    5. [REQUEST] 05. Get Categories
-    6. [REQUEST] 06. Get Products by Category
-  2. [FOLDER] 02. Admin (Bearer token)
-    1. [REQUEST] 01. List Products
-    2. [REQUEST] 02. Add Product (Multipart – with image files)
-    3. [REQUEST] 03. Add Platform Simple Product (checkout only — NO vendor_id)
-    4. [REQUEST] 04. Add Service Product (type=service)
-    5. [REQUEST] 05. Get Product Details
-    6. [REQUEST] 06. Update Product (POST multipart – recommended)
-    7. [REQUEST] 07. Update Product (PUT JSON – partial, no files)
-    8. [REQUEST] 08. Delete Product
-    9. [REQUEST] 09. Toggle Status
-    10. [REQUEST] 10. Reorder Products (drag-and-drop)
-    11. [REQUEST] 11. Bulk Delete
-    12. [REQUEST] 12. Bulk Update Status
-    13. [REQUEST] 13. Bulk Update Stock
-9. [FOLDER] 09. Area Manager Dashboard – All APIs
-  1. [FOLDER] 01. Dashboard
-    1. [REQUEST] 01. Dashboard - Summary
-    2. [REQUEST] 02. Dashboard - Alerts
-    3. [REQUEST] 03. Region Map
-  2. [FOLDER] 02. Teams
-    1. [REQUEST] 01. Teams - List
-    2. [REQUEST] 02. Teams - Detail
-    3. [REQUEST] 03. Teams - Jobs
-    4. [REQUEST] 04. Teams - Members
-    5. [REQUEST] 05. Teams - Member Jobs
-  3. [FOLDER] 03. Analytics
-    1. [REQUEST] 01. Analytics
-  4. [FOLDER] 04. Reports
-    1. [REQUEST] 01. Reports - List
-    2. [REQUEST] 02. Reports - Generate
-    3. [REQUEST] 03. Generated Reports - List
-    4. [REQUEST] 04. Generated Reports - Download
-    5. [REQUEST] 05. Generated Reports - View
-  5. [FOLDER] 05. Profile
-    1. [REQUEST] 01. Profile - Get
-    2. [REQUEST] 02. Profile - Update
-  6. [FOLDER] 06. Notifications
-    1. [REQUEST] 01. Notifications - List
-    2. [REQUEST] 02. Notifications - Mark as Read
-    3. [REQUEST] 03. Notifications - Mark All as Read
-    4. [REQUEST] 04. Notifications - Delete
-    5. [REQUEST] 05. Notifications - Clear All
-  7. [FOLDER] 07. Help & Support
-    1. [REQUEST] 01. Help Center (GET)
-    2. [REQUEST] 02. FAQs (GET)
-    3. [REQUEST] 03. Submit ticket (POST)
-    4. [REQUEST] 04. List my tickets (GET)
-    5. [REQUEST] 05. Get ticket by ID (GET)
-    6. [REQUEST] 06. Reply to ticket (POST)
-  8. [FOLDER] 08. Legacy – Team Leaders
-    1. [REQUEST] 01. Team Leaders - List (legacy)
-    2. [REQUEST] 02. Team Leader - Detail (legacy)
-    3. [REQUEST] 03. Team Leader - Jobs (legacy)
-10. [FOLDER] 10. HR Manager Dashboard – All APIs
-  1. [FOLDER] 01. Dashboard
-    1. [REQUEST] 01. Dashboard - Summary
-    2. [REQUEST] 02. Dashboard - Visit Assignments
-  2. [FOLDER] 02. Employees
-    1. [REQUEST] 01. Positions - List
-    2. [REQUEST] 02. Employees - List
-    3. [REQUEST] 03. Employees - Create
-    4. [REQUEST] 04. Employees - Show
-    5. [REQUEST] 05. Employees - Update
-    6. [REQUEST] 06. Employees - Delete
-  3. [FOLDER] 03. Leave Requests
-    1. [REQUEST] 01. Leave Requests - Create
-    2. [REQUEST] 02. Leave Requests - List
-    3. [REQUEST] 03. Leave Requests - Show
-    4. [REQUEST] 04. Leave Requests - Approve
-    5. [REQUEST] 05. Leave Requests - Reject
-  4. [FOLDER] 04. Profile
-    1. [REQUEST] 01. Profile - Get
-    2. [REQUEST] 02. Profile - Update
-  5. [FOLDER] 05. Help & Support
-    1. [REQUEST] 01. Help Center (GET)
-    2. [REQUEST] 02. FAQs (GET)
-    3. [REQUEST] 03. Submit ticket (POST)
-    4. [REQUEST] 04. List my tickets (GET)
-    5. [REQUEST] 05. Get ticket by ID (GET)
-    6. [REQUEST] 06. Reply to ticket (POST)
-  6. [FOLDER] 06. Visit assignments & Monthly reports
-    1. [REQUEST] 01. Visit assignments - List
-    2. [REQUEST] 02. Visit assignments - Summary
-    3. [REQUEST] 03. Visit assignments - Assign screen
-    4. [REQUEST] 04. Visit assignments - Offer to technician (POST)
-    5. [REQUEST] 05. Reports - Technician monthly preview (GET)
-    6. [REQUEST] 06. Reports - List my generated (GET)
-    7. [REQUEST] 07. Reports - Generate PDF (POST)
-    8. [REQUEST] 08. Reports - Download (GET)
-    9. [REQUEST] 09. Reports - Download Public URL (GET)
-    10. [REQUEST] 10. Reports - Delete (DELETE)
-  7. [FOLDER] 07. Notifications
-    1. [REQUEST] 01. Notifications - List
-    2. [REQUEST] 02. Notifications - Mark as Read
-    3. [REQUEST] 03. Notifications - Mark All as Read
-    4. [REQUEST] 04. Notifications - Delete
-    5. [REQUEST] 05. Notifications - Clear All
-11. [FOLDER] 11. Other Modules
+28. [FOLDER] 28. Leave Requests
+  1. [REQUEST] 01. Leave Request Types
+  2. [REQUEST] 02. Leave Requests - List
+  3. [REQUEST] 03. Leave Request - Submit
+  4. [REQUEST] 04. Leave Request - Show
+29. [FOLDER] 29. Leave Requests
+  1. [REQUEST] 01. Leave Request Types
+  2. [REQUEST] 02. Leave Requests - List
+  3. [REQUEST] 03. Leave Request - Submit
+  4. [REQUEST] 04. Leave Request - Show
+30. [FOLDER] 30. Profile
+  1. [REQUEST] 01. Profile - Get
+  2. [REQUEST] 02. Profile - Update
+31. [FOLDER] 31. Help & Support
+  1. [REQUEST] 01. Help Center (GET)
+  2. [REQUEST] 02. FAQs (GET)
+  3. [REQUEST] 03. Submit ticket (POST)
+  4. [REQUEST] 04. List my tickets (GET)
+  5. [REQUEST] 05. Get ticket by ID (GET)
+  6. [REQUEST] 06. Reply to ticket (POST)
+32. [FOLDER] 32. Performance Analytics (approved only)
+  1. [REQUEST] 01. Get performance analytics
+  2. [REQUEST] 02. Export performance report (PDF)
+  3. [REQUEST] 03. Share performance analytics (public link)
+33. [FOLDER] 33. Alerts
+  1. [REQUEST] 01. Alerts - List
+34. [FOLDER] 34. Alerts
+  1. [REQUEST] 01. Alerts - List
+35. [FOLDER] 35. Notifications
+  1. [REQUEST] 01. Notifications - List
+  2. [REQUEST] 02. Notifications - Mark as Read
+  3. [REQUEST] 03. Notifications - Mark All as Read
+  4. [REQUEST] 04. Notifications - Delete
+  5. [REQUEST] 05. Notifications - Clear All
+36. [FOLDER] 36. Visit assignments & Monthly reports
+  1. [REQUEST] 01. Visit assignments - List
+  2. [REQUEST] 02. Visit assignments - Summary
+  3. [REQUEST] 03. Visit assignments - Assign screen
+  4. [REQUEST] 04. Visit assignments - Offer to technician (POST)
+  5. [REQUEST] 05. Reports - Technician monthly preview (GET)
+  6. [REQUEST] 06. Reports - List my generated (GET)
+  7. [REQUEST] 07. Reports - Generate PDF (POST)
+  8. [REQUEST] 08. Reports - Download (GET)
+  9. [REQUEST] 09. Reports - Download Public URL (GET)
+  10. [REQUEST] 10. Reports - Delete (DELETE)
+37. [FOLDER] 37. Support & Live Chat
+  1. [REQUEST] 01. Open live chat
+  2. [REQUEST] 02. Poll new messages
+  3. [REQUEST] 03. Send message
+38. [FOLDER] 38. Service Areas & Specializations
+  1. [REQUEST] 01. GET Technician – Service areas
+  2. [REQUEST] 02. PUT Technician – Service areas
+  3. [REQUEST] 03. GET Technician – Specializations
+  4. [REQUEST] 04. POST Technician – Specializations (form-data)
+39. [FOLDER] 39. Profile
+  1. [REQUEST] 01. Profile - Get
+  2. [REQUEST] 02. Profile - Update (form-data)
+  3. [REQUEST] 03. Profile - Preferences
+40. [FOLDER] 40. Help & Support
+  1. [REQUEST] 01. Help Center (GET)
+  2. [REQUEST] 02. FAQs (GET)
+  3. [REQUEST] 03. Submit ticket (POST)
+  4. [REQUEST] 04. List my tickets (GET)
+  5. [REQUEST] 05. Get ticket by ID (GET)
+  6. [REQUEST] 06. Reply to ticket (POST)
+41. [FOLDER] 41. Notifications
+  1. [REQUEST] 01. Notifications - List
+  2. [REQUEST] 02. Notifications - Mark as Read
+  3. [REQUEST] 03. Notifications - Mark All as Read
+  4. [REQUEST] 04. Notifications - Delete
+  5. [REQUEST] 05. Notifications - Clear All
+42. [FOLDER] 42. Add Product – Dropdown options
+  1. [REQUEST] 01. Get categories (id + name)
+  2. [REQUEST] 02. Get all services (id + name)
+  3. [REQUEST] 03. List my products by category
+43. [FOLDER] 43. Availability & Schedule
+  1. [REQUEST] 01. GET Technician – Leave types
+  2. [REQUEST] 02. GET Technician – Availability
+  3. [REQUEST] 03. PUT Technician – Availability update
+  4. [REQUEST] 04. GET Technician – Schedule
+44. [FOLDER] 44. Support Tickets (Chat)
+  1. [REQUEST] 01. Support – Help Center
+  2. [REQUEST] 02. Support – FAQs
+  3. [REQUEST] 03. Support – Submit ticket
+  4. [REQUEST] 04. Support – List my tickets
+  5. [REQUEST] 05. Support – Get ticket by ID (chat thread)
+  6. [REQUEST] 06. Support – Reply to ticket
+45. [FOLDER] 45. Legacy – Team Leaders
+  1. [REQUEST] 01. Team Leaders - List (legacy)
+  2. [REQUEST] 02. Team Leader - Detail (legacy)
+  3. [REQUEST] 03. Team Leader - Jobs (legacy)
+46. [FOLDER] 46. Categories (approved only – read-only)
+  1. [REQUEST] 01. List platform categories
+  2. [REQUEST] 02. Get platform category
+  3. [REQUEST] 03. Create category (blocked)
+47. [FOLDER] 47. Payout & Bank
+  1. [REQUEST] 01. GET Technician – Payout summary
+  2. [REQUEST] 02. GET Technician – Payout history
+  3. [REQUEST] 03. GET Technician – Payout settings
+  4. [REQUEST] 04. PUT Technician – Payout settings
+  5. [REQUEST] 05. GET Technician – Bank accounts
+  6. [REQUEST] 06. POST Technician – Bank account add
+  7. [REQUEST] 07. PUT Technician – Bank account update
+  8. [REQUEST] 08. DELETE Technician – Bank account delete
+48. [FOLDER] 48. Notifications
+  1. [REQUEST] 01. Notifications - List
+  2. [REQUEST] 02. Notifications - Mark as Read
+  3. [REQUEST] 03. Notifications - Mark All as Read
+  4. [REQUEST] 04. Notifications - Delete
+  5. [REQUEST] 05. Notifications - Clear All
+49. [FOLDER] 49. Services (approved only – read-only)
+  1. [REQUEST] 01. List platform services
+  2. [REQUEST] 02. Get platform service
+  3. [REQUEST] 03. Create service (blocked)
+50. [FOLDER] 50. Notifications
+  1. [REQUEST] 01. Notifications - List
+  2. [REQUEST] 02. Notifications - Mark as Read
+  3. [REQUEST] 03. Notifications - Mark All as Read
+  4. [REQUEST] 04. Notifications - Delete
+  5. [REQUEST] 05. Notifications - Clear All
+51. [FOLDER] 51. Products (approved only)
+  1. [REQUEST] 01. List products
+  2. [REQUEST] 02. Create product (multipart – same as Admin)
+  3. [REQUEST] 03. Get product
+  4. [REQUEST] 04. Update product (multipart – same as Admin)
+  5. [REQUEST] 05. Delete product
+52. [FOLDER] 52. Support
+  1. [REQUEST] 01. GET Technician – Support help center
+  2. [REQUEST] 02. GET Technician – Support FAQs
+  3. [REQUEST] 03. POST Technician – Support submit ticket
+  4. [REQUEST] 04. GET Technician – Support list my tickets
+  5. [REQUEST] 05. GET Technician – Support get ticket by ID (chat thread)
+  6. [REQUEST] 06. POST Technician – Support reply to ticket
+53. [FOLDER] 53. Other Modules
   1. [FOLDER] 01. Support Tickets – All roles (Client, Technician, Supervisor, Area Manager, HR)
     1. [REQUEST] 01. Help Center (GET)
     2. [REQUEST] 02. FAQs (GET)
@@ -765,114 +806,70 @@ COLLECTION_ID: 5bbab83d-3184-48f2-8aad-5dc9cf8c195d
   18. [FOLDER] 18. Localized articles (multilingual demo)
     1. [REQUEST] 01. List localized articles
     2. [REQUEST] 02. Get localized article (welcome-guide)
-12. [FOLDER] 12. Vendor Dashboard – All APIs
-  1. [FOLDER] 01. Business Profile
-    1. [REQUEST] 01. Get profile
-    2. [REQUEST] 02. Update profile
-    3. [REQUEST] 03. Business Information
-    4. [REQUEST] 04. Location & Address
-    5. [REQUEST] 05. Payment Methods
-  2. [FOLDER] 02. Application & Onboarding
-    1. [REQUEST] 01. Get application status
-    2. [REQUEST] 02. Submit for approval
-    3. [REQUEST] 03. Resubmit (after rejection)
-  3. [FOLDER] 03. Documents
-    1. [REQUEST] 01. List documents
-    2. [REQUEST] 02. Upload document (multipart)
-    3. [REQUEST] 03. Delete document
-  4. [FOLDER] 04. Dashboard (approved only)
-    1. [REQUEST] 01. Dashboard stats
-    2. [REQUEST] 02. Dashboard summary (mobile cards)
-  5. [FOLDER] 05. Performance Analytics (approved only)
-    1. [REQUEST] 01. Get performance analytics
-    2. [REQUEST] 02. Export performance report (PDF)
-    3. [REQUEST] 03. Share performance analytics (public link)
-  6. [FOLDER] 06. Support & Live Chat
-    1. [REQUEST] 01. Open live chat
-    2. [REQUEST] 02. Poll new messages
-    3. [REQUEST] 03. Send message
-  7. [FOLDER] 07. Add Product – Dropdown options
-    1. [REQUEST] 01. Get categories (id + name)
-    2. [REQUEST] 02. Get all services (id + name)
-    3. [REQUEST] 03. List my products by category
-  8. [FOLDER] 08. Categories (approved only – read-only)
-    1. [REQUEST] 01. List platform categories
-    2. [REQUEST] 02. Get platform category
-    3. [REQUEST] 03. Create category (blocked)
-  9. [FOLDER] 09. Services (approved only – read-only)
-    1. [REQUEST] 01. List platform services
-    2. [REQUEST] 02. Get platform service
-    3. [REQUEST] 03. Create service (blocked)
-  10. [FOLDER] 10. Products (approved only)
-    1. [REQUEST] 01. List products
-    2. [REQUEST] 02. Create product (multipart – same as Admin)
-    3. [REQUEST] 03. Get product
-    4. [REQUEST] 04. Update product (multipart – same as Admin)
-    5. [REQUEST] 05. Delete product
-  11. [FOLDER] 11. Inventory (approved only)
-    1. [REQUEST] 01. Get inventory
-    2. [REQUEST] 02. Update inventory
-  12. [FOLDER] 12. Orders (approved only)
-    1. [REQUEST] 01. List orders
-    2. [REQUEST] 02. Order details
-    3. [REQUEST] 03. Track order
-    4. [REQUEST] 04. Contact customer
-    5. [REQUEST] 05. Print invoice (PDF)
-    6. [REQUEST] 06. Download order (PDF)
-    7. [REQUEST] 07. Update order status
-    8. [REQUEST] 08. Confirm delivery (OTP)
-    9. [REQUEST] 09. Resend delivery OTP
-  13. [FOLDER] 13. Compare vendors & prices (public)
-    1. [REQUEST] 01. Product detail (check compare button)
-    2. [REQUEST] 02. Compare vendors – lowest price
-    3. [REQUEST] 03. Compare vendors – top rated
-    4. [REQUEST] 04. Compare vendors – fastest delivery
-    5. [REQUEST] 05. Compare by product id (vendor route alias)
-    6. [REQUEST] 06. Compare multiple product ids (vendor route)
-  14. [FOLDER] 14. Admin – Vendor Management
-    1. [FOLDER] 01. Vendor Management (Mobile)
-      1. [REQUEST] 01. Vendor management (mobile dashboard)
-      2. [REQUEST] 02. Vendor management detail (mobile)
-      3. [REQUEST] 03. Create vendor product (admin)
-      4. [REQUEST] 04. Show vendor product (admin)
-      5. [REQUEST] 05. Update vendor product (admin)
-      6. [REQUEST] 06. Toggle vendor product (enable/disable)
-      7. [REQUEST] 07. Delete vendor product
-      8. [REQUEST] 08. Update vendor account status (suspend / reactivate)
-    2. [FOLDER] 02. Vendor Approval & Actions
-      1. [REQUEST] 01. Vendor stats
-      2. [REQUEST] 02. Recent vendor requests (mobile home)
-      3. [REQUEST] 03. List vendors (View All)
-      4. [REQUEST] 04. Vendor application detail (tap card)
-      5. [REQUEST] 05. Vendor details (full + stats)
-      6. [REQUEST] 06. Vendor analytics
-      7. [REQUEST] 07. Vendor products
-      8. [REQUEST] 08. Vendor orders
-      9. [REQUEST] 09. Create vendor (admin form-data)
-      10. [REQUEST] 10. Update vendor (full form-data)
-      11. [REQUEST] 11. Approve vendor
-      12. [REQUEST] 12. Reject vendor (Cancel button)
-      13. [REQUEST] 13. Mark under review
-      14. [REQUEST] 14. Disable vendor
-      15. [REQUEST] 15. Delete vendor (permanent)
-  15. [FOLDER] 15. Admin – Marketplace
-    1. [REQUEST] 01. Analytics overview
-    2. [REQUEST] 02. Settings (GET)
-    3. [REQUEST] 03. Settings (PUT)
-    4. [REQUEST] 04. List vendor products
-    5. [REQUEST] 05. Approve product
-    6. [REQUEST] 06. Reject product
-    7. [REQUEST] 07. List vendor orders
-    8. [REQUEST] 08. Verify vendor document
-  16. [FOLDER] 16. Vendor Store (client public)
-    1. [REQUEST] 01. Get vendor store (vendor + products)
-  17. [FOLDER] 17. Legal & Contact
-    1. [REQUEST] 01. Contact Us
-    2. [REQUEST] 02. Terms & Conditions
-    3. [REQUEST] 03. Privacy Policy
-  18. [FOLDER] 18. Notifications
-    1. [REQUEST] 01. Notifications - List
-    2. [REQUEST] 02. Notifications - Mark as Read
-    3. [REQUEST] 03. Notifications - Mark All as Read
-    4. [REQUEST] 04. Notifications - Delete
-    5. [REQUEST] 05. Notifications - Clear All
+54. [FOLDER] 54. Inventory (approved only)
+  1. [REQUEST] 01. Get inventory
+  2. [REQUEST] 02. Update inventory
+55. [FOLDER] 55. Orders (approved only)
+  1. [REQUEST] 01. List orders
+  2. [REQUEST] 02. Order details
+  3. [REQUEST] 03. Track order
+  4. [REQUEST] 04. Contact customer
+  5. [REQUEST] 05. Print invoice (PDF)
+  6. [REQUEST] 06. Download order (PDF)
+  7. [REQUEST] 07. Update order status
+  8. [REQUEST] 08. Confirm delivery (OTP)
+  9. [REQUEST] 09. Resend delivery OTP
+56. [FOLDER] 56. Compare vendors & prices (public)
+  1. [REQUEST] 01. Product detail (check compare button)
+  2. [REQUEST] 02. Compare vendors – lowest price
+  3. [REQUEST] 03. Compare vendors – top rated
+  4. [REQUEST] 04. Compare vendors – fastest delivery
+  5. [REQUEST] 05. Compare by product id (vendor route alias)
+  6. [REQUEST] 06. Compare multiple product ids (vendor route)
+57. [FOLDER] 57. Admin – Vendor Management
+  1. [FOLDER] 01. Vendor Management (Mobile)
+    1. [REQUEST] 01. Vendor management (mobile dashboard)
+    2. [REQUEST] 02. Vendor management detail (mobile)
+    3. [REQUEST] 03. Create vendor product (admin)
+    4. [REQUEST] 04. Show vendor product (admin)
+    5. [REQUEST] 05. Update vendor product (admin)
+    6. [REQUEST] 06. Toggle vendor product (enable/disable)
+    7. [REQUEST] 07. Delete vendor product
+    8. [REQUEST] 08. Update vendor account status (suspend / reactivate)
+  2. [FOLDER] 02. Vendor Approval & Actions
+    1. [REQUEST] 01. Vendor stats
+    2. [REQUEST] 02. Recent vendor requests (mobile home)
+    3. [REQUEST] 03. List vendors (View All)
+    4. [REQUEST] 04. Vendor application detail (tap card)
+    5. [REQUEST] 05. Vendor details (full + stats)
+    6. [REQUEST] 06. Vendor analytics
+    7. [REQUEST] 07. Vendor products
+    8. [REQUEST] 08. Vendor orders
+    9. [REQUEST] 09. Create vendor (admin form-data)
+    10. [REQUEST] 10. Update vendor (full form-data)
+    11. [REQUEST] 11. Approve vendor
+    12. [REQUEST] 12. Reject vendor (Cancel button)
+    13. [REQUEST] 13. Mark under review
+    14. [REQUEST] 14. Disable vendor
+    15. [REQUEST] 15. Delete vendor (permanent)
+58. [FOLDER] 58. Admin – Marketplace
+  1. [REQUEST] 01. Analytics overview
+  2. [REQUEST] 02. Settings (GET)
+  3. [REQUEST] 03. Settings (PUT)
+  4. [REQUEST] 04. List vendor products
+  5. [REQUEST] 05. Approve product
+  6. [REQUEST] 06. Reject product
+  7. [REQUEST] 07. List vendor orders
+  8. [REQUEST] 08. Verify vendor document
+59. [FOLDER] 59. Vendor Store (client public)
+  1. [REQUEST] 01. Get vendor store (vendor + products)
+60. [FOLDER] 60. Legal & Contact
+  1. [REQUEST] 01. Contact Us
+  2. [REQUEST] 02. Terms & Conditions
+  3. [REQUEST] 03. Privacy Policy
+61. [FOLDER] 61. Notifications
+  1. [REQUEST] 01. Notifications - List
+  2. [REQUEST] 02. Notifications - Mark as Read
+  3. [REQUEST] 03. Notifications - Mark All as Read
+  4. [REQUEST] 04. Notifications - Delete
+  5. [REQUEST] 05. Notifications - Clear All

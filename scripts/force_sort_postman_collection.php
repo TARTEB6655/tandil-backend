@@ -1,16 +1,22 @@
 <?php
 
 /**
- * Fix Postman sidebar order for REAL (including Sort by name ON).
+ * PERMANENT Postman sidebar order fix.
  *
- * BUG: plain "1." "2." "10." "18." → Postman ASCII name-sort shows 1,10,18,2…
- * FIX: 2-digit prefixes "01." "02." … "20." so string-sort == number order.
+ * ROOT BUG (Postman app):
+ *   On import/open, Postman silently moves FOLDERS above REQUESTS in every
+ *   sibling group. Our old shape was R,R,R… then F (e.g. Legal last as 20).
+ *   After import the folder jumps to the top → numbers look like 20,01,02… / random.
+ *   See: https://github.com/postmanlabs/postman-app-support/issues/12173
  *
- * Also: integer number sort per folder, Settings (Mobile) business sequence,
- * strip item ids, new collection identity.
+ * FIX:
+ *   1) Never mix requests + folders as siblings.
+ *      If mixed: wrap all requests into one folder ("… APIs"), siblings = folders only.
+ *   2) Order siblings by integer number, renumber 01, 02, 03… (ASCII-safe).
+ *   3) Strip item ids. New collection identity every run.
  *
- * Usage: php scripts/force_sort_postman_collection.php
- * Verify: php scripts/smoke_postman_number_order.php  (must PASS)
+ * Usage:  php scripts/force_sort_postman_collection.php
+ * Verify: php scripts/smoke_postman_number_order.php   ← must PASS
  */
 
 $path = __DIR__.'/../postman/tandil_backend.json';
@@ -63,13 +69,20 @@ function newUuid(): string
     );
 }
 
+function isFolder(array $it): bool
+{
+    return isset($it['item']) && is_array($it['item']);
+}
+
 /**
+ * Settings (Mobile): APIs folder first, Legal second (both folders → Postman-safe).
+ *
  * @param  list<array<string, mixed>>  $items
  * @return list<array<string, mixed>>
  */
 function orderSettingsMobile(array $items): array
 {
-    $desired = [
+    $apiOrder = [
         'Get All Settings',
         'Get System Settings',
         'Update System Settings',
@@ -89,26 +102,110 @@ function orderSettingsMobile(array $items): array
         'Get Tree Palm Pricing Settings',
         'Update Tree Palm Pricing Settings (form-data)',
         'Export Data',
-        'Legal & Contact Content',
     ];
 
-    $byTitle = [];
+    $requests = [];
+    $folders = [];
     foreach ($items as $it) {
-        $byTitle[stripAllPrefixes((string) ($it['name'] ?? ''))] = $it;
+        if (isFolder($it)) {
+            // Unwrap previous "Settings APIs" / "APIs" wrapper if re-running
+            $t = stripAllPrefixes((string) ($it['name'] ?? ''));
+            if (strcasecmp($t, 'Settings APIs') === 0 || strcasecmp($t, 'APIs') === 0) {
+                foreach ($it['item'] as $child) {
+                    if (isFolder($child)) {
+                        $folders[] = $child;
+                    } else {
+                        $requests[] = $child;
+                    }
+                }
+            } else {
+                $folders[] = $it;
+            }
+        } else {
+            $requests[] = $it;
+        }
     }
 
-    $ordered = [];
-    foreach ($desired as $title) {
+    $byTitle = [];
+    foreach ($requests as $it) {
+        $byTitle[stripAllPrefixes((string) ($it['name'] ?? ''))] = $it;
+    }
+    $orderedReqs = [];
+    foreach ($apiOrder as $title) {
         if (isset($byTitle[$title])) {
-            $ordered[] = $byTitle[$title];
+            $orderedReqs[] = $byTitle[$title];
             unset($byTitle[$title]);
         }
     }
     foreach ($byTitle as $it) {
-        $ordered[] = $it;
+        $orderedReqs[] = $it;
     }
 
-    return $ordered;
+    $out = [];
+    if ($orderedReqs !== []) {
+        $out[] = [
+            'name' => 'Settings APIs',
+            'item' => $orderedReqs,
+            'description' => 'All Settings (Mobile) requests. Wrapped so Postman cannot float Legal above these APIs.',
+        ];
+    }
+    foreach ($folders as $f) {
+        $out[] = $f;
+    }
+
+    return $out;
+}
+
+/**
+ * If requests + folders are mixed, wrap requests into one folder.
+ * Postman always shows folders before requests — mixed siblings scramble numbers.
+ *
+ * @param  list<array<string, mixed>>  $items
+ * @return array{0: list<array<string, mixed>>, 1: bool}  [items, didWrapOrSpecialOrder]
+ */
+function unmixRequestsAndFolders(array $items, string $folderTitle): array
+{
+    if (stripos($folderTitle, 'Settings (Mobile)') !== false) {
+        return [orderSettingsMobile($items), true];
+    }
+
+    $requests = [];
+    $folders = [];
+    foreach ($items as $it) {
+        $t = stripAllPrefixes((string) ($it['name'] ?? ''));
+        if (isFolder($it) && (strcasecmp($t, 'APIs') === 0 || str_ends_with($t, ' APIs'))) {
+            foreach ($it['item'] as $child) {
+                if (isFolder($child)) {
+                    $folders[] = $child;
+                } else {
+                    $requests[] = $child;
+                }
+            }
+            continue;
+        }
+        if (isFolder($it)) {
+            $folders[] = $it;
+        } else {
+            $requests[] = $it;
+        }
+    }
+
+    if ($requests === [] || $folders === []) {
+        return [array_merge($requests, $folders), false];
+    }
+
+    $wrapperName = trim($folderTitle) !== '' && $folderTitle !== 'ROOT'
+        ? stripAllPrefixes($folderTitle).' APIs'
+        : 'APIs';
+
+    return [array_merge(
+        [[
+            'name' => $wrapperName,
+            'item' => $requests,
+            'description' => 'Requests wrapped into a folder so Postman import cannot reorder folders above requests.',
+        ]],
+        $folders
+    ), true];
 }
 
 /**
@@ -117,9 +214,10 @@ function orderSettingsMobile(array $items): array
  */
 function orderByNumberThenRenumber(array $items, string $folderTitle = ''): array
 {
-    if (stripos($folderTitle, 'Settings (Mobile)') !== false) {
-        $items = orderSettingsMobile($items);
-    } else {
+    [$items, $preserveOrder] = unmixRequestsAndFolders($items, $folderTitle);
+
+    // Only number-sort when we did not wrap (wrapping already set the correct order).
+    if (! $preserveOrder) {
         usort($items, static function (array $a, array $b): int {
             return numberPrefixInt((string) ($a['name'] ?? ''))
                 <=> numberPrefixInt((string) ($b['name'] ?? ''));
@@ -132,7 +230,7 @@ function orderByNumberThenRenumber(array $items, string $folderTitle = ''): arra
         $title = stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
         $it['name'] = pad($i + 1).'. '.$title;
 
-        if (isset($it['item']) && is_array($it['item'])) {
+        if (isFolder($it)) {
             $it['item'] = orderByNumberThenRenumber($it['item'], $title);
         }
         $out[] = $it;
@@ -145,9 +243,9 @@ function walkProof(array $items, string $indent, array &$lines): void
 {
     foreach ($items as $i => $it) {
         $name = (string) ($it['name'] ?? '');
-        $kind = isset($it['item']) ? 'FOLDER' : 'REQUEST';
+        $kind = isFolder($it) ? 'FOLDER' : 'REQUEST';
         $lines[] = $indent.($i + 1).". [{$kind}] {$name}";
-        if (isset($it['item']) && is_array($it['item'])) {
+        if (isFolder($it)) {
             walkProof($it['item'], $indent.'  ', $lines);
         }
     }
@@ -157,26 +255,31 @@ $collection['item'] = orderByNumberThenRenumber($collection['item'] ?? [], 'ROOT
 
 $newId = newUuid();
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
-$version = '6.1.0';
-$collectionName = 'Tandil Backend v'.$version.' FIXED ORDER';
+$version = '7.0.0';
+$collectionName = 'Tandil Backend v'.$version.' POSTMAN-SAFE';
 
 $collection['info']['_postman_id'] = $newId;
-$collection['info']['_exporter_id'] = 'tandil-fixed-'.substr($newId, 0, 8);
+$collection['info']['_exporter_id'] = 'tandil-safe-'.substr($newId, 0, 8);
 $collection['info']['version'] = $version;
 $collection['info']['name'] = $collectionName;
 $collection['info']['schema'] = 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json';
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
-BUG FIX v6.1.0:
-Postman Sort-by-name uses ASCII sort. Unpadded names (1, 10, 18, 2) scramble the sidebar.
-This collection uses 01, 02, 03 … 20 so number order stays correct in Postman.
+PERMANENT ORDER FIX (v7.0.0):
+Postman always floats folders above requests in a folder (import bug/behavior).
+This collection never mixes requests + folders as siblings — requests are wrapped
+into an "APIs" subfolder when needed. Numbers are 01, 02, 03… (Sort-by-name safe).
 
 IMPORT:
 1) DELETE every old Tandil Backend collection
 2) Import as NEW (do not Merge)
-3) Title must be exactly: {$collectionName}
-4) Admin → Settings must show: 01, 02, 03 … 20 (not 1,18,2)
+3) Title must be: {$collectionName}
+4) Settings path: 05 Admin → 04 Settings (Mobile) → 01 Settings APIs → 01…19
+
+After adding APIs: append at end of the correct folder, then run:
+  php scripts/force_sort_postman_collection.php
+  php scripts/smoke_postman_number_order.php
 
 LAST_SORTED_AT: {$sortedAt}
 COLLECTION_ID: {$newId}
@@ -194,7 +297,7 @@ file_put_contents($path, $encoded."\n");
 
 $proof = [];
 $proof[] = $collectionName;
-$proof[] = 'BUGFIX: 2-digit pad so Postman Sort-by-name == number order';
+$proof[] = 'FIX: no mixed request/folder siblings; 2-digit number order';
 $proof[] = 'LAST_SORTED_AT: '.$sortedAt;
 $proof[] = 'COLLECTION_ID: '.$newId;
 $proof[] = '';
@@ -202,16 +305,12 @@ $proof[] = '=== SIDEBAR ORDER ===';
 walkProof($collection['item'], '', $proof);
 file_put_contents($proofPath, implode(PHP_EOL, $proof).PHP_EOL);
 
-// Run smoke checks inline
 ob_start();
 $smokeExit = 0;
 passthru('php '.escapeshellarg(__DIR__.'/smoke_postman_number_order.php'), $smokeExit);
 $smokeOut = ob_get_clean();
 echo $smokeOut;
-
 file_put_contents($smokeReportPath, "collection={$collectionName}\n".$smokeOut);
 
-echo "\nversion={$version}\n";
-echo "name={$collectionName}\n";
-echo "collection_id={$newId}\n";
+echo "\nversion={$version}\nname={$collectionName}\ncollection_id={$newId}\n";
 exit($smokeExit !== 0 ? 1 : 0);

@@ -1,32 +1,32 @@
-collection=Tandil Backend v6.1.0 FIXED ORDER
-=== SMOKE E2E (Postman display-safe number order) ===
-collection: Tandil Backend v6.1.0 FIXED ORDER
-version: 6.1.0
-pad_width=2 (required so Sort-by-name == number order)
+collection=Tandil Backend v7.0.0 POSTMAN-SAFE
+=== SMOKE E2E (Postman-safe permanent order) ===
+collection: Tandil Backend v7.0.0 POSTMAN-SAFE
+version: 7.0.0
 
-folders=160 requests=712
+folders=157 requests=712
 issues=0
 
 === Admin → Settings (Mobile) ===
-1. 01. Get All Settings
-2. 02. Get System Settings
-3. 03. Update System Settings
-4. 04. Get Theme
-5. 05. Update Theme
-6. 06. Get Language
-7. 07. Update Language
-8. 08. Get Payment Settings
-9. 09. Update Payment Settings
-10. 10. Get Shop Settings (Shipping & Tax)
-11. 11. Update Shop Settings (Shipping & Tax)
-12. 12. Get Instant Order Fee
-13. 13. Update Instant Order Fee
-14. 14. Get Service Pricing Settings
-15. 15. Update Service Pricing Settings (form-data)
-16. 16. Update Service Pricing Settings (PUT form-data)
-17. 17. Get Tree Palm Pricing Settings
-18. 18. Update Tree Palm Pricing Settings (form-data)
-19. 19. Export Data
-20. 20. Legal & Contact Content
+1. [FOLDER] 01. Settings APIs
+   1. 01. Get All Settings
+   2. 02. Get System Settings
+   3. 03. Update System Settings
+   4. 04. Get Theme
+   5. 05. Update Theme
+   6. 06. Get Language
+   7. 07. Update Language
+   8. 08. Get Payment Settings
+   9. 09. Update Payment Settings
+   10. 10. Get Shop Settings (Shipping & Tax)
+   11. 11. Update Shop Settings (Shipping & Tax)
+   12. 12. Get Instant Order Fee
+   13. 13. Update Instant Order Fee
+   14. 14. Get Service Pricing Settings
+   15. 15. Update Service Pricing Settings (form-data)
+   16. 16. Update Service Pricing Settings (PUT form-data)
+   17. 17. Get Tree Palm Pricing Settings
+   18. 18. Update Tree Palm Pricing Settings (form-data)
+   19. 19. Export Data
+2. [FOLDER] 02. Legal & Contact Content
 
-RESULT: PASS — file order safe for Postman
+RESULT: PASS

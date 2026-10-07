@@ -62,6 +62,12 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "postman:fix": [
+            "@php scripts/force_sort_postman_collection.php"
+        ],
+        "postman:smoke": [
+            "@php scripts/smoke_postman_number_order.php"
+        ],
         "clear": [
             "@php artisan optimize:clear"
         ],
