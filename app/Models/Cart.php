@@ -61,12 +61,9 @@ class Cart extends Model
     {
         $product = $this->product;
 
-        // Service Fixed: always live base + Fixed addon (ignore stale cart unit_price).
-        if (
-            $product
-            && \App\Support\ServiceAreaPricing::appliesToProduct($product)
-            && ! \App\Support\ServiceAreaPricing::isPerM2($product)
-        ) {
+        // Service lines: always live catalog / Fixed addon (ignore stale cart unit_price,
+        // including old rows that stored the global per-m² rate as unit_price).
+        if ($product && \App\Support\ServiceAreaPricing::appliesToProduct($product)) {
             return self::calculateUnitPrice($product, $this->selected_options ?? []);
         }
 

@@ -203,21 +203,21 @@ class ServiceAreaPricingTest extends TestCase
             'name' => 'Outdoor Paving',
             'type' => 'service',
             'category_id' => $this->category->id,
-            'price' => 999, // ignored — global 70 wins
+            'price' => 999, // catalog/base — used when area is omitted
             'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
             'status' => 'active',
             'stock' => 999,
         ]);
 
-        // Area optional — without area, continue with service unit price once.
+        // Area optional — without area, charge configured product catalog price (not per-m² rate).
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,
             'quantity' => 1,
         ])->assertCreated()
             ->assertJsonPath('data.pricing_type', 'per_m2')
             ->assertJsonPath('data.required_area', null)
-            ->assertJsonPath('data.line_total', 70)
-            ->assertJsonPath('data.unit_price', 70);
+            ->assertJsonPath('data.line_total', 999)
+            ->assertJsonPath('data.unit_price', 999);
 
         Cart::where('user_id', $this->client->id)->delete();
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
@@ -425,7 +425,37 @@ class ServiceAreaPricingTest extends TestCase
             ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
             ->assertOk()
             ->assertJsonPath('data.items.0.required_area', null)
-            ->assertJsonPath('data.items.0.line_total', 7);
+            ->assertJsonPath('data.items.0.line_total', 100);
+    }
+
+    public function test_cart_does_not_use_stale_per_m2_rate_as_product_price(): void
+    {
+        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
+
+        $product = Product::create([
+            'name' => 'service product',
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => 1500,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+
+        // Simulate old buggy cart rows that stored global per-m² rate as unit_price.
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'unit_price' => 7,
+            'required_area' => null,
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/cart')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.line_total', 1500)
+            ->assertJsonPath('data.order_summary.subtotal', 1500);
     }
 
     public function test_buy_now_summary_remembers_area_for_later_pay_without_area(): void

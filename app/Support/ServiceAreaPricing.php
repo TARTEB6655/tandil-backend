@@ -187,8 +187,16 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Effective unit price for a catalog product.
-     * Per m² services: global admin rate (× area at line total).
+     * Live global per-m² rate from admin Product Settings (not the product catalog price).
+     */
+    public static function perM2Rate(): float
+    {
+        return max(0, round((float) self::globalConfig()['price'], 2));
+    }
+
+    /**
+     * Effective unit price for a catalog product (cart / Buy Now without area).
+     * Per m² services: configured product catalog price (area × per-m² rate is applied in lineTotal).
      * Fixed services: product base (catalog) price + global Fixed amount.
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
@@ -199,7 +207,8 @@ final class ServiceAreaPricing
 
         $config = self::globalConfig();
         if ($config['pricing_type'] === self::TYPE_PER_M2) {
-            return round((float) $config['price'], 2);
+            // Never use the global m² rate as the product price — that caused cart totals of "7".
+            return round($fallbackProductPrice, 2);
         }
 
         // Fixed: base product price + global Fixed setting (e.g. 100 + 800 = 900).
@@ -359,7 +368,7 @@ final class ServiceAreaPricing
                 'customer_preview' => [
                     'price_display' => 'Listed: '.self::formatMoney($catalogPrice),
                     'checkout_rate_display' => 'Checkout rate: '.self::formatMoney($rate).' / m²',
-                    'note' => 'Area (m²) is optional. With area: checkout = price_per_m2 × required_area. Without area: service unit price once. List/detail keep catalog price_label.',
+                    'note' => 'Area (m²) is optional. With area: checkout = price_per_m2 × required_area. Without area: configured product catalog price. List/detail keep catalog price_label.',
                     'example' => [
                         'area' => 100,
                         'price_per_m2' => $rate,
@@ -709,7 +718,9 @@ final class ServiceAreaPricing
 
     /**
      * Line total for a cart/order line.
-     * Fixed: quantity × unitPrice. Per m²: required_area × unitPrice (quantity ignored for money).
+     * Fixed: quantity × unitPrice (catalog + fixed addon / options).
+     * Per m² with area: required_area × live global per-m² rate.
+     * Per m² without area: quantity × configured product price (unitPrice / catalog) — never the m² rate alone.
      * Optional tree/palm quantities add (qty × admin unit price) on top of the base service total.
      */
     public static function lineTotal(
@@ -723,11 +734,18 @@ final class ServiceAreaPricing
         ?float $pricePerPalmTree = null
     ): float {
         if (self::isPerM2($product)) {
-            // With area: rate × m². Without area: charge service unit price once (area optional).
             if ($requiredArea !== null && $requiredArea > 0) {
-                $base = round($requiredArea * $unitPrice, 2);
+                // Always use live admin per-m² rate (ignore stale cart unit_price).
+                $base = round($requiredArea * self::perM2Rate(), 2);
             } else {
-                $base = round(max(1, $quantity) * $unitPrice, 2);
+                // Area skipped → configured product/catalog price (unitPrice from effectiveUnitPrice).
+                $catalog = round((float) $product->price, 2);
+                $m2Rate = self::perM2Rate();
+                // Guard stale carts that still stored the old per-m² rate as unit_price.
+                $price = ($unitPrice > 0 && abs($unitPrice - $m2Rate) > 0.001)
+                    ? $unitPrice
+                    : $catalog;
+                $base = round(max(1, $quantity) * $price, 2);
             }
         } else {
             $base = round(max(1, $quantity) * $unitPrice, 2);
@@ -813,15 +831,19 @@ final class ServiceAreaPricing
     ): array {
         $isPerM2 = self::isPerM2($product);
         $area = $isPerM2 ? $requiredArea : null;
+        $rate = $isPerM2 ? self::perM2Rate() : null;
         $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea, $treeQuantity, $palmTreeQuantity);
         $includes = $isPerM2 || self::appliesToProduct($product)
             ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())
             : null;
-        $baseTotal = self::isPerM2($product)
+        $baseTotal = $isPerM2
             ? (($requiredArea !== null && $requiredArea > 0)
-                ? round($requiredArea * $unitPrice, 2)
-                : round(max(1, $quantity) * $unitPrice, 2))
+                ? round($requiredArea * (float) $rate, 2)
+                : round(max(1, $quantity) * (
+                    (abs($unitPrice - (float) $rate) > 0.001) ? $unitPrice : round((float) $product->price, 2)
+                ), 2))
             : round(max(1, $quantity) * $unitPrice, 2);
+        $displayUnit = $isPerM2 && $area !== null ? (float) $rate : $unitPrice;
 
         return array_merge([
             'pricing_type' => $isPerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED,
@@ -829,10 +851,11 @@ final class ServiceAreaPricing
             'area_optional' => $isPerM2,
             'required_area' => $area,
             'area_unit' => $isPerM2 ? 'm²' : null,
-            'unit_price' => $unitPrice,
-            'unit_price_label' => $isPerM2
-                ? self::formatMoney($unitPrice).' / m²'
-                : self::formatMoney($unitPrice),
+            'price_per_m2' => $rate,
+            'unit_price' => $displayUnit,
+            'unit_price_label' => $isPerM2 && $area !== null
+                ? self::formatMoney((float) $rate).' / m²'
+                : self::formatMoney($displayUnit),
             'base_line_total' => $baseTotal,
             'base_line_total_label' => self::formatMoney($baseTotal),
             'line_total' => $lineTotal,
@@ -842,11 +865,11 @@ final class ServiceAreaPricing
             'pricing_breakdown' => $isPerM2 && $area !== null ? [
                 'area' => $area,
                 'area_label' => rtrim(rtrim(number_format($area, 2, '.', ''), '0'), '.').' m²',
-                'unit_price' => $unitPrice,
-                'unit_price_label' => self::formatMoney($unitPrice).'/m²',
+                'unit_price' => $rate,
+                'unit_price_label' => self::formatMoney((float) $rate).'/m²',
                 'total' => $baseTotal,
                 'total_label' => self::formatMoney($baseTotal),
-                'formula' => $area.' × '.$unitPrice.' = '.$baseTotal,
+                'formula' => $area.' × '.$rate.' = '.$baseTotal,
             ] : null,
         ], ServiceTreePricing::lineApiFields($product, $treeQuantity, $palmTreeQuantity));
     }
