@@ -81,6 +81,21 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Save only Price includes (UI tree/palm screen) — does not touch fixed / per_m2 rate.
+     *
+     * @param  array<string, bool>|null  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function savePriceIncludesOnly(?array $includes): array
+    {
+        $config = self::globalConfig();
+        $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
+        Setting::set(self::SETTING_INCLUDES, json_encode($includes), 'json', 'services');
+
+        return self::syncAllServicesAndProducts($config['pricing_type'], $config['price'], $includes);
+    }
+
+    /**
      * Sync pricing_type + includes only — never overwrite product/service catalog price.
      *
      * @param  array<string, bool>  $includes
@@ -503,10 +518,6 @@ final class ServiceAreaPricing
             'message' => $isService
                 ? null
                 : 'Area-based Product Settings apply only to services. Shop products always use Fixed Price.',
-            ...($isService ? ServiceTreePricing::adminSettingsFields() : [
-                'show_tree_options' => false,
-                'tree_pricing' => null,
-            ]),
         ];
     }
 

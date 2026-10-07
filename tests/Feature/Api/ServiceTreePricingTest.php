@@ -65,12 +65,10 @@ class ServiceTreePricingTest extends TestCase
         $service->products()->attach($this->serviceProduct->id);
     }
 
-    public function test_admin_can_configure_tree_palm_pricing_on_service_settings(): void
+    public function test_admin_can_configure_tree_palm_pricing_on_dedicated_ui_api(): void
     {
         $this->actingAs($this->admin, 'sanctum')
-            ->post('/api/admin/settings/service-pricing', [
-                'pricing_type' => 'fixed',
-                'price' => '0',
+            ->post('/api/admin/settings/tree-palm-pricing', [
                 'show_tree_options' => '1',
                 'price_per_tree' => '50',
                 'price_per_palm_tree' => '80',
@@ -86,7 +84,9 @@ class ServiceTreePricingTest extends TestCase
             ->assertJsonPath('data.show_tree_options', true)
             ->assertJsonPath('data.price_per_tree', 50)
             ->assertJsonPath('data.price_per_palm_tree', 80)
-            ->assertJsonPath('data.tree_pricing.show', true);
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonMissingPath('data.pricing_type')
+            ->assertJsonMissingPath('data.price_per_m2');
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
         $this->assertTrue($fields['show_tree_options']);
@@ -94,6 +94,24 @@ class ServiceTreePricingTest extends TestCase
         $this->assertSame(80.0, (float) $fields['tree_pricing']['palm_trees']['unit_price']);
         $this->assertTrue($fields['tree_pricing']['optional']);
         $this->assertFalse($fields['tree_pricing']['requires_quantity']);
+    }
+
+    public function test_old_service_pricing_api_does_not_accept_tree_fields_as_required_mix(): void
+    {
+        // Old API stays fixed/per_m2 only — tree fields are ignored (dedicated API).
+        $this->actingAs($this->admin, 'sanctum')
+            ->post('/api/admin/settings/service-pricing', [
+                'pricing_type' => 'fixed',
+                'price' => '0',
+                'show_tree_options' => '1',
+                'price_per_tree' => '50',
+                'price_per_palm_tree' => '80',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'fixed')
+            ->assertJsonMissingPath('data.price_per_tree');
+
+        $this->assertFalse(ServiceTreePricing::globalConfig()['show_tree_options']);
     }
 
     public function test_cart_add_without_tree_quantity_keeps_base_service_price(): void

@@ -115,37 +115,48 @@ final class ServiceTreePricing
     }
 
     /**
-     * Admin Product Settings fields (global — same screen as Fixed / per m²).
+     * Admin UI payload — ONLY fields from the Product Settings screenshot.
+     * No fixed / per_m2 / catalog price mix.
      *
      * @return array<string, mixed>
      */
-    public static function adminSettingsFields(): array
+    public static function adminUiPayload(): array
     {
         $config = self::globalConfig();
         $show = $config['show_tree_options'];
         $tree = $config['price_per_tree'];
         $palm = $config['price_per_palm_tree'];
+        $includes = ServiceAreaPricing::globalConfig()['price_includes'];
+
+        $includeOptions = [];
+        foreach (ServiceAreaPricing::INCLUDE_KEYS as $key) {
+            $includeOptions[] = [
+                'key' => $key,
+                'label' => ServiceAreaPricing::INCLUDE_LABELS[$key],
+                'selected' => (bool) ($includes[$key] ?? false),
+            ];
+        }
 
         return [
             'show_tree_options' => $show,
             'show_on_customer_service_products' => $show,
+            'toggle_label' => 'Show on customer service products',
+            'toggle_description' => 'When off, the tree/palm section is hidden. When on, only rows with a price appear.',
             'price_per_tree' => $tree,
+            'price_per_tree_label' => 'Price per tree',
+            'price_per_tree_description' => 'Unit price for each tree. Customers choose quantity (number of trees) on the service product.',
+            'price_per_tree_suffix' => 'AED / tree',
             'price_per_palm_tree' => $palm,
-            'tree_pricing' => [
-                'show' => $show,
-                'toggle_label' => 'Show on customer service products',
-                'toggle_description' => 'When off, the tree/palm section is hidden. When on, only rows with a price appear.',
-                'price_per_tree' => $tree,
-                'price_per_tree_label' => 'Price per tree',
-                'price_per_tree_description' => 'Unit price for each tree. Customers choose quantity (number of trees) on the service product.',
-                'price_per_tree_suffix' => 'AED / tree',
-                'price_per_palm_tree' => $palm,
-                'price_per_palm_tree_label' => 'Price per palm tree',
-                'price_per_palm_tree_description' => 'Unit price for each palm. Customers choose quantity (number of palms) on the service product.',
-                'price_per_palm_tree_suffix' => 'AED / palm',
-                'currency' => 'AED',
-                'optional_for_customer' => true,
-            ],
+            'price_per_palm_tree_label' => 'Price per palm tree',
+            'price_per_palm_tree_description' => 'Unit price for each palm. Customers choose quantity (number of palms) on the service product.',
+            'price_per_palm_tree_suffix' => 'AED / palm',
+            'currency' => 'AED',
+            'price_includes' => $includes,
+            'price_includes_options' => $includeOptions,
+            'price_includes_labels' => ServiceAreaPricing::includeLabels($includes),
+            'applies_to' => 'service_products',
+            'optional_for_customer' => true,
+            'note' => 'Customer may skip tree/palm quantity and continue with the normal/base service price.',
         ];
     }
 

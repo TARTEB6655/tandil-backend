@@ -6,7 +6,6 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Support\ServiceAreaPricing;
-use App\Support\ServiceTreePricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -47,10 +46,9 @@ class ProductSettingsController extends Controller
      * - price_includes[labor]: ...
      * - price_includes[transportation]: ...
      * - price_includes[delivery]: ...
-     * - show_tree_options: 1|0
-     * - price_per_tree: 50
-     * - price_per_palm_tree: 80
      * Or single JSON string field: price_includes={"materials":true,...}
+     *
+     * Tree / palm UI → GET/POST /api/admin/settings/tree-palm-pricing (separate API).
      */
     public function update(Request $request, int $id): JsonResponse
     {
@@ -78,9 +76,6 @@ class ProductSettingsController extends Controller
             'price_includes.labor' => 'nullable|boolean',
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
-            'show_tree_options' => 'nullable|boolean',
-            'price_per_tree' => 'nullable|numeric|min:0',
-            'price_per_palm_tree' => 'nullable|numeric|min:0',
         ], [
             'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
             'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
@@ -102,15 +97,6 @@ class ProductSettingsController extends Controller
         );
         $product->save();
 
-        $tree = ServiceTreePricing::validatedFromRequest($request);
-        if ($tree !== null) {
-            ServiceTreePricing::saveGlobal(
-                $tree['show_tree_options'],
-                $tree['price_per_tree'],
-                $tree['price_per_palm_tree']
-            );
-        }
-
         return ApiResponse::success(
             'Product settings updated.',
             ServiceAreaPricing::productSettingsApi($product->fresh())
@@ -122,8 +108,6 @@ class ProductSettingsController extends Controller
      */
     private function normalizeFormData(Request $request): void
     {
-        ServiceTreePricing::normalizeAdminFormData($request);
-
         // price_includes sent as JSON string in one form field
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);

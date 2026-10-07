@@ -1092,6 +1092,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::get('/service-pricing', [\App\Http\Controllers\Admin\AdminServicePricingSettingsApiController::class, 'show']);
     Route::put('/service-pricing', [\App\Http\Controllers\Admin\AdminServicePricingSettingsApiController::class, 'update']);
     Route::post('/service-pricing', [\App\Http\Controllers\Admin\AdminServicePricingSettingsApiController::class, 'update']);
+    // UI: Show on customer + price per tree/palm + Price includes (not mixed with fixed/per_m2).
+    Route::get('/tree-palm-pricing', [\App\Http\Controllers\Admin\AdminServiceTreePalmSettingsApiController::class, 'show']);
+    Route::put('/tree-palm-pricing', [\App\Http\Controllers\Admin\AdminServiceTreePalmSettingsApiController::class, 'update']);
+    Route::post('/tree-palm-pricing', [\App\Http\Controllers\Admin\AdminServiceTreePalmSettingsApiController::class, 'update']);
     Route::get('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getCategoryShipping']);
     Route::put('/shop/category-shipping', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateCategoryShipping']);
     Route::get('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'getLegal']);

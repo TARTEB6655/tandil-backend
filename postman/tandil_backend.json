@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Tandil Backend SORTED v3.8.0",
-    "description": "Tandil Backend API. Env: base_url, token.\n\n*** IMPORT INSTRUCTIONS (IMPORTANT) ***\n1) In Postman DELETE every old \"Tandil Backend...\" collection\n2) Import this file as NEW (do NOT Merge / Update)\n3) You must see collection name exactly: Tandil Backend SORTED v3.8.0\n4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products\n\nLAST_SORTED_AT: 2026-10-07T10:16:56Z\nCOLLECTION_ID: a535f266-b060-429a-a419-0e3ec654b873\nSORT: numeric 01..N; requests before folders in each group",
+    "description": "Tandil Backend API. Env: base_url, token.\n\n*** IMPORT INSTRUCTIONS (IMPORTANT) ***\n1) In Postman DELETE every old \"Tandil Backend...\" collection\n2) Import this file as NEW (do NOT Merge / Update)\n3) You must see collection name exactly: Tandil Backend SORTED v3.8.0\n4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products\n\nLAST_SORTED_AT: 2026-10-07T10:27:40Z\nCOLLECTION_ID: c588b2de-0fd1-4f00-93d3-97ab52c3d8b0\nSORT: numeric 01..N; requests before folders in each group",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "tandil-backend-sorted-a535f266",
+    "_exporter_id": "tandil-backend-sorted-c588b2de",
     "version": "3.8.0",
-    "_postman_id": "a535f266-b060-429a-a419-0e3ec654b873"
+    "_postman_id": "c588b2de-0fd1-4f00-93d3-97ab52c3d8b0"
   },
   "item": [
     {
@@ -8673,24 +8673,6 @@
                       "key": "price_includes[delivery]",
                       "value": "0",
                       "type": "text"
-                    },
-                    {
-                      "key": "show_tree_options",
-                      "value": "1",
-                      "type": "text",
-                      "description": "1 = show tree/palm qty on customer service products"
-                    },
-                    {
-                      "key": "price_per_tree",
-                      "value": "50",
-                      "type": "text",
-                      "description": "AED per tree (customer qty optional)"
-                    },
-                    {
-                      "key": "price_per_palm_tree",
-                      "value": "80",
-                      "type": "text",
-                      "description": "AED per palm (customer qty optional)"
                     }
                   ]
                 },
@@ -8706,7 +8688,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "POST form-data `/api/admin/settings/service-pricing` — **no ID**.\n\n**Postman path:** `5. Admin Dashboard` → `D. Settings (Mobile)` → this request.\n\n**Body (form-data):**\n- `pricing_type`: `fixed` | `per_m2`\n- `price`: e.g. `800` (Fixed = **addon** added to each service product base; per_m2 = rate × area)\n- `price_includes[materials|installation|labor|transportation|delivery]`: `0`|`1`\n- `show_tree_options`: `0`|`1`\n- `price_per_tree`: e.g. `50`\n- `price_per_palm_tree`: e.g. `80`\n\n**Fixed example:** product base AED 100 + Fixed 800 → customer sees **AED 900** on detail/cart.\n**Tree/palm:** customer quantities are **optional**. Skip → base service price. Enter qty → base + (trees × rate) + (palms × rate).\n**Per m²:** `required_area` optional on cart add. Instant Order Fee is **not** applied on service-only checkout."
+                "description": "POST/PUT `/api/admin/settings/service-pricing` — Fixed / per m² only.\n\nTree/palm UI → `/api/admin/settings/tree-palm-pricing`."
               }
             },
             {
@@ -8760,21 +8742,6 @@
                       "key": "price_includes[delivery]",
                       "value": "0",
                       "type": "text"
-                    },
-                    {
-                      "key": "show_tree_options",
-                      "value": "1",
-                      "type": "text"
-                    },
-                    {
-                      "key": "price_per_tree",
-                      "value": "50",
-                      "type": "text"
-                    },
-                    {
-                      "key": "price_per_palm_tree",
-                      "value": "80",
-                      "type": "text"
                     }
                   ]
                 },
@@ -8790,7 +8757,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "PUT form-data same global endpoint (includes optional `show_tree_options`, `price_per_tree`, `price_per_palm_tree`). Prefer POST if PUT multipart fails."
+                "description": "POST/PUT `/api/admin/settings/service-pricing` — Fixed / per m² only.\n\nTree/palm UI → `/api/admin/settings/tree-palm-pricing`."
               }
             },
             {
@@ -8831,7 +8798,113 @@
               }
             },
             {
-              "name": "18. Legal & Contact Content",
+              "name": "18. Get Tree Palm Pricing Settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/tree-palm-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "tree-palm-pricing"
+                  ]
+                },
+                "description": "GET /api/admin/settings/tree-palm-pricing — **UI Product Settings** (tree/palm only).\n\n**Response only:** `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes`.\n\nNo `pricing_type` / fixed / per_m2 mix — that stays on `/service-pricing`."
+              }
+            },
+            {
+              "name": "19. Update Tree Palm Pricing Settings (form-data)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "show_tree_options",
+                      "value": "1",
+                      "type": "text",
+                      "description": "Show on customer service products"
+                    },
+                    {
+                      "key": "price_per_tree",
+                      "value": "50",
+                      "type": "text",
+                      "description": "AED / tree"
+                    },
+                    {
+                      "key": "price_per_palm_tree",
+                      "value": "80",
+                      "type": "text",
+                      "description": "AED / palm"
+                    },
+                    {
+                      "key": "price_includes[materials]",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_includes[installation]",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_includes[labor]",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_includes[transportation]",
+                      "value": "1",
+                      "type": "text"
+                    },
+                    {
+                      "key": "price_includes[delivery]",
+                      "value": "1",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/tree-palm-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "tree-palm-pricing"
+                  ]
+                },
+                "description": "POST `/api/admin/settings/tree-palm-pricing` — matches admin UI screenshot only.\n\n**Body:**\n- `show_tree_options`\n- `price_per_tree`\n- `price_per_palm_tree`\n- `price_includes[...]`\n\nDo **not** send `pricing_type` / fixed / per_m2 here."
+              }
+            },
+            {
+              "name": "20. Legal & Contact Content",
               "description": "Admin mobile Legal and Contact Content editor. Form-data PUT or POST (not JSON). Folder A = client app pages, B = vendor app pages. Location: Module 5 > D. Settings (Mobile).",
               "item": [
                 {

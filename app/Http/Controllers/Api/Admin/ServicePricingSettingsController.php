@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Service;
 use App\Support\ServiceAreaPricing;
-use App\Support\ServiceTreePricing;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -58,9 +57,6 @@ class ServicePricingSettingsController extends Controller
             'price_includes.labor' => 'nullable|boolean',
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
-            'show_tree_options' => 'nullable|boolean',
-            'price_per_tree' => 'nullable|numeric|min:0',
-            'price_per_palm_tree' => 'nullable|numeric|min:0',
         ], [
             'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
             'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
@@ -81,15 +77,6 @@ class ServicePricingSettingsController extends Controller
             true
         );
         $service->save();
-
-        $tree = ServiceTreePricing::validatedFromRequest($request);
-        if ($tree !== null) {
-            ServiceTreePricing::saveGlobal(
-                $tree['show_tree_options'],
-                $tree['price_per_tree'],
-                $tree['price_per_palm_tree']
-            );
-        }
 
         $synced = $this->syncLinkedServiceProducts($service);
 
@@ -155,8 +142,6 @@ class ServicePricingSettingsController extends Controller
 
     private function normalizeFormData(Request $request): void
     {
-        ServiceTreePricing::normalizeAdminFormData($request);
-
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);
             if (is_array($decoded)) {
