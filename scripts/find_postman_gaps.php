@@ -1,9 +1,8 @@
 <?php
 
 /**
- * Verify every sibling group is exactly 01..N in array order.
- * Exit 1 on any mismatch. Also fails if a folder appears before a request
- * in the same group (would look wrong in Postman).
+ * Verify every sibling group is exactly 001..N in array order.
+ * Requests must appear before folders in each group.
  */
 
 $j = json_decode(file_get_contents(__DIR__.'/../postman/tandil_backend.json'), true);
@@ -14,11 +13,11 @@ function walk(array $items, string $path): void
     global $issues;
     $seenFolder = false;
     foreach ($items as $i => $it) {
-        $want = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
+        $want = str_pad((string) ($i + 1), 3, '0', STR_PAD_LEFT);
         $name = (string) ($it['name'] ?? '');
         $isFolder = isset($it['item']) && is_array($it['item']);
 
-        if (! preg_match('/^([0-9]{2})\.\s+/u', $name, $m) || $m[1] !== $want) {
+        if (! preg_match('/^([0-9]{3})\.\s+/u', $name, $m) || $m[1] !== $want) {
             $issues[] = "SEQ {$path} want={$want} got={$name}";
         }
         if (preg_match('/^[A-Z]/u', $name)) {
@@ -28,7 +27,7 @@ function walk(array $items, string $path): void
         if ($isFolder) {
             $seenFolder = true;
         } elseif ($seenFolder) {
-            $issues[] = "ORDER {$path} request after folder → {$name} (requests must come before folders)";
+            $issues[] = "ORDER {$path} request after folder → {$name}";
         }
 
         if ($isFolder) {

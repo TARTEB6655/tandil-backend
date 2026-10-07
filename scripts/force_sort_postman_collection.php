@@ -1,8 +1,10 @@
 <?php
 
 /**
- * Force-sort Postman collection + give it a NEW identity so Postman cannot
- * merge/keep the old broken sidebar order.
+ * Force-sort Postman collection + NEW identity so Postman cannot merge old order.
+ *
+ * Numbering: 001, 002, 003… (3-digit) so "Sort by name" never becomes 1,12,2,3.
+ * Sibling rule: requests first, then folders (keeps Legal / nested folders at end).
  *
  * Usage: php scripts/force_sort_postman_collection.php
  */
@@ -14,6 +16,8 @@ if (! is_array($collection)) {
     fwrite(STDERR, 'Invalid JSON: '.json_last_error_msg()."\n");
     exit(1);
 }
+
+const PAD_WIDTH = 3;
 
 function stripAllPrefixes(string $name): string
 {
@@ -48,9 +52,13 @@ function cmpKeys(array $a, array $b): int
     return 0;
 }
 
+function padNum(int $n): string
+{
+    return str_pad((string) $n, PAD_WIDTH, '0', STR_PAD_LEFT);
+}
+
 /**
- * Numeric sort, then requests first / folders second (both groups sorted),
- * then renumber 01..N so array index always matches the prefix.
+ * Requests first, then folders; renumber 001..N so array index matches prefix.
  *
  * @param  list<array<string, mixed>>  $items
  * @return list<array<string, mixed>>
@@ -61,7 +69,6 @@ function forceSortAndRenumber(array $items): array
         if (isset($it['item']) && is_array($it['item'])) {
             $it['item'] = forceSortAndRenumber($it['item']);
         }
-        // Drop any stale Postman ids that can pin old order after merge
         unset($it['id'], $it['_postman_id'], $it['uid']);
     }
     unset($it);
@@ -87,8 +94,7 @@ function forceSortAndRenumber(array $items): array
     $items = array_merge($requests, $folders);
 
     foreach ($items as $i => &$it) {
-        $prefix = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
-        $it['name'] = $prefix.'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
+        $it['name'] = padNum($i + 1).'. '.stripAllPrefixes((string) ($it['name'] ?? 'Untitled'));
     }
     unset($it);
 
@@ -122,22 +128,29 @@ $newId = sprintf(
 );
 
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
+$version = '4.0.0';
+$collectionName = 'Tandil Backend ORDERED v'.$version;
+
 $collection['info']['_postman_id'] = $newId;
-$collection['info']['_exporter_id'] = 'tandil-backend-sorted-'.substr($newId, 0, 8);
-$collection['info']['version'] = '3.9.0';
-$collection['info']['name'] = 'Tandil Backend SORTED v3.9.0';
+$collection['info']['_exporter_id'] = 'tandil-ordered-'.substr($newId, 0, 8);
+$collection['info']['version'] = $version;
+$collection['info']['name'] = $collectionName;
+$collection['info']['schema'] = $collection['info']['schema']
+    ?? 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json';
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
-*** IMPORT INSTRUCTIONS (IMPORTANT) ***
-1) In Postman DELETE every old "Tandil Backend..." collection
-2) Import this file as NEW (do NOT Merge / Update)
-3) You must see collection name exactly: Tandil Backend SORTED v3.9.0
-4) Root order must be: 01 Health, 02 Notifications, 03 Auth, 04 Client, 05 Admin, ... 08 Products
+*** IMPORT (REQUIRED) ***
+1) Postman → DELETE every old "Tandil Backend…" collection (all of them)
+2) File → Import → this JSON → **Import as new** (NOT Merge / Update)
+3) Collection title must be exactly: {$collectionName}
+4) Admin Dashboard folders must read: 001, 002, 003… 016 (never 1,12,2,3)
+
+NUMBERING: 001..N at every folder level (3-digit so name-sort cannot break).
+Turn OFF any "Sort by name" in Postman if order still looks wrong.
 
 LAST_SORTED_AT: {$sortedAt}
 COLLECTION_ID: {$newId}
-SORT: numeric 01..N; requests before folders in each group
 MD;
 
 $encoded = json_encode($collection, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -151,7 +164,7 @@ $encoded = preg_replace_callback('/^(?:    )+/m', function (array $m): string {
 file_put_contents($path, $encoded."\n");
 
 $proof = [];
-$proof[] = 'Tandil Backend SORTED v3.9.0';
+$proof[] = $collectionName;
 $proof[] = 'LAST_SORTED_AT: '.$sortedAt;
 $proof[] = 'COLLECTION_ID: '.$newId;
 $proof[] = 'FILE: postman/tandil_backend.json';
@@ -160,30 +173,46 @@ $proof[] = '=== EXPECTED POSTMAN SIDEBAR ORDER ===';
 walkProof($collection['item'], '', $proof);
 file_put_contents($proofPath, implode(PHP_EOL, $proof).PHP_EOL);
 
-// Verify sequence
 $issues = 0;
 $verify = function (array $items, string $p) use (&$verify, &$issues): void {
+    $seenFolder = false;
     foreach ($items as $i => $it) {
-        $want = str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT);
+        $want = padNum($i + 1);
         $name = (string) ($it['name'] ?? '');
+        $isFolder = isset($it['item']) && is_array($it['item']);
         if (! str_starts_with($name, $want.'. ')) {
             echo "BAD {$p} want {$want} got {$name}\n";
             $issues++;
         }
-        if (isset($it['item']) && is_array($it['item'])) {
+        if ($isFolder) {
+            $seenFolder = true;
+        } elseif ($seenFolder) {
+            echo "BAD ORDER {$p} request after folder → {$name}\n";
+            $issues++;
+        }
+        if ($isFolder) {
             $verify($it['item'], $p.'/'.$name);
         }
     }
 };
 $verify($collection['item'], 'ROOT');
 
-echo "version=3.9.0\n";
-echo "name=Tandil Backend SORTED v3.9.0\n";
+echo "version={$version}\n";
+echo "name={$collectionName}\n";
 echo "collection_id={$newId}\n";
 echo "issues={$issues}\n";
 echo "proof={$proofPath}\n";
 echo "\nROOT:\n";
 foreach ($collection['item'] as $i => $it) {
     echo ($i + 1).'. '.($it['name'] ?? '').PHP_EOL;
+}
+echo "\nADMIN:\n";
+foreach ($collection['item'] as $it) {
+    if (stripos((string) ($it['name'] ?? ''), 'Admin Dashboard') !== false) {
+        foreach ($it['item'] ?? [] as $j => $child) {
+            echo ($j + 1).'. '.($child['name'] ?? '').PHP_EOL;
+        }
+        break;
+    }
 }
 exit($issues > 0 ? 1 : 0);
