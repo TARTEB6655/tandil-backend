@@ -425,6 +425,16 @@ class CategoryController extends Controller
         return ApiResponse::success('Category converted to service successfully.', $payload);
     }
 
+    /**
+     * POST /api/admin/catalog/convert/category-to-service — body: category_id or id.
+     */
+    public function convertToServiceFromBody(Request $request)
+    {
+        $id = $request->input('category_id', $request->input('id'));
+
+        return $this->convertToService($request, $id);
+    }
+
     // POST /categories/{id}/toggle-status – Toggle is_active (enable/disable). Same pattern as banners.
     public function toggleStatus(Request $request, $id)
     {

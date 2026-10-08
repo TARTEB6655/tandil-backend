@@ -213,6 +213,16 @@ class ServiceController extends Controller
     }
 
     /**
+     * POST /api/admin/catalog/convert/service-to-category — body: service_id or id.
+     */
+    public function convertToCategoryFromBody(Request $request)
+    {
+        $id = $request->input('service_id', $request->input('id'));
+
+        return $this->convertToCategory($request, $id);
+    }
+
+    /**
      * DELETE /api/admin/services/{id} – Delete a service.
      */
     public function destroy(Request $request, $id)

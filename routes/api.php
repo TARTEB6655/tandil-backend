@@ -11,7 +11,9 @@ Route::get('/health', function () {
     $convertUris = [];
     foreach (app('router')->getRoutes() as $route) {
         $uri = (string) $route->uri();
-        if (str_contains($uri, 'convert-to-category') || str_contains($uri, 'convert-to-service')) {
+        if (str_contains($uri, 'convert-to-category')
+            || str_contains($uri, 'convert-to-service')
+            || str_contains($uri, 'catalog/convert/')) {
             $convertUris[] = implode('|', $route->methods()).' /'.$uri;
         }
     }
@@ -468,6 +470,10 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
         ->name('admin.categories.convert-to-service');
     Route::post('/services/{id}/convert-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory'])
         ->name('admin.services.convert-to-category');
+    Route::post('/catalog/convert/service-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategoryFromBody'])
+        ->name('admin.catalog.service-to-category');
+    Route::post('/catalog/convert/category-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToServiceFromBody'])
+        ->name('admin.catalog.category-to-service');
 
     // User Management - Moved to dedicated admin/users group below to avoid route conflicts
     // Routes are now defined at lines 297-302 under 'admin/users' prefix

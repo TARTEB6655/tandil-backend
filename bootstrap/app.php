@@ -10,6 +10,32 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            // Catalog convert — also registered here so deploys that update bootstrap
+            // but stale route:cache / partial api.php still expose these endpoints.
+            \Illuminate\Support\Facades\Route::middleware(['api', 'auth:sanctum,web', 'role:admin'])
+                ->group(function (): void {
+                    \Illuminate\Support\Facades\Route::post(
+                        'api/admin/services/{id}/convert-to-category',
+                        [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory']
+                    )->name('bootstrap.admin.services.convert-to-category');
+
+                    \Illuminate\Support\Facades\Route::post(
+                        'api/admin/categories/{id}/convert-to-service',
+                        [\App\Http\Controllers\CategoryController::class, 'convertToService']
+                    )->name('bootstrap.admin.categories.convert-to-service');
+
+                    \Illuminate\Support\Facades\Route::post(
+                        'api/admin/catalog/convert/service-to-category',
+                        [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategoryFromBody']
+                    )->name('bootstrap.admin.catalog.service-to-category');
+
+                    \Illuminate\Support\Facades\Route::post(
+                        'api/admin/catalog/convert/category-to-service',
+                        [\App\Http\Controllers\CategoryController::class, 'convertToServiceFromBody']
+                    )->name('bootstrap.admin.catalog.category-to-service');
+                });
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Allow logout even when browser/session CSRF token is stale.
