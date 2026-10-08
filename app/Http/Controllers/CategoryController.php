@@ -402,13 +402,13 @@ class CategoryController extends Controller
     /**
      * POST /api/admin/categories/{id}/convert-to-service – Create a service catalog entry from this category.
      */
-    public function convertToService(Request $request, $category_id)
+    public function convertToService(Request $request, $id)
     {
-        if ($err = $this->invalidCategoryIdResponse($category_id, $request)) {
+        if ($err = $this->invalidCategoryIdResponse($id, $request)) {
             return $err;
         }
 
-        $category = Category::findOrFail($category_id);
+        $category = Category::findOrFail((int) $id);
 
         try {
             $service = \App\Services\Admin\CatalogConversionService::convertCategoryToService($category);

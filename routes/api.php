@@ -461,10 +461,9 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/categories', [\App\Http\Controllers\CategoryController::class, 'store']);
     Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
     Route::put('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
-    Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
-    Route::post('/categories/{category_id}/convert-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToService'])
-        ->whereNumber('category_id');
+    Route::post('/categories/{id}/convert-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToService']);
+    Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
     // Vendor types (admin-managed registration options)
@@ -493,10 +492,9 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::post('/services/{id}/settings', [\App\Http\Controllers\Api\Admin\ServicePricingSettingsController::class, 'update'])->whereNumber('id');
     Route::get('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'show']);
     Route::put('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
-    Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::post('/services/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'toggleStatus']);
-    Route::post('/services/{service_id}/convert-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory'])
-        ->whereNumber('service_id');
+    Route::post('/services/{id}/convert-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory']);
+    Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::delete('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'destroy']);
 
     // Zones (Areas): assign supervisors and technicians to zones at setup. area_supervisor, area_technician.

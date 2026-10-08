@@ -191,9 +191,13 @@ class ServiceController extends Controller
     /**
      * POST /api/admin/services/{id}/convert-to-category – Create a product category from this service.
      */
-    public function convertToCategory(Request $request, $service_id)
+    public function convertToCategory(Request $request, $id)
     {
-        $service = Service::with('category')->withCount('products')->findOrFail($service_id);
+        if (! is_numeric($id) || (int) $id < 1) {
+            return ApiResponse::error('Invalid service id. Set service_id in Postman (e.g. from List Services).', 400);
+        }
+
+        $service = Service::with('category')->withCount('products')->findOrFail((int) $id);
 
         try {
             $category = \App\Services\Admin\CatalogConversionService::convertServiceToCategory($service);
