@@ -34,6 +34,11 @@ return Application::configure(basePath: dirname(__DIR__))
                         'api/admin/catalog/convert/category-to-service',
                         [\App\Http\Controllers\CategoryController::class, 'convertToServiceFromBody']
                     )->name('bootstrap.admin.catalog.category-to-service');
+
+                    \Illuminate\Support\Facades\Route::post(
+                        'api/admin/catalog/restore-platform-services',
+                        [\App\Http\Controllers\Api\Admin\ServiceController::class, 'restorePlatformServices']
+                    )->name('bootstrap.admin.catalog.restore-platform-services');
                 });
         },
     )

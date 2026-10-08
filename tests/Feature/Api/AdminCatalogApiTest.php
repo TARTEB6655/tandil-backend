@@ -468,4 +468,20 @@ class AdminCatalogApiTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonPath('data.name', 'Public Service');
     }
+
+    public function test_admin_restore_platform_services_api(): void
+    {
+        Category::factory()->create([
+            'name' => 'تصميم لاندسكيب',
+            'slug' => 'landscape',
+            'is_active' => true,
+        ]);
+
+        $this->postJson('/api/admin/catalog/restore-platform-services', ['dry_run' => false], $this->authJson())
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.restored', 4);
+
+        $this->assertDatabaseHas('services', ['slug' => 'landscape']);
+    }
 }

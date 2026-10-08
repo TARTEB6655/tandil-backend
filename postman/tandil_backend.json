@@ -532,278 +532,278 @@
           "item": [
             {
               "name": "01. Register",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 201) {",
-                      "    var jsonData = pm.response.json();",
-                      "    if (jsonData.token) {",
-                      "        pm.environment.set('token', jsonData.token);",
-                      "        pm.environment.set('user_id', jsonData.user.id);",
-                      "        pm.environment.set('role', jsonData.role);",
-                      "        console.log('Token saved:', jsonData.token);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+971501234567\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/auth/register",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "register"
-                  ]
-                },
-                "description": "✅ STEP 2: Register a new user account"
-              }
-            },
+          "event": [
             {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.token) {",
+                  "        pm.environment.set('token', jsonData.token);",
+                  "        pm.environment.set('user_id', jsonData.user.id);",
+                  "        pm.environment.set('role', jsonData.role);",
+                  "        console.log('Token saved:', jsonData.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+971501234567\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "✅ STEP 2: Register a new user account"
+          }
+        },
+        {
               "name": "02. App roles (login picker)",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/auth/app-roles",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "app-roles"
-                  ]
-                },
-                "description": "GET /api/auth/app-roles. Public. Each item: slug, role (display title), description (body text), icon, plus title/subtitle mirrors for older clients."
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/app-roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "app-roles"
+              ]
             },
-            {
+            "description": "GET /api/auth/app-roles. Public. Each item: slug, role (display title), description (body text), icon, plus title/subtitle mirrors for older clients."
+          }
+        },
+        {
               "name": "03. Login",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 200) {",
-                      "    var jsonData = pm.response.json();",
-                      "    var d = jsonData.data || jsonData;",
-                      "    if (d.token) {",
-                      "        pm.environment.set('token', d.token);",
-                      "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                      "        if (d.role) pm.environment.set('role', d.role);",
-                      "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                      "        console.log('Token saved:', d.token);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"roles\": \"admin\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/auth/login",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "login"
-                  ]
-                },
-                "description": "POST /api/auth/login. Body: email, password, required roles (single slug from GET /api/auth/app-roles, or JSON array of one slug). Token is scoped to that slug; the account must have that role. Response data.slug."
-              }
-            },
+          "event": [
             {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var d = jsonData.data || jsonData;",
+                  "    if (d.token) {",
+                  "        pm.environment.set('token', d.token);",
+                  "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                  "        if (d.role) pm.environment.set('role', d.role);",
+                  "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                  "        console.log('Token saved:', d.token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tandil.com\",\n  \"password\": \"password123\",\n  \"roles\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "POST /api/auth/login. Body: email, password, required roles (single slug from GET /api/auth/app-roles, or JSON array of one slug). Token is scoped to that slug; the account must have that role. Response data.slug."
+          }
+        },
+        {
               "name": "04. Delete Account (POST)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 200) {",
-                      "    pm.environment.unset('token');",
-                      "    pm.environment.unset('user_id');",
-                      "    console.log('Account deleted. Token cleared — use Register or Login again.');",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/auth/delete-account",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "delete-account"
-                  ]
-                },
-                "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple 5.1.1). Run **Login** first for {{token}}. **No request body** — user is taken from Bearer token. Success: account and personal data deleted; clear token locally. Aliases: DELETE /api/user/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
-              }
-            },
+          "event": [
             {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.environment.unset('token');",
+                  "    pm.environment.unset('user_id');",
+                  "    console.log('Account deleted. Token cleared — use Register or Login again.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/delete-account",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "delete-account"
+              ]
+            },
+            "description": "POST /api/auth/delete-account — Permanent **client** account deletion (Apple 5.1.1). Run **Login** first for {{token}}. **No request body** — user is taken from Bearer token. Success: account and personal data deleted; clear token locally. Aliases: DELETE /api/user/account, POST /api/user/delete-account. See docs/DELETE_ACCOUNT_API.md"
+          }
+        },
+        {
               "name": "05. Google sign-in (client)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 200) {",
-                      "    var jsonData = pm.response.json();",
-                      "    var d = jsonData.data || jsonData;",
-                      "    if (d.token) {",
-                      "        pm.environment.set('token', d.token);",
-                      "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                      "        if (d.role) pm.environment.set('role', d.role);",
-                      "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"id_token\": \"<google_id_token_from_mobile_sdk>\",\n  \"roles\": \"client\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/auth/google",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "google"
-                  ]
-                },
-                "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
-              }
-            },
+          "event": [
             {
-              "name": "06. Apple sign-in (client)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "if (pm.response.code === 200) {",
-                      "    var jsonData = pm.response.json();",
-                      "    var d = jsonData.data || jsonData;",
-                      "    if (d.token) {",
-                      "        pm.environment.set('token', d.token);",
-                      "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
-                      "        if (d.role) pm.environment.set('role', d.role);",
-                      "        if (d.slug) pm.environment.set('role_slug', d.slug);",
-                      "    }",
-                      "}"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var d = jsonData.data || jsonData;",
+                  "    if (d.token) {",
+                  "        pm.environment.set('token', d.token);",
+                  "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                  "        if (d.role) pm.environment.set('role', d.role);",
+                  "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                  "    }",
+                  "}"
                 ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"id_token\": \"<apple_identity_token>\",\n  \"roles\": \"client\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@privaterelay.appleid.com\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/auth/apple",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "apple"
-                  ]
-                },
-                "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
+                "type": "text/javascript"
               }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"<google_id_token_from_mobile_sdk>\",\n  \"roles\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/google",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "google"
+              ]
+            },
+            "description": "POST /api/auth/google. Public. Body: id_token (Google Sign-In SDK), roles (client). Verifies token with Google tokeninfo, finds or creates client user. Response = POST /api/auth/login (success, data.token, data.role, data.slug, data.user). data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID (optional GOOGLE_CLIENT_IDS for multiple OAuth clients)."
+          }
+        },
+        {
+              "name": "06. Apple sign-in (client)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var d = jsonData.data || jsonData;",
+                  "    if (d.token) {",
+                  "        pm.environment.set('token', d.token);",
+                  "        if (d.user && d.user.id) pm.environment.set('user_id', d.user.id);",
+                  "        if (d.role) pm.environment.set('role', d.role);",
+                  "        if (d.slug) pm.environment.set('role_slug', d.slug);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_token\": \"<apple_identity_token>\",\n  \"roles\": \"client\",\n  \"name\": \"John Doe\",\n  \"email\": \"john@privaterelay.appleid.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/apple",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "apple"
+              ]
+            },
+            "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
+          }
             }
           ]
         },
@@ -813,59 +813,59 @@
           "item": [
             {
               "name": "01. Technician signup - List areas (GET)",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/auth/technician-signup-areas",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "technician-signup-areas"
-                  ]
-                },
-                "description": "GET /api/auth/technician-signup-areas (alias: GET /api/technician-signup-areas — same JSON). Public. Returns zones (id, name, location, country) with at least one supervisor. If you get 404, server needs latest deploy + run: php artisan route:clear && php artisan optimize:clear. base_url must not already end with /api."
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/technician-signup-areas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "technician-signup-areas"
+              ]
             },
-            {
+            "description": "GET /api/auth/technician-signup-areas (alias: GET /api/technician-signup-areas — same JSON). Public. Returns zones (id, name, location, country) with at least one supervisor. If you get 404, server needs latest deploy + run: php artisan route:clear && php artisan optimize:clear. base_url must not already end with /api."
+          }
+        },
+        {
               "name": "02. Register Technician",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"name\": \"New Technician\",\n  \"email\": \"new.tech@example.com\",\n  \"phone\": \"+971500001234\",\n  \"service_area\": \"Dubai Marina\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/auth/register-technician",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "auth",
-                    "register-technician"
-                  ]
-                },
-                "description": "POST /api/auth/register-technician. Required: name, email, phone, password, password_confirmation, and either service_area (any free-text / map / worldwide address) OR area_id. Optional: if text matches a supervised zone, area_id is stored for routing; otherwise area_id is null and the raw location is saved. Supervisor sees null-area requests too; on approve they attach to one of their zones."
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Technician\",\n  \"email\": \"new.tech@example.com\",\n  \"phone\": \"+971500001234\",\n  \"service_area\": \"Dubai Marina\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register-technician",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register-technician"
+              ]
+            },
+            "description": "POST /api/auth/register-technician. Required: name, email, phone, password, password_confirmation, and either service_area (any free-text / map / worldwide address) OR area_id. Optional: if text matches a supervised zone, area_id is stored for routing; otherwise area_id is null and the raw location is saved. Supervisor sees null-area requests too; on approve they attach to one of their zones."
+          }
             }
           ]
         },
@@ -1172,356 +1172,356 @@
           "item": [
             {
               "name": "01. Registration options (vendor types & emirates)",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/auth/registration-options",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "auth",
-                    "registration-options"
-                  ]
-                },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendor/auth/registration-options",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "auth",
+                "registration-options"
+              ]
+            },
                 "description": "Public. Load active vendor types + emirates for the **legacy marketplace vendor** registration wizard. Call before Register Vendor. Response: data.vendor_types[], data.emirates[] ({id,name,slug,is_active}).\n\n**For contractor app dropdowns use:** `GET /api/contractor/auth/registration-options` (same schema; preferred)."
-              }
-            },
-            {
+          }
+        },
+        {
               "name": "02. Register Vendor (form-data – full signup)",
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "exec": [
-                      "pm.test('Status is 201 Created', function () {",
-                      "    pm.response.to.have.status(201);",
-                      "});",
-                      "pm.test('Vendor registration succeeded', function () {",
-                      "    var j = pm.response.json();",
-                      "    pm.expect(j.success).to.eql(true);",
-                      "    pm.expect(j.data).to.have.property('vendor_id');",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Vendor registration succeeded', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.success).to.eql(true);",
+                  "    pm.expect(j.data).to.have.property('vendor_id');",
                       "    pm.expect(j.data.status).to.eql('pending');",
-                      "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
-                      "});",
-                      "pm.test('Multi-select vendor_type was saved', function () {",
-                      "    var j = pm.response.json();",
-                      "    pm.expect(j.data.profile).to.have.property('vendor_types');",
-                      "    pm.expect(j.data.profile.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
-                      "    pm.expect(j.data.profile.vendor_type_label).to.contain(',');",
-                      "});"
-                    ],
-                    "type": "text/javascript"
-                  }
-                }
-              ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
+                  "    if (j.data.vendor_id) pm.environment.set('vendor_id', j.data.vendor_id);",
+                  "});",
+                  "pm.test('Multi-select vendor_type was saved', function () {",
+                  "    var j = pm.response.json();",
+                  "    pm.expect(j.data.profile).to.have.property('vendor_types');",
+                  "    pm.expect(j.data.profile.vendor_types).to.be.an('array').with.lengthOf.at.least(2);",
+                  "    pm.expect(j.data.profile.vendor_type_label).to.contain(',');",
+                  "});"
                 ],
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "company_name",
-                      "value": "Green Farms LLC",
-                      "type": "text",
-                      "description": "Company & account — Company name (alias: business_name). Required."
-                    },
-                    {
-                      "key": "authorized_person_name",
-                      "value": "Ali Vendor",
-                      "type": "text",
-                      "description": "Authorized person name (alias: owner_name). Required."
-                    },
-                    {
-                      "key": "email",
-                      "value": "vendor@example.com",
-                      "type": "text",
-                      "description": "Required. Unique."
-                    },
-                    {
-                      "key": "phone",
-                      "value": "+971500000000",
-                      "type": "text",
-                      "description": "Phone number. Required. Must be unique on users.phone — duplicate returns 422 (not SQL)."
-                    },
-                    {
-                      "key": "trade_license_number",
-                      "value": "TL-12345",
-                      "type": "text",
-                      "description": "Trade license number. Required."
-                    },
-                    {
-                      "key": "trade_license",
-                      "type": "file",
-                      "src": [],
-                      "description": "Trade license (PDF or JPEG/PNG/WebP). Required. Images up to 100 MB auto-compress under 2 MB; PDFs must already be under 2 MB."
-                    },
-                    {
-                      "key": "address",
-                      "value": "Industrial Area 1, Warehouse 5",
-                      "type": "text",
-                      "description": "Address. Required."
-                    },
-                    {
-                      "key": "password",
-                      "value": "secret12",
-                      "type": "text",
-                      "description": "Required (min 6)."
-                    },
-                    {
-                      "key": "password_confirmation",
-                      "value": "secret12",
-                      "type": "text",
-                      "description": "Required."
-                    },
-                    {
-                      "key": "logo",
-                      "type": "file",
-                      "src": [],
-                      "description": "Company logo (optional). JPEG/PNG/WebP up to 100 MB — auto-compressed under 2 MB before save. HEIC not supported."
-                    },
-                    {
-                      "key": "vat_number",
-                      "value": "TRN123456789",
-                      "type": "text",
-                      "description": "VAT / TRN number (optional)."
-                    },
-                    {
-                      "key": "emirates_id",
-                      "type": "file",
-                      "src": [],
-                      "description": "Emirates ID of authorized person (PDF or image). Required."
-                    },
-                    {
-                      "key": "vendor_type[]",
-                      "value": "fruits",
-                      "type": "text",
-                      "description": "Required. Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type — this is the format mobile must send for multiple selections. A single plain 'vendor_type' key (no brackets) still works for one value. Preferred slugs: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values are dropped; if none resolve, falls back to other."
-                    },
-                    {
-                      "key": "vendor_type[]",
-                      "value": "vegetables",
-                      "type": "text",
-                      "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
-                    },
-                    {
-                      "key": "emirate",
-                      "value": "Dubai",
-                      "type": "text",
-                      "description": "Required. Abu Dhabi|Dubai|Sharjah|Ajman|Umm Al Quwain|Ras Al Khaimah|Fujairah"
-                    },
-                    {
-                      "key": "city",
-                      "value": "Dubai",
-                      "type": "text",
-                      "description": "City or area (optional)."
-                    },
-                    {
-                      "key": "google_maps_location",
-                      "value": "25.2048,55.2708",
-                      "type": "text",
-                      "description": "Required. lat,lng or Google Maps URL."
-                    },
-                    {
-                      "key": "bank_name",
-                      "value": "Emirates NBD",
-                      "type": "text",
-                      "description": "Bank details — bank name. Required."
-                    },
-                    {
-                      "key": "iban",
-                      "value": "AE070331234567890123456",
-                      "type": "text",
-                      "description": "IBAN. Required."
-                    },
-                    {
-                      "key": "account_holder_name",
-                      "value": "Green Farms LLC",
-                      "type": "text",
-                      "description": "Account holder name. Required."
-                    },
-                    {
-                      "key": "delivery_radius",
-                      "value": "25",
-                      "type": "text",
-                      "description": "Operations — delivery radius in km. Required."
-                    },
-                    {
-                      "key": "opens_at",
-                      "value": "08:00",
-                      "type": "text",
-                      "description": "Opens at (HH:MM). Required unless operating_hours sent."
-                    },
-                    {
-                      "key": "closes_at",
-                      "value": "22:00",
-                      "type": "text",
-                      "description": "Closes at (HH:MM). Required unless operating_hours sent."
-                    },
-                    {
-                      "key": "minimum_order_amount",
-                      "value": "50",
-                      "type": "text",
-                      "description": "Minimum order amount (AED). Required."
-                    },
-                    {
-                      "key": "terms_accepted",
-                      "value": "1",
-                      "type": "text",
-                      "description": "Required. 1 = accept Terms & Conditions."
-                    }
-                  ]
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/auth/register",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "auth",
-                    "register"
-                  ]
-                },
-                "description": "Public multipart sign-up matching the mobile Vendor Registration wizard (marketplace). Creates user + vendor (`pending`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to select more than one type; a single `vendor_type` field still works for one value. Response `data.profile.vendor_types` returns the full selection ({id,name,slug}[]) and `data.profile.vendor_type_label` joins all selected names.\n\n**For contractor app use:** `POST /api/contractor/auth/register` (Register Contractor) — that is the only contractor signup API."
+                "type": "text/javascript"
               }
-            },
-            {
-              "name": "03. Login Vendor",
-              "event": [
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
                 {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "if (pm.response.code === 200) {",
-                      "    var d = pm.response.json();",
-                      "    var t = d.data && (d.data.token || d.data.access_token);",
-                      "    if (t) {",
-                      "        pm.collectionVariables.set('token', t);",
-                      "        pm.collectionVariables.set('vendor_token', t);",
-                      "        pm.environment.set('token', t);",
-                      "        pm.environment.set('vendor_token', t);",
-                      "    }",
-                      "    if (d.data && d.data.vendor) {",
-                      "        if (d.data.vendor.vendor_id) {",
-                      "            pm.collectionVariables.set('vendor_id', String(d.data.vendor.vendor_id));",
-                      "            pm.environment.set('vendor_id', String(d.data.vendor.vendor_id));",
-                      "        }",
-                      "    }",
-                      "}",
-                      "pm.test('Login returns vendor context', function () {",
-                      "    var d = pm.response.json();",
-                      "    pm.expect(d.data).to.have.property('vendor');",
-                      "    pm.expect(d.data.vendor).to.have.property('is_approved');",
-                      "});"
-                    ]
-                  }
+                  "key": "company_name",
+                  "value": "Green Farms LLC",
+                  "type": "text",
+                  "description": "Company & account — Company name (alias: business_name). Required."
+                },
+                {
+                  "key": "authorized_person_name",
+                  "value": "Ali Vendor",
+                  "type": "text",
+                  "description": "Authorized person name (alias: owner_name). Required."
+                },
+                {
+                  "key": "email",
+                  "value": "vendor@example.com",
+                  "type": "text",
+                  "description": "Required. Unique."
+                },
+                {
+                  "key": "phone",
+                  "value": "+971500000000",
+                  "type": "text",
+                  "description": "Phone number. Required. Must be unique on users.phone — duplicate returns 422 (not SQL)."
+                },
+                {
+                  "key": "trade_license_number",
+                  "value": "TL-12345",
+                  "type": "text",
+                  "description": "Trade license number. Required."
+                },
+                {
+                  "key": "trade_license",
+                  "type": "file",
+                  "src": [],
+                  "description": "Trade license (PDF or JPEG/PNG/WebP). Required. Images up to 100 MB auto-compress under 2 MB; PDFs must already be under 2 MB."
+                },
+                {
+                  "key": "address",
+                  "value": "Industrial Area 1, Warehouse 5",
+                  "type": "text",
+                  "description": "Address. Required."
+                },
+                {
+                  "key": "password",
+                  "value": "secret12",
+                  "type": "text",
+                  "description": "Required (min 6)."
+                },
+                {
+                  "key": "password_confirmation",
+                  "value": "secret12",
+                  "type": "text",
+                  "description": "Required."
+                },
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": [],
+                  "description": "Company logo (optional). JPEG/PNG/WebP up to 100 MB — auto-compressed under 2 MB before save. HEIC not supported."
+                },
+                {
+                  "key": "vat_number",
+                  "value": "TRN123456789",
+                  "type": "text",
+                  "description": "VAT / TRN number (optional)."
+                },
+                {
+                  "key": "emirates_id",
+                  "type": "file",
+                  "src": [],
+                  "description": "Emirates ID of authorized person (PDF or image). Required."
+                },
+                {
+                  "key": "vendor_type[]",
+                  "value": "fruits",
+                  "type": "text",
+                  "description": "Required. Multi-select: repeat this form-data key (vendor_type[]) once per chip to submit more than one vendor type — this is the format mobile must send for multiple selections. A single plain 'vendor_type' key (no brackets) still works for one value. Preferred slugs: fruits|vegetables|poultry|seafood|meat|honey|nuts|restaurant|other. Also accepts labels/aliases (Fruits, Fruit, business_type). Unknown values are dropped; if none resolve, falls back to other."
+                },
+                {
+                  "key": "vendor_type[]",
+                  "value": "vegetables",
+                  "type": "text",
+                  "description": "Second selected vendor type — same key repeated for multi-select. Remove this row to submit a single vendor type."
+                },
+                {
+                  "key": "emirate",
+                  "value": "Dubai",
+                  "type": "text",
+                  "description": "Required. Abu Dhabi|Dubai|Sharjah|Ajman|Umm Al Quwain|Ras Al Khaimah|Fujairah"
+                },
+                {
+                  "key": "city",
+                  "value": "Dubai",
+                  "type": "text",
+                  "description": "City or area (optional)."
+                },
+                {
+                  "key": "google_maps_location",
+                  "value": "25.2048,55.2708",
+                  "type": "text",
+                  "description": "Required. lat,lng or Google Maps URL."
+                },
+                {
+                  "key": "bank_name",
+                  "value": "Emirates NBD",
+                  "type": "text",
+                  "description": "Bank details — bank name. Required."
+                },
+                {
+                  "key": "iban",
+                  "value": "AE070331234567890123456",
+                  "type": "text",
+                  "description": "IBAN. Required."
+                },
+                {
+                  "key": "account_holder_name",
+                  "value": "Green Farms LLC",
+                  "type": "text",
+                  "description": "Account holder name. Required."
+                },
+                {
+                  "key": "delivery_radius",
+                  "value": "25",
+                  "type": "text",
+                  "description": "Operations — delivery radius in km. Required."
+                },
+                {
+                  "key": "opens_at",
+                  "value": "08:00",
+                  "type": "text",
+                  "description": "Opens at (HH:MM). Required unless operating_hours sent."
+                },
+                {
+                  "key": "closes_at",
+                  "value": "22:00",
+                  "type": "text",
+                  "description": "Closes at (HH:MM). Required unless operating_hours sent."
+                },
+                {
+                  "key": "minimum_order_amount",
+                  "value": "50",
+                  "type": "text",
+                  "description": "Minimum order amount (AED). Required."
+                },
+                {
+                  "key": "terms_accepted",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Required. 1 = accept Terms & Conditions."
                 }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vendor/auth/register",
+              "host": [
+                "{{base_url}}"
               ],
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  },
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"
-                },
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/auth/login",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "auth",
-                    "login"
-                  ]
-                },
-                "description": "Login as vendor once — saves **vendor_token** + **token** to collection AND environment (persists across requests). Re-login does not invalidate the previous token. Use folder 18 vendor APIs without logging in again. Logout only revokes the token used for that logout call."
-              }
+              "path": [
+                "api",
+                "vendor",
+                "auth",
+                "register"
+              ]
             },
+                "description": "Public multipart sign-up matching the mobile Vendor Registration wizard (marketplace). Creates user + vendor (`pending`) + full profile + documents. Admin must approve before selling. form-data only. Aliases: company_name, authorized_person_name. Times: opens_at + closes_at → operating_hours. **category_ids optional** — categories can be selected later in onboarding (PUT /api/vendor/application or onboarding categories). **vendor_type supports multi-select** — send it as repeated `vendor_type[]` form-data fields (one per chip) to select more than one type; a single `vendor_type` field still works for one value. Response `data.profile.vendor_types` returns the full selection ({id,name,slug}[]) and `data.profile.vendor_type_label` joins all selected names.\n\n**For contractor app use:** `POST /api/contractor/auth/register` (Register Contractor) — that is the only contractor signup API."
+          }
+        },
+        {
+              "name": "03. Login Vendor",
+          "event": [
             {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var d = pm.response.json();",
+                  "    var t = d.data && (d.data.token || d.data.access_token);",
+                  "    if (t) {",
+                  "        pm.collectionVariables.set('token', t);",
+                  "        pm.collectionVariables.set('vendor_token', t);",
+                  "        pm.environment.set('token', t);",
+                  "        pm.environment.set('vendor_token', t);",
+                  "    }",
+                  "    if (d.data && d.data.vendor) {",
+                  "        if (d.data.vendor.vendor_id) {",
+                  "            pm.collectionVariables.set('vendor_id', String(d.data.vendor.vendor_id));",
+                  "            pm.environment.set('vendor_id', String(d.data.vendor.vendor_id));",
+                  "        }",
+                  "    }",
+                  "}",
+                  "pm.test('Login returns vendor context', function () {",
+                  "    var d = pm.response.json();",
+                  "    pm.expect(d.data).to.have.property('vendor');",
+                  "    pm.expect(d.data.vendor).to.have.property('is_approved');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"vendor@example.com\",\n  \"password\": \"secret12\",\n  \"roles\": \"vendor\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/vendor/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login as vendor once — saves **vendor_token** + **token** to collection AND environment (persists across requests). Re-login does not invalidate the previous token. Use folder 18 vendor APIs without logging in again. Logout only revokes the token used for that logout call."
+          }
+        },
+        {
               "name": "04. Validate vendor token (auth/me)",
-              "request": {
-                "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{vendor_token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/auth/me",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "auth",
-                    "me"
-                  ]
-                },
-                "description": "Check saved vendor token is still valid without re-login. Use {{vendor_token}} from Login Vendor."
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{vendor_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendor/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "auth",
+                "me"
+              ]
             },
-            {
+            "description": "Check saved vendor token is still valid without re-login. Use {{vendor_token}} from Login Vendor."
+          }
+        },
+        {
               "name": "05. Logout Vendor",
-              "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{token}}"
-                  },
-                  {
-                    "key": "Accept",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{base_url}}/api/vendor/auth/logout",
-                  "host": [
-                    "{{base_url}}"
-                  ],
-                  "path": [
-                    "api",
-                    "vendor",
-                    "auth",
-                    "logout"
-                  ]
-                },
-                "description": "Revoke the current vendor access token."
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
               }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/vendor/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "vendor",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Revoke the current vendor access token."
+          }
             }
           ]
         }
@@ -2484,79 +2484,79 @@
               "item": [
                 {
                   "name": "01. Notifications (GET)",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "user",
-                        "notifications"
-                      ],
-                      "query": [
-                        {
-                          "key": "per_page",
-                          "value": "20",
-                          "description": "Optional, 1-100"
-                        },
-                        {
-                          "key": "audience_role",
-                          "value": "",
-                          "description": "Optional filter (e.g. client, technician). Usually omit."
-                        }
-                      ]
-                    },
-                    "description": "Profile – Notifications. Database inbox: data.notifications (paginated), data.unread_count. Same rows as /api/client/notifications for client role. Role-aware (HR/area_manager subsets when applicable)."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/user/notifications?per_page=20&audience_role=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "user",
+                    "notifications"
+                  ],
+                  "query": [
+                    {
+                      "key": "per_page",
+                      "value": "20",
+                      "description": "Optional, 1-100"
+                    },
+                    {
+                      "key": "audience_role",
+                      "value": "",
+                      "description": "Optional filter (e.g. client, technician). Usually omit."
+                    }
+                  ]
                 },
-                {
+                "description": "Profile – Notifications. Database inbox: data.notifications (paginated), data.unread_count. Same rows as /api/client/notifications for client role. Role-aware (HR/area_manager subsets when applicable)."
+              }
+            },
+            {
                   "name": "02. Notifications – Clear All (POST)",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "user",
-                        "notifications",
-                        "clear-all"
-                      ],
-                      "query": [
-                        {
-                          "key": "audience_role",
-                          "value": "",
-                          "description": "Optional; same as list endpoint"
-                        }
-                      ]
-                    },
-                    "description": "Profile – Notifications. Deletes all notifications in the user inbox (same scope as GET). Response includes deleted_count. Optional query audience_role to match filtered list."
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/user/notifications/clear-all?audience_role=",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "user",
+                    "notifications",
+                    "clear-all"
+                  ],
+                  "query": [
+                    {
+                      "key": "audience_role",
+                      "value": "",
+                      "description": "Optional; same as list endpoint"
+                    }
+                  ]
+                },
+                "description": "Profile – Notifications. Deletes all notifications in the user inbox (same scope as GET). Response includes deleted_count. Optional query audience_role to match filtered list."
+              }
                 }
               ],
               "description": "Requests wrapped into a folder so Postman import cannot reorder folders above requests."
@@ -6292,793 +6292,793 @@
               "item": [
                 {
                   "name": "01. Admin Dashboard Statistics",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/statistics",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "statistics"
-                      ]
-                    },
-                    "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` → \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` → \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` → \"+15\" (display directly)\n- `data.employees.growth.monthly` → \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/statistics",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "statistics"
+                  ]
                 },
-                {
+                "description": "Get admin dashboard statistics for mobile app\n\n**Purpose:**\n- Returns comprehensive statistics for total users, active subscriptions, monthly revenue, customers, technicians, and employees\n- Includes counts/amounts for daily, weekly, monthly, yearly periods\n- Provides growth percentages vs previous periods with automatic + and - signs\n- Used by admin mobile app dashboard\n\n**Response Structure:**\n- `total_users`: All users regardless of role (total, daily, weekly, monthly, yearly + growth)\n- `active_subscriptions`: Paid subscriptions that haven't expired (total, daily, weekly, monthly, yearly + growth)\n- `monthly_revenue`: Total revenue from orders + subscriptions (total, daily, weekly, monthly, yearly + growth)\n- `customers`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `technicians`: Total count + daily/weekly/monthly/yearly counts + growth percentages\n- `employees`: Total count (Technicians + Supervisors + Area Managers + HR) + daily/weekly/monthly/yearly counts + growth percentages\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"+8\", \"+15\", \"-5\")\n- Positive growth: Always includes '+' sign (e.g., \"+12\", \"+8\", \"+15\")\n- Negative growth: Always includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"+0\" or \"0\"\n- Represents percentage change vs previous period\n- No need to add + or - sign in frontend, it's already included\n\n**Use Cases:**\n- Admin mobile app dashboard\n- Display statistics cards (Total Users, Active Subscriptions, Monthly Revenue, Total Employees)\n- Show growth trends with visual indicators (green for +, red for -)\n- Analytics overview\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_users\": {\n      \"total\": 1245,\n      \"daily\": 5,\n      \"weekly\": 25,\n      \"monthly\": 120,\n      \"yearly\": 1245,\n      \"growth\": {\n        \"daily\": \"+2\",\n        \"weekly\": \"+15\",\n        \"monthly\": \"+12\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"active_subscriptions\": {\n      \"total\": 892,\n      \"daily\": 3,\n      \"weekly\": 15,\n      \"monthly\": 60,\n      \"yearly\": 892,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+8\",\n        \"monthly\": \"+8\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"monthly_revenue\": {\n      \"total\": 245000,\n      \"daily\": 5000,\n      \"weekly\": 25000,\n      \"monthly\": 245000,\n      \"yearly\": 2450000,\n      \"growth\": {\n        \"daily\": \"+5\",\n        \"weekly\": \"+12\",\n        \"monthly\": \"+15\",\n        \"yearly\": \"+200\"\n      }\n    },\n    \"customers\": {\n      \"total\": 850,\n      \"daily\": 3,\n      \"weekly\": 18,\n      \"monthly\": 85,\n      \"yearly\": 850,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+10\",\n        \"monthly\": \"+40\",\n        \"yearly\": \"+150\"\n      }\n    },\n    \"technicians\": {\n      \"total\": 506,\n      \"daily\": 2,\n      \"weekly\": 10,\n      \"monthly\": 45,\n      \"yearly\": 506,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+5\",\n        \"monthly\": \"+20\",\n        \"yearly\": \"+180\"\n      }\n    },\n    \"employees\": {\n      \"total\": 48,\n      \"daily\": 1,\n      \"weekly\": 5,\n      \"monthly\": 20,\n      \"yearly\": 48,\n      \"growth\": {\n        \"daily\": \"+1\",\n        \"weekly\": \"+3\",\n        \"monthly\": \"+3\",\n        \"yearly\": \"+10\"\n      }\n    }\n  }\n}\n```\n\n**Mobile App Usage:**\n- `data.total_users.growth.monthly` → \"+12\" (display directly, no need to add + sign)\n- `data.active_subscriptions.growth.monthly` → \"+8\" (display directly)\n- `data.monthly_revenue.growth.monthly` → \"+15\" (display directly)\n- `data.employees.growth.monthly` → \"+3\" (display directly)\n- Use green color for positive growth (+), red for negative growth (-)"
+              }
+            },
+            {
                   "name": "02. Admin Dashboard Recent Activities",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/recent-activities?limit=20",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "recent-activities"
-                      ],
-                      "query": [
-                        {
-                          "key": "limit",
-                          "value": "20",
-                          "description": "Number of activities to return (default: 20)"
-                        }
-                      ]
-                    },
-                    "description": "Get recent activities for React Native dashboard\n\n**Purpose:**\n- Returns a list of recent activities including subscriptions, customer registrations, inventory alerts, and orders (real data only; no visit data)\n- Used to display the \"Recent Activities\" section in admin mobile app\n\n**Activity Types:**\n- `subscription`: New paid subscriptions (icon_type: success - green checkmark)\n- `customer`: New customer registrations (icon_type: user_add - user icon with plus sign)\n- `inventory`: Low stock or out of stock alerts (icon_type: warning/error - yellow/red icon)\n- `order`: New orders placed (icon_type: order - shopping cart icon)\n\n**Response Structure:**\nEach activity contains:\n- `type`: Activity type (subscription, customer, inventory, order)\n- `icon_type`: Icon type for frontend rendering (success, user_add, warning, error, order)\n- `description`: Human-readable activity description\n- `timestamp`: Human-readable time (e.g., \"5 min ago\", \"1 hour ago\")\n- `created_at`: ISO 8601 timestamp for sorting\n- `related_id`: ID of related entity\n- `related_type`: Type of related entity (subscription, user, product, order)\n- Additional fields for specific types (e.g., `stock` for inventory, `amount` and `status` for orders)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"type\": \"subscription\",\n      \"icon_type\": \"success\",\n      \"description\": \"New 12-month subscription by Palm Grove Estate\",\n      \"timestamp\": \"5 min ago\",\n      \"created_at\": \"2025-01-15T10:30:00Z\",\n      \"related_id\": 123,\n      \"related_type\": \"subscription\"\n    },\n    {\n      \"type\": \"customer\",\n      \"icon_type\": \"user_add\",\n      \"description\": \"New customer registered - Mohammed Ali Farm\",\n      \"timestamp\": \"1 hour ago\",\n      \"created_at\": \"2025-01-15T09:30:00Z\",\n      \"related_id\": 456,\n      \"related_type\": \"user\"\n    },\n    {\n      \"type\": \"inventory\",\n      \"icon_type\": \"warning\",\n      \"description\": \"Low inventory alert: Organic Fertilizer\",\n      \"timestamp\": \"2 hours ago\",\n      \"created_at\": \"2025-01-15T08:30:00Z\",\n      \"related_id\": 789,\n      \"related_type\": \"product\",\n      \"stock\": 5\n    },\n    {\n      \"type\": \"order\",\n      \"icon_type\": \"order\",\n      \"description\": \"New order #101 by John Doe\",\n      \"timestamp\": \"3 hours ago\",\n      \"created_at\": \"2025-01-15T07:30:00Z\",\n      \"related_id\": 101,\n      \"related_type\": \"order\",\n      \"amount\": 150.50,\n      \"status\": \"pending\"\n    }\n  ],\n  \"total\": 4\n}\n```\n\n**Use Cases:**\n- Display recent activities in admin mobile app dashboard\n- Show activity feed with icons and timestamps\n- Navigate to related entities using `related_id` and `related_type`\n- Filter or group activities by type\n\n**Query Parameters:**\n- `limit` (optional): Number of activities to return (default: 20, max recommended: 50)\n\n**Frontend Implementation:**\n- Use `icon_type` to render appropriate icons (success=green checkmark, user_add=user icon with plus, warning=yellow alert, error=red alert, order=shopping cart)\n- Display `description` as main text\n- Show `timestamp` as secondary text (e.g., \"5 min ago\")\n- Use `related_id` and `related_type` for navigation when user taps on activity"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/recent-activities?limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "recent-activities"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "Number of activities to return (default: 20)"
+                    }
+                  ]
                 },
-                {
+                "description": "Get recent activities for React Native dashboard\n\n**Purpose:**\n- Returns a list of recent activities including subscriptions, customer registrations, inventory alerts, and orders (real data only; no visit data)\n- Used to display the \"Recent Activities\" section in admin mobile app\n\n**Activity Types:**\n- `subscription`: New paid subscriptions (icon_type: success - green checkmark)\n- `customer`: New customer registrations (icon_type: user_add - user icon with plus sign)\n- `inventory`: Low stock or out of stock alerts (icon_type: warning/error - yellow/red icon)\n- `order`: New orders placed (icon_type: order - shopping cart icon)\n\n**Response Structure:**\nEach activity contains:\n- `type`: Activity type (subscription, customer, inventory, order)\n- `icon_type`: Icon type for frontend rendering (success, user_add, warning, error, order)\n- `description`: Human-readable activity description\n- `timestamp`: Human-readable time (e.g., \"5 min ago\", \"1 hour ago\")\n- `created_at`: ISO 8601 timestamp for sorting\n- `related_id`: ID of related entity\n- `related_type`: Type of related entity (subscription, user, product, order)\n- Additional fields for specific types (e.g., `stock` for inventory, `amount` and `status` for orders)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": [\n    {\n      \"type\": \"subscription\",\n      \"icon_type\": \"success\",\n      \"description\": \"New 12-month subscription by Palm Grove Estate\",\n      \"timestamp\": \"5 min ago\",\n      \"created_at\": \"2025-01-15T10:30:00Z\",\n      \"related_id\": 123,\n      \"related_type\": \"subscription\"\n    },\n    {\n      \"type\": \"customer\",\n      \"icon_type\": \"user_add\",\n      \"description\": \"New customer registered - Mohammed Ali Farm\",\n      \"timestamp\": \"1 hour ago\",\n      \"created_at\": \"2025-01-15T09:30:00Z\",\n      \"related_id\": 456,\n      \"related_type\": \"user\"\n    },\n    {\n      \"type\": \"inventory\",\n      \"icon_type\": \"warning\",\n      \"description\": \"Low inventory alert: Organic Fertilizer\",\n      \"timestamp\": \"2 hours ago\",\n      \"created_at\": \"2025-01-15T08:30:00Z\",\n      \"related_id\": 789,\n      \"related_type\": \"product\",\n      \"stock\": 5\n    },\n    {\n      \"type\": \"order\",\n      \"icon_type\": \"order\",\n      \"description\": \"New order #101 by John Doe\",\n      \"timestamp\": \"3 hours ago\",\n      \"created_at\": \"2025-01-15T07:30:00Z\",\n      \"related_id\": 101,\n      \"related_type\": \"order\",\n      \"amount\": 150.50,\n      \"status\": \"pending\"\n    }\n  ],\n  \"total\": 4\n}\n```\n\n**Use Cases:**\n- Display recent activities in admin mobile app dashboard\n- Show activity feed with icons and timestamps\n- Navigate to related entities using `related_id` and `related_type`\n- Filter or group activities by type\n\n**Query Parameters:**\n- `limit` (optional): Number of activities to return (default: 20, max recommended: 50)\n\n**Frontend Implementation:**\n- Use `icon_type` to render appropriate icons (success=green checkmark, user_add=user icon with plus, warning=yellow alert, error=red alert, order=shopping cart)\n- Display `description` as main text\n- Show `timestamp` as secondary text (e.g., \"5 min ago\")\n- Use `related_id` and `related_type` for navigation when user taps on activity"
+              }
+            },
+            {
                   "name": "03. Admin Dashboard Order Statistics",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/order-statistics",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "order-statistics"
-                      ]
-                    },
-                    "description": "Get admin order statistics for dashboard cards/charts. Returns order counts (total/cancelled/completed/refunded/pending/assigned/in_progress), financial metrics (gross_revenue/refunded_amount/net_revenue), period counts (today/this_week/this_month), and rates (completion/cancellation/refund). Auth: admin token."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/order-statistics",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "order-statistics"
+                  ]
                 },
-                {
+                "description": "Get admin order statistics for dashboard cards/charts. Returns order counts (total/cancelled/completed/refunded/pending/assigned/in_progress), financial metrics (gross_revenue/refunded_amount/net_revenue), period counts (today/this_week/this_month), and rates (completion/cancellation/refund). Auth: admin token."
+              }
+            },
+            {
                   "name": "04. Admin Dashboard Order Statistics - Orders Buckets",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/order-statistics/orders?limit=20",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "order-statistics",
-                        "orders"
-                      ],
-                      "query": [
-                        {
-                          "key": "limit",
-                          "value": "20",
-                          "description": "Max orders per bucket (1-100). Default 20."
-                        }
-                      ]
-                    },
-                    "description": "Get bucketed order lists aligned with admin order statistics cards. Returns count + orders[] for total_orders, pending_orders, assigned_orders, in_progress_orders, completed_orders, cancelled_orders, refunded_orders."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/order-statistics/orders?limit=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "order-statistics",
+                    "orders"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20",
+                      "description": "Max orders per bucket (1-100). Default 20."
+                    }
+                  ]
                 },
-                {
+                "description": "Get bucketed order lists aligned with admin order statistics cards. Returns count + orders[] for total_orders, pending_orders, assigned_orders, in_progress_orders, completed_orders, cancelled_orders, refunded_orders."
+              }
+            },
+            {
                   "name": "05. Admin Dashboard Quick Overview",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/quick-overview",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "quick-overview"
-                      ]
-                    },
-                    "description": "Get quick overview statistics for React Native dashboard\n\n**Purpose:**\n- Returns quick stats for dashboard cards including pending reports, new orders, support tickets, new customers, etc.\n- Includes percentage growth vs previous period (yesterday)\n- Used to display \"Quick Overview\" cards in admin mobile app\n\n**Response Structure:**\n- `pending_reports`: Count of reports with status 'pending' + growth percentage\n- `new_orders`: Count of orders created today + growth percentage\n- `support_tickets`: Count of open/in_progress complaints + growth percentage\n- `new_customers`: Count of customers registered today + growth percentage\n- `new_subscriptions`: Count of paid subscriptions created today + growth percentage\n- `revenue_today`: Total revenue from paid orders today + growth percentage\n- `pending_visits`: Count of scheduled but not completed visits + growth percentage\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"-5\")\n- Positive growth: Includes '+' sign (e.g., \"+12\", \"+8\")\n- Negative growth: Includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"0\" or \"+0\"\n- Represents percentage change vs previous period (yesterday)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"pending_reports\": {\n      \"count\": 12,\n      \"growth\": \"+20\",\n      \"label\": \"Pending Reports\"\n    },\n    \"new_orders\": {\n      \"count\": 34,\n      \"growth\": \"+12\",\n      \"label\": \"New Orders\"\n    },\n    \"support_tickets\": {\n      \"count\": 8,\n      \"growth\": \"-5\",\n      \"label\": \"Support Tickets\"\n    },\n    \"new_customers\": {\n      \"count\": 5,\n      \"growth\": \"+25\",\n      \"label\": \"New Customers\"\n    },\n    \"new_subscriptions\": {\n      \"count\": 3,\n      \"growth\": \"+50\",\n      \"label\": \"New Subscriptions\"\n    },\n    \"revenue_today\": {\n      \"amount\": 12500.50,\n      \"growth\": \"+15\",\n      \"label\": \"Revenue Today\"\n    },\n    \"pending_visits\": {\n      \"count\": 12,\n      \"growth\": \"-8\",\n      \"label\": \"Pending Visits\"\n    }\n  }\n}\n```\n\n**Use Cases:**\n- Display quick overview cards in admin mobile app dashboard\n- Show counts with growth indicators (green for +, red for -)\n- Quick access to key metrics\n- Display \"New\" badge for items with new activity\n\n**Frontend Implementation:**\n- Display `count` or `amount` as main number\n- Show `growth` with appropriate color (green for +, red for -)\n- Use `label` for card title\n- Display growth with arrow icons (up for +, down for -)\n- Show \"New\" badge for items with positive growth or new items"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/quick-overview",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "quick-overview"
+                  ]
                 },
-                {
+                "description": "Get quick overview statistics for React Native dashboard\n\n**Purpose:**\n- Returns quick stats for dashboard cards including pending reports, new orders, support tickets, new customers, etc.\n- Includes percentage growth vs previous period (yesterday)\n- Used to display \"Quick Overview\" cards in admin mobile app\n\n**Response Structure:**\n- `pending_reports`: Count of reports with status 'pending' + growth percentage\n- `new_orders`: Count of orders created today + growth percentage\n- `support_tickets`: Count of open/in_progress complaints + growth percentage\n- `new_customers`: Count of customers registered today + growth percentage\n- `new_subscriptions`: Count of paid subscriptions created today + growth percentage\n- `revenue_today`: Total revenue from paid orders today + growth percentage\n- `pending_visits`: Count of scheduled but not completed visits + growth percentage\n\n**Growth Format:**\n- Growth values are strings with automatic + or - sign (e.g., \"+12\", \"-5\")\n- Positive growth: Includes '+' sign (e.g., \"+12\", \"+8\")\n- Negative growth: Includes '-' sign (e.g., \"-5\", \"-10\")\n- Zero growth: Shows as \"0\" or \"+0\"\n- Represents percentage change vs previous period (yesterday)\n\n**Example Response:**\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"pending_reports\": {\n      \"count\": 12,\n      \"growth\": \"+20\",\n      \"label\": \"Pending Reports\"\n    },\n    \"new_orders\": {\n      \"count\": 34,\n      \"growth\": \"+12\",\n      \"label\": \"New Orders\"\n    },\n    \"support_tickets\": {\n      \"count\": 8,\n      \"growth\": \"-5\",\n      \"label\": \"Support Tickets\"\n    },\n    \"new_customers\": {\n      \"count\": 5,\n      \"growth\": \"+25\",\n      \"label\": \"New Customers\"\n    },\n    \"new_subscriptions\": {\n      \"count\": 3,\n      \"growth\": \"+50\",\n      \"label\": \"New Subscriptions\"\n    },\n    \"revenue_today\": {\n      \"amount\": 12500.50,\n      \"growth\": \"+15\",\n      \"label\": \"Revenue Today\"\n    },\n    \"pending_visits\": {\n      \"count\": 12,\n      \"growth\": \"-8\",\n      \"label\": \"Pending Visits\"\n    }\n  }\n}\n```\n\n**Use Cases:**\n- Display quick overview cards in admin mobile app dashboard\n- Show counts with growth indicators (green for +, red for -)\n- Quick access to key metrics\n- Display \"New\" badge for items with new activity\n\n**Frontend Implementation:**\n- Display `count` or `amount` as main number\n- Show `growth` with appropriate color (green for +, red for -)\n- Use `label` for card title\n- Display growth with arrow icons (up for +, down for -)\n- Show \"New\" badge for items with positive growth or new items"
+              }
+            },
+            {
                   "name": "06. Admin Dashboard Profile",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/profile",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "profile"
-                      ]
-                    },
-                    "description": "Get admin user profile with formatted ID for React Native dashboard.\n\n**Response:** id, formatted_id (e.g. ADMIN-0001), name, email, phone, role, role_display_name, status, greeting, profile_picture (storage path), profile_picture_url (full URL for display), created_at. To update profile or picture use **PUT/POST Admin Dashboard Profile (Update)** with form-data."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "profile"
+                  ]
                 },
-                {
+                "description": "Get admin user profile with formatted ID for React Native dashboard.\n\n**Response:** id, formatted_id (e.g. ADMIN-0001), name, email, phone, role, role_display_name, status, greeting, profile_picture (storage path), profile_picture_url (full URL for display), created_at. To update profile or picture use **PUT/POST Admin Dashboard Profile (Update)** with form-data."
+              }
+            },
+            {
                   "name": "07. PUT/POST Admin Dashboard Profile (Update)",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "name",
-                          "value": "Administrator",
-                          "type": "text",
-                          "description": "Optional"
-                        },
-                        {
-                          "key": "email",
-                          "value": "admin@tandil.com",
-                          "type": "text",
-                          "description": "Optional"
-                        },
-                        {
-                          "key": "phone",
-                          "value": "78860000",
-                          "type": "text",
-                          "description": "Optional"
-                        },
-                        {
-                          "key": "profile_picture",
-                          "type": "file",
-                          "description": "Optional: image file (jpeg,png,gif,webp) for profile picture"
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/profile",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "profile"
-                      ]
-                    },
-                    "description": "Update admin/HR profile: name, email, phone, profile_picture. **Form-data only (not JSON).** No password fields. For profile picture set key profile_picture, type File. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "name",
+                      "value": "Administrator",
+                      "type": "text",
+                      "description": "Optional"
+                    },
+                    {
+                      "key": "email",
+                      "value": "admin@tandil.com",
+                      "type": "text",
+                      "description": "Optional"
+                    },
+                    {
+                      "key": "phone",
+                      "value": "78860000",
+                      "type": "text",
+                      "description": "Optional"
+                    },
+                    {
+                      "key": "profile_picture",
+                      "type": "file",
+                      "description": "Optional: image file (jpeg,png,gif,webp) for profile picture"
+                    }
+                  ]
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "profile"
+                  ]
+                },
+                "description": "Update admin/HR profile: name, email, phone, profile_picture. **Form-data only (not JSON).** No password fields. For profile picture set key profile_picture, type File. If you send Content-Type: application/json the API returns 415. Response: same shape as GET profile with updated data."
+              }
+            },
+            {
                   "name": "08. Admin Dashboard Top Selling Products",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/dashboard/top-selling-products?limit=10&include_unsold=1",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "dashboard",
-                        "top-selling-products"
-                      ],
-                      "query": [
-                        {
-                          "key": "limit",
-                          "value": "10",
-                          "description": "Max 50, default 10"
-                        },
-                        {
-                          "key": "include_unsold",
-                          "value": "1",
-                          "description": "When no paid orders: return products with 0 sales (1) or empty list (0). Default 1."
-                        }
-                      ]
-                    },
-                    "description": "Top selling products for admin dashboard. Paid orders only (payment_status=paid). When none, returns fallback list of products with 0 sales if include_unsold=1. Auth: Bearer + admin.\n\n**Query:** limit (default 10, max 50), include_unsold (default 1).\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- product_image_url (string|null)\n- category_name (string|null)\n- price (float|null)\n- sales (int)\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" (show as \"AED 22K\")"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/dashboard/top-selling-products?limit=10&include_unsold=1",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "dashboard",
+                    "top-selling-products"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10",
+                      "description": "Max 50, default 10"
+                    },
+                    {
+                      "key": "include_unsold",
+                      "value": "1",
+                      "description": "When no paid orders: return products with 0 sales (1) or empty list (0). Default 1."
+                    }
+                  ]
                 },
-                {
+                "description": "Top selling products for admin dashboard. Paid orders only (payment_status=paid). When none, returns fallback list of products with 0 sales if include_unsold=1. Auth: Bearer + admin.\n\n**Query:** limit (default 10, max 50), include_unsold (default 1).\n\n**Response:** success, data[], total.\n\n**Each item in data:**\n- product_id (int)\n- product_name (string)\n- product_image_url (string|null)\n- category_name (string|null)\n- price (float|null)\n- sales (int)\n- sales_display (string) – e.g. \"245 sales\"\n- revenue (float)\n- revenue_formatted (string) – e.g. \"22,000 AED\"\n- revenue_display (string) – e.g. \"22K\" (show as \"AED 22K\")"
+              }
+            },
+            {
                   "name": "09. Admin Users Statistics",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users/statistics",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users",
-                        "statistics"
-                      ]
-                    },
-                    "description": "Get user statistics for mobile app tabs.\n\n**Response:**\n- data.all_users, data.workers, data.supervisors, data.managers, data.clients\n- Counts use role column + Spatie role (same as list so tab count matches list).\n\n**Example:**\n{\n  \"success\": true,\n  \"data\": {\n    \"all_users\": 32,\n    \"workers\": 23,\n    \"supervisors\": 5,\n    \"managers\": 1,\n    \"clients\": 0\n  }\n}\n\nWhen user clicks a tab (e.g. Supervisors), call GET /api/admin/users?category=supervisors and use response.data.data for the list below."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users/statistics",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "statistics"
+                  ]
                 },
-                {
+                "description": "Get user statistics for mobile app tabs.\n\n**Response:**\n- data.all_users, data.workers, data.supervisors, data.managers, data.clients\n- Counts use role column + Spatie role (same as list so tab count matches list).\n\n**Example:**\n{\n  \"success\": true,\n  \"data\": {\n    \"all_users\": 32,\n    \"workers\": 23,\n    \"supervisors\": 5,\n    \"managers\": 1,\n    \"clients\": 0\n  }\n}\n\nWhen user clicks a tab (e.g. Supervisors), call GET /api/admin/users?category=supervisors and use response.data.data for the list below."
+              }
+            },
+            {
                   "name": "10. Admin Users List",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users?category=all&status=active&page=1&per_page=15",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users"
-                      ],
-                      "query": [
-                        {
-                          "key": "category",
-                          "value": "supervisors",
-                          "description": "Filter: all, workers, supervisors, managers, clients. Use same value as tab (e.g. supervisors for Supervisors tab)."
-                        },
-                        {
-                          "key": "status",
-                          "value": "active",
-                          "description": "Filter by status: active, inactive, suspended"
-                        },
-                        {
-                          "key": "search",
-                          "value": "",
-                          "description": "Search by name, email, or phone"
-                        },
-                        {
-                          "key": "page",
-                          "value": "1",
-                          "description": "Page number"
-                        },
-                        {
-                          "key": "per_page",
-                          "value": "15",
-                          "description": "Items per page"
-                        }
-                      ]
-                    },
-                    "description": "Get list of users with filtering and pagination. When user clicks a tab (e.g. Supervisors with count 5), call with category=supervisors to show the list below.\n\n**Query:** category=all|workers|supervisors|managers|clients, status, search, page, per_page\n\n**Response:** List is in data.data (array). Pagination in data.current_page, data.last_page, data.total, data.per_page, data.from, data.to. Each user: id, name, email, phone, role, role_display, employee_id, status, avatar, created_at, updated_at."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users?category=all&status=active&page=1&per_page=15",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "category",
+                      "value": "supervisors",
+                      "description": "Filter: all, workers, supervisors, managers, clients. Use same value as tab (e.g. supervisors for Supervisors tab)."
+                    },
+                    {
+                      "key": "status",
+                      "value": "active",
+                      "description": "Filter by status: active, inactive, suspended"
+                    },
+                    {
+                      "key": "search",
+                      "value": "",
+                      "description": "Search by name, email, or phone"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1",
+                      "description": "Page number"
+                    },
+                    {
+                      "key": "per_page",
+                      "value": "15",
+                      "description": "Items per page"
+                    }
+                  ]
                 },
-                {
+                "description": "Get list of users with filtering and pagination. When user clicks a tab (e.g. Supervisors with count 5), call with category=supervisors to show the list below.\n\n**Query:** category=all|workers|supervisors|managers|clients, status, search, page, per_page\n\n**Response:** List is in data.data (array). Pagination in data.current_page, data.last_page, data.total, data.per_page, data.from, data.to. Each user: id, name, email, phone, role, role_display, employee_id, status, avatar, created_at, updated_at."
+              }
+            },
+            {
                   "name": "11. Users - List",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users"
-                      ]
-                    },
-                    "description": "List all users (admin only)"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ]
                 },
-                {
+                "description": "List all users (admin only)"
+              }
+            },
+            {
                   "name": "12. Users - Create",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "if (pm.response.code === 201) {",
-                          "    var jsonData = pm.response.json();",
-                          "    if (jsonData.data && jsonData.data.id) {",
-                          "        pm.environment.set('user_id', jsonData.data.id);",
-                          "    }",
-                          "}"
-                        ],
-                        "type": "text/javascript"
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"phone\": \"+971501234568\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\",\n  \"status\": \"active\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users"
-                      ]
-                    },
-                    "description": "Create a new user (admin only)"
-                  }
-                },
+              "event": [
                 {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.id) {",
+                      "        pm.environment.set('user_id', jsonData.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"phone\": \"+971501234568\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\",\n  \"role\": \"client\",\n  \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users"
+                  ]
+                },
+                "description": "Create a new user (admin only)"
+              }
+            },
+            {
                   "name": "13. Users - Get",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users/{{user_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users",
-                        "{{user_id}}"
-                      ]
-                    },
-                    "description": "Get user details (admin only)"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
-                },
-                {
-                  "name": "14. Users - Update",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"status\": \"active\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users/{{user_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users",
-                        "{{user_id}}"
-                      ]
-                    },
-                    "description": "Update user (admin only)"
-                  }
-                },
-                {
-                  "name": "15. Users - Delete",
-                  "request": {
-                    "method": "DELETE",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/users/{{user_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "users",
-                        "{{user_id}}"
-                      ]
-                    },
-                    "description": "Delete user (admin only)"
-                  }
-                },
-                {
-                  "name": "16. Roles - List",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/roles",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "roles"
-                      ]
-                    },
-                    "description": "List all roles (admin only)"
-                  }
-                },
-                {
-                  "name": "17. Roles - Create",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"name\": \"new_role\",\n  \"guard_name\": \"web\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/roles",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "roles"
-                      ]
-                    },
-                    "description": "Create a new role (admin only)"
-                  }
-                },
-                {
-                  "name": "18. HR - Employees - List",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/hr/employees",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "hr",
-                        "employees"
-                      ]
-                    },
-                    "description": "List all employees (admin only)"
-                  }
-                },
-                {
-                  "name": "19. HR - Employees - Create",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "if (pm.response.code === 201) {",
-                          "    var jsonData = pm.response.json();",
-                          "    if (jsonData.data && jsonData.data.id) {",
-                          "        pm.environment.set('employee_id', jsonData.data.id);",
-                          "    }",
-                          "}"
-                        ],
-                        "type": "text/javascript"
-                      }
-                    }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
                   ],
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe+{{timestamp}}@example.com\",\n  \"user_id\": null,\n  \"employee_id\": \"EMP-{{timestamp}}\",\n  \"phone\": \"+971501234569\",\n  \"designation\": \"Technician\",\n  \"region\": \"Dubai\",\n  \"joining_date\": \"2025-01-01\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/hr/employees",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "hr",
-                        "employees"
-                      ]
-                    },
-                    "description": "Create a new employee (admin only)"
-                  }
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
                 },
+                "description": "Get user details (admin only)"
+              }
+            },
+            {
+                  "name": "14. Users - Update",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"updated@example.com\",\n  \"status\": \"active\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
+                },
+                "description": "Update user (admin only)"
+              }
+            },
+            {
+                  "name": "15. Users - Delete",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
+                },
+                "description": "Delete user (admin only)"
+              }
+            },
+            {
+                  "name": "16. Roles - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/roles",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "roles"
+                  ]
+                },
+                "description": "List all roles (admin only)"
+              }
+            },
+            {
+                  "name": "17. Roles - Create",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"new_role\",\n  \"guard_name\": \"web\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/roles",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "roles"
+                  ]
+                },
+                "description": "Create a new role (admin only)"
+              }
+            },
+            {
+                  "name": "18. HR - Employees - List",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/hr/employees",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "hr",
+                    "employees"
+                  ]
+                },
+                "description": "List all employees (admin only)"
+              }
+            },
+            {
+                  "name": "19. HR - Employees - Create",
+              "event": [
                 {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    var jsonData = pm.response.json();",
+                      "    if (jsonData.data && jsonData.data.id) {",
+                      "        pm.environment.set('employee_id', jsonData.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe+{{timestamp}}@example.com\",\n  \"user_id\": null,\n  \"employee_id\": \"EMP-{{timestamp}}\",\n  \"phone\": \"+971501234569\",\n  \"designation\": \"Technician\",\n  \"region\": \"Dubai\",\n  \"joining_date\": \"2025-01-01\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/hr/employees",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "hr",
+                    "employees"
+                  ]
+                },
+                "description": "Create a new employee (admin only)"
+              }
+            },
+            {
                   "name": "20. HR - Employees - Get",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "hr",
-                        "employees",
-                        "{{employee_id}}"
-                      ]
-                    },
-                    "description": "Get employee details (admin only)"
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "hr",
+                    "employees",
+                    "{{employee_id}}"
+                  ]
                 },
-                {
+                "description": "Get employee details (admin only)"
+              }
+            },
+            {
                   "name": "21. HR - Employees - Update",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.doe.updated@example.com\",\n  \"phone\": \"+971501234570\",\n  \"designation\": \"Senior Technician\",\n  \"region\": \"Abu Dhabi\",\n  \"joining_date\": \"2025-01-15\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "hr",
-                        "employees",
-                        "{{employee_id}}"
-                      ]
-                    },
-                    "description": "Update employee (admin only)"
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.doe.updated@example.com\",\n  \"phone\": \"+971501234570\",\n  \"designation\": \"Senior Technician\",\n  \"region\": \"Abu Dhabi\",\n  \"joining_date\": \"2025-01-15\"\n}"
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "hr",
+                    "employees",
+                    "{{employee_id}}"
+                  ]
+                },
+                "description": "Update employee (admin only)"
+              }
+            },
+            {
                   "name": "22. HR - Employees - Delete",
-                  "request": {
-                    "method": "DELETE",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "hr",
-                        "employees",
-                        "{{employee_id}}"
-                      ]
-                    },
-                    "description": "Delete employee (admin only)"
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/hr/employees/{{employee_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "hr",
+                    "employees",
+                    "{{employee_id}}"
+                  ]
+                },
+                "description": "Delete employee (admin only)"
+              }
                 }
               ],
               "description": "Requests wrapped into a folder so Postman import cannot reorder folders above requests."
@@ -8184,359 +8184,359 @@
               "item": [
                 {
                   "name": "01. Get All Settings",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings"
-                      ]
-                    },
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings"
+                  ]
+                },
                     "description": "GET /api/admin/settings - All settings for React Native Settings screen (system, app_config, payment, shop shipping/tax, legal). Instant order fee: GET /api/admin/settings/instant-order-fee."
-                  }
-                },
-                {
+              }
+            },
+            {
                   "name": "02. Get System Settings",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/system",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "system"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/system - Push notifications, auto-assign tasks, maintenance mode toggles."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/system",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "system"
+                  ]
                 },
-                {
+                "description": "GET /api/admin/settings/system - Push notifications, auto-assign tasks, maintenance mode toggles."
+              }
+            },
+            {
                   "name": "03. Update System Settings",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"push_notifications_enabled\": true,\n  \"auto_assign_tasks\": false,\n  \"maintenance_mode\": false\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/system",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "system"
-                      ]
-                    },
-                    "description": "PUT /api/admin/settings/system - Update toggles (all optional)."
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"push_notifications_enabled\": true,\n  \"auto_assign_tasks\": false,\n  \"maintenance_mode\": false\n}"
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/system",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "system"
+                  ]
+                },
+                "description": "PUT /api/admin/settings/system - Update toggles (all optional)."
+              }
+            },
+            {
                   "name": "04. Get Theme",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/theme",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "theme"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/theme - Current theme and available (system, light, dark)."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/theme",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "theme"
+                  ]
                 },
-                {
+                "description": "GET /api/admin/settings/theme - Current theme and available (system, light, dark)."
+              }
+            },
+            {
                   "name": "05. Update Theme",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"theme\": \"dark\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/theme",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "theme"
-                      ]
-                    },
-                    "description": "PUT /api/admin/settings/theme - theme: system|light|dark."
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"theme\": \"dark\"\n}"
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/theme",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "theme"
+                  ]
+                },
+                "description": "PUT /api/admin/settings/theme - theme: system|light|dark."
+              }
+            },
+            {
                   "name": "06. Get Language",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/language",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "language"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/language - Current language/region and available languages."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/language",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "language"
+                  ]
                 },
-                {
+                "description": "GET /api/admin/settings/language - Current language/region and available languages."
+              }
+            },
+            {
                   "name": "07. Update Language",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"language\": \"en\",\n  \"region\": \"\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/language",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "language"
-                      ]
-                    },
-                    "description": "PUT /api/admin/settings/language - language (required), region (optional)."
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"language\": \"en\",\n  \"region\": \"\"\n}"
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/language",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "language"
+                  ]
+                },
+                "description": "PUT /api/admin/settings/language - language (required), region (optional)."
+              }
+            },
+            {
                   "name": "08. Get Payment Settings",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/payment",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "payment"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/payment - Gateway and whether keys set (no secrets)."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/payment",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "payment"
+                  ]
                 },
-                {
+                "description": "GET /api/admin/settings/payment - Gateway and whether keys set (no secrets)."
+              }
+            },
+            {
                   "name": "09. Update Payment Settings",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"payment_gateway\": \"stripe\",\n  \"api_key\": \"pk_xxx\",\n  \"api_secret\": \"sk_xxx\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/payment",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "payment"
-                      ]
-                    },
-                    "description": "PUT /api/admin/settings/payment - payment_gateway, api_key, api_secret (stripe|paymob|ccavenue|tap)."
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"payment_gateway\": \"stripe\",\n  \"api_key\": \"pk_xxx\",\n  \"api_secret\": \"sk_xxx\"\n}"
                 },
-                {
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/payment",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "payment"
+                  ]
+                },
+                "description": "PUT /api/admin/settings/payment - payment_gateway, api_key, api_secret (stripe|paymob|ccavenue|tap)."
+              }
+            },
+            {
                   "name": "10. Get Shop Settings (Shipping & Tax)",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/shop",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "shop"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, currency, category_shipping_rates. Instant order fee: use GET /api/admin/settings/instant-order-fee instead."
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
                   }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/shop",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "shop"
+                  ]
                 },
-                {
+                    "description": "GET /api/admin/settings/shop - Current shipping_amount (0 = free), tax_percent, currency, category_shipping_rates. Instant order fee: use GET /api/admin/settings/instant-order-fee instead."
+              }
+            },
+            {
                   "name": "11. Update Shop Settings (Shipping & Tax)",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
                       "raw": "{\n  \"shipping_amount\": 0,\n  \"tax_percent\": 5,\n  \"instant_order_fee_amount\": 20,\n  \"instant_order_fee_enabled\": true\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/shop",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "shop"
-                      ]
-                    },
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/shop",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "shop"
+                  ]
+                },
                     "description": "PUT /api/admin/settings/shop — shipping_amount, tax_percent, and optional Instant Order Fee (`instant_order_fee_amount`, `instant_order_fee_enabled`). Fee also has dedicated GET/PUT `/api/admin/settings/instant-order-fee`."
                   }
                 },
@@ -8883,40 +8883,40 @@
                 },
                 {
                   "name": "19. Export Data",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      },
-                      {
-                        "key": "Content-Type",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n  \"format\": \"json\"\n}"
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/export-data",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "export-data"
-                      ]
-                    },
-                    "description": "POST /api/admin/settings/export-data - format: json|csv. Returns export_id and status (202)."
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"format\": \"json\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/settings/export-data",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "settings",
+                    "export-data"
+                  ]
+                },
+                "description": "POST /api/admin/settings/export-data - format: json|csv. Returns export_id and status (202)."
+              }
                 }
               ],
               "description": "All Settings (Mobile) requests. Wrapped so Postman cannot float Legal above these APIs."
@@ -23416,6 +23416,43 @@
           "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
           "item": [
             {
+              "name": "00. Restore platform services (snapshot)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"dry_run\": false\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/catalog/restore-platform-services",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "catalog",
+                    "restore-platform-services"
+                  ]
+                },
+                "description": "POST /api/admin/catalog/restore-platform-services — Reverts converted categories + recreates platform services from database/data/tandil_platform_services_snapshot.json. Run once after deploy. Preview: { \"dry_run\": true }."
+              }
+            },
+            {
               "name": "01. Services - List",
               "event": [
                 {
@@ -23424,8 +23461,9 @@
                     "exec": [
                       "if (pm.response.code === 200) {",
                       "    var jsonData = pm.response.json();",
-                      "    if (jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0 && !pm.environment.get('service_id')) {",
-                      "        pm.environment.set('service_id', jsonData.data[0].id);",
+                      "    if (jsonData.data && Array.isArray(jsonData.data) && jsonData.data.length > 0) {",
+                      "        pm.environment.set('service_id', String(jsonData.data[0].id));",
+                      "        pm.collectionVariables.set('service_id', String(jsonData.data[0].id));",
                       "    }",
                       "}"
                     ],
@@ -23468,7 +23506,7 @@
                     }
                   ]
                 },
-                "description": "List all services (admin). GET /api/admin/services. Query: per_page (1-100, default 15), category_id (optional). Response: success, data (array: id, name, slug, description, image, image_url, icon, is_active, coming_soon, category_id, category {id,name,slug}, sort_order, products_count), pagination. Sets service_id from first item if not set."
+                "description": "List all services (admin). GET /api/admin/services. Query: per_page (1-100, default 15), category_id (optional). Response: success, data (array: id, name, slug, ...), pagination. **Always** sets env `service_id` from the first row (run before Convert). Select a Postman **Environment** with base_url + token."
               }
             },
             {
@@ -23676,9 +23714,29 @@
               "name": "06. Services - Convert to Category",
               "event": [
                 {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "var sid = pm.environment.get('service_id') || pm.collectionVariables.get('service_id');",
+                      "if (!sid) {",
+                      "    throw new Error('service_id is empty. Select Environment, run 01. Services - List, or set service_id=14 manually.');",
+                      "}",
+                      "console.log('Convert service_id=' + sid + ' → POST .../services/' + sid + '/convert-to-category');"
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
                   "listen": "test",
                   "script": {
                     "exec": [
+                      "if (pm.response.code === 404) {",
+                      "    pm.test('hint on 404', function () {",
+                      "        var b = pm.response.json();",
+                      "        pm.expect(b.message).to.be.a('string');",
+                      "    });",
+                      "    console.warn('404: Confirm URL id matches List. Try GET 04. Services - Get with same service_id. Or POST .../catalog/convert/service-to-category body {\\\"service_id\\\":' + pm.environment.get('service_id') + '}');",
+                      "}",
                       "if (pm.response.code === 200) {",
                       "    var jsonData = pm.response.json();",
                       "    pm.test('success true', function () { pm.expect(jsonData.success).to.eql(true); });",
@@ -23725,7 +23783,45 @@
                     "convert-to-category"
                   ]
                 },
-                "description": "POST /api/admin/services/{service_id}/convert-to-category — Body `{}`. Response: AdminCategory (shipping_cost, tax_percentage, …). Sets category_id."
+                "description": "POST /api/admin/services/{service_id}/convert-to-category — Body `{}`. **Must** match an id from 01. List (e.g. 14). Environment required: base_url=https://app.tandil.ae (no /api), token, service_id. If 404: run 04. Services - Get first; fallback: 06b body route. Response: AdminCategory; sets category_id."
+              }
+            },
+            {
+              "name": "06b. Services - Convert to Category (body service_id)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"service_id\": {{service_id}}\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/catalog/convert/service-to-category",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "catalog",
+                    "convert",
+                    "service-to-category"
+                  ]
+                },
+                "description": "Same as 06 but POST /api/admin/catalog/convert/service-to-category with JSON `{ \"service_id\": 14 }`. Use when path URL returns 404 on server."
               }
             },
             {

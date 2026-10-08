@@ -223,6 +223,29 @@ class ServiceController extends Controller
     }
 
     /**
+     * POST /api/admin/catalog/restore-platform-services — restore production services from snapshot.
+     */
+    public function restorePlatformServices(Request $request)
+    {
+        $dryRun = $request->boolean('dry_run');
+        $slug = $request->input('slug');
+        $slug = is_string($slug) && $slug !== '' ? $slug : null;
+
+        try {
+            $result = app(\App\Services\Admin\PlatformServicesRestoreService::class)->run($dryRun, $slug);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ApiResponse::error('Could not restore platform services. '.$e->getMessage(), 500);
+        }
+
+        return ApiResponse::success(
+            $dryRun ? 'Dry run: platform services restore preview.' : 'Platform services restore finished.',
+            $result
+        );
+    }
+
+    /**
      * DELETE /api/admin/services/{id} – Delete a service.
      */
     public function destroy(Request $request, $id)

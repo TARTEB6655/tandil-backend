@@ -89,6 +89,11 @@ class AppServiceProvider extends ServiceProvider
                 \App\Http\Controllers\CategoryController::class,
                 'convertToServiceFromBody',
             ])->name('admin.catalog.category-to-service');
+
+            Route::post('api/admin/catalog/restore-platform-services', [
+                \App\Http\Controllers\Api\Admin\ServiceController::class,
+                'restorePlatformServices',
+            ])->name('admin.catalog.restore-platform-services');
         });
     }
 }

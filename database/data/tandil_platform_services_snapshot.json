@@ -1,0 +1,73 @@
+{
+  "source": "Production app.tandil.ae admin services list (2026-10-08) before accidental bulk convert-to-category",
+  "services": [
+    {
+      "slug": "landscape",
+      "name": "تصميم لاندسكيب",
+      "description": "خدمة تصميم لاندسكيب احترافية للفلل والمزارع والاستراحات والحدائق، تشمل إعداد مخططات 2D و3D، وتوزيع الأشجار والنخيل والنباتات، وتصميم أنظمة الري، والممرات، والبرجولات، والجلسات الخارجية، والإضاءة، والشلالات، والنوافير، بما يتناسب مع مساحة الموقع وميزانية العميل.",
+      "image": "services/kpC3HU35BS6wBAURWQbclo4cvjPsJ4wNv0nfM8nh.jpg",
+      "is_active": true,
+      "sort_order": 0,
+      "pricing_type": "per_m2",
+      "price": 7,
+      "price_includes": {
+        "materials": true,
+        "installation": true,
+        "labor": true,
+        "transportation": true,
+        "delivery": true
+      }
+    },
+    {
+      "slug": "agricultural-inspection",
+      "name": "معاينة زراعية",
+      "description": "خدمة معاينة ميدانية يقدمها مهندس زراعي متخصص لتقييم حالة الأشجار والنخيل والحدائق والمزارع، وتشخيص المشكلات الزراعية، وفحص التربة ونظام الري، وتحديد الآفات والأمراض، مع تقديم تقرير فني وتوصيات وخطة علاج أو تصميم مناسبة.",
+      "image": "services/BdW4mIsbkxf16p7TiCRNglrbwBWcEjI7bJGuZigj.jpg",
+      "is_active": true,
+      "sort_order": 0,
+      "pricing_type": "per_m2",
+      "price": 7,
+      "price_includes": {
+        "materials": true,
+        "installation": true,
+        "labor": true,
+        "transportation": true,
+        "delivery": true
+      }
+    },
+    {
+      "slug": "alanshaaa-oaltshtyb",
+      "name": "🏗️ الإنشاء والتشطيب",
+      "description": "خدمات متكاملة لتنفيذ وتشطيب المساحات الداخلية والخارجية، تشمل الإنتروك، البلاط، البورسلان، الحجر، العزل، الدهانات والأرضيات، مع خيارات التوريد والتركيب حسب احتياج المشروع.",
+      "image": "services/IuNjcBt18NcRq8TX8x0ywy2DJoJxbKzVDIUWZCvQ.jpg",
+      "is_active": true,
+      "sort_order": 0,
+      "pricing_type": "per_m2",
+      "price": null,
+      "price_includes": {
+        "materials": true,
+        "installation": true,
+        "labor": true,
+        "transportation": true,
+        "delivery": true
+      }
+    },
+    {
+      "slug": "tnsyk-alhdayk",
+      "name": "تنسيق الحدائق",
+      "description": "خدمات متكاملة لتنسيق وتجهيز الحدائق والمساحات الخارجية، تشمل زراعة وتركيب العشب الطبيعي والصناعي، الأشجار والنباتات، أحواض الزراعة والعناصر الجمالية، بما يتناسب مع مساحة وطبيعة الموقع، للحصول على حديقة متناسقة وعملية بمظهر احترافي.",
+      "image": "services/DxmVrcyLop2LFibn9x34uNt6FMQjONPn93DRp3iP.jpg",
+      "is_active": true,
+      "sort_order": 0,
+      "pricing_type": "per_m2",
+      "price": null,
+      "price_includes": {
+        "materials": true,
+        "installation": true,
+        "labor": true,
+        "transportation": true,
+        "delivery": true
+      }
+    }
+  ]
+}

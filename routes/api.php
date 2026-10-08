@@ -474,6 +474,8 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
         ->name('admin.catalog.service-to-category');
     Route::post('/catalog/convert/category-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToServiceFromBody'])
         ->name('admin.catalog.category-to-service');
+    Route::post('/catalog/restore-platform-services', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'restorePlatformServices'])
+        ->name('admin.catalog.restore-platform-services');
 
     // User Management - Moved to dedicated admin/users group below to avoid route conflicts
     // Routes are now defined at lines 297-302 under 'admin/users' prefix
