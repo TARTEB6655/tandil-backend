@@ -8,6 +8,7 @@ use App\Observers\DatabaseNotificationObserver;
 use App\Observers\OrderObserver;
 use App\Observers\SubscriptionObserver;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -49,5 +50,45 @@ class AppServiceProvider extends ServiceProvider
         Order::observe(OrderObserver::class);
         Subscription::observe(SubscriptionObserver::class);
         DatabaseNotification::observe(DatabaseNotificationObserver::class);
+
+        $this->registerCatalogConvertRoutesWhenMissingFromCache();
+    }
+
+    /**
+     * Live servers with stale bootstrap/cache/routes-v7.php never load new api.php routes.
+     * Register convert endpoints on boot when absent (safe no-op when route cache is fresh).
+     */
+    private function registerCatalogConvertRoutesWhenMissingFromCache(): void
+    {
+        if (! $this->app->routesAreCached()) {
+            return;
+        }
+
+        if (Route::has('admin.services.convert-to-category')
+            || Route::has('bootstrap.admin.services.convert-to-category')) {
+            return;
+        }
+
+        Route::middleware(['api', 'auth:sanctum,web', 'role:admin'])->group(function (): void {
+            Route::post('api/admin/services/{id}/convert-to-category', [
+                \App\Http\Controllers\Api\Admin\ServiceController::class,
+                'convertToCategory',
+            ])->name('admin.services.convert-to-category');
+
+            Route::post('api/admin/categories/{id}/convert-to-service', [
+                \App\Http\Controllers\CategoryController::class,
+                'convertToService',
+            ])->name('admin.categories.convert-to-service');
+
+            Route::post('api/admin/catalog/convert/service-to-category', [
+                \App\Http\Controllers\Api\Admin\ServiceController::class,
+                'convertToCategoryFromBody',
+            ])->name('admin.catalog.service-to-category');
+
+            Route::post('api/admin/catalog/convert/category-to-service', [
+                \App\Http\Controllers\CategoryController::class,
+                'convertToServiceFromBody',
+            ])->name('admin.catalog.category-to-service');
+        });
     }
 }
