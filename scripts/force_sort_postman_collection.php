@@ -33,11 +33,25 @@ const PAD = 2;
 function stripAllPrefixes(string $name): string
 {
     $title = trim($name);
-    while (preg_match('/^([0-9]+(?:\.[0-9]+)*|[A-Z]{1,3}[0-9]?)\.\s+(.+)$/u', $title, $m)) {
+    // Only strip ONE leading order prefix (01. or 01.02.) — never loop (that ate role names).
+    if (preg_match('/^(\d+(?:\.\d+)*)\.\s+(.+)$/u', $title, $m)) {
         $title = trim($m[2]);
     }
 
     return $title !== '' ? $title : trim($name);
+}
+
+/** Wrappers created by this script only — not "Technician Dashboard – All APIs" containers. */
+function isSyntheticApisWrapper(array $folder): bool
+{
+    $t = stripAllPrefixes((string) ($folder['name'] ?? ''));
+    if (strcasecmp($t, 'APIs') === 0 || strcasecmp($t, 'Settings APIs') === 0) {
+        return true;
+    }
+    $desc = (string) ($folder['description'] ?? '');
+
+    return str_contains($desc, 'Wrapped so Postman')
+        || str_contains($desc, 'Requests wrapped into a folder');
 }
 
 function numberPrefixInt(string $name): int
@@ -173,7 +187,7 @@ function unmixRequestsAndFolders(array $items, string $folderTitle): array
     $folders = [];
     foreach ($items as $it) {
         $t = stripAllPrefixes((string) ($it['name'] ?? ''));
-        if (isFolder($it) && (strcasecmp($t, 'APIs') === 0 || str_ends_with($t, ' APIs'))) {
+        if (isFolder($it) && isSyntheticApisWrapper($it)) {
             foreach ($it['item'] as $child) {
                 if (isFolder($child)) {
                     $folders[] = $child;
@@ -255,8 +269,8 @@ $collection['item'] = orderByNumberThenRenumber($collection['item'] ?? [], 'ROOT
 
 $newId = newUuid();
 $sortedAt = gmdate('Y-m-d\TH:i:s\Z');
-$version = '7.0.0';
-$collectionName = 'Tandil Backend v'.$version.' POSTMAN-SAFE';
+$version = '6.2.0';
+$collectionName = 'Tandil Backend v'.$version;
 
 $collection['info']['_postman_id'] = $newId;
 $collection['info']['_exporter_id'] = 'tandil-safe-'.substr($newId, 0, 8);
@@ -266,18 +280,11 @@ $collection['info']['schema'] = 'https://schema.getpostman.com/json/collection/v
 $collection['info']['description'] = <<<MD
 Tandil Backend API. Env: base_url, token.
 
-PERMANENT ORDER FIX (v7.0.0):
-Postman always floats folders above requests in a folder (import bug/behavior).
-This collection never mixes requests + folders as siblings — requests are wrapped
-into an "APIs" subfolder when needed. Numbers are 01, 02, 03… (Sort-by-name safe).
+Hierarchy: main folders (Client Dashboard, Admin Dashboard, …) → subfolders → APIs.
+Order fix (v6.2.0): 2-digit prefixes; optional "… APIs" wrapper only when requests
+and folders are mixed at the same level. Does NOT flatten "Dashboard – All APIs" modules.
 
-IMPORT:
-1) DELETE every old Tandil Backend collection
-2) Import as NEW (do not Merge)
-3) Title must be: {$collectionName}
-4) Settings path: 05 Admin → 04 Settings (Mobile) → 01 Settings APIs → 01…19
-
-After adding APIs: append at end of the correct folder, then run:
+After adding APIs: append in the correct subfolder, then optionally run:
   php scripts/force_sort_postman_collection.php
   php scripts/smoke_postman_number_order.php
 

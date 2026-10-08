@@ -1,9 +1,9 @@
-collection=Tandil Backend v7.0.0 POSTMAN-SAFE
+collection=Tandil Backend v6.2.0
 === SMOKE E2E (Postman-safe permanent order) ===
-collection: Tandil Backend v7.0.0 POSTMAN-SAFE
-version: 7.0.0
+collection: Tandil Backend v6.2.0
+version: 6.2.0
 
-folders=157 requests=712
+folders=163 requests=714
 issues=0
 
 === Admin → Settings (Mobile) ===

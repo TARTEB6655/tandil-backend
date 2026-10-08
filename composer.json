@@ -63,7 +63,8 @@
             "@php artisan test"
         ],
         "postman:fix": [
-            "@php scripts/force_sort_postman_collection.php"
+            "@php scripts/force_sort_postman_collection.php",
+            "@php scripts/add_postman_catalog_convert_requests.php"
         ],
         "postman:smoke": [
             "@php scripts/smoke_postman_number_order.php"
