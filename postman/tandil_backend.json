@@ -1,11 +1,11 @@
 {
   "info": {
     "name": "Tandil Backend v7.0.0 POSTMAN-SAFE",
-    "description": "Tandil Backend API. Env: base_url, token.\n\nPERMANENT ORDER FIX (v7.0.0):\nPostman always floats folders above requests in a folder (import bug/behavior).\nThis collection never mixes requests + folders as siblings — requests are wrapped\ninto an \"APIs\" subfolder when needed. Numbers are 01, 02, 03… (Sort-by-name safe).\n\nIMPORT:\n1) DELETE every old Tandil Backend collection\n2) Import as NEW (do not Merge)\n3) Title must be: Tandil Backend v7.0.0 POSTMAN-SAFE\n4) Settings path: 05 Admin → 04 Settings (Mobile) → 01 Settings APIs → 01…19\n\nAfter adding APIs: append at end of the correct folder, then run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-07T12:09:39Z\nCOLLECTION_ID: 06fd2056-d6da-4c83-928c-f0d1fa577b8b",
+    "description": "Tandil Backend API. Env: base_url, token.\n\nPERMANENT ORDER FIX (v7.0.0):\nPostman always floats folders above requests in a folder (import bug/behavior).\nThis collection never mixes requests + folders as siblings — requests are wrapped\ninto an \"APIs\" subfolder when needed. Numbers are 01, 02, 03… (Sort-by-name safe).\n\nIMPORT:\n1) DELETE every old Tandil Backend collection\n2) Import as NEW (do not Merge)\n3) Title must be: Tandil Backend v7.0.0 POSTMAN-SAFE\n4) Settings path: 05 Admin → 04 Settings (Mobile) → 01 Settings APIs → 01…19\n\nAfter adding APIs: append at end of the correct folder, then run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-08T07:45:57Z\nCOLLECTION_ID: 07b8fb41-0fe3-43f0-8d67-f2a9c114189c",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "tandil-safe-06fd2056",
+    "_exporter_id": "tandil-safe-07b8fb41",
     "version": "7.0.0",
-    "_postman_id": "06fd2056-d6da-4c83-928c-f0d1fa577b8b"
+    "_postman_id": "07b8fb41-0fe3-43f0-8d67-f2a9c114189c"
   },
   "item": [
     {
@@ -24047,7 +24047,7 @@
         },
         {
           "name": "06. Admin - Categories",
-          "description": "Admin: Service categories (add/update/delete). Used for Services. Auth: Bearer token, admin role.",
+          "description": "Admin: Product categories (add/update/delete/convert). Auth: Bearer token, admin role. **Convert:** `06. Categories - Convert to Service` creates a service catalog entry from a category (products → service type + linked service).",
           "item": [
             {
               "name": "01. List",
@@ -24326,7 +24326,63 @@
               }
             },
             {
-              "name": "06. Categories - Delete",
+              "name": "06. Categories - Convert to Service",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.test('success true', function () { pm.expect(jsonData.success).to.eql(true); });",
+                      "    pm.test('has service id', function () { pm.expect(jsonData.data && jsonData.data.id).to.be.a('number'); });",
+                      "    if (jsonData.data && jsonData.data.id) {",
+                      "        pm.environment.set('service_id', jsonData.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/categories/{{category_id}}/convert-to-service",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "categories",
+                    "{{category_id}}",
+                    "convert-to-service"
+                  ]
+                },
+                "description": "POST /api/admin/categories/{category_id}/convert-to-service — Create a **service catalog** row from this category.\n\n**Body:** `{}` (empty JSON).\n\n**Response 200:** `{ success, message, data }` where **data** matches **GET /api/admin/services/{id}** (id, name, slug, description, image, image_url, icon, is_active, coming_soon, category_id, category, sort_order, pricing_type, price, price_includes, products_count, created_at, updated_at).\n\n**Side effects:** Products in this category become `type: service`, link to the new service, source category `is_active` → false.\n\nSets **service_id** from response. Requires **category_id** in env."
+              }
+            },
+            {
+              "name": "07. Categories - Delete",
               "request": {
                 "method": "DELETE",
                 "header": [
@@ -24921,7 +24977,7 @@
         },
         {
           "name": "08. Admin - Services",
-          "description": "Services API – full CRUD under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List response).",
+          "description": "Services API – full CRUD + convert under /api/admin/services. Services are a separate table with optional category_id. Auth: Bearer token, admin role. Env: service_id (set from List or Convert). **Convert:** `06. Services - Convert to Category` creates a product category from a service (linked products → product type + new category; service row removed).",
           "item": [
             {
               "name": "01. Services - List",
@@ -25181,7 +25237,64 @@
               }
             },
             {
-              "name": "06. Services - Delete",
+              "name": "06. Services - Convert to Category",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.test('success true', function () { pm.expect(jsonData.success).to.eql(true); });",
+                      "    pm.test('has shipping_cost', function () { pm.expect(jsonData.data).to.have.property('shipping_cost'); });",
+                      "    pm.test('has tax_percentage', function () { pm.expect(jsonData.data).to.have.property('tax_percentage'); });",
+                      "    if (jsonData.data && jsonData.data.id) {",
+                      "        pm.environment.set('category_id', jsonData.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/admin/services/{{service_id}}/convert-to-category",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "admin",
+                    "services",
+                    "{{service_id}}",
+                    "convert-to-category"
+                  ]
+                },
+                "description": "POST /api/admin/services/{service_id}/convert-to-category — Create a **product category** from this service.\n\n**Body:** `{}` (empty JSON).\n\n**Response 200:** `{ success, message, data }` where **data** matches **GET /api/admin/categories/{id}** (id, name, slug, description, image, image_url, is_active, coming_soon, sort_order, **shipping_cost**, **tax_percentage**, shipping_amount, created_at, updated_at). New category shipping/tax default from shop settings.\n\n**Side effects:** Products linked to this service become `type: product`, move to the new category, service unlinked; **service row deleted**.\n\nSets **category_id** from response. Requires **service_id** in env."
+              }
+            },
+            {
+              "name": "07. Services - Delete",
               "request": {
                 "method": "DELETE",
                 "header": [
