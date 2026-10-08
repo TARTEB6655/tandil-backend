@@ -95,7 +95,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     } elseif (preg_match('/([^\s]+)\s+could not be found/i', $routeMessage, $matches)) {
                         $message = "The route {$matches[1]} could not be found.";
                     } else {
-                        $message = 'Endpoint not found. Check the URL and HTTP method (e.g. PUT for update).';
+                        $path = $request->path();
+                        $message = sprintf(
+                            'Endpoint not found for %s /%s. Use POST /api/admin/services/{id}/convert-to-category (admin Bearer token). If path contains api/api/, set base_url to domain root without /api. Run GET /api/health to verify catalog_convert_routes on this server.',
+                            $request->method(),
+                            $path
+                        );
                     }
 
                     return response()->json([

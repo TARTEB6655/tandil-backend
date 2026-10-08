@@ -8,7 +8,21 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/health', function () {
-    return ['status' => 'API is working'];
+    $convertUris = [];
+    foreach (app('router')->getRoutes() as $route) {
+        $uri = (string) $route->uri();
+        if (str_contains($uri, 'convert-to-category') || str_contains($uri, 'convert-to-service')) {
+            $convertUris[] = implode('|', $route->methods()).' /'.$uri;
+        }
+    }
+
+    return [
+        'status' => 'API is working',
+        'catalog_convert_routes' => array_values(array_unique($convertUris)),
+        'catalog_convert_hint' => count($convertUris) > 0
+            ? 'Use POST with Bearer admin token. base_url should be site root WITHOUT /api (URL already includes /api/...).'
+            : 'Deploy latest code and run: php artisan route:clear && php artisan route:cache',
+    ];
 });
 
 /*
@@ -449,6 +463,12 @@ Route::middleware(['auth:sanctum', 'role:area_manager'])->prefix('area-manager')
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(function () {
+    // Catalog convert (register first — long path; must not lose to generic POST {id} on some caches)
+    Route::post('/categories/{id}/convert-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToService'])
+        ->name('admin.categories.convert-to-service');
+    Route::post('/services/{id}/convert-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory'])
+        ->name('admin.services.convert-to-category');
+
     // User Management - Moved to dedicated admin/users group below to avoid route conflicts
     // Routes are now defined at lines 297-302 under 'admin/users' prefix
 
@@ -462,7 +482,6 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'show']);
     Route::put('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::post('/categories/{id}/toggle-status', [\App\Http\Controllers\CategoryController::class, 'toggleStatus']);
-    Route::post('/categories/{id}/convert-to-service', [\App\Http\Controllers\CategoryController::class, 'convertToService']);
     Route::post('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [\App\Http\Controllers\CategoryController::class, 'destroy']);
 
@@ -493,7 +512,6 @@ Route::middleware(['auth:sanctum,web', 'role:admin'])->prefix('admin')->group(fu
     Route::get('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'show']);
     Route::put('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::post('/services/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'toggleStatus']);
-    Route::post('/services/{id}/convert-to-category', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'convertToCategory']);
     Route::post('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'update']);
     Route::delete('/services/{id}', [\App\Http\Controllers\Api\Admin\ServiceController::class, 'destroy']);
 
