@@ -74,6 +74,80 @@ class AdminCatalogApiTest extends TestCase
         $this->assertCount(2, $response->json('data'));
     }
 
+    public function test_admin_category_convert_to_service_migrates_products(): void
+    {
+        $category = Category::factory()->create([
+            'name' => 'Garden Shop',
+            'slug' => 'garden-shop',
+            'is_active' => true,
+        ]);
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'type' => 'product',
+            'requires_shipping' => true,
+        ]);
+
+        $response = $this->postJson(
+            "/api/admin/categories/{$category->id}/convert-to-service",
+            [],
+            $this->authJson()
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Garden Shop')
+            ->assertJsonPath('data.slug', 'garden-shop');
+
+        $serviceId = (int) $response->json('data.id');
+        $this->assertTrue(Service::whereKey($serviceId)->exists());
+
+        $product->refresh();
+        $this->assertSame('service', $product->type);
+        $this->assertFalse((bool) $product->requires_shipping);
+        $this->assertTrue($product->services()->where('services.id', $serviceId)->exists());
+
+        $category->refresh();
+        $this->assertFalse((bool) $category->is_active);
+    }
+
+    public function test_admin_service_convert_to_category_migrates_products(): void
+    {
+        $service = Service::factory()->create([
+            'name' => 'Lawn Care',
+            'slug' => 'lawn-care',
+        ]);
+        $category = Category::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'type' => 'service',
+            'requires_shipping' => false,
+        ]);
+        $product->services()->attach($service->id);
+
+        $response = $this->postJson(
+            "/api/admin/services/{$service->id}/convert-to-category",
+            [],
+            $this->authJson()
+        );
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Lawn Care')
+            ->assertJsonStructure([
+                'data' => ['shipping_cost', 'tax_percentage'],
+            ]);
+
+        $newCategoryId = (int) $response->json('data.id');
+        $this->assertNotSame($category->id, $newCategoryId);
+        $this->assertFalse(Service::whereKey($service->id)->exists());
+
+        $product->refresh();
+        $this->assertSame('product', $product->type);
+        $this->assertSame($newCategoryId, (int) $product->category_id);
+        $this->assertTrue((bool) $product->requires_shipping);
+        $this->assertCount(0, $product->services()->get());
+    }
+
     public function test_admin_categories_create_and_show(): void
     {
         $response = $this->postJson('/api/admin/categories', $this->categoryPayload([

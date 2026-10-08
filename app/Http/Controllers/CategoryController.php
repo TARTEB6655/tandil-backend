@@ -129,7 +129,7 @@ class CategoryController extends Controller
      * Returns: id, name, slug, description, image, image_url, created_at, updated_at.
      * When $imagePathOverride is set (e.g. after update), use it so response always shows the new image URL.
      */
-    private function categoryToApiData(Category $category, ?string $imagePathOverride = null): array
+    public function categoryToApiData(Category $category, ?string $imagePathOverride = null): array
     {
         $imagePath = $imagePathOverride !== null ? $imagePathOverride : $category->image;
         $isActive = isset($category->is_active) ? (bool) $category->is_active : true;
@@ -397,6 +397,32 @@ class CategoryController extends Controller
         
         return redirect()->route('admin.categories.index')
             ->with('success', 'Category updated successfully.');
+    }
+
+    /**
+     * POST /api/admin/categories/{id}/convert-to-service – Create a service catalog entry from this category.
+     */
+    public function convertToService(Request $request, $category_id)
+    {
+        if ($err = $this->invalidCategoryIdResponse($category_id, $request)) {
+            return $err;
+        }
+
+        $category = Category::findOrFail($category_id);
+
+        try {
+            $service = \App\Services\Admin\CatalogConversionService::convertCategoryToService($category);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ApiResponse::error('Could not convert category to service. '.$e->getMessage(), 500);
+        }
+
+        $service->load('category')->loadCount('products');
+        $payload = app(\App\Http\Controllers\Api\Admin\ServiceController::class)
+            ->serviceToArray($service, ['products_count' => $service->products_count ?? 0]);
+
+        return ApiResponse::success('Category converted to service successfully.', $payload);
     }
 
     // POST /categories/{id}/toggle-status – Toggle is_active (enable/disable). Same pattern as banners.

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ServiceRequest;
 use App\Models\Category;
@@ -17,7 +18,7 @@ use Illuminate\Support\Str;
  */
 class ServiceController extends Controller
 {
-    private function serviceToArray(Service $service, array $extra = []): array
+    public function serviceToArray(Service $service, array $extra = []): array
     {
         return array_merge([
             'id' => $service->id,
@@ -185,6 +186,26 @@ class ServiceController extends Controller
             'id' => $service->id,
             'is_active' => (bool) $service->is_active,
         ]);
+    }
+
+    /**
+     * POST /api/admin/services/{id}/convert-to-category – Create a product category from this service.
+     */
+    public function convertToCategory(Request $request, $service_id)
+    {
+        $service = Service::with('category')->withCount('products')->findOrFail($service_id);
+
+        try {
+            $category = \App\Services\Admin\CatalogConversionService::convertServiceToCategory($service);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ApiResponse::error('Could not convert service to category. '.$e->getMessage(), 500);
+        }
+
+        $payload = app(CategoryController::class)->categoryToApiData($category);
+
+        return ApiResponse::success('Service converted to category successfully.', $payload);
     }
 
     /**
