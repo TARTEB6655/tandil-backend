@@ -758,10 +758,11 @@ class CartController extends Controller
         $fallbackSlot = self::resolveTopLevelBookingSlot($request);
 
         // Buy Now: product_id wins over items[] (apps often send both; items without area broke pay).
-        // Cart checkout with accidental product_id + items[] still uses items/cart.
+        // POST /buy-now/summary with product_id always previews that product line.
         $useBuyNowProduct = $request->filled('product_id')
             && (
-                $request->boolean('is_buy_now')
+                $request->is('*buy-now/summary')
+                || $request->boolean('is_buy_now')
                 || ! ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0)
             );
 
@@ -801,21 +802,25 @@ class CartController extends Controller
             if ($treeError !== null) {
                 throw new \InvalidArgumentException($treeError);
             }
-            // Buy Now often omits tree qty after Product Details — reuse cart line if present.
-            if ($treeRaw === null && $palmRaw === null && \App\Support\ServiceTreePricing::cartsTableReady()) {
-                $cartTree = Cart::query()
+            [$treeQty, $palmQty] = \App\Support\ServiceTreePricing::resolvedQuantitiesForBuyNow(
+                $userId,
+                (int) $product->id,
+                $treeRaw,
+                $palmRaw
+            );
+            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeQty, $palmQty);
+            $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
+            $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
+            if ($selectedOptionsNormalized === [] && \App\Support\ServiceTreePricing::cartsTableReady()) {
+                $fromCart = Cart::query()
                     ->where('user_id', $userId)
                     ->where('product_id', (int) $product->id)
                     ->orderByDesc('id')
-                    ->first(['tree_quantity', 'palm_tree_quantity']);
-                if ($cartTree) {
-                    $treeRaw = $cartTree->tree_quantity;
-                    $palmRaw = $cartTree->palm_tree_quantity;
-                }
+                    ->value('selected_options');
+                $selectedOptionsNormalized = Cart::normalizeSelectedOptionIds(
+                    is_array($fromCart) ? $fromCart : null
+                );
             }
-            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
-            $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
-            $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
             $itemBooking = ShopBookingSlotHelper::resolveFromItemArray(
                 $request->all(),
@@ -974,18 +979,13 @@ class CartController extends Controller
             if ($treeError !== null) {
                 throw new \InvalidArgumentException(((string) $product->name).': '.$treeError);
             }
-            if ($treeRaw === null && $palmRaw === null && \App\Support\ServiceTreePricing::cartsTableReady()) {
-                $cartTree = Cart::query()
-                    ->where('user_id', $userId)
-                    ->where('product_id', $product->id)
-                    ->orderByDesc('id')
-                    ->first(['tree_quantity', 'palm_tree_quantity']);
-                if ($cartTree) {
-                    $treeRaw = $cartTree->tree_quantity;
-                    $palmRaw = $cartTree->palm_tree_quantity;
-                }
-            }
-            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
+            [$treeQty, $palmQty] = \App\Support\ServiceTreePricing::resolvedQuantitiesForBuyNow(
+                $userId,
+                (int) $product->id,
+                $treeRaw,
+                $palmRaw
+            );
+            $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeQty, $palmQty);
             $qty = ServiceAreaPricing::effectiveQuantity(
                 $product,
                 max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1))
@@ -1082,6 +1082,10 @@ class CartController extends Controller
      */
     public function buyNowSummary(Request $request)
     {
+        if ($request->filled('product_id')) {
+            $request->merge(['is_buy_now' => true]);
+        }
+
         $request->validate(array_merge([
             'product_id' => 'sometimes|exists:products,id',
             'quantity' => 'sometimes|integer|min:1',

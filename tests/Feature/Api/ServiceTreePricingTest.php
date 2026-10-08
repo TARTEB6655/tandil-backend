@@ -219,6 +219,80 @@ class ServiceTreePricingTest extends TestCase
             ->assertJsonCount(1, 'data.order_summary.items');
     }
 
+    public function test_buy_now_summary_reuses_cart_tree_palm_when_request_omits_them(): void
+    {
+        ServiceTreePricing::saveGlobal(true, 50, 80);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/cart/add', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'tree_quantity' => 2,
+                'palm_tree_quantity' => 2,
+            ])
+            ->assertCreated();
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 360)
+            ->assertJsonCount(3, 'data.order_summary.items')
+            ->assertJsonPath('data.order_summary.items.2.line_kind', 'palm_addon');
+    }
+
+    public function test_buy_now_summary_ignores_zero_tree_placeholders_and_reuses_cart(): void
+    {
+        ServiceTreePricing::saveGlobal(true, 50, 80);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/cart/add', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'tree_quantity' => 2,
+                'palm_tree_quantity' => 1,
+            ])
+            ->assertCreated();
+
+        // Apps often default tree/palm to 0 instead of omitting keys.
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'tree_quantity' => 0,
+                'palm_tree_quantity' => 0,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 280);
+    }
+
+    public function test_buy_now_summary_product_id_wins_over_items_without_tree_fields(): void
+    {
+        ServiceTreePricing::saveGlobal(true, 50, 80);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/cart/add', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'trees' => 3,
+            ])
+            ->assertCreated();
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'items' => [
+                    ['product_id' => $this->serviceProduct->id, 'quantity' => 1],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 250)
+            ->assertJsonPath('data.order_summary.items.1.line_kind', 'tree_addon');
+    }
+
     public function test_tree_options_hidden_when_admin_toggle_off(): void
     {
         ServiceTreePricing::saveGlobal(false, 50, 80);

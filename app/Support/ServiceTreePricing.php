@@ -211,6 +211,23 @@ final class ServiceTreePricing
         ];
     }
 
+    /** Zero or negative numeric placeholders mean "not selected" (common in mobile forms). */
+    public static function isOmittableQuantityPlaceholder(mixed $value): bool
+    {
+        if ($value === null || $value === '') {
+            return true;
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return true;
+            }
+        }
+
+        return is_numeric($value) && (float) $value <= 0;
+    }
+
     public static function normalizeQuantity(mixed $value): ?int
     {
         if ($value === null || $value === '') {
@@ -329,6 +346,45 @@ final class ServiceTreePricing
     }
 
     /**
+     * Buy Now / order-summary preview often omits tree/palm or sends 0 placeholders.
+     * Reuse the latest persisted cart line per field when the request has no positive qty.
+     *
+     * @return array{0: ?int, 1: ?int}
+     */
+    public static function resolvedQuantitiesForBuyNow(
+        int $userId,
+        int $productId,
+        mixed $treeRaw,
+        mixed $palmRaw
+    ): array {
+        $tree = self::normalizeQuantity($treeRaw);
+        $palm = self::normalizeQuantity($palmRaw);
+
+        if (($tree !== null && $palm !== null) || ! self::cartsTableReady()) {
+            return [$tree, $palm];
+        }
+
+        $cartRow = \App\Models\Cart::query()
+            ->where('user_id', $userId)
+            ->where('product_id', $productId)
+            ->orderByDesc('id')
+            ->first(['tree_quantity', 'palm_tree_quantity']);
+
+        if ($cartRow === null) {
+            return [$tree, $palm];
+        }
+
+        if ($tree === null && $cartRow->tree_quantity !== null && (int) $cartRow->tree_quantity > 0) {
+            $tree = (int) $cartRow->tree_quantity;
+        }
+        if ($palm === null && $cartRow->palm_tree_quantity !== null && (int) $cartRow->palm_tree_quantity > 0) {
+            $palm = (int) $cartRow->palm_tree_quantity;
+        }
+
+        return [$tree, $palm];
+    }
+
+    /**
      * Validate optional quantities. Returns error message or null.
      */
     public static function validateQuantitiesMessage(Product $product, mixed $treeRaw, mixed $palmRaw): ?string
@@ -341,11 +397,11 @@ final class ServiceTreePricing
             return null;
         }
 
-        if ($treeRaw !== null && $treeRaw !== '' && self::normalizeQuantity($treeRaw) === null) {
+        if ($treeRaw !== null && $treeRaw !== '' && self::normalizeQuantity($treeRaw) === null && ! self::isOmittableQuantityPlaceholder($treeRaw)) {
             return 'Number of trees must be a positive whole number when provided (e.g. 1, 2, 5). Send as tree_quantity (or trees).';
         }
 
-        if ($palmRaw !== null && $palmRaw !== '' && self::normalizeQuantity($palmRaw) === null) {
+        if ($palmRaw !== null && $palmRaw !== '' && self::normalizeQuantity($palmRaw) === null && ! self::isOmittableQuantityPlaceholder($palmRaw)) {
             return 'Number of palm trees must be a positive whole number when provided (e.g. 1, 2, 5). Send as palm_tree_quantity (or palms).';
         }
 
