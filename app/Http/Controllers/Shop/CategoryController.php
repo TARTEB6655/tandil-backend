@@ -66,6 +66,7 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         $categories = Category::platformCatalog()
+            ->listedInCatalog()
             ->where(function ($q) {
                 $q->where('is_active', true)->orWhereNull('is_active');
             })
@@ -108,6 +109,7 @@ class CategoryController extends Controller
         $maxPrice = $request->query('max_price');
 
         $category = Category::platformCatalog()
+            ->listedInCatalog()
             ->where(function ($q) use ($id) {
                 $q->where('id', $id)->orWhere('slug', $id);
             })

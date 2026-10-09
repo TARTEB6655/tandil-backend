@@ -22,6 +22,7 @@ class Category extends Model
     protected $fillable = [
         'vendor_id',
         'parent_id',
+        'converted_to_service_id',
         'name',
         'slug',
         'description',
@@ -41,7 +42,16 @@ class Category extends Model
         'sort_order' => 'integer',
         'shipping_cost' => 'float',
         'tax_percentage' => 'float',
+        'converted_to_service_id' => 'integer',
     ];
+
+    /**
+     * Rows still shown in admin/shop category catalogs (not converted to a service).
+     */
+    public function scopeListedInCatalog($query)
+    {
+        return $query->whereNull('converted_to_service_id');
+    }
 
     /**
      * Order categories for display (drag-and-drop sort_order, then name as tie-breaker).
@@ -69,7 +79,7 @@ class Category extends Model
      */
     public function scopeVendorAssignable($query)
     {
-        return $query->platformCatalog()->where(function ($q) {
+        return $query->platformCatalog()->listedInCatalog()->where(function ($q) {
             $q->where('is_active', true)->orWhereNull('is_active');
         });
     }

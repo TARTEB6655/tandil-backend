@@ -62,7 +62,7 @@ class ServiceController extends Controller
         $search = $request->query('search');
         $categoryId = $request->query('category_id');
 
-        $query = Service::query()->withCount('products');
+        $query = Service::listedInCatalog()->withCount('products');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -194,7 +194,7 @@ class ServiceController extends Controller
      */
     public function getCategories(Request $request)
     {
-        $query = Service::query()->withCount('products');
+        $query = Service::listedInCatalog()->withCount('products');
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);
         }

@@ -563,6 +563,7 @@ class ProductController extends Controller
     {
         try {
             $categories = \App\Models\Category::platformCatalog()
+                ->listedInCatalog()
                 ->where(function ($q) {
                     $q->where('is_active', true)
                         ->orWhereNull('is_active');

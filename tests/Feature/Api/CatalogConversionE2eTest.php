@@ -137,6 +137,17 @@ class CatalogConversionE2eTest extends TestCase
 
         $category->refresh();
         $this->assertFalse((bool) $category->is_active);
+        $this->assertSame($serviceId, (int) $category->converted_to_service_id);
+        $this->assertDatabaseHas('categories', ['id' => $category->id]);
+
+        $listCategories = $this->getJson('/api/admin/categories?per_page=100', $this->authHeaders());
+        $listCategories->assertOk();
+        $categoryIds = collect($listCategories->json('data'))->pluck('id')->all();
+        $this->assertNotContains($category->id, $categoryIds);
+
+        $listServices = $this->getJson('/api/admin/services?per_page=100', $this->authHeaders());
+        $listServices->assertOk();
+        $this->assertContains($serviceId, collect($listServices->json('data'))->pluck('id')->all());
     }
 
     public function test_service_convert_to_category_e2e_response_and_shop_defaults(): void
@@ -184,7 +195,18 @@ class CatalogConversionE2eTest extends TestCase
             ->assertJsonPath('data.shipping_amount', 18.5);
 
         $newCategoryId = (int) $response->json('data.id');
-        $this->assertFalse(Service::whereKey($service->id)->exists());
+        $this->assertTrue(Service::whereKey($service->id)->exists());
+        $service->refresh();
+        $this->assertFalse((bool) $service->is_active);
+        $this->assertSame($newCategoryId, (int) $service->converted_to_category_id);
+
+        $listServices = $this->getJson('/api/admin/services?per_page=100', $this->authHeaders());
+        $listServices->assertOk();
+        $this->assertNotContains($service->id, collect($listServices->json('data'))->pluck('id')->all());
+
+        $listCategories = $this->getJson('/api/admin/categories?per_page=100', $this->authHeaders());
+        $listCategories->assertOk();
+        $this->assertContains($newCategoryId, collect($listCategories->json('data'))->pluck('id')->all());
 
         $getCategory = $this->getJson('/api/admin/categories/'.$newCategoryId, $this->authHeaders());
         $getCategory->assertOk()

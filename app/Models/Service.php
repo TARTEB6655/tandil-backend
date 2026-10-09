@@ -19,6 +19,7 @@ class Service extends Model
         'is_active',
         'contractor_signup_enabled',
         'category_id',
+        'converted_to_category_id',
         'sort_order',
         'pricing_type',
         'price',
@@ -31,7 +32,16 @@ class Service extends Model
         'sort_order' => 'integer',
         'price' => 'float',
         'price_includes' => 'array',
+        'converted_to_category_id' => 'integer',
     ];
+
+    /**
+     * Rows still shown in admin/public service catalogs (not converted to a category).
+     */
+    public function scopeListedInCatalog($query)
+    {
+        return $query->whereNull('converted_to_category_id');
+    }
 
     protected $appends = ['image_url', 'coming_soon'];
 
@@ -71,7 +81,7 @@ class Service extends Model
      */
     public function scopeVendorAssignable($query)
     {
-        return $query->platformCatalog()->where(function ($q) {
+        return $query->platformCatalog()->listedInCatalog()->where(function ($q) {
             $q->where('is_active', true)->orWhereNull('is_active');
         });
     }

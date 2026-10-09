@@ -108,6 +108,7 @@ class AdminCatalogApiTest extends TestCase
 
         $category->refresh();
         $this->assertFalse((bool) $category->is_active);
+        $this->assertSame($serviceId, (int) $category->converted_to_service_id);
     }
 
     public function test_admin_service_convert_to_category_migrates_products(): void
@@ -139,7 +140,9 @@ class AdminCatalogApiTest extends TestCase
 
         $newCategoryId = (int) $response->json('data.id');
         $this->assertNotSame($category->id, $newCategoryId);
-        $this->assertFalse(Service::whereKey($service->id)->exists());
+        $this->assertTrue(Service::whereKey($service->id)->exists());
+        $service->refresh();
+        $this->assertSame($newCategoryId, (int) $service->converted_to_category_id);
 
         $product->refresh();
         $this->assertSame('product', $product->type);

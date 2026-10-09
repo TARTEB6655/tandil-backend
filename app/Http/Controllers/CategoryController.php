@@ -186,7 +186,9 @@ class CategoryController extends Controller
         $perPage = min(max((int) $request->query('per_page', 15), 1), 500);
         
         // Optimized: skip products count for API if not needed. Ordered by sort_order ASC for reorder UI.
-        $query = $isApi ? Category::query() : Category::withCount('products');
+        $query = $isApi
+            ? Category::query()->listedInCatalog()
+            : Category::withCount('products')->listedInCatalog();
         $categories = $query->ordered()->paginate($perPage);
 
         if ($isApi) {

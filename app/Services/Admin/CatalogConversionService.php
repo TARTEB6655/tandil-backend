@@ -7,16 +7,20 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Service;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
  * Convert admin catalog rows between Category (product catalog) and Service (service catalog).
+ * Rows are archived (linked + hidden from lists), never hard-deleted.
  */
 final class CatalogConversionService
 {
     public static function convertCategoryToService(Category $category): Service
     {
+        if ($category->converted_to_service_id !== null) {
+            throw new \InvalidArgumentException('This category was already converted to a service.');
+        }
+
         return DB::transaction(function () use ($category) {
             $slug = self::uniqueServiceSlug((string) $category->slug);
 
@@ -52,7 +56,10 @@ final class CatalogConversionService
                 ->where('id', '!=', $service->id)
                 ->update(['category_id' => null]);
 
-            $category->forceFill(['is_active' => false])->saveQuietly();
+            $category->forceFill([
+                'is_active' => false,
+                'converted_to_service_id' => $service->id,
+            ])->saveQuietly();
 
             return $service->fresh(['category']);
         });
@@ -60,6 +67,10 @@ final class CatalogConversionService
 
     public static function convertServiceToCategory(Service $service): Category
     {
+        if ($service->converted_to_category_id !== null) {
+            throw new \InvalidArgumentException('This service was already converted to a category.');
+        }
+
         return DB::transaction(function () use ($service) {
             $slug = self::uniqueCategorySlug((string) $service->slug);
             $defaultShipping = CartController::getEffectiveShippingAmount();
@@ -93,10 +104,10 @@ final class CatalogConversionService
                 $service->products()->detach();
             }
 
-            if ($service->image && Storage::disk('public')->exists($service->image)) {
-                Storage::disk('public')->delete($service->image);
-            }
-            $service->delete();
+            $service->forceFill([
+                'is_active' => false,
+                'converted_to_category_id' => $category->id,
+            ])->saveQuietly();
 
             return $category->fresh();
         });
@@ -111,7 +122,7 @@ final class CatalogConversionService
         }
         $original = $slug;
         $counter = 1;
-        while (Service::where('slug', $slug)->exists()) {
+        while (Service::listedInCatalog()->where('slug', $slug)->exists()) {
             $slug = $original.'-'.$counter;
             $counter++;
         }
@@ -128,7 +139,7 @@ final class CatalogConversionService
         }
         $original = $slug;
         $counter = 1;
-        while (Category::where('slug', $slug)->exists()) {
+        while (Category::listedInCatalog()->where('slug', $slug)->exists()) {
             $slug = $original.'-'.$counter;
             $counter++;
         }
@@ -141,7 +152,7 @@ final class CatalogConversionService
         if ($path === null || $path === '') {
             return null;
         }
-        if (! Storage::disk('public')->exists($path)) {
+        if (! \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
             return null;
         }
 
@@ -151,7 +162,7 @@ final class CatalogConversionService
             $target .= '.'.strtolower($extension);
         }
 
-        Storage::disk('public')->copy($path, $target);
+        \Illuminate\Support\Facades\Storage::disk('public')->copy($path, $target);
 
         return $target;
     }

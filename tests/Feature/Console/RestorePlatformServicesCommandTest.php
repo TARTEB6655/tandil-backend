@@ -28,6 +28,7 @@ class RestorePlatformServicesCommandTest extends TestCase
         ]);
         $category->refresh();
         $this->assertFalse((bool) $category->is_active);
+        $this->assertNotNull($category->converted_to_service_id);
     }
 
     public function test_restore_skips_when_service_already_exists(): void

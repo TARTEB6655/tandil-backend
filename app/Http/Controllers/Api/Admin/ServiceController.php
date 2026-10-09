@@ -51,7 +51,11 @@ class ServiceController extends Controller
     public function index(Request $request)
     {
         $perPage = min(max((int) $request->query('per_page', 15), 1), 100);
-        $query = Service::with('category')->withCount('products')->orderBy('sort_order')->orderByDesc('id');
+        $query = Service::listedInCatalog()
+            ->with('category')
+            ->withCount('products')
+            ->orderBy('sort_order')
+            ->orderByDesc('id');
 
         if ($request->filled('category_id')) {
             $query->where('category_id', $request->category_id);

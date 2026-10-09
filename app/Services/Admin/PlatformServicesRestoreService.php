@@ -88,6 +88,7 @@ final class PlatformServicesRestoreService
         $name = (string) ($row['name'] ?? '');
 
         return Service::query()
+            ->listedInCatalog()
             ->where(function ($q) use ($slug, $name): void {
                 if ($slug !== '') {
                     $q->where('slug', $slug)
@@ -113,6 +114,7 @@ final class PlatformServicesRestoreService
         }
 
         return Category::query()
+            ->listedInCatalog()
             ->where('is_active', true)
             ->where(function ($q) use ($slug, $name): void {
                 if ($slug !== '') {
