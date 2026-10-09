@@ -12,6 +12,7 @@ use Illuminate\Support\Str;
 /**
  * Convert admin catalog rows between Category (product catalog) and Service (service catalog).
  * Rows are archived (linked + hidden from lists), never hard-deleted.
+ * Round-trip: converting back reactivates the paired archived row when possible.
  */
 final class CatalogConversionService
 {
@@ -19,6 +20,14 @@ final class CatalogConversionService
     {
         if ($category->converted_to_service_id !== null) {
             throw new \InvalidArgumentException('This category was already converted to a service.');
+        }
+
+        $pairedService = Service::query()
+            ->where('converted_to_category_id', $category->id)
+            ->first();
+
+        if ($pairedService !== null) {
+            return self::reactivateServiceFromCategory($category, $pairedService);
         }
 
         return DB::transaction(function () use ($category) {
@@ -40,16 +49,7 @@ final class CatalogConversionService
                 'price_includes' => null,
             ]);
 
-            Product::query()
-                ->where('category_id', $category->id)
-                ->orderBy('id')
-                ->each(function (Product $product) use ($service): void {
-                    $product->forceFill([
-                        'type' => 'service',
-                        'requires_shipping' => false,
-                    ])->saveQuietly();
-                    $product->services()->syncWithoutDetaching([(int) $service->id]);
-                });
+            self::migrateCategoryProductsToService($category, $service);
 
             Service::query()
                 ->where('category_id', $category->id)
@@ -69,6 +69,14 @@ final class CatalogConversionService
     {
         if ($service->converted_to_category_id !== null) {
             throw new \InvalidArgumentException('This service was already converted to a category.');
+        }
+
+        $pairedCategory = Category::query()
+            ->where('converted_to_service_id', $service->id)
+            ->first();
+
+        if ($pairedCategory !== null) {
+            return self::reactivateCategoryFromService($service, $pairedCategory);
         }
 
         return DB::transaction(function () use ($service) {
@@ -91,18 +99,7 @@ final class CatalogConversionService
                 'tax_percentage' => round(max(0, min(100, $defaultTax)), 2),
             ]);
 
-            $productIds = $service->products()->pluck('products.id')->map(fn ($id) => (int) $id)->all();
-
-            if ($productIds !== []) {
-                Product::query()
-                    ->whereIn('id', $productIds)
-                    ->update([
-                        'type' => 'product',
-                        'category_id' => $category->id,
-                        'requires_shipping' => true,
-                    ]);
-                $service->products()->detach();
-            }
+            self::migrateServiceProductsToCategory($service, $category);
 
             $service->forceFill([
                 'is_active' => false,
@@ -111,6 +108,87 @@ final class CatalogConversionService
 
             return $category->fresh();
         });
+    }
+
+    private static function reactivateCategoryFromService(Service $service, Category $category): Category
+    {
+        return DB::transaction(function () use ($service, $category) {
+            self::migrateServiceProductsToCategory($service, $category);
+
+            $category->forceFill([
+                'name' => $service->name,
+                'description' => $service->description,
+                'icon' => $service->icon ?? $category->icon,
+                'sort_order' => (int) ($service->sort_order ?? $category->sort_order),
+                'is_active' => true,
+                'converted_to_service_id' => null,
+            ])->saveQuietly();
+
+            $service->forceFill([
+                'is_active' => false,
+                'converted_to_category_id' => $category->id,
+            ])->saveQuietly();
+
+            return $category->fresh();
+        });
+    }
+
+    private static function reactivateServiceFromCategory(Category $category, Service $service): Service
+    {
+        return DB::transaction(function () use ($category, $service) {
+            self::migrateCategoryProductsToService($category, $service);
+
+            $service->forceFill([
+                'name' => $category->name,
+                'description' => $category->description,
+                'icon' => $category->icon ?? $service->icon,
+                'sort_order' => (int) ($category->sort_order ?? $service->sort_order),
+                'is_active' => true,
+                'converted_to_category_id' => null,
+            ])->saveQuietly();
+
+            Service::query()
+                ->where('category_id', $category->id)
+                ->where('id', '!=', $service->id)
+                ->update(['category_id' => null]);
+
+            $category->forceFill([
+                'is_active' => false,
+                'converted_to_service_id' => $service->id,
+            ])->saveQuietly();
+
+            return $service->fresh(['category']);
+        });
+    }
+
+    private static function migrateCategoryProductsToService(Category $category, Service $service): void
+    {
+        Product::query()
+            ->where('category_id', $category->id)
+            ->orderBy('id')
+            ->each(function (Product $product) use ($service): void {
+                $product->forceFill([
+                    'type' => 'service',
+                    'requires_shipping' => false,
+                ])->saveQuietly();
+                $product->services()->syncWithoutDetaching([(int) $service->id]);
+            });
+    }
+
+    private static function migrateServiceProductsToCategory(Service $service, Category $category): void
+    {
+        $productIds = $service->products()->pluck('products.id')->map(fn ($id) => (int) $id)->all();
+
+        if ($productIds !== []) {
+            Product::query()
+                ->whereIn('id', $productIds)
+                ->update([
+                    'type' => 'product',
+                    'category_id' => $category->id,
+                    'requires_shipping' => true,
+                ]);
+            $service->products()->detach();
+        }
     }
 
     private static function uniqueServiceSlug(string $baseSlug): string
@@ -122,7 +200,7 @@ final class CatalogConversionService
         }
         $original = $slug;
         $counter = 1;
-        while (Service::listedInCatalog()->where('slug', $slug)->exists()) {
+        while (Service::where('slug', $slug)->exists()) {
             $slug = $original.'-'.$counter;
             $counter++;
         }
@@ -139,7 +217,7 @@ final class CatalogConversionService
         }
         $original = $slug;
         $counter = 1;
-        while (Category::listedInCatalog()->where('slug', $slug)->exists()) {
+        while (Category::where('slug', $slug)->exists()) {
             $slug = $original.'-'.$counter;
             $counter++;
         }

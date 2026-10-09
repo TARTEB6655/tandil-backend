@@ -220,6 +220,44 @@ class CatalogConversionE2eTest extends TestCase
         $this->assertCount(0, $product->services);
     }
 
+    public function test_category_service_round_trip_reactivates_same_category_slug(): void
+    {
+        $category = Category::factory()->create([
+            'name' => 'asasas',
+            'slug' => 'aa',
+            'description' => 'test',
+            'is_active' => true,
+        ]);
+
+        $toService = $this->postJson(
+            '/api/admin/categories/'.$category->id.'/convert-to-service',
+            [],
+            $this->authHeaders()
+        );
+        $toService->assertOk();
+        $serviceId = (int) $toService->json('data.id');
+
+        $toCategory = $this->postJson(
+            '/api/admin/services/'.$serviceId.'/convert-to-category',
+            [],
+            $this->authHeaders()
+        );
+
+        $toCategory->assertOk()
+            ->assertJsonPath('data.slug', 'aa')
+            ->assertJsonPath('data.id', $category->id);
+
+        $category->refresh();
+        $this->assertTrue((bool) $category->is_active);
+        $this->assertNull($category->converted_to_service_id);
+
+        $service = Service::findOrFail($serviceId);
+        $this->assertFalse((bool) $service->is_active);
+        $this->assertSame($category->id, (int) $service->converted_to_category_id);
+
+        $this->assertSame(1, Category::where('slug', 'aa')->count());
+    }
+
     public function test_convert_endpoints_require_admin_auth(): void
     {
         $category = Category::factory()->create();
