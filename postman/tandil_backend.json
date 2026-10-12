@@ -804,6 +804,134 @@
             },
             "description": "POST /api/auth/apple. Public. Body: id_token (Apple identity token), roles (client); optional name, email (first sign-in). Verifies JWT with Apple JWKS, finds or creates client. Response = login. data.user.needs_phone is true when phone is empty — show phone popup then call PUT /api/user/phone. Server .env: PUBLIC_APPLE_BUNDLE_ID or APPLE_BUNDLE_ID (iOS aud = Bundle ID, e.g. com.tandilapp.tandil). Optional APPLE_CLIENT_IDS if web Services ID also used."
           }
+        },
+        {
+              "name": "07. Forgot Password (send SMS OTP)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var j = pm.response.json();",
+                  "    if (j.data && j.data.phone_masked) {",
+                  "        console.log('OTP sent to', j.data.phone_masked);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+971501234567\",\n  \"roles\": \"client\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "description": "Step 1 — Mobile forgot password. POST /api/auth/forgot-password. Body: phone (or phone_number), roles (same slug as login: client, vendor, technician, supervisor, area_manager, hr, admin). OTP sent by SMS only if this mobile is registered for that role. 404 if not registered. Resend = call again after resend_available_in_seconds. Env: SMS_DRIVER (log|twilio)."
+          }
+        },
+        {
+              "name": "08. Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var j = pm.response.json();",
+                  "    if (j.data && j.data.reset_token) {",
+                  "        pm.environment.set('password_reset_token', j.data.reset_token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+971501234567\",\n  \"roles\": \"client\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-otp",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-otp"
+              ]
+            },
+            "description": "Step 2 — POST /api/auth/verify-otp. Same phone + roles as step 1. Body otp: 6 digits. Success sets {{password_reset_token}} (short-lived). Wrong/expired OTP → 422/410."
+          }
+        },
+        {
+              "name": "09. Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reset_token\": \"{{password_reset_token}}\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "reset-password"
+              ]
+            },
+            "description": "Step 3 — POST /api/auth/reset-password. Body: reset_token from step 2, password + password_confirmation (min 6). Then login with POST /api/auth/login."
+          }
             }
           ]
         },
@@ -1526,7 +1654,7 @@
           ]
         }
       ],
-      "description": "Auth for all apps.\n\n| Subfolder | Use |\n|-----------|-----|\n| **01. Client** | Customer register / login / social |\n| **02. Technician** | Technician signup |\n| **03. Contractor** | Contractor dropdowns + register + login |\n| **04. Vendor** | Marketplace vendor |\n\nContractor dropdowns: GET /api/contractor/auth/registration-options → 03 → 01."
+      "description": "Auth for all apps.\n\n| Subfolder | Use |\n|-----------|-----|\n| **01. Client** | Register / login / social / **forgot password (SMS OTP)** |\n| **02. Technician** | Technician signup |\n| **03. Contractor** | Contractor dropdowns + register + login |\n| **04. Vendor** | Marketplace vendor |\n\n**Forgot password (all roles):** `01. Client` → **07–09** — POST forgot-password → verify-otp → reset-password. Send `roles` (same slug as login: client, vendor, admin, …). Phone must be registered on the account.\n\nContractor dropdowns: GET /api/contractor/auth/registration-options → 03 → 01."
     },
     {
       "name": "04. Client Dashboard",
@@ -1677,7 +1805,7 @@
               }
             },
             {
-              "name": "05. Forgot Password",
+              "name": "05. Forgot Password (send SMS OTP)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -1692,7 +1820,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"user@example.com\"\n}"
+                  "raw": "{\n  \"phone\": \"+971501234567\",\n  \"roles\": \"client\"\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/auth/forgot-password",
@@ -1705,7 +1833,7 @@
                     "forgot-password"
                   ]
                 },
-                "description": "Request password reset (sends OTP to email) - Placeholder endpoint"
+                "description": "Same as **03. Authentication → 01. Client → 07**. Step 1 SMS OTP to registered mobile."
               }
             },
             {
@@ -1724,7 +1852,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\"\n}"
+                  "raw": "{\n  \"phone\": \"+971501234567\",\n  \"roles\": \"client\",\n  \"otp\": \"123456\"\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/auth/verify-otp",
@@ -1737,7 +1865,7 @@
                     "verify-otp"
                   ]
                 },
-                "description": "Verify OTP for password reset - Placeholder endpoint"
+                "description": "Same as **03. Authentication → 01. Client → 08**. Step 2 — sets {{password_reset_token}}."
               }
             },
             {
@@ -1756,7 +1884,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"email\": \"user@example.com\",\n  \"otp\": \"123456\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
+                  "raw": "{\n  \"reset_token\": \"{{password_reset_token}}\",\n  \"password\": \"newpassword123\",\n  \"password_confirmation\": \"newpassword123\"\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/auth/reset-password",
@@ -1769,7 +1897,7 @@
                     "reset-password"
                   ]
                 },
-                "description": "Reset password with verified OTP - Placeholder endpoint"
+                "description": "Same as **03. Authentication → 01. Client → 09**. Step 3 — new password."
               }
             }
           ],
