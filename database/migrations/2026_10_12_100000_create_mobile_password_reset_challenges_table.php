@@ -25,8 +25,9 @@ return new class extends Migration
             $table->timestamp('consumed_at')->nullable();
             $table->timestamps();
 
-            $table->index(['phone_digits', 'portal', 'consumed_at']);
-            $table->index(['user_id', 'consumed_at']);
+            // MySQL max identifier length 64 chars — use short custom index names.
+            $table->index(['phone_digits', 'portal', 'consumed_at'], 'mpw_ch_phone_portal_consumed');
+            $table->index(['user_id', 'consumed_at'], 'mpw_ch_user_consumed');
         });
     }
 
