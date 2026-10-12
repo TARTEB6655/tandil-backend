@@ -2,8 +2,11 @@
 
 namespace App\Providers;
 
+use App\Contracts\SmsSender;
 use App\Models\Order;
 use App\Models\Subscription;
+use App\Services\Sms\LogSmsSender;
+use App\Services\Sms\TwilioSmsSender;
 use App\Observers\DatabaseNotificationObserver;
 use App\Observers\OrderObserver;
 use App\Observers\SubscriptionObserver;
@@ -18,7 +21,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SmsSender::class, function () {
+            $driver = (string) config('services.sms.driver', 'log');
+
+            return $driver === 'twilio'
+                ? $this->app->make(TwilioSmsSender::class)
+                : $this->app->make(LogSmsSender::class);
+        });
     }
 
     /**

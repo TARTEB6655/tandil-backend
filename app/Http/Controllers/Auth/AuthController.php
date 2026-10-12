@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Auth\AppleIdTokenVerifier;
 use App\Services\Auth\GoogleIdTokenVerifier;
 use App\Services\Auth\LoginService;
+use App\Services\Auth\MobilePasswordResetService;
 use App\Services\Auth\SocialClientAuthService;
 use App\Support\AppLoginRoles;
 use App\Support\PasswordInput;
@@ -361,30 +362,125 @@ class AuthController extends Controller
     }
 
     /**
-     * FORGOT PASSWORD
+     * FORGOT PASSWORD — Step 1: registered mobile → SMS OTP (UAE numbers supported).
+     * Body: phone (or phone_number), roles|role|slug|portal (same as login).
      */
-    public function forgotPassword(Request $request)
+    public function forgotPassword(Request $request, MobilePasswordResetService $passwordReset): JsonResponse
     {
-        // TODO: Implement password reset functionality
-        return ApiResponse::error('Password reset feature not implemented yet', 501);
+        $portal = $this->resolvePasswordResetPortal($request);
+        if ($portal instanceof JsonResponse) {
+            return $portal;
+        }
+
+        $validated = $request->validate([
+            'phone' => 'required_without:phone_number|string|max:32',
+            'phone_number' => 'required_without:phone|string|max:32',
+        ]);
+
+        $phone = $validated['phone'] ?? $validated['phone_number'];
+        $result = $passwordReset->sendOtp($phone, $portal, $request->ip());
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'errors' => $result['errors'] ?? null,
+            ], $result['status'] ?? 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code sent by SMS.',
+            'data' => $result['data'],
+        ]);
     }
 
     /**
-     * VERIFY OTP
+     * VERIFY OTP — Step 2: returns short-lived reset_token for step 3.
      */
-    public function verifyOtp(Request $request)
+    public function verifyOtp(Request $request, MobilePasswordResetService $passwordReset): JsonResponse
     {
-        // TODO: Implement OTP verification
-        return ApiResponse::error('OTP verification not implemented yet', 501);
+        $portal = $this->resolvePasswordResetPortal($request);
+        if ($portal instanceof JsonResponse) {
+            return $portal;
+        }
+
+        $validated = $request->validate([
+            'phone' => 'required_without:phone_number|string|max:32',
+            'phone_number' => 'required_without:phone|string|max:32',
+            'otp' => 'required|string|size:6',
+        ]);
+
+        $phone = $validated['phone'] ?? $validated['phone_number'];
+        $result = $passwordReset->verifyOtp($phone, $portal, $validated['otp']);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'errors' => $result['errors'] ?? null,
+            ], $result['status'] ?? 400);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Verification code accepted.',
+            'data' => $result['data'],
+        ]);
     }
 
     /**
-     * RESET PASSWORD
+     * RESET PASSWORD — Step 3: new password using reset_token from verify-otp.
      */
-    public function resetPassword(Request $request)
+    public function resetPassword(Request $request, MobilePasswordResetService $passwordReset): JsonResponse
     {
-        // TODO: Implement password reset
-        return ApiResponse::error('Password reset feature not implemented yet', 501);
+        PasswordInput::normalize($request);
+
+        $validated = $request->validate([
+            'reset_token' => 'required|string|min:20',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $result = $passwordReset->resetPassword($validated['reset_token'], $validated['password']);
+
+        if (! ($result['ok'] ?? false)) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'],
+                'errors' => $result['errors'] ?? null,
+            ], $result['status'] ?? 400);
+        }
+
+        return ApiResponse::success($result['message']);
+    }
+
+    /**
+     * @return JsonResponse|string portal slug
+     */
+    private function resolvePasswordResetPortal(Request $request): JsonResponse|string
+    {
+        if ($request->filled('roles')) {
+            $request->merge(['roles' => $request->input('roles')]);
+        } elseif ($request->filled('role')) {
+            $request->merge(['roles' => $request->input('role')]);
+        } elseif ($request->filled('slug')) {
+            $request->merge(['roles' => $request->input('slug')]);
+        } elseif ($request->filled('portal')) {
+            $request->merge(['roles' => $request->input('portal')]);
+        }
+
+        $portal = $this->normalizeLoginRolesParameter($request->input('roles'));
+        if ($portal === false || $portal === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => [
+                    'roles' => ['roles must be a single slug: '.implode(', ', User::LOGIN_PORTALS).'.'],
+                ],
+            ], 422);
+        }
+
+        return $portal;
     }
 
     /**

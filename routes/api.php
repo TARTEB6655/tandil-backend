@@ -130,7 +130,6 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [\App\Http\Controllers\Auth\AuthController::class, 'login']);
     Route::post('/google', [\App\Http\Controllers\Auth\AuthController::class, 'google']);
     Route::post('/apple', [\App\Http\Controllers\Auth\AuthController::class, 'apple']);
-    // Password reset endpoints (placeholder - implement if needed)
     Route::post('/forgot-password', [\App\Http\Controllers\Auth\AuthController::class, 'forgotPassword']);
     Route::post('/verify-otp', [\App\Http\Controllers\Auth\AuthController::class, 'verifyOtp']);
     Route::post('/reset-password', [\App\Http\Controllers\Auth\AuthController::class, 'resetPassword']);

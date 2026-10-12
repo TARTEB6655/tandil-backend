@@ -78,4 +78,29 @@ return [
         'client_ids' => env('APPLE_CLIENT_IDS', env('PUBLIC_APPLE_BUNDLE_IDS')),
     ],
 
+    /*
+    | Forgot password SMS (POST /api/auth/forgot-password, verify-otp, reset-password).
+    | Driver: log (local/staging) or twilio (production).
+    */
+    'sms' => [
+        'driver' => env('SMS_DRIVER', 'log'),
+        'twilio' => [
+            'account_sid' => env('TWILIO_ACCOUNT_SID'),
+            'auth_token' => env('TWILIO_AUTH_TOKEN'),
+            'from' => env('TWILIO_FROM'),
+        ],
+        'password_reset' => [
+            'otp_ttl_seconds' => (int) env('PASSWORD_RESET_OTP_TTL_SECONDS', 600),
+            'reset_token_ttl_seconds' => (int) env('PASSWORD_RESET_TOKEN_TTL_SECONDS', 900),
+            'resend_cooldown_seconds' => (int) env('PASSWORD_RESET_RESEND_COOLDOWN_SECONDS', 60),
+            'max_sends_per_hour' => (int) env('PASSWORD_RESET_MAX_SENDS_PER_HOUR', 3),
+            'max_verify_attempts' => (int) env('PASSWORD_RESET_MAX_VERIFY_ATTEMPTS', 5),
+            'lockout_minutes' => (int) env('PASSWORD_RESET_LOCKOUT_MINUTES', 15),
+            'message_template' => env(
+                'PASSWORD_RESET_SMS_TEMPLATE',
+                'Your TANDIL verification code is :code. Valid for :minutes minutes.'
+            ),
+        ],
+    ],
+
 ];
