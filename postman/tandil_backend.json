@@ -850,7 +850,7 @@
                 "forgot-password"
               ]
             },
-            "description": "Step 1 — Mobile forgot password. POST /api/auth/forgot-password. Body: phone (or phone_number), roles (same slug as login: client, vendor, technician, supervisor, area_manager, hr, admin). OTP sent by SMS only if this mobile is registered for that role. 404 if not registered. Resend = call again after resend_available_in_seconds. Env: SMS_DRIVER (log|twilio)."
+            "description": "Step 1 — Mobile forgot password. POST /api/auth/forgot-password. Body: phone (or phone_number), roles (same slug as login: client, vendor, technician, supervisor, area_manager, hr, admin). OTP sent by SMS only if this mobile is registered for that role. 404 if not registered. Resend = call again after resend_available_in_seconds. Env: SMS_DRIVER (log|twilio|twilio_verify). Production: twilio_verify + TWILIO_VERIFY_SERVICE_SID."
           }
         },
         {

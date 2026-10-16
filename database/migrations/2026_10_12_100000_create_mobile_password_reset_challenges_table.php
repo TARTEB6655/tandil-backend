@@ -14,7 +14,8 @@ return new class extends Migration
         if (! Schema::hasTable(self::TABLE)) {
             Schema::create(self::TABLE, function (Blueprint $table) {
                 $this->defineColumns($table);
-                $this->defineIndexes($table);
+                $table->index(['phone_digits', 'portal', 'consumed_at'], 'mpw_ch_phone_portal_consumed');
+                $table->index(['user_id', 'consumed_at'], 'mpw_ch_user_consumed');
             });
 
             return;
@@ -63,7 +64,8 @@ return new class extends Migration
         });
 
         Schema::table(self::TABLE, function (Blueprint $table) {
-            $this->defineIndexes($table);
+            $this->ensureIndex($table, ['phone_digits', 'portal', 'consumed_at'], 'mpw_ch_phone_portal_consumed');
+            $this->ensureIndex($table, ['user_id', 'consumed_at'], 'mpw_ch_user_consumed');
         });
     }
 
@@ -91,18 +93,35 @@ return new class extends Migration
         $table->timestamps();
     }
 
-    private function defineIndexes(Blueprint $table): void
+    /**
+     * @param  list<string>  $columns
+     */
+    private function ensureIndex(Blueprint $table, array $columns, string $indexName): void
     {
-        if (! $this->indexExists('mpw_ch_phone_portal_consumed')) {
-            $table->index(['phone_digits', 'portal', 'consumed_at'], 'mpw_ch_phone_portal_consumed');
-        }
-        if (! $this->indexExists('mpw_ch_user_consumed')) {
-            $table->index(['user_id', 'consumed_at'], 'mpw_ch_user_consumed');
+        if (! $this->indexExists($indexName)) {
+            $table->index($columns, $indexName);
         }
     }
 
     private function indexExists(string $indexName): bool
     {
+        if (! Schema::hasTable(self::TABLE)) {
+            return false;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = DB::select('PRAGMA index_list('.self::TABLE.')');
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         $rows = DB::select(
             'SHOW INDEX FROM `'.self::TABLE.'` WHERE Key_name = ?',
             [$indexName]

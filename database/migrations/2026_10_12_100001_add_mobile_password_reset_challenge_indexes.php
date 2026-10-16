@@ -46,6 +46,23 @@ return new class extends Migration
 
     private function indexExists(string $indexName): bool
     {
+        if (! Schema::hasTable(self::TABLE)) {
+            return false;
+        }
+
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            $indexes = DB::select('PRAGMA index_list('.self::TABLE.')');
+            foreach ($indexes as $index) {
+                if (($index->name ?? null) === $indexName) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         $rows = DB::select(
             'SHOW INDEX FROM `'.self::TABLE.'` WHERE Key_name = ?',
             [$indexName]

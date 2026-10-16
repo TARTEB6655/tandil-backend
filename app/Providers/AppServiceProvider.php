@@ -2,9 +2,12 @@
 
 namespace App\Providers;
 
+use App\Contracts\PasswordResetOtpHandler;
 use App\Contracts\SmsSender;
 use App\Models\Order;
 use App\Models\Subscription;
+use App\Services\Auth\LocalSmsPasswordResetOtpHandler;
+use App\Services\Auth\TwilioVerifyPasswordResetOtpHandler;
 use App\Services\Sms\LogSmsSender;
 use App\Services\Sms\TwilioSmsSender;
 use App\Observers\DatabaseNotificationObserver;
@@ -27,6 +30,14 @@ class AppServiceProvider extends ServiceProvider
             return $driver === 'twilio'
                 ? $this->app->make(TwilioSmsSender::class)
                 : $this->app->make(LogSmsSender::class);
+        });
+
+        $this->app->bind(PasswordResetOtpHandler::class, function () {
+            $driver = (string) config('services.sms.driver', 'log');
+
+            return $driver === 'twilio_verify'
+                ? $this->app->make(TwilioVerifyPasswordResetOtpHandler::class)
+                : $this->app->make(LocalSmsPasswordResetOtpHandler::class);
         });
     }
 

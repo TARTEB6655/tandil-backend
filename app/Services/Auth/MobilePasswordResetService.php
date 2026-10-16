@@ -2,7 +2,7 @@
 
 namespace App\Services\Auth;
 
-use App\Contracts\SmsSender;
+use App\Contracts\PasswordResetOtpHandler;
 use App\Models\MobilePasswordResetChallenge;
 use App\Models\User;
 use App\Support\PhoneNumberNormalizer;
@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 
 final class MobilePasswordResetService
 {
-    public function __construct(private readonly SmsSender $sms) {}
+    public function __construct(private readonly PasswordResetOtpHandler $otpHandler) {}
 
     /**
      * @return array{ok: true, data: array<string, mixed>}|array{ok: false, status: int, message: string, errors?: array<string, list<string>>}
@@ -75,13 +75,31 @@ final class MobilePasswordResetService
             ]);
         }
 
-        $otp = (string) random_int(100000, 999999);
         $otpTtl = (int) config('services.sms.password_reset.otp_ttl_seconds', 600);
+        $toE164 = '+'.$phoneDigits;
+
+        $delivery = $this->otpHandler->initiate($toE164, $otpTtl);
+        Log::info('password_reset.otp_sent', [
+            'user_id' => $user->id,
+            'portal' => $portal,
+            'otp_provider' => $delivery['provider'] ?? null,
+            'otp_success' => $delivery['success'] ?? false,
+            'external_verification' => $this->otpHandler->usesExternalVerification(),
+            'ip' => $ip,
+        ]);
+
+        if (! ($delivery['success'] ?? false)) {
+            return $this->fail('Could not send SMS. Please try again later.', 503);
+        }
+
+        $otpHash = $delivery['otp_plaintext'] !== null
+            ? Hash::make($delivery['otp_plaintext'])
+            : Hash::make('twilio-verify:'.Str::random(32));
 
         if ($active !== null) {
             $active->forceFill([
                 'user_id' => $user->id,
-                'otp_hash' => Hash::make($otp),
+                'otp_hash' => $otpHash,
                 'otp_expires_at' => now()->addSeconds($otpTtl),
                 'otp_attempts' => 0,
                 'send_count' => $active->send_count + 1,
@@ -103,33 +121,12 @@ final class MobilePasswordResetService
                 'user_id' => $user->id,
                 'phone_digits' => $phoneDigits,
                 'portal' => $portal,
-                'otp_hash' => Hash::make($otp),
+                'otp_hash' => $otpHash,
                 'otp_expires_at' => now()->addSeconds($otpTtl),
                 'send_count' => 1,
                 'last_sent_at' => now(),
                 'request_ip' => $ip,
             ]);
-        }
-
-        $template = (string) config('services.sms.password_reset.message_template', 'Your TANDIL verification code is :code. Valid for :minutes minutes.');
-        $message = str_replace(
-            [':code', ':minutes'],
-            [$otp, (string) max(1, (int) ceil($otpTtl / 60))],
-            $template
-        );
-
-        $smsResult = $this->sms->send('+'.$phoneDigits, $message);
-        Log::info('password_reset.otp_sent', [
-            'user_id' => $user->id,
-            'portal' => $portal,
-            'challenge_id' => $challenge->id,
-            'sms_provider' => $smsResult['provider'] ?? null,
-            'sms_success' => $smsResult['success'] ?? false,
-            'ip' => $ip,
-        ]);
-
-        if (! ($smsResult['success'] ?? false)) {
-            return $this->fail('Could not send SMS. Please try again later.', 503);
         }
 
         return [
@@ -169,7 +166,7 @@ final class MobilePasswordResetService
             ]);
         }
 
-        if (! Hash::check(trim($otp), $challenge->otp_hash)) {
+        if (! $this->otpHandler->validateCode('+'.$phoneDigits, $otp, (string) $challenge->otp_hash)) {
             $challenge->otp_attempts++;
             $maxAttempts = (int) config('services.sms.password_reset.max_verify_attempts', 5);
             if ($challenge->otp_attempts >= $maxAttempts) {

@@ -80,14 +80,17 @@ return [
 
     /*
     | Forgot password SMS (POST /api/auth/forgot-password, verify-otp, reset-password).
-    | Driver: log (local/staging) or twilio (production).
+    | Driver: log (local/tests), twilio (Programmable SMS + app OTP), twilio_verify (Twilio Verify service).
     */
     'sms' => [
         'driver' => env('SMS_DRIVER', 'log'),
         'twilio' => [
             'account_sid' => env('TWILIO_ACCOUNT_SID'),
             'auth_token' => env('TWILIO_AUTH_TOKEN'),
+            'api_key_sid' => env('TWILIO_API_KEY_SID'),
+            'api_key_secret' => env('TWILIO_API_KEY_SECRET'),
             'from' => env('TWILIO_FROM'),
+            'verify_service_sid' => env('TWILIO_VERIFY_SERVICE_SID'),
         ],
         'password_reset' => [
             'otp_ttl_seconds' => (int) env('PASSWORD_RESET_OTP_TTL_SECONDS', 600),
