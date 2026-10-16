@@ -136,6 +136,15 @@ Route::prefix('auth')->group(function () {
 });
 
 /*
+| Mobile forgot-password aliases (same handlers as /api/auth/* above).
+*/
+Route::prefix('forgot-password')->group(function () {
+    Route::post('/send-otp', [\App\Http\Controllers\Auth\AuthController::class, 'forgotPassword']);
+    Route::post('/verify-otp', [\App\Http\Controllers\Auth\AuthController::class, 'verifyOtp']);
+    Route::post('/reset', [\App\Http\Controllers\Auth\AuthController::class, 'resetPassword']);
+});
+
+/*
 |--------------------------------------------------------------------------
 | AUTHENTICATION (PROTECTED)
 |--------------------------------------------------------------------------
