@@ -27006,6 +27006,144 @@
           ]
         },
         {
+          "name": "08b. Service pricing settings (vendor catalog)",
+          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s service products only.\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Fixed / per m² + includes | `/api/vendor/settings/service-pricing` | `pricing_type`, `price`, `price_includes[...]` |\n| Tree / palm + includes | `/api/vendor/settings/tree-palm-pricing` | `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes[...]` |",
+          "item": [
+            {
+              "name": "01. Get service pricing (fixed / per m²)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{vendor_token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/settings/service-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "settings",
+                    "service-pricing"
+                  ]
+                },
+                "description": "GET /api/vendor/settings/service-pricing — vendor-scoped Fixed / per m² UI (same fields as admin global service-pricing)."
+              }
+            },
+            {
+              "name": "02. Update service pricing (JSON)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{vendor_token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 7,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/settings/service-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "settings",
+                    "service-pricing"
+                  ]
+                },
+                "description": "POST/PUT /api/vendor/settings/service-pricing — applies to this vendor’s service catalog only."
+              }
+            },
+            {
+              "name": "03. Get tree / palm pricing",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{vendor_token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/settings/tree-palm-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "settings",
+                    "tree-palm-pricing"
+                  ]
+                },
+                "description": "GET /api/vendor/settings/tree-palm-pricing — show toggle + price per tree/palm + price includes."
+              }
+            },
+            {
+              "name": "04. Update tree / palm pricing (JSON)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{vendor_token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"show_tree_options\": true,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/settings/tree-palm-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "settings",
+                    "tree-palm-pricing"
+                  ]
+                },
+                "description": "POST/PUT /api/vendor/settings/tree-palm-pricing — vendor-scoped tree/palm add-on pricing."
+              }
+            }
+          ]
+        },
+        {
           "name": "09. Services (approved only – read-only)",
           "description": "Full platform services catalog (admin). Vendors cannot create/update/delete.\n\n**Mobile Add Product dropdown:** use **G.2** instead (id + name only, all services, no category filter).\n\nUse `service_id` from G.2 or J.1 when creating products.",
           "item": [

@@ -97,6 +97,91 @@ final class ServiceTreePricing
         Setting::set(self::SETTING_PRICE_PER_PALM, (string) max(0, round($pricePerPalmTree, 2)), 'text', 'services');
     }
 
+    public static function vendorSettingKey(int $vendorId, string $suffix): string
+    {
+        return 'vendor_'.$vendorId.'_'.$suffix;
+    }
+
+    /**
+     * @return array{show_tree_options: bool, price_per_tree: float, price_per_palm_tree: float}
+     */
+    public static function vendorConfig(int $vendorId): array
+    {
+        $showRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_show_tree_options'), '0');
+        $treeRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_price_per_tree'), '0');
+        $palmRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_price_per_palm_tree'), '0');
+
+        return [
+            'show_tree_options' => filter_var($showRaw, FILTER_VALIDATE_BOOLEAN),
+            'price_per_tree' => max(0, round((float) ($treeRaw === null || $treeRaw === '' ? 0 : $treeRaw), 2)),
+            'price_per_palm_tree' => max(0, round((float) ($palmRaw === null || $palmRaw === '' ? 0 : $palmRaw), 2)),
+        ];
+    }
+
+    /**
+     * @return array{show_tree_options: bool, price_per_tree: float, price_per_palm_tree: float}
+     */
+    public static function resolveConfigForProduct(Product $product): array
+    {
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            return self::vendorConfig($vendorId);
+        }
+
+        return self::globalConfig();
+    }
+
+    public static function saveVendor(int $vendorId, bool $show, float $pricePerTree, float $pricePerPalmTree): void
+    {
+        Setting::set(self::vendorSettingKey($vendorId, 'service_show_tree_options'), $show ? '1' : '0', 'boolean', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, 'service_price_per_tree'), (string) max(0, round($pricePerTree, 2)), 'text', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, 'service_price_per_palm_tree'), (string) max(0, round($pricePerPalmTree, 2)), 'text', 'vendor_services');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function vendorUiPayload(int $vendorId): array
+    {
+        $config = self::vendorConfig($vendorId);
+        $show = $config['show_tree_options'];
+        $tree = $config['price_per_tree'];
+        $palm = $config['price_per_palm_tree'];
+        $includes = ServiceAreaPricing::vendorConfig($vendorId)['price_includes'];
+
+        $includeOptions = [];
+        foreach (ServiceAreaPricing::INCLUDE_KEYS as $key) {
+            $includeOptions[] = [
+                'key' => $key,
+                'label' => ServiceAreaPricing::INCLUDE_LABELS[$key],
+                'selected' => (bool) ($includes[$key] ?? false),
+            ];
+        }
+
+        return [
+            'vendor_id' => $vendorId,
+            'show_tree_options' => $show,
+            'show_on_customer_service_products' => $show,
+            'toggle_label' => 'Show on customer service products',
+            'toggle_description' => 'When off, the tree/palm section is hidden. When on, only rows with a price appear.',
+            'price_per_tree' => $tree,
+            'price_per_tree_label' => 'Price per tree',
+            'price_per_tree_description' => 'Unit price for each tree. Customers choose quantity (number of trees) on the service product.',
+            'price_per_tree_suffix' => 'AED / tree',
+            'price_per_palm_tree' => $palm,
+            'price_per_palm_tree_label' => 'Price per palm tree',
+            'price_per_palm_tree_description' => 'Unit price for each palm. Customers choose quantity (number of palms) on the service product.',
+            'price_per_palm_tree_suffix' => 'AED / palm',
+            'currency' => 'AED',
+            'price_includes' => $includes,
+            'price_includes_options' => $includeOptions,
+            'price_includes_labels' => ServiceAreaPricing::includeLabels($includes),
+            'applies_to' => 'vendor_service_products',
+            'optional_for_customer' => true,
+            'note' => 'Customer may skip tree/palm quantity and continue with the normal/base service price.',
+        ];
+    }
+
     /**
      * Whether the customer UI should offer tree/palm quantity inputs for this product.
      */
@@ -106,7 +191,7 @@ final class ServiceTreePricing
             return false;
         }
 
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         if (! $config['show_tree_options']) {
             return false;
         }
@@ -174,7 +259,7 @@ final class ServiceTreePricing
             ];
         }
 
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         $show = $config['show_tree_options'];
         $tree = $config['price_per_tree'];
         $palm = $config['price_per_palm_tree'];
@@ -416,7 +501,7 @@ final class ServiceTreePricing
      */
     public static function resolveForCheckout(Product $product, mixed $treeRaw, mixed $palmRaw): array
     {
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         $empty = [
             'tree_quantity' => null,
             'palm_tree_quantity' => null,

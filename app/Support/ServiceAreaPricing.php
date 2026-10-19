@@ -130,6 +130,157 @@ final class ServiceAreaPricing
         ];
     }
 
+    public static function vendorSettingKey(int $vendorId, string $suffix): string
+    {
+        return 'vendor_'.$vendorId.'_'.$suffix;
+    }
+
+    /**
+     * @return array{pricing_type: string, price: float, price_includes: array<string, bool>}
+     */
+    public static function vendorConfig(int $vendorId): array
+    {
+        $type = self::normalizeType(
+            Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_type'), self::TYPE_FIXED),
+            true
+        );
+        $priceRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_price'), '0');
+        $price = max(0, round((float) ($priceRaw === null || $priceRaw === '' ? 0 : $priceRaw), 2));
+        $includesRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_includes'), null);
+        $includes = self::normalizeIncludes($includesRaw, true) ?? self::emptyIncludes();
+
+        return [
+            'pricing_type' => $type,
+            'price' => $price,
+            'price_includes' => $includes,
+        ];
+    }
+
+    public static function vendorIsConfigured(int $vendorId): bool
+    {
+        return Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_type')) !== null
+            || Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_price')) !== null;
+    }
+
+    /**
+     * @return array{pricing_type: string, price: float, price_includes: array<string, bool>}
+     */
+    public static function resolveConfigForProduct(Product $product): array
+    {
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            return self::vendorConfig($vendorId);
+        }
+
+        return self::globalConfig();
+    }
+
+    /**
+     * @param  array<string, bool>|null  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function saveVendor(int $vendorId, string $pricingType, float $price, ?array $includes): array
+    {
+        $type = self::normalizeType($pricingType, true);
+        $price = max(0, round($price, 2));
+        $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
+
+        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_type'), $type, 'text', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_price'), (string) $price, 'text', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_includes'), json_encode($includes), 'json', 'vendor_services');
+
+        return self::syncVendorServicesAndProducts($vendorId, $type, $price, $includes);
+    }
+
+    /**
+     * @param  array<string, bool>|null  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function saveVendorPriceIncludesOnly(int $vendorId, ?array $includes): array
+    {
+        $config = self::vendorConfig($vendorId);
+        $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
+        Setting::set(
+            self::vendorSettingKey($vendorId, 'service_pricing_includes'),
+            json_encode($includes),
+            'json',
+            'vendor_services'
+        );
+
+        return self::syncVendorServicesAndProducts($vendorId, $config['pricing_type'], $config['price'], $includes);
+    }
+
+    /**
+     * @param  array<string, bool>  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function syncVendorServicesAndProducts(int $vendorId, string $pricingType, float $price, array $includes): array
+    {
+        $servicesUpdated = 0;
+        Service::query()->where('vendor_id', $vendorId)->orderBy('id')->chunkById(100, function ($services) use ($pricingType, $includes, &$servicesUpdated) {
+            foreach ($services as $service) {
+                $service->pricing_type = $pricingType;
+                $service->price_includes = $includes;
+                $service->save();
+                $servicesUpdated++;
+            }
+        });
+
+        $productsUpdated = 0;
+        Product::query()
+            ->where('vendor_id', $vendorId)
+            ->where(function ($q) {
+                $q->where('type', 'service')
+                    ->orWhereHas('services');
+            })
+            ->orderBy('id')
+            ->chunkById(100, function ($products) use ($pricingType, $includes, &$productsUpdated) {
+                foreach ($products as $product) {
+                    $product->pricing_type = $pricingType;
+                    $product->price_includes = $includes;
+                    $product->save();
+                    $productsUpdated++;
+                }
+            });
+
+        return [
+            'synced_services' => $servicesUpdated,
+            'synced_products' => $productsUpdated,
+        ];
+    }
+
+    /**
+     * Vendor mobile settings payload (mirrors admin global screen).
+     *
+     * @return array<string, mixed>
+     */
+    public static function vendorAdminApiPayload(int $vendorId): array
+    {
+        $config = self::vendorConfig($vendorId);
+        $shim = new Product([
+            'name' => 'Vendor Services',
+            'type' => 'service',
+            'price' => $config['price'],
+            'pricing_type' => $config['pricing_type'],
+            'price_includes' => $config['price_includes'],
+            'vendor_id' => $vendorId,
+        ]);
+        $base = self::productSettingsApi($shim);
+
+        return array_merge($base, [
+            'vendor_id' => $vendorId,
+            'product_id' => null,
+            'product_name' => null,
+            'service_id' => null,
+            'service_name' => null,
+            'applies_to' => 'vendor_service_products',
+            'settings_available' => true,
+            'is_service' => true,
+            'configured' => self::vendorIsConfigured($vendorId),
+            'note' => 'Applies to this vendor’s service catalog only.',
+        ]);
+    }
+
     /**
      * Admin Settings screen payload (no id) — same UI as Product Settings.
      *
@@ -197,15 +348,18 @@ final class ServiceAreaPricing
             return false;
         }
 
-        // Global admin setting wins for all services.
-        return self::globalConfig()['pricing_type'] === self::TYPE_PER_M2;
+        return self::resolveConfigForProduct($product)['pricing_type'] === self::TYPE_PER_M2;
     }
 
     /**
-     * Live global per-m² rate from admin Product Settings (not the product catalog price).
+     * Live per-m² rate for checkout (vendor setting when product is vendor-owned).
      */
-    public static function perM2Rate(): float
+    public static function perM2Rate(?Product $product = null): float
     {
+        if ($product instanceof Product) {
+            return max(0, round((float) self::resolveConfigForProduct($product)['price'], 2));
+        }
+
         return max(0, round((float) self::globalConfig()['price'], 2));
     }
 
@@ -220,7 +374,7 @@ final class ServiceAreaPricing
             return round($fallbackProductPrice, 2);
         }
 
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         if ($config['pricing_type'] === self::TYPE_PER_M2) {
             // Never use the global m² rate as the product price — that caused cart totals of "7".
             return round($fallbackProductPrice, 2);
@@ -356,7 +510,7 @@ final class ServiceAreaPricing
             ];
         }
 
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         $type = $config['pricing_type'];
         $includes = $config['price_includes'];
         $rate = $config['price'];
@@ -456,7 +610,7 @@ final class ServiceAreaPricing
         $type = $fields['pricing_type'];
         // Admin input shows the global setting amount (Fixed addon / per-m² rate), not the customer total.
         $price = $isService
-            ? round((float) self::globalConfig()['price'], 2)
+            ? round((float) self::resolveConfigForProduct($product)['price'], 2)
             : round((float) ($product->price ?? 0), 2);
 
         return [
@@ -747,11 +901,11 @@ final class ServiceAreaPricing
         if (self::isPerM2($product)) {
             if ($requiredArea !== null && $requiredArea > 0) {
                 // Always use live admin per-m² rate (ignore stale cart unit_price).
-                $base = round($requiredArea * self::perM2Rate(), 2);
+                $base = round($requiredArea * self::perM2Rate($product), 2);
             } else {
                 // Area skipped → configured product/catalog price (unitPrice from effectiveUnitPrice).
                 $catalog = round((float) $product->price, 2);
-                $m2Rate = self::perM2Rate();
+                $m2Rate = self::perM2Rate($product);
                 // Guard stale carts that still stored the old per-m² rate as unit_price.
                 $price = ($unitPrice > 0 && abs($unitPrice - $m2Rate) > 0.001)
                     ? $unitPrice
@@ -801,7 +955,7 @@ final class ServiceAreaPricing
     ): array {
         $isService = self::appliesToProduct($product);
         if ($isService) {
-            $config = self::globalConfig();
+            $config = self::resolveConfigForProduct($product);
             $type = $config['pricing_type'];
             $includes = $config['price_includes'];
             $tree = ServiceTreePricing::resolveForCheckout($product, $treeQuantity, $palmTreeQuantity);
@@ -842,7 +996,7 @@ final class ServiceAreaPricing
     ): array {
         $isPerM2 = self::isPerM2($product);
         $area = $isPerM2 ? $requiredArea : null;
-        $rate = $isPerM2 ? self::perM2Rate() : null;
+        $rate = $isPerM2 ? self::perM2Rate($product) : null;
         $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea, $treeQuantity, $palmTreeQuantity);
         $includes = $isPerM2 || self::appliesToProduct($product)
             ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())

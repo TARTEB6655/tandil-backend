@@ -12,6 +12,8 @@ use App\Http\Controllers\Api\Vendor\VendorProductController;
 use App\Http\Controllers\Api\Vendor\VendorProductOptionsController;
 use App\Http\Controllers\Api\Vendor\VendorProfileController;
 use App\Http\Controllers\Api\Vendor\VendorServiceController;
+use App\Http\Controllers\Api\Vendor\VendorServicePricingSettingsApiController;
+use App\Http\Controllers\Api\Vendor\VendorServiceTreePalmSettingsApiController;
 use App\Http\Controllers\Api\Vendor\VendorSupportChatController;
 use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
@@ -67,6 +69,13 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
     Route::get('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'index']);
     Route::post('/documents', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'store']);
     Route::delete('/documents/{id}', [\App\Http\Controllers\Api\Vendor\VendorDocumentController::class, 'destroy']);
+
+    Route::get('/settings/service-pricing', [VendorServicePricingSettingsApiController::class, 'show']);
+    Route::put('/settings/service-pricing', [VendorServicePricingSettingsApiController::class, 'update']);
+    Route::post('/settings/service-pricing', [VendorServicePricingSettingsApiController::class, 'update']);
+    Route::get('/settings/tree-palm-pricing', [VendorServiceTreePalmSettingsApiController::class, 'show']);
+    Route::put('/settings/tree-palm-pricing', [VendorServiceTreePalmSettingsApiController::class, 'update']);
+    Route::post('/settings/tree-palm-pricing', [VendorServiceTreePalmSettingsApiController::class, 'update']);
 
     Route::middleware('vendor.approved')->group(function () {
         Route::get('/dashboard/stats', [VendorDashboardController::class, 'stats']);
