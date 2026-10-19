@@ -565,7 +565,7 @@ final class ServiceTreePricing
         ?float $pricePerTree = null,
         ?float $pricePerPalm = null
     ): array {
-        $config = self::globalConfig();
+        $config = self::resolveConfigForProduct($product);
         $treeRate = $pricePerTree !== null ? max(0, round($pricePerTree, 2)) : $config['price_per_tree'];
         $palmRate = $pricePerPalm !== null ? max(0, round($pricePerPalm, 2)) : $config['price_per_palm_tree'];
         $addon = self::addonTotal($treeQuantity, $palmTreeQuantity, $treeRate, $palmRate);

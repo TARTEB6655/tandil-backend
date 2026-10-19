@@ -920,6 +920,16 @@ final class ServiceAreaPricing
             return $base;
         }
 
+        if ($treeQuantity !== null || $palmTreeQuantity !== null) {
+            $treeConfig = ServiceTreePricing::resolveConfigForProduct($product);
+            if ($pricePerTree === null) {
+                $pricePerTree = $treeConfig['price_per_tree'];
+            }
+            if ($pricePerPalmTree === null) {
+                $pricePerPalmTree = $treeConfig['price_per_palm_tree'];
+            }
+        }
+
         return round(
             $base + ServiceTreePricing::addonTotal($treeQuantity, $palmTreeQuantity, $pricePerTree, $pricePerPalmTree),
             2
