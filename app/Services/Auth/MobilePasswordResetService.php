@@ -101,7 +101,12 @@ final class MobilePasswordResetService
                 'provider_error' => $delivery['error'] ?? null,
             ]);
 
-            return $this->fail('Could not send SMS. Please try again later.', 503);
+            $providerError = is_string($delivery['error'] ?? null) ? trim($delivery['error']) : '';
+            $message = $providerError !== ''
+                ? $providerError
+                : 'Could not send SMS. Please try again later.';
+
+            return $this->fail($message, 503);
         }
 
         $otpHash = $delivery['otp_plaintext'] !== null
