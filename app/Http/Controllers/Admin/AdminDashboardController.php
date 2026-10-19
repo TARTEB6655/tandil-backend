@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
+use App\Support\AdminOrderStatisticsPayload;
 use App\Support\AdminOrderStatusBuckets;
 use App\Support\UserCredentialRules;
 use Illuminate\Support\Facades\Log;
@@ -1084,48 +1085,9 @@ class AdminDashboardController extends Controller
         $limit = min(max((int) $request->query('limit', 20), 1), 100);
 
         $toPayload = function ($query) use ($limit) {
-            $orders = $query
-                ->with(['user', 'vendorMappings.vendor.profile', 'vendorMappings.vendor.user'])
-                ->latest()
-                ->limit($limit)
-                ->get();
+            $orders = $query->latest()->limit($limit)->get();
 
-            return $orders->map(function (Order $order) {
-                $vendorRows = $order->vendorMappings->map(function ($mapping) {
-                    $vendor = $mapping->vendor;
-                    $name = $vendor?->profile?->business_name
-                        ?? $vendor?->profile?->store_name
-                        ?? $vendor?->user?->name
-                        ?? null;
-
-                    return [
-                        'vendor_order_mapping_id' => $mapping->id,
-                        'vendor_id' => $mapping->vendor_id,
-                        'vendor_name' => $name,
-                        'vendor_order_status' => $mapping->status,
-                        'product_title' => $mapping->product_title,
-                    ];
-                })->values();
-
-                return [
-                    'id' => $order->id,
-                    'order_number' => $order->publicOrderNumber(),
-                    'order_number_short' => $order->publicOrderNumberDigits(),
-                    'order_status' => $order->order_status,
-                    'payment_status' => $order->payment_status,
-                    'total_amount' => (float) $order->total_amount,
-                    'refund_amount' => (float) ($order->refund_amount ?? 0),
-                    'is_marketplace' => $vendorRows->isNotEmpty(),
-                    'vendors' => $vendorRows,
-                    'customer' => [
-                        'id' => $order->user?->id,
-                        'name' => $order->user?->name ?? $order->guest_full_name ?? 'Guest',
-                        'email' => $order->user?->email ?? $order->guest_email,
-                    ],
-                    'created_at' => $order->created_at?->format('c'),
-                    'updated_at' => $order->updated_at?->format('c'),
-                ];
-            })->values();
+            return AdminOrderStatisticsPayload::formatMany($orders);
         };
 
         $buckets = [
