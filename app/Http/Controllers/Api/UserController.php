@@ -10,6 +10,7 @@ use App\Models\WalletCredit;
 use App\Services\AccountDeletionService;
 use App\Services\ImageCompressionService;
 use App\Services\ProfilePictureUploadService;
+use App\Support\PhoneNumberNormalizer;
 use App\Support\RefundPolicy;
 use App\Support\UserCredentialRules;
 use App\Support\UserNotificationInbox;
@@ -199,7 +200,10 @@ class UserController extends Controller
 
         // Explicit phone apply: present key with null/blank must clear the column.
         if ($phoneWasSent) {
-            $user->phone = $validated['phone'] ?? null;
+            $raw = $validated['phone'] ?? null;
+            $user->phone = $raw !== null && trim((string) $raw) !== ''
+                ? PhoneNumberNormalizer::formatForStorage((string) $raw)
+                : null;
         }
 
         try {
@@ -247,7 +251,7 @@ class UserController extends Controller
             ],
         ]);
 
-        $user->phone = trim($validated['phone']);
+        $user->phone = PhoneNumberNormalizer::formatForStorage(trim($validated['phone']));
         $user->save();
 
         return ApiResponse::success('Phone number updated successfully.', $this->profileToArray($user->fresh()));

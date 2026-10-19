@@ -76,7 +76,12 @@ final class MobilePasswordResetService
         }
 
         $otpTtl = (int) config('services.sms.password_reset.otp_ttl_seconds', 600);
-        $toE164 = '+'.$phoneDigits;
+        $toE164 = PhoneNumberNormalizer::toE164($phoneInput);
+        if ($toE164 === null) {
+            return $this->fail('Enter a valid mobile number with country code.', 422, [
+                'phone' => ['Enter a valid mobile number with country code.'],
+            ]);
+        }
 
         $delivery = $this->otpHandler->initiate($toE164, $otpTtl);
         Log::info('password_reset.otp_sent', [
@@ -89,6 +94,13 @@ final class MobilePasswordResetService
         ]);
 
         if (! ($delivery['success'] ?? false)) {
+            Log::warning('password_reset.otp_delivery_failed', [
+                'user_id' => $user->id,
+                'portal' => $portal,
+                'to_e164' => substr($toE164, 0, 4).'***',
+                'provider_error' => $delivery['error'] ?? null,
+            ]);
+
             return $this->fail('Could not send SMS. Please try again later.', 503);
         }
 
@@ -166,7 +178,8 @@ final class MobilePasswordResetService
             ]);
         }
 
-        if (! $this->otpHandler->validateCode('+'.$phoneDigits, $otp, (string) $challenge->otp_hash)) {
+        $verifyE164 = PhoneNumberNormalizer::toE164($phoneInput) ?? '+'.$phoneDigits;
+        if (! $this->otpHandler->validateCode($verifyE164, $otp, (string) $challenge->otp_hash)) {
             $challenge->otp_attempts++;
             $maxAttempts = (int) config('services.sms.password_reset.max_verify_attempts', 5);
             if ($challenge->otp_attempts >= $maxAttempts) {
