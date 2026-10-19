@@ -88,22 +88,34 @@ class AdminOrderStatisticsApiTest extends TestCase
             'total_amount' => 70,
             'refund_amount' => 0,
         ]);
+        Order::factory()->create([
+            'order_status' => 'confirmed',
+            'payment_status' => 'paid',
+            'total_amount' => 80,
+            'refund_amount' => 0,
+        ]);
+        Order::factory()->create([
+            'order_status' => 'shipped',
+            'payment_status' => 'paid',
+            'total_amount' => 90,
+            'refund_amount' => 0,
+        ]);
 
         $response = $this->getJson('/api/admin/dashboard/order-statistics', $this->authHeaders());
 
         $response->assertOk();
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('message', 'Admin order statistics retrieved successfully');
-        $response->assertJsonPath('data.summary.total_orders', 6);
+        $response->assertJsonPath('data.summary.total_orders', 8);
         $response->assertJsonPath('data.summary.cancelled_orders', 1);
         $response->assertJsonPath('data.summary.completed_orders', 2);
         $response->assertJsonPath('data.summary.refunded_orders', 1);
         $response->assertJsonPath('data.summary.pending_orders', 1);
         $response->assertJsonPath('data.summary.assigned_orders', 1);
-        $response->assertJsonPath('data.summary.in_progress_orders', 1);
-        $response->assertJsonPath('data.financial.gross_revenue', 470);
+        $response->assertJsonPath('data.summary.in_progress_orders', 3);
+        $response->assertJsonPath('data.financial.gross_revenue', 350);
         $response->assertJsonPath('data.financial.refunded_amount', 20);
-        $response->assertJsonPath('data.financial.net_revenue', 450);
+        $response->assertJsonPath('data.financial.net_revenue', 330);
         $response->assertJsonStructure([
             'data' => [
                 'period_counts' => ['today', 'this_week', 'this_month'],
@@ -119,6 +131,8 @@ class AdminOrderStatisticsApiTest extends TestCase
         Order::factory()->create(['order_status' => 'delivered', 'payment_status' => 'paid']);
         Order::factory()->create(['order_status' => 'assigned', 'payment_status' => 'paid']);
         Order::factory()->create(['order_status' => 'processing', 'payment_status' => 'paid']);
+        Order::factory()->create(['order_status' => 'confirmed', 'payment_status' => 'paid']);
+        Order::factory()->create(['order_status' => 'shipped', 'payment_status' => 'paid']);
 
         $response = $this->getJson('/api/admin/dashboard/order-statistics/orders?limit=10', $this->authHeaders());
 
@@ -126,12 +140,12 @@ class AdminOrderStatisticsApiTest extends TestCase
         $response->assertJsonPath('success', true);
         $response->assertJsonPath('message', 'Admin order statistics orders retrieved successfully');
         $response->assertJsonPath('limit', 10);
-        $response->assertJsonPath('data.total_orders.count', 5);
+        $response->assertJsonPath('data.total_orders.count', 7);
         $response->assertJsonPath('data.pending_orders.count', 1);
         $response->assertJsonPath('data.cancelled_orders.count', 1);
         $response->assertJsonPath('data.completed_orders.count', 1);
         $response->assertJsonPath('data.assigned_orders.count', 1);
-        $response->assertJsonPath('data.in_progress_orders.count', 1);
+        $response->assertJsonPath('data.in_progress_orders.count', 3);
         $response->assertJsonPath('data.refunded_orders.count', 1);
         $response->assertJsonStructure([
             'data' => [

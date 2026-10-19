@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Carbon\Carbon;
+use App\Support\AdminOrderStatusBuckets;
 use App\Support\UserCredentialRules;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
@@ -1018,11 +1019,11 @@ class AdminDashboardController extends Controller
         $monthEnd = $now->copy()->endOfMonth();
 
         $totalOrders = Order::count();
-        $cancelledOrders = Order::where('order_status', 'cancelled')->count();
-        $completedOrders = Order::whereIn('order_status', ['completed', 'delivered'])->count();
-        $pendingOrders = Order::where('order_status', 'pending')->count();
-        $assignedOrders = Order::where('order_status', 'assigned')->count();
-        $inProgressOrders = Order::whereIn('order_status', ['processing', 'in_progress'])->count();
+        $cancelledOrders = AdminOrderStatusBuckets::cancelledCount();
+        $completedOrders = AdminOrderStatusBuckets::completedCount();
+        $pendingOrders = AdminOrderStatusBuckets::pendingCount();
+        $assignedOrders = AdminOrderStatusBuckets::assignedCount();
+        $inProgressOrders = AdminOrderStatusBuckets::inProgressCount();
         $refundedOrders = Order::where('payment_status', 'refunded')->count();
 
         $grossRevenue = (float) Order::where('payment_status', 'paid')
@@ -1084,12 +1085,28 @@ class AdminDashboardController extends Controller
 
         $toPayload = function ($query) use ($limit) {
             $orders = $query
-                ->with(['user'])
+                ->with(['user', 'vendorMappings.vendor.profile', 'vendorMappings.vendor.user'])
                 ->latest()
                 ->limit($limit)
                 ->get();
 
             return $orders->map(function (Order $order) {
+                $vendorRows = $order->vendorMappings->map(function ($mapping) {
+                    $vendor = $mapping->vendor;
+                    $name = $vendor?->profile?->business_name
+                        ?? $vendor?->profile?->store_name
+                        ?? $vendor?->user?->name
+                        ?? null;
+
+                    return [
+                        'vendor_order_mapping_id' => $mapping->id,
+                        'vendor_id' => $mapping->vendor_id,
+                        'vendor_name' => $name,
+                        'vendor_order_status' => $mapping->status,
+                        'product_title' => $mapping->product_title,
+                    ];
+                })->values();
+
                 return [
                     'id' => $order->id,
                     'order_number' => $order->publicOrderNumber(),
@@ -1098,10 +1115,12 @@ class AdminDashboardController extends Controller
                     'payment_status' => $order->payment_status,
                     'total_amount' => (float) $order->total_amount,
                     'refund_amount' => (float) ($order->refund_amount ?? 0),
+                    'is_marketplace' => $vendorRows->isNotEmpty(),
+                    'vendors' => $vendorRows,
                     'customer' => [
                         'id' => $order->user?->id,
-                        'name' => $order->user?->name ?? 'Guest',
-                        'email' => $order->user?->email,
+                        'name' => $order->user?->name ?? $order->guest_full_name ?? 'Guest',
+                        'email' => $order->user?->email ?? $order->guest_email,
                     ],
                     'created_at' => $order->created_at?->format('c'),
                     'updated_at' => $order->updated_at?->format('c'),
@@ -1115,24 +1134,24 @@ class AdminDashboardController extends Controller
                 'orders' => $toPayload(Order::query()),
             ],
             'pending_orders' => [
-                'count' => Order::where('order_status', 'pending')->count(),
-                'orders' => $toPayload(Order::where('order_status', 'pending')),
+                'count' => AdminOrderStatusBuckets::pendingCount(),
+                'orders' => $toPayload(AdminOrderStatusBuckets::whereStatusIn(Order::query(), AdminOrderStatusBuckets::PENDING)),
             ],
             'assigned_orders' => [
-                'count' => Order::where('order_status', 'assigned')->count(),
-                'orders' => $toPayload(Order::where('order_status', 'assigned')),
+                'count' => AdminOrderStatusBuckets::assignedCount(),
+                'orders' => $toPayload(AdminOrderStatusBuckets::whereStatusIn(Order::query(), AdminOrderStatusBuckets::ASSIGNED)),
             ],
             'in_progress_orders' => [
-                'count' => Order::whereIn('order_status', ['processing', 'in_progress'])->count(),
-                'orders' => $toPayload(Order::whereIn('order_status', ['processing', 'in_progress'])),
+                'count' => AdminOrderStatusBuckets::inProgressCount(),
+                'orders' => $toPayload(AdminOrderStatusBuckets::whereStatusIn(Order::query(), AdminOrderStatusBuckets::IN_PROGRESS)),
             ],
             'completed_orders' => [
-                'count' => Order::whereIn('order_status', ['completed', 'delivered'])->count(),
-                'orders' => $toPayload(Order::whereIn('order_status', ['completed', 'delivered'])),
+                'count' => AdminOrderStatusBuckets::completedCount(),
+                'orders' => $toPayload(AdminOrderStatusBuckets::whereStatusIn(Order::query(), AdminOrderStatusBuckets::COMPLETED)),
             ],
             'cancelled_orders' => [
-                'count' => Order::where('order_status', 'cancelled')->count(),
-                'orders' => $toPayload(Order::where('order_status', 'cancelled')),
+                'count' => AdminOrderStatusBuckets::cancelledCount(),
+                'orders' => $toPayload(AdminOrderStatusBuckets::whereStatusIn(Order::query(), AdminOrderStatusBuckets::CANCELLED)),
             ],
             'refunded_orders' => [
                 'count' => Order::where('payment_status', 'refunded')->count(),
