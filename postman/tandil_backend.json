@@ -8882,7 +8882,7 @@
             },
             {
               "name": "02. Vendor Pricing (Product Settings)",
-              "description": "Admin **Product Settings → Vendor pricing** (list + manage per vendor). Auth: Bearer {{token}} (admin). Test order: **01** list (sets {{vendor_id}}) → **02** get → **03** update.\n\nRemoved admin global `/api/admin/settings/service-pricing` — use these per-vendor APIs instead.",
+              "description": "Admin **Product Settings → Vendor pricing**. Auth: Bearer {{token}} (admin).\n\n**Test order:** **01** list → **02** GET service (area + toggle + includes) → **03** GET tree-palm → **04** POST service → **05** POST tree-palm.\n\nSame parameters as vendor **08b** (`/api/vendor/settings/service-pricing` + `tree-palm-pricing`).",
               "item": [
                 {
                   "name": "01. List vendors (Vendor pricing screen)",
@@ -8944,7 +8944,7 @@
                   }
                 },
                 {
-                  "name": "02. Get vendor pricing (manage screen)",
+                  "name": "02. Get vendor service pricing (area-based)",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -8958,7 +8958,7 @@
                       }
                     ],
                     "url": {
-                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing",
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/service",
                       "host": [
                         "{{base_url}}"
                       ],
@@ -8967,14 +8967,46 @@
                         "admin",
                         "vendors",
                         "{{vendor_id}}",
-                        "pricing"
+                        "pricing",
+                        "service"
                       ]
                     },
-                    "description": "GET /api/admin/vendors/{vendor_id}/pricing — **Manage vendor pricing**.\n\n`data.vendor` header card + `service_pricing` (fixed / per m²) + `tree_palm_pricing`."
+                    "description": "GET /api/admin/vendors/{vendor_id}/pricing/service — **Area-Based Pricing** screen.\n\nFlat `data` (same as vendor service-pricing): `vendor`, `show_on_client_products_services`, `toggle_label`, `toggle_description`, `pricing_type`, `pricing_type_options`, `price`, `price_includes`, `price_includes_options`, `currency`, `example_calculation`, …"
                   }
                 },
                 {
-                  "name": "03. Update vendor pricing (JSON)",
+                  "name": "03. Get vendor tree / palm pricing",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/tree-palm",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "{{vendor_id}}",
+                        "pricing",
+                        "tree-palm"
+                      ]
+                    },
+                    "description": "GET /api/admin/vendors/{vendor_id}/pricing/tree-palm — **Price per Tree & Palm** screen.\n\nFlat `data`: `vendor`, `show_on_client_products_services`, `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes`, `price_includes_options`, labels/suffixes."
+                  }
+                },
+                {
+                  "name": "04. Update vendor service pricing (JSON)",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -8993,10 +9025,10 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"show_area_pricing_on_client\": true,\n  \"show_tree_pricing_on_client\": false,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  },\n  \"price_per_tree\": 0,\n  \"price_per_palm_tree\": 0\n}"
+                      "raw": "{\n  \"show_on_client_products_services\": true,\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
                     },
                     "url": {
-                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing",
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/service",
                       "host": [
                         "{{base_url}}"
                       ],
@@ -9005,10 +9037,50 @@
                         "admin",
                         "vendors",
                         "{{vendor_id}}",
-                        "pricing"
+                        "pricing",
+                        "service"
                       ]
                     },
-                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing — admin updates the same fields as the vendor app (area + tree/palm).\n\n**Body:** `pricing_type`, `price`, `show_area_pricing_on_client`, `show_tree_pricing_on_client`, `price_includes`, `price_per_tree`, `price_per_palm_tree`."
+                    "description": "POST/PUT /api/admin/vendors/{vendor_id}/pricing/service — same body as vendor `/api/vendor/settings/service-pricing`."
+                  }
+                },
+                {
+                  "name": "05. Update vendor tree / palm pricing (JSON)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"show_on_client_products_services\": false,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/tree-palm",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "{{vendor_id}}",
+                        "pricing",
+                        "tree-palm"
+                      ]
+                    },
+                    "description": "POST/PUT /api/admin/vendors/{vendor_id}/pricing/tree-palm — same body as vendor `/api/vendor/settings/tree-palm-pricing` (`show_on_client_products_services` or `show_tree_options`)."
                   }
                 }
               ]

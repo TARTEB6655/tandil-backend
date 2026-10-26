@@ -14,11 +14,11 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Admin Product Settings — Vendor pricing (list + manage per vendor).
+ * Admin Product Settings — Vendor pricing (list + two manage APIs, same shape as vendor app).
  *
  * GET  /api/admin/vendors/pricing
- * GET  /api/admin/vendors/{id}/pricing
- * PUT|POST /api/admin/vendors/{id}/pricing
+ * GET|PUT|POST /api/admin/vendors/{id}/pricing/service
+ * GET|PUT|POST /api/admin/vendors/{id}/pricing/tree-palm
  */
 class AdminVendorPricingSettingsApiController extends Controller
 {
@@ -38,45 +38,39 @@ class AdminVendorPricingSettingsApiController extends Controller
         );
     }
 
-    public function show(int $id): JsonResponse
+    /**
+     * Area-based pricing — same fields as GET /api/vendor/settings/service-pricing.
+     */
+    public function showServicePricing(int $id): JsonResponse
     {
         $vendor = $this->managedVendor($id);
-        $vendor->loadMissing(['profile', 'user']);
 
         return ApiResponse::success(
-            'Vendor pricing settings retrieved.',
-            $this->managePayload($vendor)
+            'Vendor service pricing settings retrieved.',
+            $this->servicePricingPayload($vendor)
         );
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function updateServicePricing(Request $request, int $id): JsonResponse
     {
         $vendor = $this->managedVendor($id);
         $this->normalizeServiceFormData($request);
-        ServiceTreePricing::normalizeAdminFormData($request);
-        $this->normalizeTreeIncludes($request);
-
-        $this->normalizeClientVisibility($request);
 
         $validated = $request->validate([
             'pricing_type' => 'required|in:fixed,per_m2',
             'price' => 'required|numeric|min:0',
-            'show_area_pricing_on_client' => 'required|boolean',
-            'show_tree_pricing_on_client' => 'required|boolean',
+            'show_on_client_products_services' => 'required|boolean',
             'price_includes' => 'nullable',
             'price_includes.materials' => 'nullable|boolean',
             'price_includes.installation' => 'nullable|boolean',
             'price_includes.labor' => 'nullable|boolean',
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
-            'price_per_tree' => 'nullable|numeric|min:0',
-            'price_per_palm_tree' => 'nullable|numeric|min:0',
         ], [
             'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
             'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
             'price.required' => 'Enter the price amount.',
-            'show_area_pricing_on_client.required' => 'Set area pricing Show on client products & services on or off.',
-            'show_tree_pricing_on_client.required' => 'Set tree/palm Show on client products & services on or off.',
+            'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
         ]);
 
         $type = ServiceAreaPricing::normalizeType($validated['pricing_type'], true);
@@ -86,29 +80,69 @@ class AdminVendorPricingSettingsApiController extends Controller
             ]);
         }
 
-        $showArea = (bool) $validated['show_area_pricing_on_client'];
-        $showTree = (bool) $validated['show_tree_pricing_on_client'];
-
         $sync = ServiceAreaPricing::saveVendor(
             $vendor->id,
             $type,
             (float) $validated['price'],
             $request->input('price_includes'),
-            $showArea
+            (bool) $validated['show_on_client_products_services']
         );
+
+        $payload = $this->servicePricingPayload($vendor);
+        $payload['synced_services'] = $sync['synced_services'];
+        $payload['synced_products'] = $sync['synced_products'];
+
+        return ApiResponse::success('Vendor service pricing settings updated.', $payload);
+    }
+
+    /**
+     * Tree / palm pricing — same fields as GET /api/vendor/settings/tree-palm-pricing.
+     */
+    public function showTreePalmPricing(int $id): JsonResponse
+    {
+        $vendor = $this->managedVendor($id);
+
+        return ApiResponse::success(
+            'Vendor tree / palm pricing settings retrieved.',
+            $this->treePalmPricingPayload($vendor)
+        );
+    }
+
+    public function updateTreePalmPricing(Request $request, int $id): JsonResponse
+    {
+        $vendor = $this->managedVendor($id);
+        ServiceTreePricing::normalizeAdminFormData($request);
+        $this->normalizeTreeIncludes($request);
+
+        $validated = $request->validate([
+            'show_tree_options' => 'required|boolean',
+            'price_per_tree' => 'nullable|numeric|min:0',
+            'price_per_palm_tree' => 'nullable|numeric|min:0',
+            'price_includes' => 'nullable',
+            'price_includes.materials' => 'nullable|boolean',
+            'price_includes.installation' => 'nullable|boolean',
+            'price_includes.labor' => 'nullable|boolean',
+            'price_includes.transportation' => 'nullable|boolean',
+            'price_includes.delivery' => 'nullable|boolean',
+        ], [
+            'show_tree_options.required' => 'Set Show on client products & services on or off.',
+        ]);
 
         ServiceTreePricing::saveVendor(
             $vendor->id,
-            $showTree,
+            (bool) $validated['show_tree_options'],
             (float) ($validated['price_per_tree'] ?? 0),
             (float) ($validated['price_per_palm_tree'] ?? 0)
         );
 
-        $payload = $this->managePayload($vendor);
-        $payload['service_pricing']['synced_services'] = $sync['synced_services'];
-        $payload['service_pricing']['synced_products'] = $sync['synced_products'];
+        if ($request->has('price_includes')) {
+            ServiceAreaPricing::saveVendorPriceIncludesOnly($vendor->id, $request->input('price_includes'));
+        }
 
-        return ApiResponse::success('Vendor pricing settings updated.', $payload);
+        return ApiResponse::success(
+            'Vendor tree / palm pricing settings updated.',
+            $this->treePalmPricingPayload($vendor)
+        );
     }
 
     private function managedVendor(int $id): Vendor
@@ -124,58 +158,76 @@ class AdminVendorPricingSettingsApiController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function managePayload(Vendor $vendor): array
+    private function vendorCard(Vendor $vendor): array
     {
+        $vendor->loadMissing(['profile', 'user']);
         $profile = $vendor->profile;
-        $configured = ServiceAreaPricing::vendorIsConfigured($vendor->id);
 
         return [
-            'screen_title' => 'Manage vendor pricing',
-            'vendor' => [
-                'id' => $vendor->id,
-                'vendor_id' => $vendor->id,
-                'company_name' => $profile?->business_name,
-                'business_name' => $profile?->business_name,
-                'vendor_name' => $profile?->owner_name,
-                'owner_name' => $profile?->owner_name,
-                'email' => $profile?->email ?? $vendor->user?->email,
-                'logo_url' => $vendor->profile?->logo_url ?? $vendor->logo_url,
-            ],
-            'pricing_configured' => $configured,
-            'pricing_status_label' => $configured ? null : 'No vendor pricing set yet',
-            'service_pricing' => ServiceAreaPricing::vendorAdminApiPayload($vendor->id),
-            'tree_palm_pricing' => ServiceTreePricing::vendorUiPayload($vendor->id),
+            'id' => $vendor->id,
+            'vendor_id' => $vendor->id,
+            'company_name' => $profile?->business_name,
+            'business_name' => $profile?->business_name,
+            'vendor_name' => $profile?->owner_name,
+            'owner_name' => $profile?->owner_name,
+            'email' => $profile?->email ?? $vendor->user?->email,
+            'logo_url' => $vendor->profile?->logo_url ?? $vendor->logo_url,
         ];
     }
 
-    private function normalizeClientVisibility(Request $request): void
+    /**
+     * Flat payload — vendor card + all service-pricing UI fields at data root (like vendor API).
+     *
+     * @return array<string, mixed>
+     */
+    private function servicePricingPayload(Vendor $vendor): array
     {
-        if (! $request->has('show_area_pricing_on_client')) {
-            foreach (['show_on_client_products_services', 'show_on_customer_service_products'] as $key) {
-                if ($request->has($key)) {
-                    $request->merge([
-                        'show_area_pricing_on_client' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
-                    ]);
-                    break;
-                }
-            }
-        }
+        $configured = ServiceAreaPricing::vendorIsConfigured($vendor->id);
 
-        if (! $request->has('show_tree_pricing_on_client')) {
-            foreach (['show_tree_options', 'show_on_client_products_services'] as $key) {
-                if ($request->has($key)) {
-                    $request->merge([
-                        'show_tree_pricing_on_client' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
-                    ]);
-                    break;
-                }
-            }
-        }
+        return array_merge(
+            [
+                'screen_title' => 'Manage vendor pricing',
+                'screen_section' => 'Area-Based Pricing',
+                'screen_section_description' => 'Applies to this vendor’s service products. Choose Fixed Price or Price per m².',
+                'vendor' => $this->vendorCard($vendor),
+                'pricing_configured' => $configured,
+                'pricing_status_label' => $configured ? null : 'No vendor pricing set yet',
+            ],
+            ServiceAreaPricing::vendorAdminApiPayload($vendor->id)
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function treePalmPricingPayload(Vendor $vendor): array
+    {
+        return array_merge(
+            [
+                'screen_title' => 'Manage vendor pricing',
+                'screen_section' => 'Price per Tree & Palm',
+                'screen_section_description' => 'Set unit prices for trees and/or palm trees. Leave a field empty to hide that counter on the customer app.',
+                'vendor' => $this->vendorCard($vendor),
+            ],
+            ServiceTreePricing::vendorUiPayload($vendor->id)
+        );
     }
 
     private function normalizeServiceFormData(Request $request): void
     {
-        $this->normalizeClientVisibility($request);
+        if ($request->has('show_on_client_products_services') && is_string($request->input('show_on_client_products_services'))) {
+            $request->merge([
+                'show_on_client_products_services' => filter_var($request->input('show_on_client_products_services'), FILTER_VALIDATE_BOOLEAN),
+            ]);
+        }
+        foreach (['show_area_pricing_on_client', 'show_on_customer_service_products'] as $key) {
+            if ($request->has($key) && ! $request->has('show_on_client_products_services')) {
+                $request->merge([
+                    'show_on_client_products_services' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
+                ]);
+                break;
+            }
+        }
 
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);
@@ -209,7 +261,10 @@ class AdminVendorPricingSettingsApiController extends Controller
     private function normalizeTreeIncludes(Request $request): void
     {
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
-            return;
+            $decoded = json_decode($request->input('price_includes'), true);
+            if (is_array($decoded)) {
+                $request->merge(['price_includes' => $decoded]);
+            }
         }
 
         $includes = is_array($request->input('price_includes'))

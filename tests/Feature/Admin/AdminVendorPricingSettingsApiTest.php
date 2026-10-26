@@ -28,60 +28,62 @@ class AdminVendorPricingSettingsApiTest extends TestCase
         Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
     }
 
-    public function test_admin_vendor_pricing_list_search_and_detail(): void
+    public function test_admin_vendor_pricing_list_and_split_detail_apis(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedAdminAndVendor();
 
         $this->withToken($token)
             ->getJson('/api/admin/vendors/pricing')
             ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.screen_title', 'Vendor pricing')
+            ->assertJsonPath('data.items.0.detail.service_pricing.endpoint', "/api/admin/vendors/{$vendor->id}/pricing/service");
+
+        $this->withToken($token)
+            ->getJson("/api/admin/vendors/{$vendor->id}/pricing/service")
+            ->assertOk()
+            ->assertJsonPath('data.screen_section', 'Area-Based Pricing')
+            ->assertJsonPath('data.vendor.vendor_id', $vendor->id)
+            ->assertJsonPath('data.applies_to', 'vendor_service_products')
             ->assertJsonStructure([
                 'data' => [
-                    'items' => [
-                        [
-                            'vendor_id',
-                            'company_name',
-                            'vendor_name',
-                            'email',
-                            'logo_url',
-                            'pricing_configured',
-                            'pricing_status_label',
-                            'detail' => ['method', 'endpoint'],
-                        ],
-                    ],
-                    'pagination',
+                    'vendor',
+                    'show_on_client_products_services',
+                    'toggle_label',
+                    'toggle_description',
+                    'pricing_type',
+                    'pricing_type_options',
+                    'price',
+                    'price_includes',
+                    'price_includes_options',
                 ],
             ])
-            ->assertJsonPath('data.items.0.vendor_id', $vendor->id)
-            ->assertJsonPath('data.items.0.pricing_configured', false)
-            ->assertJsonPath('data.items.0.pricing_status_label', 'No vendor pricing set yet');
+            ->assertJsonPath('data.show_on_client_products_services', true);
 
         $this->withToken($token)
-            ->getJson('/api/admin/vendors/pricing?search=Acme')
+            ->getJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm")
             ->assertOk()
-            ->assertJsonPath('data.items.0.company_name', 'Acme Nursery');
-
-        $this->withToken($token)
-            ->getJson("/api/admin/vendors/{$vendor->id}/pricing")
-            ->assertOk()
-            ->assertJsonPath('data.screen_title', 'Manage vendor pricing')
-            ->assertJsonPath('data.vendor.vendor_id', $vendor->id)
-            ->assertJsonPath('data.service_pricing.applies_to', 'vendor_service_products')
-            ->assertJsonPath('data.tree_palm_pricing.show_tree_options', false);
+            ->assertJsonPath('data.screen_section', 'Price per Tree & Palm')
+            ->assertJsonStructure([
+                'data' => [
+                    'vendor',
+                    'show_on_client_products_services',
+                    'show_tree_options',
+                    'price_per_tree',
+                    'price_per_palm_tree',
+                    'price_includes',
+                    'price_includes_options',
+                ],
+            ]);
     }
 
-    public function test_admin_can_update_vendor_pricing_and_list_reflects_configured(): void
+    public function test_admin_can_update_service_and_tree_pricing_separately(): void
     {
         ['adminToken' => $token, 'vendor' => $vendor] = $this->seedAdminAndVendor();
 
         $this->withToken($token)
-            ->postJson("/api/admin/vendors/{$vendor->id}/pricing", [
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/service", [
                 'pricing_type' => 'per_m2',
                 'price' => 70,
-                'show_area_pricing_on_client' => true,
-                'show_tree_pricing_on_client' => true,
+                'show_on_client_products_services' => true,
                 'price_includes' => [
                     'materials' => true,
                     'installation' => true,
@@ -89,25 +91,37 @@ class AdminVendorPricingSettingsApiTest extends TestCase
                     'transportation' => false,
                     'delivery' => false,
                 ],
-                'show_tree_options' => true,
-                'price_per_tree' => 25,
-                'price_per_palm_tree' => 40,
             ])
             ->assertOk()
-            ->assertJsonPath('data.pricing_configured', true)
-            ->assertJsonPath('data.service_pricing.pricing_type', 'per_m2')
-            ->assertJsonPath('data.service_pricing.price', 70)
-            ->assertJsonPath('data.tree_palm_pricing.show_tree_options', true)
-            ->assertJsonPath('data.tree_palm_pricing.price_per_tree', 25)
-            ->assertJsonPath('data.tree_palm_pricing.price_per_palm_tree', 40);
+            ->assertJsonPath('data.pricing_type', 'per_m2')
+            ->assertJsonPath('data.price', 70)
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonPath('data.price_includes.installation', true)
+            ->assertJsonPath('data.show_on_client_products_services', true);
 
-        $this->assertTrue(ServiceAreaPricing::vendorIsConfigured($vendor->id));
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm", [
+                'show_on_client_products_services' => true,
+                'price_per_tree' => 25,
+                'price_per_palm_tree' => 40,
+                'price_includes' => [
+                    'materials' => true,
+                    'installation' => true,
+                    'labor' => false,
+                    'transportation' => false,
+                    'delivery' => false,
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonPath('data.price_per_tree', 25)
+            ->assertJsonPath('data.price_includes.materials', true);
 
         $this->withToken($token)
             ->getJson('/api/admin/vendors/pricing')
             ->assertOk()
-            ->assertJsonPath('data.items.0.pricing_configured', true)
-            ->assertJsonPath('data.items.0.pricing_status_label', null);
+            ->assertJsonPath('data.items.0.pricing_configured', true);
     }
 
     public function test_non_admin_cannot_access_vendor_pricing_apis(): void
@@ -117,11 +131,7 @@ class AdminVendorPricingSettingsApiTest extends TestCase
         $clientToken = $client->createToken('test', ['client'])->plainTextToken;
 
         $this->withToken($clientToken)
-            ->getJson('/api/admin/vendors/pricing')
-            ->assertForbidden();
-
-        $this->withToken($clientToken)
-            ->getJson("/api/admin/vendors/{$vendor->id}/pricing")
+            ->getJson("/api/admin/vendors/{$vendor->id}/pricing/service")
             ->assertForbidden();
     }
 

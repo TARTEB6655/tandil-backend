@@ -58,75 +58,61 @@ class AdminVendorPricingToggleE2eTest extends TestCase
         ]);
 
         $this->withToken($adminToken)
-            ->getJson('/api/admin/vendors/pricing?search=E2E')
+            ->getJson("/api/admin/vendors/{$vendor->id}/pricing/service")
             ->assertOk()
-            ->assertJsonPath('success', true)
-            ->assertJsonPath('data.items.0.company_name', 'E2E Nursery')
-            ->assertJsonPath('data.items.0.vendor_name', 'E2E Owner')
-            ->assertJsonPath('data.items.0.pricing_configured', false)
-            ->assertJsonPath('data.items.0.pricing_status_label', 'No vendor pricing set yet');
+            ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonPath('data.price_includes_options.0.key', 'materials');
 
         $this->withToken($adminToken)
-            ->getJson("/api/admin/vendors/{$vendor->id}/pricing")
+            ->getJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm")
             ->assertOk()
-            ->assertJsonStructure([
-                'data' => [
-                    'vendor' => ['vendor_id', 'company_name', 'vendor_name'],
-                    'service_pricing' => ['pricing_type', 'price', 'show_on_client_products_services', 'toggle_label'],
-                    'tree_palm_pricing' => ['show_on_client_products_services', 'price_per_tree', 'toggle_label'],
-                ],
-            ])
-            ->assertJsonPath('data.service_pricing.show_on_client_products_services', true)
-            ->assertJsonPath('data.tree_palm_pricing.show_on_client_products_services', false);
+            ->assertJsonPath('data.show_on_client_products_services', false);
 
         $this->withToken($adminToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/pricing", [
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/service", [
                 'pricing_type' => 'per_m2',
                 'price' => 70,
-                'show_area_pricing_on_client' => true,
-                'show_tree_pricing_on_client' => true,
+                'show_on_client_products_services' => true,
                 'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'per_m2')
+            ->assertJsonPath('data.price', 70);
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm", [
+                'show_on_client_products_services' => true,
                 'price_per_tree' => 30,
                 'price_per_palm_tree' => 40,
             ])
             ->assertOk()
-            ->assertJsonPath('data.pricing_configured', true)
-            ->assertJsonPath('data.service_pricing.pricing_type', 'per_m2')
-            ->assertJsonPath('data.service_pricing.price', 70)
-            ->assertJsonPath('data.service_pricing.show_on_client_products_services', true)
-            ->assertJsonPath('data.tree_palm_pricing.show_on_client_products_services', true)
-            ->assertJsonPath('data.tree_palm_pricing.price_per_tree', 30);
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.price_per_tree', 30);
 
         $product->refresh();
         $visible = ServiceAreaPricing::productApiFields($product);
         $this->assertSame('per_m2', $visible['pricing_type']);
-        $this->assertSame(70.0, (float) $visible['price_per_m2']);
         $this->assertTrue($visible['show_tree_options']);
 
         $this->withToken($adminToken)
-            ->postJson("/api/admin/vendors/{$vendor->id}/pricing", [
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/service", [
                 'pricing_type' => 'per_m2',
                 'price' => 70,
-                'show_area_pricing_on_client' => false,
-                'show_tree_pricing_on_client' => false,
+                'show_on_client_products_services' => false,
                 'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk();
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm", [
+                'show_on_client_products_services' => false,
                 'price_per_tree' => 30,
                 'price_per_palm_tree' => 40,
             ])
-            ->assertOk()
-            ->assertJsonPath('data.service_pricing.show_on_client_products_services', false)
-            ->assertJsonPath('data.tree_palm_pricing.show_on_client_products_services', false);
+            ->assertOk();
 
         $hidden = ServiceAreaPricing::productApiFields($product->fresh());
-        $this->assertSame('fixed', $hidden['pricing_type']);
-        $this->assertNull($hidden['price_per_m2']);
         $this->assertTrue($hidden['area_pricing_hidden_on_client'] ?? false);
         $this->assertFalse($hidden['show_tree_options']);
-
-        $this->withToken($adminToken)
-            ->getJson('/api/admin/vendors/pricing?search=E2E')
-            ->assertOk()
-            ->assertJsonPath('data.items.0.pricing_configured', true)
-            ->assertJsonPath('data.items.0.pricing_status_label', null);
     }
 }

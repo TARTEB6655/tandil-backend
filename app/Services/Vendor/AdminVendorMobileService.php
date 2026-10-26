@@ -206,8 +206,14 @@ class AdminVendorMobileService
             'pricing_configured' => $configured,
             'pricing_status_label' => $configured ? null : 'No vendor pricing set yet',
             'detail' => [
-                'method' => 'GET',
-                'endpoint' => "/api/admin/vendors/{$vendor->id}/pricing",
+                'service_pricing' => [
+                    'method' => 'GET',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/pricing/service",
+                ],
+                'tree_palm_pricing' => [
+                    'method' => 'GET',
+                    'endpoint' => "/api/admin/vendors/{$vendor->id}/pricing/tree-palm",
+                ],
             ],
         ];
     }

@@ -138,9 +138,12 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
     Route::post('/', [VendorManagementController::class, 'store']);
-    Route::get('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'show']);
-    Route::put('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'update']);
-    Route::post('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'update']);
+    Route::get('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'showServicePricing']);
+    Route::put('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'updateServicePricing']);
+    Route::post('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'updateServicePricing']);
+    Route::get('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'showTreePalmPricing']);
+    Route::put('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'updateTreePalmPricing']);
+    Route::post('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'updateTreePalmPricing']);
     Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
     Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct']);
     Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct']);
