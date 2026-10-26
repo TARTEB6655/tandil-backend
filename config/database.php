@@ -2,11 +2,30 @@
 
 use Illuminate\Support\Str;
 
-$mysqlConnectTimeout = (int) env('DB_CONNECT_TIMEOUT', 10);
+/**
+ * PDO MySQL driver options.
+ *
+ * Never map connect timeout to attribute 1002 — that is PDO::MYSQL_ATTR_INIT_COMMAND.
+ * Setting INIT_COMMAND to "10" makes MariaDB/MySQL run invalid SQL "10" on connect,
+ * which breaks every query with: syntax error near '10' at line 1.
+ */
 $mysqlPdoOptions = extension_loaded('pdo_mysql') ? array_filter([
     PDO::MYSQL_ATTR_SSL_CA => env('MYSQL_ATTR_SSL_CA'),
-    (defined('PDO::MYSQL_ATTR_CONNECT_TIMEOUT') ? PDO::MYSQL_ATTR_CONNECT_TIMEOUT : 1002) => $mysqlConnectTimeout,
 ]) : [];
+
+if (extension_loaded('pdo_mysql')) {
+    $connectTimeout = (int) env('DB_CONNECT_TIMEOUT', 0);
+    if ($connectTimeout > 0) {
+        if (defined('Pdo\Mysql::ATTR_CONNECT_TIMEOUT')) {
+            $mysqlPdoOptions[Pdo\Mysql::ATTR_CONNECT_TIMEOUT] = $connectTimeout;
+        } elseif (
+            defined('PDO::MYSQL_ATTR_CONNECT_TIMEOUT')
+            && (int) PDO::MYSQL_ATTR_CONNECT_TIMEOUT !== (int) PDO::MYSQL_ATTR_INIT_COMMAND
+        ) {
+            $mysqlPdoOptions[PDO::MYSQL_ATTR_CONNECT_TIMEOUT] = $connectTimeout;
+        }
+    }
+}
 
 return [
 
