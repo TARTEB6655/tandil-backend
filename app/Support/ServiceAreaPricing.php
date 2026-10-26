@@ -586,6 +586,25 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Service product list/card payload — same pricing labels as {@see productApiFields}
+     * but omits heavy nested blocks (customer_preview, price_includes, tree_pricing UI).
+     *
+     * @return array<string, mixed>
+     */
+    public static function productApiFieldsForList(Product $product): array
+    {
+        $fields = self::productApiFields($product);
+
+        unset(
+            $fields['customer_preview'],
+            $fields['price_includes'],
+            $fields['tree_pricing'],
+        );
+
+        return $fields;
+    }
+
+    /**
      * Full Product Settings screen payload (admin mobile UI).
      *
      * @return array<string, mixed>
