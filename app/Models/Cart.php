@@ -14,6 +14,7 @@ class Cart extends Model
         'selected_options',
         'unit_price',
         'required_area',
+        'area_pricing_mode',
         'tree_quantity',
         'palm_tree_quantity',
         'booking_date',
@@ -33,12 +34,16 @@ class Cart extends Model
     {
         // Avoid SQL 500 when migration 2026_10_07_140000 has not been run yet.
         static::saving(function (Cart $cart) {
-            if (\App\Support\ServiceTreePricing::cartsTableReady()) {
-                return;
+            if (! \App\Support\ServiceTreePricing::cartsTableReady()) {
+                foreach (['tree_quantity', 'palm_tree_quantity'] as $col) {
+                    if (array_key_exists($col, $cart->getAttributes())) {
+                        unset($cart->$col);
+                    }
+                }
             }
-            foreach (['tree_quantity', 'palm_tree_quantity'] as $col) {
-                if (array_key_exists($col, $cart->getAttributes())) {
-                    unset($cart->$col);
+            if (! \App\Support\ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                if (array_key_exists('area_pricing_mode', $cart->getAttributes())) {
+                    unset($cart->area_pricing_mode);
                 }
             }
         });
@@ -79,7 +84,7 @@ class Cart extends Model
         // Service lines: always live catalog / Fixed addon (ignore stale cart unit_price,
         // including old rows that stored the global per-m² rate as unit_price).
         if ($product && \App\Support\ServiceAreaPricing::appliesToProduct($product)) {
-            return self::calculateUnitPrice($product, $this->selected_options ?? []);
+            return self::calculateUnitPrice($product, $this->selected_options ?? [], $this->area_pricing_mode);
         }
 
         if ($this->unit_price !== null && $this->unit_price >= 0) {
@@ -96,9 +101,9 @@ class Cart extends Model
     /**
      * @param  array<int|string>|Collection<int, int>|null  $selectedOptionIds
      */
-    public static function calculateUnitPrice(Product $product, array|Collection|null $selectedOptionIds = null): float
+    public static function calculateUnitPrice(Product $product, array|Collection|null $selectedOptionIds = null, ?string $areaPricingMode = null): float
     {
-        $base = \App\Support\ServiceAreaPricing::effectiveUnitPrice($product, (float) $product->price);
+        $base = \App\Support\ServiceAreaPricing::effectiveUnitPrice($product, (float) $product->price, $areaPricingMode);
         if (($product->product_type ?? 'simple') !== 'variable') {
             return $base;
         }
@@ -243,6 +248,7 @@ class Cart extends Model
             'quantity' => (int) $this->quantity,
             'unit_price' => $this->lineUnitPrice(),
             'required_area' => $this->required_area !== null ? round((float) $this->required_area, 2) : null,
+            'area_pricing_mode' => $this->area_pricing_mode,
             'tree_quantity' => $this->tree_quantity !== null && (int) $this->tree_quantity > 0
                 ? (int) $this->tree_quantity
                 : null,
@@ -271,7 +277,10 @@ class Cart extends Model
             (int) $this->quantity,
             $this->required_area !== null ? (float) $this->required_area : null,
             $this->tree_quantity !== null ? (int) $this->tree_quantity : null,
-            $this->palm_tree_quantity !== null ? (int) $this->palm_tree_quantity : null
+            $this->palm_tree_quantity !== null ? (int) $this->palm_tree_quantity : null,
+            null,
+            null,
+            $this->area_pricing_mode
         );
     }
 }

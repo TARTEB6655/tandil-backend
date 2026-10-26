@@ -458,17 +458,19 @@ class CartController extends Controller
         // Skip option images in cart payload — tiny labels only (faster add-to-cart / cart view).
         $optionsDetail = Cart::resolveSelectedOptionsDisplay($product, $selectedOptionIds, false);
         $optionLabels = array_map(fn (array $row) => $row['label'], $optionsDetail);
+        $areaMode = $item->area_pricing_mode;
         $pricingFields = \App\Support\ServiceAreaPricing::lineApiFields(
             $product,
             $price,
             (int) $item->quantity,
             $area,
             $item->tree_quantity !== null ? (int) $item->tree_quantity : null,
-            $item->palm_tree_quantity !== null ? (int) $item->palm_tree_quantity : null
+            $item->palm_tree_quantity !== null ? (int) $item->palm_tree_quantity : null,
+            $areaMode
         );
         $isService = InstantOrderFee::productIsExplicitService($product);
         $instantEligible = InstantOrderFee::productIsInstantEligible($product);
-        $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product);
+        $isPerM2 = \App\Support\ServiceAreaPricing::isPerM2($product, $areaMode);
         // Cart row must show what the customer pays for this line (700), not unit rate (7).
         $displayPrice = $isPerM2 ? $lineTotal : $price;
 
@@ -637,16 +639,25 @@ class CartController extends Controller
             return ApiResponse::error($optionError, 422);
         }
 
+        $modeError = self::areaPricingModeError($product, $request);
+        if ($modeError !== null) {
+            return ApiResponse::error($modeError, 422);
+        }
+        $areaPricingMode = ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+            $product,
+            ServiceAreaPricing::resolveAreaPricingModeFromRequest($request)
+        );
+
         $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
         // Only use quantity-as-area fallback for per_m2 services.
-        if ($areaRaw === null && ! ServiceAreaPricing::isPerM2($product)) {
+        if ($areaRaw === null && ! ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
             $areaRaw = null;
         }
-        $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+        $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw, $areaPricingMode);
         if ($areaError !== null) {
             return ApiResponse::error($areaError, 422);
         }
-        $requiredArea = ServiceAreaPricing::isPerM2($product)
+        $requiredArea = ServiceAreaPricing::isPerM2($product, $areaPricingMode)
             ? ServiceAreaPricing::normalizeArea($areaRaw)
             : null;
         if ($requiredArea !== null) {
@@ -661,11 +672,12 @@ class CartController extends Controller
         }
         $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeRaw, $palmRaw);
 
-        $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
+        $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized, $areaPricingMode);
 
         $requestedQty = ServiceAreaPricing::effectiveQuantity(
             $product,
-            (int) ($request->input('quantity') ?? 1)
+            (int) ($request->input('quantity') ?? 1),
+            $areaPricingMode
         );
         $existingQty = 0;
 
@@ -688,19 +700,20 @@ class CartController extends Controller
         $cartItem = Cart::where('user_id', $user->id)
             ->where('product_id', $request->product_id)
             ->get()
-            ->first(function (Cart $row) use ($selectedOptionsNormalized, $bookingDate, $bookingSlot) {
+            ->first(function (Cart $row) use ($selectedOptionsNormalized, $bookingDate, $bookingSlot, $areaPricingMode) {
                 $current = Cart::normalizeSelectedOptionIds($row->selected_options);
 
                 return $current === $selectedOptionsNormalized
                     && $row->booking_date?->toDateString() === $bookingDate
-                    && $row->booking_slot === $bookingSlot;
+                    && $row->booking_slot === $bookingSlot
+                    && (string) ($row->area_pricing_mode ?? '') === (string) $areaPricingMode;
             });
 
-        if ($cartItem && ! ServiceAreaPricing::isPerM2($product)) {
+        if ($cartItem && ! ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
             $existingQty = (int) $cartItem->quantity;
         }
 
-        if (! ServiceAreaPricing::isPerM2($product)) {
+        if (! ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
             $stockError = $product->quantityExceedsStockMessage($existingQty + $requestedQty);
             if ($stockError !== null) {
                 return ApiResponse::error($stockError, 422);
@@ -708,12 +721,15 @@ class CartController extends Controller
         }
 
         if ($cartItem) {
-            if (ServiceAreaPricing::isPerM2($product)) {
+            if (ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
                 $cartItem->quantity = 1;
                 $cartItem->required_area = $requiredArea;
             } else {
                 $cartItem->quantity += $requestedQty;
                 $cartItem->required_area = null;
+            }
+            if (ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                $cartItem->area_pricing_mode = $areaPricingMode;
             }
             $cartItem->unit_price = $unitPrice;
             $cartItem->selected_options = $selectedOptionsNormalized;
@@ -733,6 +749,9 @@ class CartController extends Controller
                 'booking_date' => $bookingDate,
                 'booking_slot' => $bookingSlot,
             ];
+            if (ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                $create['area_pricing_mode'] = $areaPricingMode;
+            }
             if (\App\Support\ServiceTreePricing::cartsTableReady()) {
                 $create['tree_quantity'] = $treeResolved['tree_quantity'];
                 $create['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
@@ -785,12 +804,20 @@ class CartController extends Controller
                 ->findOrFail((int) $request->input('product_id'));
             // Buy Now pay often omits area — reuse cart / remembered area / aliases.
             ServiceAreaPricing::hydrateMissingAreaOntoRequest($request, $userId, $product);
+            $modeError = self::areaPricingModeError($product, $request);
+            if ($modeError !== null) {
+                throw new \InvalidArgumentException($modeError);
+            }
+            $areaPricingMode = ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+                $product,
+                ServiceAreaPricing::resolveAreaPricingModeFromRequest($request)
+            );
             $areaRaw = ServiceAreaPricing::resolveAreaFromRequest($request);
-            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw, $areaPricingMode);
             if ($areaError !== null) {
                 throw new \InvalidArgumentException($areaError);
             }
-            $requiredArea = ServiceAreaPricing::isPerM2($product)
+            $requiredArea = ServiceAreaPricing::isPerM2($product, $areaPricingMode)
                 ? ServiceAreaPricing::normalizeArea($areaRaw)
                 : null;
             if ($requiredArea !== null) {
@@ -809,7 +836,7 @@ class CartController extends Controller
                 $palmRaw
             );
             $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeQty, $palmQty);
-            $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request));
+            $qty = ServiceAreaPricing::effectiveQuantity($product, self::resolveBuyNowQuantity($request), $areaPricingMode);
             $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
             if ($selectedOptionsNormalized === [] && \App\Support\ServiceTreePricing::cartsTableReady()) {
                 $fromCart = Cart::query()
@@ -821,7 +848,7 @@ class CartController extends Controller
                     is_array($fromCart) ? $fromCart : null
                 );
             }
-            $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized);
+            $unitPrice = Cart::calculateUnitPrice($product, $selectedOptionsNormalized, $areaPricingMode);
             $itemBooking = ShopBookingSlotHelper::resolveFromItemArray(
                 $request->all(),
                 $fallbackDate,
@@ -837,6 +864,9 @@ class CartController extends Controller
                 'booking_date' => $itemBooking['booking_date'],
                 'booking_slot' => $itemBooking['booking_slot'],
             ];
+            if (ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                $cartAttrs['area_pricing_mode'] = $areaPricingMode;
+            }
             if (\App\Support\ServiceTreePricing::cartsTableReady()) {
                 $cartAttrs['tree_quantity'] = $treeResolved['tree_quantity'];
                 $cartAttrs['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
@@ -945,9 +975,16 @@ class CartController extends Controller
 
             $product = Product::with(['category', 'primaryImage', 'services', 'optionGroups.options'])
                 ->findOrFail((int) $row['product_id']);
+            $modeFromRow = ServiceAreaPricing::resolveAreaPricingModeFromArray($row);
+            $modeError = ServiceAreaPricing::validateAreaPricingModeMessage($product, $modeFromRow);
+            if ($modeError !== null) {
+                throw new \InvalidArgumentException(((string) $product->name).': '.$modeError);
+            }
+            $areaPricingMode = ServiceAreaPricing::resolveAreaPricingModeForCheckout($product, $modeFromRow);
+
             $areaRaw = ServiceAreaPricing::resolveAreaFromArray($row);
             // Top-level Buy Now area / remembered area when items[] omits required_area.
-            if (ServiceAreaPricing::normalizeArea($areaRaw) === null && ServiceAreaPricing::isPerM2($product)) {
+            if (ServiceAreaPricing::normalizeArea($areaRaw) === null && ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
                 $topArea = ServiceAreaPricing::resolveAreaFromRequest($request, false);
                 if (ServiceAreaPricing::normalizeArea($topArea) !== null) {
                     $areaRaw = $topArea;
@@ -963,11 +1000,11 @@ class CartController extends Controller
                         ?? ServiceAreaPricing::recallBuyNowArea($userId, (int) $product->id);
                 }
             }
-            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw, $areaPricingMode);
             if ($areaError !== null) {
                 throw new \InvalidArgumentException(((string) $product->name).': '.$areaError);
             }
-            $requiredArea = ServiceAreaPricing::isPerM2($product)
+            $requiredArea = ServiceAreaPricing::isPerM2($product, $areaPricingMode)
                 ? ServiceAreaPricing::normalizeArea($areaRaw)
                 : null;
             if ($requiredArea !== null) {
@@ -988,7 +1025,8 @@ class CartController extends Controller
             $treeResolved = \App\Support\ServiceTreePricing::resolveForCheckout($product, $treeQty, $palmQty);
             $qty = ServiceAreaPricing::effectiveQuantity(
                 $product,
-                max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1))
+                max(1, (int) ($row['quantity'] ?? $row['qty'] ?? 1)),
+                $areaPricingMode
             );
 
             $optionError = Cart::validateSelectedOptionsMessage($product, $optionIds);
@@ -1010,7 +1048,7 @@ class CartController extends Controller
 
             $unitPrice = isset($row['unit_price'])
                 ? round((float) $row['unit_price'], 2)
-                : Cart::calculateUnitPrice($product, $optionIds);
+                : Cart::calculateUnitPrice($product, $optionIds, $areaPricingMode);
 
             $cartAttrs = [
                 'user_id' => $userId,
@@ -1022,6 +1060,9 @@ class CartController extends Controller
                 'booking_date' => $booking['booking_date'],
                 'booking_slot' => $booking['booking_slot'],
             ];
+            if (ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                $cartAttrs['area_pricing_mode'] = $areaPricingMode;
+            }
             if (\App\Support\ServiceTreePricing::cartsTableReady()) {
                 $cartAttrs['tree_quantity'] = $treeResolved['tree_quantity'];
                 $cartAttrs['palm_tree_quantity'] = $treeResolved['palm_tree_quantity'];
@@ -1782,10 +1823,25 @@ class CartController extends Controller
         $cartItem->loadMissing('product');
         $product = $cartItem->product;
 
-        if ($product && ServiceAreaPricing::isPerM2($product)) {
+        $areaPricingMode = $cartItem->area_pricing_mode;
+        if ($product && ($request->has('area_pricing_mode') || $request->has('pricing_mode'))) {
+            $modeError = self::areaPricingModeError($product, $request);
+            if ($modeError !== null) {
+                return ApiResponse::error($modeError, 422);
+            }
+            $areaPricingMode = ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+                $product,
+                ServiceAreaPricing::resolveAreaPricingModeFromRequest($request)
+            );
+            if (ServiceAreaPricing::cartsAreaModeColumnReady()) {
+                $cartItem->area_pricing_mode = $areaPricingMode;
+            }
+        }
+
+        if ($product && ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
             $fromRequest = ServiceAreaPricing::resolveAreaFromRequest($request);
             $areaRaw = $fromRequest !== null ? $fromRequest : $cartItem->required_area;
-            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw);
+            $areaError = ServiceAreaPricing::validateAreaMessage($product, $areaRaw, $areaPricingMode);
             if ($areaError !== null) {
                 return ApiResponse::error($areaError, 422);
             }
@@ -1857,5 +1913,13 @@ class CartController extends Controller
         $cartItem->delete();
 
         return ApiResponse::success('Item removed from cart.');
+    }
+
+    private static function areaPricingModeError(Product $product, Request $request): ?string
+    {
+        return ServiceAreaPricing::validateAreaPricingModeMessage(
+            $product,
+            ServiceAreaPricing::resolveAreaPricingModeFromRequest($request)
+        );
     }
 }

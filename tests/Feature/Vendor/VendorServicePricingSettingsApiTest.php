@@ -267,6 +267,79 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.order_summary.items.2.line_kind', 'palm_addon');
     }
 
+    public function test_vendor_multiselect_service_pricing_save_and_product_detail(): void
+    {
+        $this->withToken($this->token)
+            ->postJson('/api/vendor/settings/service-pricing', [
+                'enable_fixed_price' => true,
+                'enable_per_m2' => true,
+                'fixed_price' => 23,
+                'per_m2_price' => 70,
+                'show_on_client_products_services' => true,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.enable_fixed_price', true)
+            ->assertJsonPath('data.enable_per_m2', true)
+            ->assertJsonPath('data.fixed_price', 23)
+            ->assertJsonPath('data.per_m2_price', 70)
+            ->assertJsonPath('data.pricing_type', 'multi');
+
+        $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
+        $this->assertTrue($fields['area_pricing_mode_required']);
+        $this->assertSame('multi', $fields['pricing_type']);
+        $this->assertSame(70.0, (float) $fields['price_per_m2']);
+        $this->assertSame(123.0, (float) $fields['checkout_price']);
+    }
+
+    public function test_vendor_multiselect_checkout_requires_mode_and_totals(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignClientRole($client);
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $this->serviceProduct->id,
+            'quantity' => 1,
+            'required_area' => 10,
+        ])->assertStatus(422);
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $this->serviceProduct->id,
+            'quantity' => 1,
+            'area_pricing_mode' => 'per_m2',
+            'required_area' => 10,
+        ])->assertSuccessful();
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $this->serviceProduct->id,
+            'quantity' => 1,
+            'area_pricing_mode' => 'fixed',
+        ])->assertSuccessful();
+
+        $fixedTotal = ServiceAreaPricing::lineTotal(
+            $this->serviceProduct,
+            ServiceAreaPricing::effectiveUnitPrice($this->serviceProduct, 100, 'fixed'),
+            1,
+            null,
+            null,
+            null,
+            null,
+            null,
+            'fixed'
+        );
+        $this->assertSame(123.0, $fixedTotal);
+    }
+
     private function assignClientRole(User $client): void
     {
         try {

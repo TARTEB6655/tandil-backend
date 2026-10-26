@@ -434,8 +434,12 @@ class ShopCheckoutOrderService
             $palmQty = \App\Support\ServiceTreePricing::normalizeQuantity(
                 \App\Support\ServiceTreePricing::resolvePalmQuantityFromArray($item)
             );
-            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty);
-            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $areaMode = \App\Support\ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+                $product,
+                \App\Support\ServiceAreaPricing::resolveAreaPricingModeFromArray($item)
+            );
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty, $areaMode);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty, $areaMode);
             $subtotal = \App\Support\ServiceAreaPricing::lineTotal(
                 $product,
                 $unit,
@@ -444,7 +448,8 @@ class ShopCheckoutOrderService
                 $snapshot['tree_quantity'],
                 $snapshot['palm_tree_quantity'],
                 $snapshot['price_per_tree'],
-                $snapshot['price_per_palm_tree']
+                $snapshot['price_per_palm_tree'],
+                $areaMode
             );
 
             OrderItem::create([
@@ -801,8 +806,12 @@ class ShopCheckoutOrderService
             $palmQty = \App\Support\ServiceTreePricing::normalizeQuantity(
                 \App\Support\ServiceTreePricing::resolvePalmQuantityFromArray($item)
             );
-            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty);
-            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $areaMode = \App\Support\ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+                $product,
+                \App\Support\ServiceAreaPricing::resolveAreaPricingModeFromArray($item)
+            );
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty, $areaMode);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty, $areaMode);
             $subtotal = \App\Support\ServiceAreaPricing::lineTotal(
                 $product,
                 $unit,
@@ -811,7 +820,8 @@ class ShopCheckoutOrderService
                 $snapshot['tree_quantity'],
                 $snapshot['palm_tree_quantity'],
                 $snapshot['price_per_tree'],
-                $snapshot['price_per_palm_tree']
+                $snapshot['price_per_palm_tree'],
+                $areaMode
             );
 
             OrderItem::create([

@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Area-based (per m²) pricing for service products only.
@@ -13,6 +14,8 @@ use App\Models\Setting;
  */
 final class ServiceAreaPricing
 {
+    private static ?bool $cartsAreaModeColumnReady = null;
+
     public const TYPE_FIXED = 'fixed';
 
     public const TYPE_PER_M2 = 'per_m2';
@@ -26,6 +29,14 @@ final class ServiceAreaPricing
     public const CLIENT_VISIBILITY_TOGGLE_DESCRIPTION = 'When off, customers do not see this pricing on the shop app. You can still save prices for later.';
 
     public const SETTING_PRICE = 'service_pricing_price';
+
+    public const VENDOR_ENABLE_FIXED = 'service_pricing_enable_fixed';
+
+    public const VENDOR_ENABLE_PER_M2 = 'service_pricing_enable_per_m2';
+
+    public const VENDOR_FIXED_AMOUNT = 'service_pricing_fixed_amount';
+
+    public const VENDOR_PER_M2_RATE = 'service_pricing_per_m2_rate';
 
     public const SETTING_INCLUDES = 'service_pricing_includes';
 
@@ -50,6 +61,20 @@ final class ServiceAreaPricing
     /**
      * @return array{pricing_type: string, price: float, price_includes: array<string, bool>}
      */
+    public static function cartsAreaModeColumnReady(): bool
+    {
+        if (self::$cartsAreaModeColumnReady === null) {
+            try {
+                self::$cartsAreaModeColumnReady = Schema::hasTable('carts')
+                    && Schema::hasColumn('carts', 'area_pricing_mode');
+            } catch (\Throwable) {
+                self::$cartsAreaModeColumnReady = false;
+            }
+        }
+
+        return self::$cartsAreaModeColumnReady;
+    }
+
     public static function globalConfig(): array
     {
         $type = self::normalizeType(Setting::get(self::SETTING_PRICING_TYPE, self::TYPE_FIXED), true);
@@ -146,21 +171,224 @@ final class ServiceAreaPricing
      */
     public static function vendorConfig(int $vendorId): array
     {
-        $type = self::normalizeType(
-            Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_type'), self::TYPE_FIXED),
-            true
-        );
-        $priceRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_price'), '0');
-        $price = max(0, round((float) ($priceRaw === null || $priceRaw === '' ? 0 : $priceRaw), 2));
-        $includesRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_includes'), null);
-        $includes = self::normalizeIncludes($includesRaw, true) ?? self::emptyIncludes();
+        $expanded = self::vendorConfigExpanded($vendorId);
 
         return [
-            'pricing_type' => $type,
-            'price' => $price,
-            'price_includes' => $includes,
-            'show_on_client_products_services' => self::vendorShowAreaPricingOnClient($vendorId),
+            'pricing_type' => $expanded['pricing_type'],
+            'price' => $expanded['price'],
+            'price_includes' => $expanded['price_includes'],
+            'show_on_client_products_services' => $expanded['show_on_client_products_services'],
+            'enable_fixed_price' => $expanded['enable_fixed_price'],
+            'enable_per_m2' => $expanded['enable_per_m2'],
+            'fixed_price' => $expanded['fixed_price'],
+            'per_m2_price' => $expanded['per_m2_price'],
+            'area_pricing_multiselect' => $expanded['area_pricing_multiselect'],
         ];
+    }
+
+    /**
+     * Vendor area pricing — supports multiselect (fixed + per m²) with legacy type+price fallback.
+     *
+     * @return array{
+     *     pricing_type: string,
+     *     price: float,
+     *     price_includes: array<string, bool>,
+     *     show_on_client_products_services: bool,
+     *     enable_fixed_price: bool,
+     *     enable_per_m2: bool,
+     *     fixed_price: float,
+     *     per_m2_price: float,
+     *     area_pricing_multiselect: bool
+     * }
+     */
+    public static function vendorConfigExpanded(int $vendorId): array
+    {
+        $includesRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_includes'), null);
+        $includes = self::normalizeIncludes($includesRaw, true) ?? self::emptyIncludes();
+        $show = self::vendorShowAreaPricingOnClient($vendorId);
+
+        $hasMultiKeys = Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_FIXED)) !== null
+            || Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_PER_M2)) !== null;
+
+        if ($hasMultiKeys) {
+            $enableFixed = filter_var(
+                Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_FIXED), '0'),
+                FILTER_VALIDATE_BOOLEAN
+            );
+            $enablePerM2 = filter_var(
+                Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_PER_M2), '0'),
+                FILTER_VALIDATE_BOOLEAN
+            );
+            $fixedPrice = max(0, round((float) Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_FIXED_AMOUNT), '0'), 2));
+            $perM2Price = max(0, round((float) Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_PER_M2_RATE), '0'), 2));
+        } else {
+            $type = self::normalizeType(
+                Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_type'), self::TYPE_FIXED),
+                true
+            );
+            $priceRaw = Setting::get(self::vendorSettingKey($vendorId, 'service_pricing_price'), '0');
+            $legacyPrice = max(0, round((float) ($priceRaw === null || $priceRaw === '' ? 0 : $priceRaw), 2));
+            $enableFixed = $type === self::TYPE_FIXED;
+            $enablePerM2 = $type === self::TYPE_PER_M2;
+            $fixedPrice = $enableFixed ? $legacyPrice : 0.0;
+            $perM2Price = $enablePerM2 ? $legacyPrice : 0.0;
+        }
+
+        $multiselect = $enableFixed && $enablePerM2;
+        $pricingType = $multiselect
+            ? 'multi'
+            : ($enablePerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED);
+        $legacyPrice = $enablePerM2 ? $perM2Price : $fixedPrice;
+
+        return [
+            'pricing_type' => $pricingType,
+            'price' => $legacyPrice,
+            'price_includes' => $includes,
+            'show_on_client_products_services' => $show,
+            'enable_fixed_price' => $enableFixed,
+            'enable_per_m2' => $enablePerM2,
+            'fixed_price' => $fixedPrice,
+            'per_m2_price' => $perM2Price,
+            'area_pricing_multiselect' => $multiselect,
+        ];
+    }
+
+    /**
+     * @return array{fixed: bool, per_m2: bool, fixed_amount: float, per_m2_rate: float}
+     */
+    public static function areaModesForProduct(Product $product): array
+    {
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            $config = self::vendorConfigExpanded($vendorId);
+
+            return [
+                'fixed' => (bool) $config['enable_fixed_price'],
+                'per_m2' => (bool) $config['enable_per_m2'],
+                'fixed_amount' => (float) $config['fixed_price'],
+                'per_m2_rate' => (float) $config['per_m2_price'],
+            ];
+        }
+
+        $config = self::catalogServiceConfig($product);
+        $type = $config['pricing_type'];
+
+        return [
+            'fixed' => $type === self::TYPE_FIXED,
+            'per_m2' => $type === self::TYPE_PER_M2,
+            'fixed_amount' => $type === self::TYPE_FIXED ? (float) $config['price'] : 0.0,
+            'per_m2_rate' => $type === self::TYPE_PER_M2 ? (float) $config['price'] : 0.0,
+        ];
+    }
+
+    public static function requiresAreaPricingModeSelection(Product $product): bool
+    {
+        if (! self::appliesToProduct($product) || ! self::areaPricingVisibleOnClient($product)) {
+            return false;
+        }
+        $modes = self::areaModesForProduct($product);
+
+        return $modes['fixed'] && $modes['per_m2'];
+    }
+
+    public static function implicitAreaPricingMode(Product $product): string
+    {
+        $modes = self::areaModesForProduct($product);
+        if ($modes['per_m2'] && ! $modes['fixed']) {
+            return self::TYPE_PER_M2;
+        }
+
+        return self::TYPE_FIXED;
+    }
+
+    public static function normalizeAreaPricingMode(mixed $mode): ?string
+    {
+        if ($mode === null || $mode === '') {
+            return null;
+        }
+        $mode = strtolower(trim((string) $mode));
+        if (in_array($mode, [self::TYPE_FIXED, 'fixed_price', 'flat'], true)) {
+            return self::TYPE_FIXED;
+        }
+        if (in_array($mode, [self::TYPE_PER_M2, 'per_sqm', 'sqm', 'm2', 'area', 'square_meter'], true)) {
+            return self::TYPE_PER_M2;
+        }
+
+        return null;
+    }
+
+    public static function resolveAreaPricingModeFromRequest(\Illuminate\Http\Request $request): ?string
+    {
+        foreach ([
+            'area_pricing_mode',
+            'areaPricingMode',
+            'pricing_mode',
+            'pricingMode',
+        ] as $key) {
+            if ($request->has($key)) {
+                return self::normalizeAreaPricingMode($request->input($key));
+            }
+        }
+
+        return null;
+    }
+
+    public static function resolveAreaPricingModeFromArray(array $payload): ?string
+    {
+        foreach ([
+            'area_pricing_mode',
+            'areaPricingMode',
+            'pricing_mode',
+            'pricingMode',
+        ] as $key) {
+            if (array_key_exists($key, $payload)) {
+                return self::normalizeAreaPricingMode($payload[$key]);
+            }
+        }
+
+        return null;
+    }
+
+    public static function validateAreaPricingModeMessage(Product $product, ?string $mode): ?string
+    {
+        if (! self::appliesToProduct($product) || ! self::areaPricingVisibleOnClient($product)) {
+            return null;
+        }
+
+        if (! self::requiresAreaPricingModeSelection($product)) {
+            return null;
+        }
+
+        if ($mode === null) {
+            return 'Select Fixed price or Price per square meter (m²) for this item.';
+        }
+
+        $modes = self::areaModesForProduct($product);
+        if ($mode === self::TYPE_FIXED && ! $modes['fixed']) {
+            return 'Fixed price is not available for this product.';
+        }
+        if ($mode === self::TYPE_PER_M2 && ! $modes['per_m2']) {
+            return 'Price per m² is not available for this product.';
+        }
+
+        return null;
+    }
+
+    public static function resolveAreaPricingModeForCheckout(Product $product, ?string $requestedMode): string
+    {
+        $normalized = self::normalizeAreaPricingMode($requestedMode);
+        $error = self::validateAreaPricingModeMessage($product, $normalized);
+        if ($error !== null) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'area_pricing_mode' => [$error],
+            ]);
+        }
+
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        return self::implicitAreaPricingMode($product);
     }
 
     public static function vendorShowAreaPricingOnClient(int $vendorId): bool
@@ -334,17 +562,108 @@ final class ServiceAreaPricing
     ): array {
         $type = self::normalizeType($pricingType, true);
         $price = max(0, round($price, 2));
+
+        return self::saveVendorMultiselect(
+            $vendorId,
+            $type === self::TYPE_FIXED,
+            $type === self::TYPE_PER_M2,
+            $type === self::TYPE_FIXED ? $price : 0.0,
+            $type === self::TYPE_PER_M2 ? $price : 0.0,
+            $includes,
+            $showOnClientProductsServices
+        );
+    }
+
+    /**
+     * @param  array<string, bool>|null  $includes
+     * @return array{synced_services: int, synced_products: int}
+     */
+    public static function saveVendorMultiselect(
+        int $vendorId,
+        bool $enableFixed,
+        bool $enablePerM2,
+        float $fixedPrice,
+        float $perM2Price,
+        ?array $includes,
+        ?bool $showOnClientProductsServices = null
+    ): array {
+        $fixedPrice = max(0, round($fixedPrice, 2));
+        $perM2Price = max(0, round($perM2Price, 2));
         $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
 
-        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_type'), $type, 'text', 'vendor_services');
-        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_price'), (string) $price, 'text', 'vendor_services');
+        if ($showOnClientProductsServices === true && ! $enableFixed && ! $enablePerM2) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'enable_fixed_price' => ['Enable at least Fixed price or Price per m² when showing on the client app.'],
+            ]);
+        }
+
+        Setting::set(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_FIXED), $enableFixed ? '1' : '0', 'boolean', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, self::VENDOR_ENABLE_PER_M2), $enablePerM2 ? '1' : '0', 'boolean', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, self::VENDOR_FIXED_AMOUNT), (string) $fixedPrice, 'text', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, self::VENDOR_PER_M2_RATE), (string) $perM2Price, 'text', 'vendor_services');
+
+        $legacyType = $enablePerM2 && ! $enableFixed
+            ? self::TYPE_PER_M2
+            : self::TYPE_FIXED;
+        $legacyPrice = $legacyType === self::TYPE_PER_M2 ? $perM2Price : $fixedPrice;
+
+        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_type'), $legacyType, 'text', 'vendor_services');
+        Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_price'), (string) $legacyPrice, 'text', 'vendor_services');
         Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_includes'), json_encode($includes), 'json', 'vendor_services');
 
         if ($showOnClientProductsServices !== null) {
             self::saveVendorAreaPricingVisibility($vendorId, $showOnClientProductsServices);
         }
 
-        return self::syncVendorServicesAndProducts($vendorId, $type, $price, $includes);
+        return self::syncVendorServicesAndProducts($vendorId, $legacyType, $legacyPrice, $includes);
+    }
+
+    /**
+     * Normalize vendor service-pricing save body (multiselect or legacy radio).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{
+     *     enable_fixed: bool,
+     *     enable_per_m2: bool,
+     *     fixed_price: float,
+     *     per_m2_price: float,
+     *     show_on_client_products_services: bool
+     * }
+     */
+    public static function parseVendorServicePricingSaveInput(array $input): array
+    {
+        $hasMultiselect = array_key_exists('enable_fixed_price', $input)
+            || array_key_exists('enable_per_m2', $input)
+            || array_key_exists('fixed_price', $input)
+            || array_key_exists('per_m2_price', $input);
+
+        $show = filter_var($input['show_on_client_products_services'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        if ($hasMultiselect) {
+            $enableFixed = filter_var($input['enable_fixed_price'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $enablePerM2 = filter_var($input['enable_per_m2'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $fixedPrice = max(0, round((float) ($input['fixed_price'] ?? 0), 2));
+            $perM2Price = max(0, round((float) ($input['per_m2_price'] ?? 0), 2));
+
+            return [
+                'enable_fixed' => $enableFixed,
+                'enable_per_m2' => $enablePerM2,
+                'fixed_price' => $fixedPrice,
+                'per_m2_price' => $perM2Price,
+                'show_on_client_products_services' => $show,
+            ];
+        }
+
+        $type = self::normalizeType((string) ($input['pricing_type'] ?? self::TYPE_FIXED), true);
+        $price = max(0, round((float) ($input['price'] ?? 0), 2));
+
+        return [
+            'enable_fixed' => $type === self::TYPE_FIXED,
+            'enable_per_m2' => $type === self::TYPE_PER_M2,
+            'fixed_price' => $type === self::TYPE_FIXED ? $price : 0.0,
+            'per_m2_price' => $type === self::TYPE_PER_M2 ? $price : 0.0,
+            'show_on_client_products_services' => $show,
+        ];
     }
 
     /**
@@ -499,7 +818,7 @@ final class ServiceAreaPricing
         return $product->services->isNotEmpty();
     }
 
-    public static function isPerM2(Product $product): bool
+    public static function isPerM2(Product $product, ?string $areaPricingMode = null): bool
     {
         if (! self::appliesToProduct($product)) {
             return false;
@@ -509,7 +828,14 @@ final class ServiceAreaPricing
             return false;
         }
 
-        return self::resolveConfigForProduct($product)['pricing_type'] === self::TYPE_PER_M2;
+        $normalized = self::normalizeAreaPricingMode($areaPricingMode);
+        if ($normalized !== null) {
+            return $normalized === self::TYPE_PER_M2;
+        }
+
+        $modes = self::areaModesForProduct($product);
+
+        return $modes['per_m2'] && ! $modes['fixed'];
     }
 
     /**
@@ -518,7 +844,7 @@ final class ServiceAreaPricing
     public static function perM2Rate(?Product $product = null): float
     {
         if ($product instanceof Product) {
-            return max(0, round((float) self::resolveConfigForProduct($product)['price'], 2));
+            return max(0, round((float) self::areaModesForProduct($product)['per_m2_rate'], 2));
         }
 
         return max(0, round((float) self::globalConfig()['price'], 2));
@@ -529,7 +855,7 @@ final class ServiceAreaPricing
      * Per m² services: configured product catalog price (area × per-m² rate is applied in lineTotal).
      * Fixed services: product base (catalog) price + global Fixed amount.
      */
-    public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
+    public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice, ?string $areaPricingMode = null): float
     {
         if (! self::appliesToProduct($product)) {
             return round($fallbackProductPrice, 2);
@@ -539,14 +865,14 @@ final class ServiceAreaPricing
             return round($fallbackProductPrice, 2);
         }
 
-        $config = self::resolveConfigForProduct($product);
-        if ($config['pricing_type'] === self::TYPE_PER_M2) {
-            // Never use the global m² rate as the product price — that caused cart totals of "7".
+        $mode = self::normalizeAreaPricingMode($areaPricingMode) ?? self::implicitAreaPricingMode($product);
+        if ($mode === self::TYPE_PER_M2) {
             return round($fallbackProductPrice, 2);
         }
 
-        // Fixed: base product price + global Fixed setting (e.g. 100 + 800 = 900).
-        return round($fallbackProductPrice + (float) $config['price'], 2);
+        $modes = self::areaModesForProduct($product);
+
+        return round($fallbackProductPrice + (float) $modes['fixed_amount'], 2);
     }
 
     /**
@@ -695,9 +1021,59 @@ final class ServiceAreaPricing
         }
 
         $config = self::resolveConfigForProduct($product);
-        $type = $config['pricing_type'];
         $includes = $config['price_includes'];
-        $rate = $config['price'];
+        $modes = self::areaModesForProduct($product);
+        $multiselect = self::requiresAreaPricingModeSelection($product);
+
+        if ($multiselect) {
+            $fixedAddon = round((float) $modes['fixed_amount'], 2);
+            $rate = round((float) $modes['per_m2_rate'], 2);
+            $fixedTotal = round($catalogPrice + $fixedAddon, 2);
+
+            return [
+                ...self::areaPricingClientVisibilityFields($product),
+                'pricing_type' => 'multi',
+                'area_pricing_mode_required' => true,
+                'area_pricing_options' => [
+                    'fixed' => [
+                        'enabled' => true,
+                        'fixed_price_addon' => $fixedAddon,
+                        'checkout_price' => $fixedTotal,
+                        'price_label' => self::formatMoney($fixedTotal),
+                    ],
+                    'per_m2' => [
+                        'enabled' => true,
+                        'price_per_m2' => $rate,
+                        'unit_rate_label' => self::formatMoney($rate).' / m²',
+                    ],
+                ],
+                'price' => $catalogPrice,
+                'catalog_price' => $catalogPrice,
+                'base_price' => $catalogPrice,
+                'fixed_price_addon' => $fixedAddon,
+                'fixed_price' => $fixedAddon,
+                'checkout_price' => $fixedTotal,
+                'price_per_m2' => $rate,
+                'unit_rate' => $rate,
+                'unit_rate_label' => self::formatMoney($rate).' / m²',
+                'checkout_rate_label' => self::formatMoney($rate).' / m²',
+                'currency' => 'AED',
+                'price_unit' => 'm²',
+                'requires_area' => false,
+                'area_optional' => true,
+                'price_includes' => $includes,
+                'price_includes_labels' => self::includeLabels($includes),
+                'customer_preview' => [
+                    'note' => 'Customer chooses Fixed (base + addon) or per m² (rate × area). Send area_pricing_mode on add-to-cart when both are enabled.',
+                    'fixed_example' => self::formatMoney($fixedTotal),
+                    'per_m2_example' => self::formatMoney($rate).' / m²',
+                ],
+                ...ServiceTreePricing::productApiFields($product),
+            ];
+        }
+
+        $type = $modes['per_m2'] && ! $modes['fixed'] ? self::TYPE_PER_M2 : self::TYPE_FIXED;
+        $rate = $modes['per_m2'] ? $modes['per_m2_rate'] : $modes['fixed_amount'];
 
         if ($type === self::TYPE_PER_M2) {
             return [
@@ -812,7 +1188,13 @@ final class ServiceAreaPricing
             ];
         }
 
-        $type = $fields['pricing_type'];
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        $vendorExpanded = $vendorId > 0 ? self::vendorConfigExpanded($vendorId) : null;
+        $type = $vendorExpanded['pricing_type'] ?? ($fields['pricing_type'] ?? self::TYPE_FIXED);
+        $enableFixed = $vendorExpanded['enable_fixed_price'] ?? ($type !== self::TYPE_PER_M2);
+        $enablePerM2 = $vendorExpanded['enable_per_m2'] ?? ($type === self::TYPE_PER_M2);
+        $fixedPrice = $vendorExpanded['fixed_price'] ?? ($type === self::TYPE_FIXED ? (float) self::resolveConfigForProduct($product)['price'] : 0.0);
+        $perM2Price = $vendorExpanded['per_m2_price'] ?? ($type === self::TYPE_PER_M2 ? (float) self::resolveConfigForProduct($product)['price'] : 0.0);
         // Admin input shows the global setting amount (Fixed addon / per-m² rate), not the customer total.
         $price = $isService
             ? round((float) self::resolveConfigForProduct($product)['price'], 2)
@@ -825,22 +1207,29 @@ final class ServiceAreaPricing
             'is_service' => $isService,
             'settings_available' => $isService,
             'pricing_type' => $type,
+            'area_pricing_multiselect' => (bool) ($vendorExpanded['area_pricing_multiselect'] ?? false),
+            'enable_fixed_price' => (bool) $enableFixed,
+            'enable_per_m2' => (bool) $enablePerM2,
+            'fixed_price' => round((float) $fixedPrice, 2),
+            'per_m2_price' => round((float) $perM2Price, 2),
             'pricing_type_options' => [
                 [
                     'value' => self::TYPE_FIXED,
                     'label' => 'Fixed Price',
                     'description' => 'This amount is added to each service product base price (e.g. base 100 + Fixed 800 = 900).',
-                    'selected' => $type === self::TYPE_FIXED,
+                    'selected' => (bool) $enableFixed,
+                    'multiselect' => true,
                 ],
                 [
                     'value' => self::TYPE_PER_M2,
                     'label' => 'Price per Square Meter (m²)',
                     'description' => 'Enter the unit price. Customers will enter the required area manually.',
-                    'selected' => $type === self::TYPE_PER_M2,
+                    'selected' => (bool) $enablePerM2,
+                    'multiselect' => true,
                 ],
             ],
             'price' => $price,
-            'price_per_m2' => $type === self::TYPE_PER_M2 ? $price : null,
+            'price_per_m2' => $enablePerM2 ? round((float) $perM2Price, 2) : null,
             'currency' => 'AED',
             'price_unit' => $type === self::TYPE_PER_M2 ? 'm²' : null,
             'price_input_label' => $type === self::TYPE_PER_M2 ? 'Price per m²' : 'Fixed price (added to product base)',
@@ -978,9 +1367,9 @@ final class ServiceAreaPricing
         return null;
     }
 
-    public static function validateAreaMessage(Product $product, mixed $areaRaw): ?string
+    public static function validateAreaMessage(Product $product, mixed $areaRaw, ?string $areaPricingMode = null): ?string
     {
-        if (! self::isPerM2($product)) {
+        if (! self::isPerM2($product, $areaPricingMode)) {
             return null;
         }
 
@@ -1101,9 +1490,10 @@ final class ServiceAreaPricing
         ?int $treeQuantity = null,
         ?int $palmTreeQuantity = null,
         ?float $pricePerTree = null,
-        ?float $pricePerPalmTree = null
+        ?float $pricePerPalmTree = null,
+        ?string $areaPricingMode = null
     ): float {
-        if (self::isPerM2($product)) {
+        if (self::isPerM2($product, $areaPricingMode)) {
             if ($requiredArea !== null && $requiredArea > 0) {
                 // Always use live admin per-m² rate (ignore stale cart unit_price).
                 $base = round($requiredArea * self::perM2Rate($product), 2);
@@ -1144,9 +1534,9 @@ final class ServiceAreaPricing
     /**
      * Quantity stored on cart/order for per-m² lines (always 1 — area drives the total).
      */
-    public static function effectiveQuantity(Product $product, int $quantity): int
+    public static function effectiveQuantity(Product $product, int $quantity, ?string $areaPricingMode = null): int
     {
-        return self::isPerM2($product) ? 1 : max(1, $quantity);
+        return self::isPerM2($product, $areaPricingMode) ? 1 : max(1, $quantity);
     }
 
     /**
@@ -1166,13 +1556,13 @@ final class ServiceAreaPricing
         Product $product,
         ?float $requiredArea,
         ?int $treeQuantity = null,
-        ?int $palmTreeQuantity = null
+        ?int $palmTreeQuantity = null,
+        ?string $areaPricingMode = null
     ): array {
         $isService = self::appliesToProduct($product);
         if ($isService) {
-            $config = self::resolveConfigForProduct($product);
-            $type = $config['pricing_type'];
-            $includes = $config['price_includes'];
+            $type = self::normalizeAreaPricingMode($areaPricingMode) ?? self::implicitAreaPricingMode($product);
+            $includes = self::resolveConfigForProduct($product)['price_includes'];
             $tree = ServiceTreePricing::resolveForCheckout($product, $treeQuantity, $palmTreeQuantity);
         } else {
             $type = self::TYPE_FIXED;
@@ -1187,6 +1577,7 @@ final class ServiceAreaPricing
 
         return [
             'pricing_type' => $type,
+            'area_pricing_mode' => $isService ? $type : null,
             'required_area' => $type === self::TYPE_PER_M2 ? $requiredArea : null,
             'price_includes' => $includes,
             'tree_quantity' => $tree['tree_quantity'],
@@ -1207,12 +1598,13 @@ final class ServiceAreaPricing
         int $quantity,
         ?float $requiredArea,
         ?int $treeQuantity = null,
-        ?int $palmTreeQuantity = null
+        ?int $palmTreeQuantity = null,
+        ?string $areaPricingMode = null
     ): array {
-        $isPerM2 = self::isPerM2($product);
+        $isPerM2 = self::isPerM2($product, $areaPricingMode);
         $area = $isPerM2 ? $requiredArea : null;
         $rate = $isPerM2 ? self::perM2Rate($product) : null;
-        $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea, $treeQuantity, $palmTreeQuantity);
+        $lineTotal = self::lineTotal($product, $unitPrice, $quantity, $requiredArea, $treeQuantity, $palmTreeQuantity, null, null, $areaPricingMode);
         $includes = $isPerM2 || self::appliesToProduct($product)
             ? (is_array($product->price_includes) ? array_merge(self::emptyIncludes(), $product->price_includes) : self::emptyIncludes())
             : null;
@@ -1227,6 +1619,9 @@ final class ServiceAreaPricing
 
         return array_merge([
             'pricing_type' => $isPerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED,
+            'area_pricing_mode' => self::appliesToProduct($product)
+                ? (self::normalizeAreaPricingMode($areaPricingMode) ?? self::implicitAreaPricingMode($product))
+                : null,
             'requires_area' => false,
             'area_optional' => $isPerM2,
             'required_area' => $area,

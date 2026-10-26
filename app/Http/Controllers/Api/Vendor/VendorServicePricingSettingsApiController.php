@@ -34,36 +34,58 @@ class VendorServicePricingSettingsApiController extends Controller
 
         $this->normalizeClientVisibility($request);
 
-        $validated = $request->validate([
-            'pricing_type' => 'required|in:fixed,per_m2',
-            'price' => 'required|numeric|min:0',
-            'show_on_client_products_services' => 'required|boolean',
-            'price_includes' => 'nullable',
-            'price_includes.materials' => 'nullable|boolean',
-            'price_includes.installation' => 'nullable|boolean',
-            'price_includes.labor' => 'nullable|boolean',
-            'price_includes.transportation' => 'nullable|boolean',
-            'price_includes.delivery' => 'nullable|boolean',
-        ], [
-            'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
-            'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
-            'price.required' => 'Enter the price amount.',
-            'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
-        ]);
+        $this->normalizeMultiselectFlags($request);
 
-        $type = ServiceAreaPricing::normalizeType($validated['pricing_type'], true);
-        if (! in_array($type, [ServiceAreaPricing::TYPE_FIXED, ServiceAreaPricing::TYPE_PER_M2], true)) {
-            throw ValidationException::withMessages([
-                'pricing_type' => ['Pricing type must be fixed or per_m2.'],
+        $usesMultiselect = $request->has('enable_fixed_price')
+            || $request->has('enable_per_m2')
+            || $request->has('fixed_price')
+            || $request->has('per_m2_price');
+
+        if ($usesMultiselect) {
+            $validated = $request->validate([
+                'enable_fixed_price' => 'required|boolean',
+                'enable_per_m2' => 'required|boolean',
+                'fixed_price' => 'required|numeric|min:0',
+                'per_m2_price' => 'required|numeric|min:0',
+                'show_on_client_products_services' => 'required|boolean',
+                'price_includes' => 'nullable',
+                'price_includes.materials' => 'nullable|boolean',
+                'price_includes.installation' => 'nullable|boolean',
+                'price_includes.labor' => 'nullable|boolean',
+                'price_includes.transportation' => 'nullable|boolean',
+                'price_includes.delivery' => 'nullable|boolean',
+            ], [
+                'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
+            ]);
+        } else {
+            $validated = $request->validate([
+                'pricing_type' => 'required|in:fixed,per_m2',
+                'price' => 'required|numeric|min:0',
+                'show_on_client_products_services' => 'required|boolean',
+                'price_includes' => 'nullable',
+                'price_includes.materials' => 'nullable|boolean',
+                'price_includes.installation' => 'nullable|boolean',
+                'price_includes.labor' => 'nullable|boolean',
+                'price_includes.transportation' => 'nullable|boolean',
+                'price_includes.delivery' => 'nullable|boolean',
+            ], [
+                'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
+                'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
+                'price.required' => 'Enter the price amount.',
+                'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
             ]);
         }
 
-        $sync = ServiceAreaPricing::saveVendor(
+        $parsed = ServiceAreaPricing::parseVendorServicePricingSaveInput($validated);
+
+        $sync = ServiceAreaPricing::saveVendorMultiselect(
             $vendor->id,
-            $type,
-            (float) $validated['price'],
+            $parsed['enable_fixed'],
+            $parsed['enable_per_m2'],
+            $parsed['fixed_price'],
+            $parsed['per_m2_price'],
             $request->input('price_includes'),
-            (bool) $validated['show_on_client_products_services']
+            $parsed['show_on_client_products_services']
         );
 
         $payload = ServiceAreaPricing::vendorAdminApiPayload($vendor->id);
@@ -99,9 +121,21 @@ class VendorServicePricingSettingsApiController extends Controller
         }
     }
 
+    private function normalizeMultiselectFlags(Request $request): void
+    {
+        foreach (['enable_fixed_price', 'enable_per_m2'] as $key) {
+            if ($request->has($key)) {
+                $request->merge([
+                    $key => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
+                ]);
+            }
+        }
+    }
+
     private function normalizeFormData(Request $request): void
     {
         $this->normalizeClientVisibility($request);
+        $this->normalizeMultiselectFlags($request);
 
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);

@@ -1007,8 +1007,12 @@ class ShopStripeMobilePaymentService
             $palmQty = \App\Support\ServiceTreePricing::normalizeQuantity(
                 \App\Support\ServiceTreePricing::resolvePalmQuantityFromArray($line)
             );
-            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty);
-            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty);
+            $areaMode = \App\Support\ServiceAreaPricing::resolveAreaPricingModeForCheckout(
+                $product,
+                \App\Support\ServiceAreaPricing::resolveAreaPricingModeFromArray($line)
+            );
+            $snapshot = \App\Support\ServiceAreaPricing::orderItemSnapshot($product, $requiredArea, $treeQty, $palmQty, $areaMode);
+            $qty = \App\Support\ServiceAreaPricing::effectiveQuantity($product, $qty, $areaMode);
             $subtotal = \App\Support\ServiceAreaPricing::lineTotal(
                 $product,
                 $unit,
@@ -1017,7 +1021,8 @@ class ShopStripeMobilePaymentService
                 $snapshot['tree_quantity'],
                 $snapshot['palm_tree_quantity'],
                 $snapshot['price_per_tree'],
-                $snapshot['price_per_palm_tree']
+                $snapshot['price_per_palm_tree'],
+                $areaMode
             );
             $lineBookingDate = is_string($line['booking_date'] ?? null) && trim($line['booking_date']) !== ''
                 ? trim($line['booking_date'])
