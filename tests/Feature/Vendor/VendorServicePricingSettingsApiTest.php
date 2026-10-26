@@ -31,7 +31,6 @@ class VendorServicePricingSettingsApiTest extends TestCase
     {
         parent::setUp();
 
-        ServiceAreaPricing::saveGlobal(ServiceAreaPricing::TYPE_PER_M2, 999, ServiceAreaPricing::emptyIncludes());
         ServiceTreePricing::clearSchemaCache();
 
         $user = User::factory()->create(['role' => 'vendor', 'password' => Hash::make('password')]);
@@ -138,8 +137,6 @@ class VendorServicePricingSettingsApiTest extends TestCase
             700.0,
             ServiceAreaPricing::lineTotal($this->serviceProduct, 7, 1, 100)
         );
-        $this->assertSame(999.0, (float) ServiceAreaPricing::globalConfig()['price']);
-
         $client = User::factory()->create(['role' => 'client']);
         $this->assignClientRole($client);
 

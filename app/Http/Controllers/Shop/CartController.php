@@ -629,7 +629,7 @@ class CartController extends Controller
         ], self::optionIdsValidationRules()));
 
         $user = $request->user();
-        $product = Product::with('optionGroups.options')->findOrFail($request->product_id);
+        $product = Product::with(['optionGroups.options', 'services'])->findOrFail($request->product_id);
 
         $selectedOptionsNormalized = self::selectedOptionIdsFromRequest($request);
         $optionError = Cart::validateSelectedOptionsMessage($product, $selectedOptionsNormalized);

@@ -16,14 +16,6 @@ class ServiceProductsListImagesApiTest extends TestCase
 
     public function test_services_products_list_uses_thumb_urls_and_omits_heavy_pricing_blocks(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, [
-            'materials' => true,
-            'installation' => true,
-            'labor' => false,
-            'transportation' => false,
-            'delivery' => false,
-        ]);
-
         $category = Category::factory()->create();
         $service = Service::create([
             'name' => 'Landscaping',
@@ -47,6 +39,13 @@ class ServiceProductsListImagesApiTest extends TestCase
             'is_primary' => true,
         ]);
         $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'per_m2', 7, [
+            'materials' => true,
+            'installation' => true,
+            'labor' => false,
+            'transportation' => false,
+            'delivery' => false,
+        ]);
 
         $response = $this->getJson('/api/services/products?service_id='.$service->id);
 
@@ -68,8 +67,6 @@ class ServiceProductsListImagesApiTest extends TestCase
 
     public function test_services_products_view_detail_includes_full_pricing_blocks(): void
     {
-        ServiceAreaPricing::saveGlobal('fixed', 50, ServiceAreaPricing::emptyIncludes());
-
         $category = Category::factory()->create();
         $service = Service::create([
             'name' => 'Build',
@@ -85,6 +82,7 @@ class ServiceProductsListImagesApiTest extends TestCase
             'stock' => 999,
         ]);
         $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'fixed', 50, ServiceAreaPricing::emptyIncludes());
 
         $this->getJson('/api/services/products?service_id='.$service->id.'&view=detail')
             ->assertOk()

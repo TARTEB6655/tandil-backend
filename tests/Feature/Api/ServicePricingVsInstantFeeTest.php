@@ -5,6 +5,7 @@ namespace Tests\Feature\Api;
 use App\Models\Cart;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Service;
 use App\Models\Setting;
 use App\Models\User;
 use App\Support\InstantOrderFee;
@@ -35,14 +36,6 @@ class ServicePricingVsInstantFeeTest extends TestCase
         Setting::set('shop_shipping_amount', '0', 'text', 'shop');
         Setting::set('shop_tax_percent', '0', 'text', 'shop');
         Setting::set(InstantOrderFee::SETTING_KEY, '15', 'text', 'shop');
-
-        ServiceAreaPricing::saveGlobal('per_m2', 70, [
-            'materials' => true,
-            'installation' => true,
-            'labor' => true,
-            'transportation' => false,
-            'delivery' => false,
-        ]);
 
         $this->client = User::factory()->create(['role' => 'client']);
         $this->token = $this->client->createToken('test')->plainTextToken;
@@ -96,6 +89,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
             'status' => 'active',
             'stock' => 999,
         ]);
+        $this->linkServicePerM2($serviceProduct, 70);
 
         Cart::create([
             'user_id' => $this->client->id,
@@ -123,6 +117,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
             'status' => 'active',
             'stock' => 999,
         ]);
+        $this->linkServicePerM2($service, 70);
         $shop = Product::factory()->create([
             'category_id' => $this->category->id,
             'type' => 'product',
@@ -199,6 +194,7 @@ class ServicePricingVsInstantFeeTest extends TestCase
             'status' => 'active',
             'stock' => 999,
         ]);
+        $this->linkServicePerM2($service, 70);
 
         Cart::create([
             'user_id' => $this->client->id,
@@ -221,5 +217,22 @@ class ServicePricingVsInstantFeeTest extends TestCase
             ->assertJsonPath('data.instant_order_fee', 15)
             ->assertJsonPath('data.subtotal', 800)
             ->assertJsonPath('data.total', 815);
+    }
+
+    private function linkServicePerM2(Product $product, float $rate): void
+    {
+        $service = Service::create([
+            'name' => 'Fee test service',
+            'slug' => 'fee-test-'.uniqid(),
+            'is_active' => true,
+        ]);
+        $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'per_m2', $rate, [
+            'materials' => true,
+            'installation' => true,
+            'labor' => true,
+            'transportation' => false,
+            'delivery' => false,
+        ]);
     }
 }

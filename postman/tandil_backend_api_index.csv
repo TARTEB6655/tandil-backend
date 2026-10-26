@@ -670,3 +670,6 @@ Admin,"Folders ""13."" through ""16."" (stats & users, reports, support tickets,
 646,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","03. Privacy Policy","12. Vendor Dashboard – All APIs > 17. Legal & Contact",GET,/api/vendor/privacy-policy,Active
 647,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","03. Notifications - Mark All as Read","12. Vendor Dashboard – All APIs > 18. Notifications",POST,/api/vendor/notifications/mark-all-read,Active
 648,"HR Manager — folder 12","12. Vendor Dashboard – All APIs","04. Notifications - Delete","12. Vendor Dashboard – All APIs > 18. Notifications",DELETE,/api/vendor/notifications/{{notification_id}},Active
+649,"Client — folders 3–8 in Postman (profile → shop)","05. Admin Dashboard","16. List vendors (Vendor pricing screen)","05. Admin Dashboard > 04. Settings (Mobile) > 01. Settings APIs",GET,/api/admin/vendors/pricing,Active
+650,"Client — folders 3–8 in Postman (profile → shop)","05. Admin Dashboard","17. Get vendor pricing (manage screen)","05. Admin Dashboard > 04. Settings (Mobile) > 01. Settings APIs",GET,/api/admin/vendors/{{vendor_id}}/pricing,Active
+651,"Client — folders 3–8 in Postman (profile → shop)","05. Admin Dashboard","18. Update vendor pricing (JSON)","05. Admin Dashboard > 04. Settings (Mobile) > 01. Settings APIs",POST,/api/admin/vendors/{{vendor_id}}/pricing,Active

@@ -30,8 +30,6 @@ class CartAddWithoutTreeColumnsTest extends TestCase
 
     public function test_cart_add_succeeds_when_tree_columns_missing(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
         if (Schema::hasColumn('carts', 'tree_quantity')) {
             Schema::table('carts', function (Blueprint $table) {
                 $table->dropColumn(['tree_quantity', 'palm_tree_quantity']);

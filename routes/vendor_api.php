@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminVendorPricingSettingsApiController;
 use App\Http\Controllers\Api\Admin\VendorManagementController;
 use App\Http\Controllers\Api\Vendor\VendorAuthController;
 use App\Http\Controllers\Api\Vendor\VendorComparisonController;
@@ -132,10 +133,14 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->group(function () {
     Route::get('/stats', [VendorManagementController::class, 'stats']);
+    Route::get('/pricing', [AdminVendorPricingSettingsApiController::class, 'index']);
     Route::get('/management', [VendorManagementController::class, 'management']);
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
     Route::post('/', [VendorManagementController::class, 'store']);
+    Route::get('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'show']);
+    Route::put('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'update']);
+    Route::post('/{id}/pricing', [AdminVendorPricingSettingsApiController::class, 'update']);
     Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
     Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct']);
     Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct']);

@@ -172,7 +172,88 @@ final class ServiceAreaPricing
             return self::vendorConfig($vendorId);
         }
 
-        return self::globalConfig();
+        return self::catalogServiceConfig($product);
+    }
+
+    /**
+     * Platform (non-vendor) service pricing — from linked Service row (admin /api/admin/services/{id}/settings),
+     * not from removed global /api/admin/settings/service-pricing.
+     *
+     * @return array{pricing_type: string, price: float, price_includes: array<string, bool>}
+     */
+    public static function catalogServiceConfig(Product $product): array
+    {
+        $service = self::primaryLinkedService($product);
+        if ($service !== null) {
+            $type = self::normalizeType($service->pricing_type ?? self::TYPE_FIXED, true);
+            $includes = self::normalizeIncludes($service->price_includes, true) ?? self::emptyIncludes();
+            $rate = max(0, round((float) ($service->price ?? 0), 2));
+
+            return [
+                'pricing_type' => $type,
+                'price' => $rate,
+                'price_includes' => $includes,
+            ];
+        }
+
+        $type = self::normalizeType($product->pricing_type ?? self::TYPE_FIXED, true);
+        $includes = self::normalizeIncludes($product->price_includes, true) ?? self::emptyIncludes();
+
+        return [
+            'pricing_type' => $type,
+            'price' => 0.0,
+            'price_includes' => $includes,
+        ];
+    }
+
+    /**
+     * Set pricing on a platform service and sync linked type=service products (cart/checkout source of truth).
+     *
+     * @param  array<string, bool>|null  $includes
+     */
+    public static function applyServiceCatalogPricing(
+        Service $service,
+        string $pricingType,
+        float $rate,
+        ?array $includes = null
+    ): int {
+        $type = self::normalizeType($pricingType, true);
+        $rate = max(0, round($rate, 2));
+        $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
+
+        $service->pricing_type = $type;
+        $service->price = $rate;
+        $service->price_includes = $includes;
+        $service->save();
+
+        $count = 0;
+        $service->products()
+            ->where('type', 'service')
+            ->orderBy('products.id')
+            ->chunkById(100, function ($products) use ($type, $includes, &$count) {
+                foreach ($products as $product) {
+                    /** @var Product $product */
+                    $product->pricing_type = $type;
+                    $product->price_includes = $includes;
+                    $product->save();
+                    $count++;
+                }
+            });
+
+        return $count;
+    }
+
+    public static function primaryLinkedService(Product $product): ?Service
+    {
+        if (! $product->relationLoaded('services')) {
+            $product->loadMissing('services');
+        }
+
+        if ($product->services->isEmpty()) {
+            return null;
+        }
+
+        return $product->services->sortBy('id')->first();
     }
 
     /**
@@ -484,7 +565,7 @@ final class ServiceAreaPricing
      * Customer / admin product payload fields for pricing UI.
      *
      * Store listing uses `price` = catalog product price (never replaced by global rate).
-     * Per m² checkout uses `price_per_m2` from global admin setting.
+     * Per m² checkout uses `price_per_m2` from linked service (or vendor settings).
      *
      * @return array<string, mixed>
      */
@@ -523,7 +604,7 @@ final class ServiceAreaPricing
                 'catalog_price' => $catalogPrice,
                 'price_label' => self::formatMoney($catalogPrice),
                 'list_price_label' => self::formatMoney($catalogPrice),
-                // Checkout: global admin rate × required area.
+                // Checkout: service (or vendor) rate × required area.
                 'price_per_m2' => $rate,
                 'unit_rate' => $rate,
                 'unit_rate_label' => self::formatMoney($rate).' / m²',
@@ -549,7 +630,7 @@ final class ServiceAreaPricing
             ];
         }
 
-        // Fixed: customer pays product base + global Fixed amount (e.g. 100 + 800 = 900).
+        // Fixed: customer pays product base + service fixed addon (e.g. 100 + 800 = 900).
         $fixedAddon = round((float) $rate, 2);
         $total = round($catalogPrice + $fixedAddon, 2);
 

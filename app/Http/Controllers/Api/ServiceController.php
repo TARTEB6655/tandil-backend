@@ -191,7 +191,11 @@ class ServiceController extends Controller
             });
         }
 
-        $products = $query->with(['primaryImage', 'category:id,name', 'services:id,name'])
+        $products = $query->with([
+            'primaryImage',
+            'category:id,name',
+            'services:id,name,pricing_type,price,price_includes',
+        ])
             ->orderBy('name')
             ->paginate($perPage);
 

@@ -57,7 +57,7 @@ class ServiceAreaPricingTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_global_service_pricing_settings_no_id(): void
+    public function test_service_catalog_pricing_drives_cart_and_product_api_fields(): void
     {
         $service = Service::create([
             'name' => 'Interlock',
@@ -75,41 +75,34 @@ class ServiceAreaPricingTest extends TestCase
         ]);
         $service->products()->attach($product->id);
 
-        $defaults = ServiceAreaPricing::globalAdminApiPayload();
-        $this->assertSame('all_services', $defaults['applies_to']);
-        $this->assertNull($defaults['service_id']);
-        $this->assertNull($defaults['product_id']);
-
-        $sync = ServiceAreaPricing::saveGlobal('per_m2', 70, [
+        $synced = ServiceAreaPricing::applyServiceCatalogPricing($service, 'per_m2', 70, [
             'materials' => true,
             'installation' => true,
             'labor' => true,
             'transportation' => false,
             'delivery' => false,
         ]);
-        $this->assertSame(1, $sync['synced_services']);
-        $this->assertSame(1, $sync['synced_products']);
-
-        $saved = ServiceAreaPricing::globalAdminApiPayload();
-        $this->assertSame('per_m2', $saved['pricing_type']);
-        $this->assertSame(70.0, (float) $saved['price']);
-        $this->assertFalse($saved['requires_area']);
-        $this->assertSame(7000.0, (float) $saved['example_calculation']['total']);
+        $this->assertSame(1, $synced);
 
         $product->refresh();
         $service->refresh();
         $this->assertSame('per_m2', $product->pricing_type);
-        // Catalog price must NOT be overwritten by global rate (store keeps product price).
         $this->assertEquals(10.0, (float) $product->price);
         $this->assertSame('per_m2', $service->pricing_type);
+        $this->assertSame(70.0, (float) $service->price);
 
-        $fields = ServiceAreaPricing::productApiFields($product->fresh());
+        $fields = ServiceAreaPricing::productApiFields($product->fresh(['services']));
         $this->assertSame(10.0, (float) $fields['price']);
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertSame('AED 10', $fields['price_label']);
         $this->assertSame('AED 70 / m²', $fields['unit_rate_label']);
-        $this->assertFalse($fields['requires_area']);
-        $this->assertTrue($fields['area_optional']);
+
+        $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $product->id,
+            'required_area' => 100,
+        ])->assertCreated()
+            ->assertJsonPath('data.line_total', 7000)
+            ->assertJsonPath('data.unit_price', 70);
     }
 
     public function test_per_service_settings_do_not_overwrite_linked_product_catalog_price(): void
@@ -157,8 +150,6 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_services_products_api_exposes_catalog_and_rate_fields(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
         $service = Service::create([
             'name' => 'Construction',
             'slug' => 'construction-'.uniqid(),
@@ -173,6 +164,7 @@ class ServiceAreaPricingTest extends TestCase
             'stock' => 999,
         ]);
         $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'per_m2', 7, ServiceAreaPricing::emptyIncludes());
 
         $this->getJson('/api/services/products?service_id='.$service->id)
             ->assertOk()
@@ -197,16 +189,13 @@ class ServiceAreaPricingTest extends TestCase
             ->assertJsonValidationErrors(['pricing_type']);
     }
 
-    public function test_cart_uses_global_per_m2_for_all_services(): void
+    public function test_cart_uses_service_per_m2_rate_for_linked_services(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 70, [
-            'materials' => true,
-            'installation' => true,
-            'labor' => true,
-            'transportation' => false,
-            'delivery' => false,
+        $service = Service::create([
+            'name' => 'Outdoor',
+            'slug' => 'outdoor-'.uniqid(),
+            'is_active' => true,
         ]);
-
         $product = Product::create([
             'name' => 'Outdoor Paving',
             'type' => 'service',
@@ -215,6 +204,14 @@ class ServiceAreaPricingTest extends TestCase
             'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
             'status' => 'active',
             'stock' => 999,
+        ]);
+        $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'per_m2', 70, [
+            'materials' => true,
+            'installation' => true,
+            'labor' => true,
+            'transportation' => false,
+            'delivery' => false,
         ]);
 
         // Area optional — without area, charge configured product catalog price (not per-m² rate).
@@ -269,23 +266,13 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_global_fixed_service_adds_addon_to_base_price(): void
     {
-        // Global Fixed 800 + product base 100 = customer price 900 (detail + cart).
-        ServiceAreaPricing::saveGlobal('fixed', 800, [
+        // Service fixed addon 800 + product base 100 = customer price 900 (detail + cart).
+        $product = $this->createLinkedServiceProduct(100, 'fixed', 800, [
             'materials' => true,
             'installation' => true,
             'labor' => true,
             'transportation' => false,
             'delivery' => false,
-        ]);
-
-        $product = Product::create([
-            'name' => 'service product',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
         ]);
 
         $this->actingAs($this->client, 'sanctum')
@@ -321,8 +308,6 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_fixed_addon_applies_to_service_linked_products_not_only_type_service(): void
     {
-        ServiceAreaPricing::saveGlobal('fixed', 800, ServiceAreaPricing::emptyIncludes());
-
         $service = Service::create([
             'name' => 'Landscaping',
             'slug' => 'landscaping-'.uniqid(),
@@ -340,6 +325,7 @@ class ServiceAreaPricingTest extends TestCase
             'stock' => 999,
         ]);
         $service->products()->attach($linked->id);
+        ServiceAreaPricing::applyServiceCatalogPricing($service, 'fixed', 800, ServiceAreaPricing::emptyIncludes());
 
         $shopOnly = Product::create([
             'name' => 'simple product',
@@ -367,17 +353,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_buy_now_order_summary_accepts_required_area(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'service product',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(100, 'per_m2', 7);
 
         $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1&required_area=100')
@@ -389,17 +365,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_buy_now_without_area_reuses_cart_required_area(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'service product',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(100, 'per_m2', 7);
 
         $this->actingAs($this->client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $product->id,
@@ -417,17 +383,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_buy_now_without_area_and_empty_cart_uses_service_price(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'service product',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(100, 'per_m2', 7);
 
         $this->actingAs($this->client, 'sanctum')
             ->getJson('/api/shop/order-summary?product_id='.$product->id.'&quantity=1')
@@ -438,17 +394,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_cart_does_not_use_stale_per_m2_rate_as_product_price(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'service product',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 1500,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(1500, 'per_m2', 7);
 
         // Simulate old buggy cart rows that stored global per-m² rate as unit_price.
         Cart::create([
@@ -468,17 +414,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_buy_now_summary_remembers_area_for_later_pay_without_area(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'عزل الأسطح',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(100, 'per_m2', 7, name: 'عزل الأسطح');
 
         // Product Details → Buy Now preview with area (cart never touched).
         $this->actingAs($this->client, 'sanctum')
@@ -496,17 +432,7 @@ class ServiceAreaPricingTest extends TestCase
 
     public function test_buy_now_product_id_wins_over_items_without_area(): void
     {
-        ServiceAreaPricing::saveGlobal('per_m2', 7, ServiceAreaPricing::emptyIncludes());
-
-        $product = Product::create([
-            'name' => 'roof insulation',
-            'type' => 'service',
-            'category_id' => $this->category->id,
-            'price' => 100,
-            'compare_at_price' => null,
-            'status' => 'active',
-            'stock' => 999,
-        ]);
+        $product = $this->createLinkedServiceProduct(100, 'per_m2', 7, name: 'roof insulation');
 
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', [
@@ -521,5 +447,40 @@ class ServiceAreaPricingTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.order_summary.subtotal', 350)
             ->assertJsonPath('data.order_summary.items.0.required_area', 50);
+    }
+
+    /**
+     * @param  array<string, bool>|null  $includes
+     */
+    private function createLinkedServiceProduct(
+        float $catalogPrice,
+        string $pricingType,
+        float $rate,
+        ?array $includes = null,
+        string $name = 'service product'
+    ): Product {
+        $service = Service::create([
+            'name' => 'Service '.uniqid(),
+            'slug' => 'service-'.uniqid(),
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => $name,
+            'type' => 'service',
+            'category_id' => $this->category->id,
+            'price' => $catalogPrice,
+            'compare_at_price' => null,
+            'status' => 'active',
+            'stock' => 999,
+        ]);
+        $service->products()->attach($product->id);
+        ServiceAreaPricing::applyServiceCatalogPricing(
+            $service,
+            $pricingType,
+            $rate,
+            $includes ?? ServiceAreaPricing::emptyIncludes()
+        );
+
+        return $product->fresh(['services']);
     }
 }

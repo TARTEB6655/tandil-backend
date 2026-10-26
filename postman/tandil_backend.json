@@ -8841,7 +8841,7 @@
                   }
                 },
                 {
-                  "name": "19. Export Data",
+                  "name": "16. Export Data",
               "request": {
                 "method": "POST",
                 "header": [
@@ -8881,7 +8881,140 @@
               "description": "All Settings (Mobile) requests. Wrapped so Postman cannot float Legal above these APIs."
             },
             {
-              "name": "02. Legal & Contact Content",
+              "name": "02. Vendor Pricing (Product Settings)",
+              "description": "Admin **Product Settings → Vendor pricing** (list + manage per vendor). Auth: Bearer {{token}} (admin). Test order: **01** list (sets {{vendor_id}}) → **02** get → **03** update.\n\nRemoved admin global `/api/admin/settings/service-pricing` — use these per-vendor APIs instead.",
+              "item": [
+                {
+                  "name": "01. List vendors (Vendor pricing screen)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                          "if (pm.response.code === 200) {",
+                          "    var j = pm.response.json();",
+                          "    var items = j.data && j.data.items || [];",
+                          "    if (items.length && items[0].vendor_id) {",
+                          "        pm.collectionVariables.set('vendor_id', String(items[0].vendor_id));",
+                          "        pm.environment.set('vendor_id', String(items[0].vendor_id));",
+                          "    }",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/pricing?per_page=15&search=",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "pricing"
+                      ],
+                      "query": [
+                        {
+                          "key": "per_page",
+                          "value": "15"
+                        },
+                        {
+                          "key": "search",
+                          "value": "",
+                          "description": "Search company name, vendor/owner name, or email"
+                        }
+                      ]
+                    },
+                    "description": "GET /api/admin/vendors/pricing — **Product Settings → Vendor pricing** list.\n\nCards: `company_name`, `vendor_name`, `email`, `logo_url`, `pricing_status_label` (e.g. \"No vendor pricing set yet\").\n\nAuto-sets {{vendor_id}} from first row."
+                  }
+                },
+                {
+                  "name": "02. Get vendor pricing (manage screen)",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "{{vendor_id}}",
+                        "pricing"
+                      ]
+                    },
+                    "description": "GET /api/admin/vendors/{vendor_id}/pricing — **Manage vendor pricing**.\n\n`data.vendor` header card + `service_pricing` (fixed / per m²) + `tree_palm_pricing`."
+                  }
+                },
+                {
+                  "name": "03. Update vendor pricing (JSON)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  },\n  \"show_tree_options\": false,\n  \"price_per_tree\": 0,\n  \"price_per_palm_tree\": 0\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "{{vendor_id}}",
+                        "pricing"
+                      ]
+                    },
+                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing — admin updates the same fields as the vendor app (area + tree/palm).\n\n**Body:** `pricing_type`, `price`, `price_includes`, `show_tree_options`, `price_per_tree`, `price_per_palm_tree`."
+                  }
+                }
+              ]
+            },
+            {
+              "name": "03. Legal & Contact Content",
               "description": "Admin mobile Legal and Contact Content editor. Form-data PUT or POST (not JSON). Folder A = client app pages, B = vendor app pages. Location: Module 5 > D. Settings (Mobile).",
               "item": [
                 {

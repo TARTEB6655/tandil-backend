@@ -46,8 +46,6 @@ class ServiceTreePricingTest extends TestCase
             //
         }
 
-        ServiceAreaPricing::saveGlobal(ServiceAreaPricing::TYPE_FIXED, 0, ServiceAreaPricing::emptyIncludes());
-
         $service = Service::create([
             'name' => 'Landscaping',
             'slug' => 'landscaping-'.uniqid(),
@@ -98,8 +96,6 @@ class ServiceTreePricingTest extends TestCase
 
     public function test_global_fixed_pricing_does_not_configure_tree_palm(): void
     {
-        ServiceAreaPricing::saveGlobal('fixed', 0, ServiceAreaPricing::emptyIncludes());
-
         $this->assertFalse(ServiceTreePricing::globalConfig()['show_tree_options']);
     }
 

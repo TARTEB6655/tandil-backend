@@ -33,6 +33,7 @@ class ProductController extends Controller
             $products = Product::with([
                 'category',
                 'primaryImage',
+                'services:id,name,pricing_type,price,price_includes',
             ])
                 ->visibleInClientShop()
                 ->where('is_featured', true)
@@ -76,6 +77,7 @@ class ProductController extends Controller
             $query = Product::with([
                 'category',
                 'primaryImage',
+                'services:id,name,pricing_type,price,price_includes',
             ])
                 ->visibleInClientShop();
 
@@ -462,8 +464,9 @@ class ProductController extends Controller
                     'category',
                     'images',
                     'primaryImage',
+                    'services:id,name,pricing_type,price,price_includes',
                     'optionGroups.options',
-                    'variants.options'
+                    'variants.options',
                 ])
                 ->first();
 
