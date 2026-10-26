@@ -70,7 +70,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->getJson('/api/vendor/settings/service-pricing')
             ->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.applies_to', 'vendor_service_products');
+            ->assertJsonPath('data.applies_to', 'vendor_catalog_products');
 
         $this->withToken($this->token)
             ->postJson('/api/vendor/settings/service-pricing', [
@@ -179,7 +179,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->withToken($this->token)
             ->getJson('/api/vendor/settings/tree-palm-pricing')
             ->assertOk()
-            ->assertJsonPath('data.applies_to', 'vendor_service_products');
+            ->assertJsonPath('data.applies_to', 'vendor_catalog_products');
 
         $this->withToken($this->token)
             ->postJson('/api/vendor/settings/tree-palm-pricing', [
@@ -207,6 +207,35 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertTrue($fields['show_tree_options']);
         $this->assertSame(50.0, (float) $fields['tree_pricing']['trees']['unit_price']);
         $this->assertSame(50.0, (float) $fields['tree_pricing']['palm_trees']['unit_price']);
+    }
+
+    public function test_vendor_simple_product_type_shows_per_m2_and_tree_on_client_fields(): void
+    {
+        $category = Category::factory()->create();
+        $simpleProduct = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $this->vendor->id,
+            'type' => 'product',
+            'product_type' => 'simple',
+            'name' => 'Vendor Simple SKU',
+            'price' => 200,
+            'status' => 'active',
+        ]);
+
+        ServiceAreaPricing::saveVendor(
+            $this->vendor->id,
+            ServiceAreaPricing::TYPE_PER_M2,
+            12,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+        ServiceTreePricing::saveVendor($this->vendor->id, true, 30, 40);
+
+        $fields = ServiceAreaPricing::productApiFields($simpleProduct->fresh());
+        $this->assertSame('per_m2', $fields['pricing_type']);
+        $this->assertSame(12.0, (float) $fields['price_per_m2']);
+        $this->assertTrue($fields['show_tree_options']);
+        $this->assertSame(30.0, (float) $fields['tree_pricing']['trees']['unit_price']);
     }
 
     public function test_vendor_tree_palm_buy_now_summary_includes_addons(): void

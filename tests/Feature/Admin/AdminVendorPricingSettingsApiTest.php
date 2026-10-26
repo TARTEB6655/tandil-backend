@@ -42,7 +42,7 @@ class AdminVendorPricingSettingsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.screen_section', 'Area-Based Pricing')
             ->assertJsonPath('data.vendor.vendor_id', $vendor->id)
-            ->assertJsonPath('data.applies_to', 'vendor_service_products')
+            ->assertJsonPath('data.applies_to', 'vendor_catalog_products')
             ->assertJsonStructure([
                 'data' => [
                     'vendor',

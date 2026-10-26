@@ -177,7 +177,7 @@ final class ServiceTreePricing
             'price_includes' => $includes,
             'price_includes_options' => $includeOptions,
             'price_includes_labels' => ServiceAreaPricing::includeLabels($includes),
-            'applies_to' => 'vendor_service_products',
+            'applies_to' => 'vendor_catalog_products',
             'optional_for_customer' => true,
             'note' => 'Customer may skip tree/palm quantity and continue with the normal/base service price.',
         ];

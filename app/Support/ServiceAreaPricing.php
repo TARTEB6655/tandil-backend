@@ -372,10 +372,6 @@ final class ServiceAreaPricing
         $productsUpdated = 0;
         Product::query()
             ->where('vendor_id', $vendorId)
-            ->where(function ($q) {
-                $q->where('type', 'service')
-                    ->orWhereHas('services');
-            })
             ->orderBy('id')
             ->chunkById(100, function ($products) use ($pricingType, $includes, &$productsUpdated) {
                 foreach ($products as $product) {
@@ -416,11 +412,11 @@ final class ServiceAreaPricing
             'product_name' => null,
             'service_id' => null,
             'service_name' => null,
-            'applies_to' => 'vendor_service_products',
+            'applies_to' => 'vendor_catalog_products',
             'settings_available' => true,
             'is_service' => true,
             'configured' => self::vendorIsConfigured($vendorId),
-            'note' => 'Applies to this vendor’s service catalog only.',
+            'note' => 'Applies to all of this vendor’s shop products (type product and service). Platform-only SKUs are excluded.',
         ], self::clientVisibilityToggleFields(self::vendorShowAreaPricingOnClient($vendorId)));
     }
 
@@ -467,12 +463,18 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Whether global Fixed / per-m² settings apply to this catalog line.
-     * Matches service shop listing: type=service OR linked via product_service pivot
-     * (same set as GET /api/services/.../products). Pure shop SKUs without a service link are excluded.
+     * Whether area / tree vendor pricing applies to this catalog line on the client shop.
+     *
+     * - Platform: type=service OR linked via product_service pivot (not plain category SKUs).
+     * - Vendor marketplace: every product with vendor_id (type product or service) uses vendor settings.
      */
     public static function appliesToProduct(Product $product): bool
     {
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            return true;
+        }
+
         $type = strtolower(trim((string) ($product->type ?? '')));
         if ($type === 'service') {
             return true;
