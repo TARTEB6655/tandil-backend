@@ -292,6 +292,8 @@ class ProductController extends Controller
             'description' => $product->description,
             'product_type' => $productType,
             'type' => $product->type ?? 'product',
+            'vendor_id' => $product->vendor_id !== null ? (int) $product->vendor_id : null,
+            'is_vendor_product' => (int) ($product->vendor_id ?? 0) > 0,
             'price' => $product->price,
             ...\App\Support\ServiceAreaPricing::productApiFields($product),
             'stock' => $product->stock,

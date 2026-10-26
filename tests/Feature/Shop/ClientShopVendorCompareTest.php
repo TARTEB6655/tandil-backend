@@ -35,6 +35,8 @@ class ClientShopVendorCompareTest extends TestCase
         $response = $this->getJson("/api/shop/products/{$productA->id}");
 
         $response->assertOk()
+            ->assertJsonPath('data.is_vendor_product', true)
+            ->assertJsonPath('data.vendor_id', $productA->vendor_id)
             ->assertJsonPath('data.compare_vendors.available', true)
             ->assertJsonPath('data.compare_vendors.vendor_count', 2)
             ->assertJsonPath('data.compare_vendors.label', 'Compare vendors & prices');
