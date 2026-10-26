@@ -198,6 +198,22 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Client shop list/detail — explicit ON/OFF for fixed / per m² (mirrors vendor service-pricing toggle).
+     *
+     * @return array{show_area_pricing_on_client: bool, area_pricing_hidden_on_client: bool}
+     */
+    public static function areaPricingClientVisibilityFields(Product $product): array
+    {
+        $applies = self::appliesToProduct($product);
+        $show = self::areaPricingVisibleOnClient($product);
+
+        return [
+            'show_area_pricing_on_client' => $show,
+            'area_pricing_hidden_on_client' => $applies && ! $show,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function clientVisibilityToggleFields(bool $show): array
@@ -648,6 +664,7 @@ final class ServiceAreaPricing
 
         if (! $isService) {
             return [
+                ...self::areaPricingClientVisibilityFields($product),
                 'pricing_type' => self::TYPE_FIXED,
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
@@ -665,6 +682,7 @@ final class ServiceAreaPricing
 
         if (! self::areaPricingVisibleOnClient($product)) {
             return [
+                ...self::areaPricingClientVisibilityFields($product),
                 'pricing_type' => self::TYPE_FIXED,
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
@@ -673,7 +691,6 @@ final class ServiceAreaPricing
                 'price_unit' => null,
                 'price_label' => self::formatMoney($catalogPrice),
                 'requires_area' => false,
-                'area_pricing_hidden_on_client' => true,
                 'price_includes' => null,
                 'price_includes_labels' => [],
                 'customer_preview' => null,
@@ -688,6 +705,7 @@ final class ServiceAreaPricing
 
         if ($type === self::TYPE_PER_M2) {
             return [
+                ...self::areaPricingClientVisibilityFields($product),
                 'pricing_type' => self::TYPE_PER_M2,
                 // Store/list card: each product's own catalog price (never the global m² rate).
                 'price' => $catalogPrice,
@@ -725,6 +743,7 @@ final class ServiceAreaPricing
         $total = round($catalogPrice + $fixedAddon, 2);
 
         return [
+            ...self::areaPricingClientVisibilityFields($product),
             'pricing_type' => self::TYPE_FIXED,
             'price' => $total,
             'catalog_price' => $catalogPrice,

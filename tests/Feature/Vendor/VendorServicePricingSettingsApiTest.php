@@ -166,7 +166,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct);
         $this->assertSame('fixed', $fields['pricing_type']);
         $this->assertNull($fields['price_per_m2']);
-        $this->assertTrue($fields['area_pricing_hidden_on_client'] ?? false);
+        $this->assertFalse($fields['show_area_pricing_on_client']);
+        $this->assertTrue($fields['area_pricing_hidden_on_client']);
 
         $this->withToken($this->token)
             ->getJson('/api/vendor/settings/service-pricing')
@@ -232,6 +233,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
         ServiceTreePricing::saveVendor($this->vendor->id, true, 30, 40);
 
         $fields = ServiceAreaPricing::productApiFields($simpleProduct->fresh());
+        $this->assertTrue($fields['show_area_pricing_on_client']);
+        $this->assertFalse($fields['area_pricing_hidden_on_client']);
         $this->assertSame('per_m2', $fields['pricing_type']);
         $this->assertSame(12.0, (float) $fields['price_per_m2']);
         $this->assertTrue($fields['show_tree_options']);
