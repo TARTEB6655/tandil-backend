@@ -972,7 +972,42 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Customer detail — fixed mode preview (base + addon, no area).
+     * Fixed mode — product detail breakdown lines only (no + / total in preview JSON).
+     *
+     * @return array<string, mixed>
+     */
+    public static function fixedModeBreakdownDisplay(float $catalogPrice, float $fixedAddon): array
+    {
+        $catalogPrice = round($catalogPrice, 2);
+        $fixedAddon = round($fixedAddon, 2);
+
+        return [
+            'display_only' => true,
+            'do_not_add_lines' => true,
+            'catalog_price' => $catalogPrice,
+            'catalog_price_label' => self::formatMoney($catalogPrice),
+            'fixed_price' => $fixedAddon,
+            'fixed_price_label' => self::formatMoney($fixedAddon),
+            'lines' => [
+                [
+                    'key' => 'catalog_price',
+                    'label' => 'Product price',
+                    'amount' => $catalogPrice,
+                    'amount_label' => self::formatMoney($catalogPrice),
+                ],
+                [
+                    'key' => 'fixed_price',
+                    'label' => 'Fixed price',
+                    'amount' => $fixedAddon,
+                    'amount_label' => self::formatMoney($fixedAddon),
+                ],
+            ],
+            'note' => 'Show these two amounts separately on the product screen. Do not display a summed total in the breakdown.',
+        ];
+    }
+
+    /**
+     * Customer detail — fixed mode (checkout total is separate from display breakdown).
      *
      * @return array<string, mixed>
      */
@@ -980,21 +1015,16 @@ final class ServiceAreaPricing
     {
         $fixedAddon = round($fixedAddon, 2);
         $catalogPrice = round($catalogPrice, 2);
-        $total = round($catalogPrice + $fixedAddon, 2);
+        $checkoutTotal = round($catalogPrice + $fixedAddon, 2);
 
         return [
             'mode' => self::TYPE_FIXED,
-            'price_display' => 'Price: '.self::formatMoney($total),
-            'breakdown' => [
-                'base' => $catalogPrice,
-                'base_label' => self::formatMoney($catalogPrice),
-                'fixed_addon' => $fixedAddon,
-                'fixed_addon_label' => self::formatMoney($fixedAddon),
-                'total' => $total,
-                'total_label' => self::formatMoney($total),
-                'formula' => $catalogPrice.' + '.$fixedAddon.' = '.$total,
-            ],
-            'note' => 'Fixed: product base price + fixed addon. No area (m²) field.',
+            'catalog_price_label' => self::formatMoney($catalogPrice),
+            'fixed_price_label' => self::formatMoney($fixedAddon),
+            'checkout_total' => $checkoutTotal,
+            'checkout_total_label' => self::formatMoney($checkoutTotal),
+            'breakdown' => self::fixedModeBreakdownDisplay($catalogPrice, $fixedAddon),
+            'note' => 'Breakdown is display-only. Use checkout_price / checkout_total when the customer pays (catalog + fixed addon).',
         ];
     }
 

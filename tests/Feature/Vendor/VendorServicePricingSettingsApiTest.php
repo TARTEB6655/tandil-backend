@@ -299,7 +299,9 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(23.0, (float) $preview['breakdown']['fixed_price']);
         $this->assertSame(70.0, (float) $preview['breakdown']['price_per_m2']);
         $this->assertArrayNotHasKey('total', $preview['breakdown']);
-        $this->assertSame(123.0, (float) $preview['when_fixed_selected']['breakdown']['total']);
+        $this->assertSame(123.0, (float) $preview['when_fixed_selected']['checkout_total']);
+        $this->assertArrayNotHasKey('total', $preview['when_fixed_selected']['breakdown']);
+        $this->assertArrayNotHasKey('formula', $preview['when_fixed_selected']['breakdown']);
         $this->assertSame(7000.0, (float) $preview['when_per_m2_selected']['example']['total']);
         $this->assertSame('AED 23', $fields['area_pricing_options']['fixed']['price_label']);
         $this->assertSame('AED 70 / m²', $fields['area_pricing_options']['per_m2']['price_label']);
