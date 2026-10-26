@@ -295,13 +295,14 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(70.0, (float) $fields['area_pricing_options']['per_m2']['price_per_m2']);
         $preview = $fields['customer_preview'];
         $this->assertSame('multi', $preview['pricing_type']);
-        $this->assertSame(123.0, (float) $preview['fixed']['breakdown']['total']);
-        $this->assertSame(7000.0, (float) $preview['per_m2']['example']['total']);
-        $this->assertSame(
-            123.0,
-            (float) $preview['fixed']['breakdown']['total'],
-            'Fixed preview must not use per-m² rate'
-        );
+        $this->assertTrue($preview['breakdown']['do_not_add_lines']);
+        $this->assertSame(23.0, (float) $preview['breakdown']['fixed_price']);
+        $this->assertSame(70.0, (float) $preview['breakdown']['price_per_m2']);
+        $this->assertArrayNotHasKey('total', $preview['breakdown']);
+        $this->assertSame(123.0, (float) $preview['when_fixed_selected']['breakdown']['total']);
+        $this->assertSame(7000.0, (float) $preview['when_per_m2_selected']['example']['total']);
+        $this->assertSame('AED 23', $fields['area_pricing_options']['fixed']['price_label']);
+        $this->assertSame('AED 70 / m²', $fields['area_pricing_options']['per_m2']['price_label']);
     }
 
     public function test_vendor_multiselect_checkout_requires_mode_and_totals(): void

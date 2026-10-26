@@ -1025,18 +1025,67 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Product-detail breakdown when both vendor area prices are on — show each amount only (never sum fixed + per m²).
+     *
+     * @return array<string, mixed>
+     */
+    public static function vendorAreaPricesBreakdownDisplay(float $catalogPrice, float $fixedAddon, float $rate): array
+    {
+        $catalogPrice = round($catalogPrice, 2);
+        $fixedAddon = round($fixedAddon, 2);
+        $rate = round($rate, 2);
+
+        return [
+            'display_only' => true,
+            'do_not_add_lines' => true,
+            'catalog_price' => $catalogPrice,
+            'catalog_price_label' => self::formatMoney($catalogPrice),
+            'fixed_price' => $fixedAddon,
+            'fixed_price_label' => self::formatMoney($fixedAddon),
+            'price_per_m2' => $rate,
+            'price_per_m2_label' => self::formatMoney($rate).' / m²',
+            'lines' => [
+                [
+                    'key' => 'catalog_price',
+                    'label' => 'Product price',
+                    'amount' => $catalogPrice,
+                    'amount_label' => self::formatMoney($catalogPrice),
+                ],
+                [
+                    'key' => 'fixed_price',
+                    'label' => 'Fixed price',
+                    'amount' => $fixedAddon,
+                    'amount_label' => self::formatMoney($fixedAddon),
+                ],
+                [
+                    'key' => 'price_per_m2',
+                    'label' => 'Price per m²',
+                    'amount' => $rate,
+                    'amount_label' => self::formatMoney($rate).' / m²',
+                ],
+            ],
+            'note' => 'Show these prices separately on the product screen. Do not add fixed price and per m² rate together.',
+        ];
+    }
+
+    /**
      * Customer detail when vendor enabled both fixed and per m² — separate previews, no blended totals.
      *
      * @return array<string, mixed>
      */
     public static function customerPreviewMulti(float $catalogPrice, float $fixedAddon, float $rate): array
     {
+        $breakdown = self::vendorAreaPricesBreakdownDisplay($catalogPrice, $fixedAddon, $rate);
+
         return [
             'pricing_type' => 'multi',
             'list_price_display' => 'Listed: '.self::formatMoney(round($catalogPrice, 2)),
-            'selection_note' => 'Customer picks Fixed price or Price per m² on the product screen, then adds to cart with area_pricing_mode.',
+            'breakdown' => $breakdown,
+            'selection_note' => 'Customer picks Fixed price or Price per m², then adds to cart with area_pricing_mode. Only the chosen mode applies at checkout.',
             'fixed' => self::customerPreviewFixed($catalogPrice, $fixedAddon),
             'per_m2' => self::customerPreviewPerM2($catalogPrice, $rate),
+            'when_fixed_selected' => self::customerPreviewFixed($catalogPrice, $fixedAddon),
+            'when_per_m2_selected' => self::customerPreviewPerM2($catalogPrice, $rate),
         ];
     }
 
@@ -1111,18 +1160,21 @@ final class ServiceAreaPricing
                         'catalog_price' => $catalogPrice,
                         'fixed_price_addon' => $fixedAddon,
                         'checkout_price' => $fixedTotal,
-                        'price_label' => self::formatMoney($fixedTotal),
-                        'customer_preview' => $preview['fixed'],
+                        'price_label' => self::formatMoney($fixedAddon),
+                        'price_display_note' => 'Fixed addon only on breakdown; at checkout: catalog + fixed addon.',
+                        'customer_preview' => $preview['when_fixed_selected'],
                     ],
                     'per_m2' => [
                         'enabled' => true,
                         'mode' => self::TYPE_PER_M2,
                         'catalog_price' => $catalogPrice,
                         'price_per_m2' => $rate,
+                        'price_label' => self::formatMoney($rate).' / m²',
                         'unit_rate_label' => self::formatMoney($rate).' / m²',
-                        'customer_preview' => $preview['per_m2'],
+                        'customer_preview' => $preview['when_per_m2_selected'],
                     ],
                 ],
+                'price_breakdown' => $preview['breakdown'],
                 // List/card: catalog only — checkout totals live under area_pricing_options + customer_preview.
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
