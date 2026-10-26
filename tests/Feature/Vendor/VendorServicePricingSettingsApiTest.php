@@ -76,6 +76,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->postJson('/api/vendor/settings/service-pricing', [
                 'pricing_type' => 'per_m2',
                 'price' => 7,
+                'show_on_client_products_services' => true,
                 'price_includes' => [
                     'materials' => true,
                     'installation' => true,
@@ -151,6 +152,28 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.order_summary.items.0.pricing_type', 'per_m2');
     }
 
+    public function test_vendor_area_pricing_hidden_on_client_when_toggle_off(): void
+    {
+        ServiceAreaPricing::saveVendor(
+            $this->vendor->id,
+            ServiceAreaPricing::TYPE_PER_M2,
+            7,
+            ServiceAreaPricing::emptyIncludes(),
+            false
+        );
+
+        $this->serviceProduct->refresh();
+        $fields = ServiceAreaPricing::productApiFields($this->serviceProduct);
+        $this->assertSame('fixed', $fields['pricing_type']);
+        $this->assertNull($fields['price_per_m2']);
+        $this->assertTrue($fields['area_pricing_hidden_on_client'] ?? false);
+
+        $this->withToken($this->token)
+            ->getJson('/api/vendor/settings/service-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.show_on_client_products_services', false);
+    }
+
     public function test_vendor_tree_palm_pricing_get_and_update(): void
     {
         $this->withToken($this->token)
@@ -176,7 +199,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.price_per_tree', 50)
             ->assertJsonPath('data.price_per_palm_tree', 50)
             ->assertJsonPath('data.currency', 'AED')
-            ->assertJsonPath('data.toggle_label', 'Show on customer service products')
+            ->assertJsonPath('data.toggle_label', 'Show on client products & services')
+            ->assertJsonPath('data.show_on_client_products_services', true)
             ->assertJsonMissingPath('data.pricing_type');
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());

@@ -44,7 +44,7 @@ class VendorServiceTreePalmSettingsApiController extends Controller
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
         ], [
-            'show_tree_options.required' => 'Set Show on customer service products on or off.',
+            'show_tree_options.required' => 'Set Show on client products & services on or off.',
         ]);
 
         ServiceTreePricing::saveVendor(

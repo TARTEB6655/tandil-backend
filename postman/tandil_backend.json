@@ -8993,7 +8993,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  },\n  \"show_tree_options\": false,\n  \"price_per_tree\": 0,\n  \"price_per_palm_tree\": 0\n}"
+                      "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"show_area_pricing_on_client\": true,\n  \"show_tree_pricing_on_client\": false,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  },\n  \"price_per_tree\": 0,\n  \"price_per_palm_tree\": 0\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing",
@@ -9008,7 +9008,7 @@
                         "pricing"
                       ]
                     },
-                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing — admin updates the same fields as the vendor app (area + tree/palm).\n\n**Body:** `pricing_type`, `price`, `price_includes`, `show_tree_options`, `price_per_tree`, `price_per_palm_tree`."
+                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing — admin updates the same fields as the vendor app (area + tree/palm).\n\n**Body:** `pricing_type`, `price`, `show_area_pricing_on_client`, `show_tree_pricing_on_client`, `price_includes`, `price_per_tree`, `price_per_palm_tree`."
                   }
                 }
               ]
@@ -26971,7 +26971,7 @@
         },
         {
           "name": "08b. Service pricing settings (vendor catalog)",
-          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s service products only.\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Fixed / per m² + includes | `/api/vendor/settings/service-pricing` | `pricing_type`, `price`, `price_includes[...]` |\n| Tree / palm + includes | `/api/vendor/settings/tree-palm-pricing` | `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes[...]` |",
+          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s service products only.\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Fixed / per m² + includes | `/api/vendor/settings/service-pricing` | `show_on_client_products_services`, `pricing_type`, `price`, `price_includes[...]` |\n| Tree / palm + includes | `/api/vendor/settings/tree-palm-pricing` | `show_on_client_products_services` (or `show_tree_options`), `price_per_tree`, `price_per_palm_tree`, `price_includes[...]` |",
           "item": [
             {
               "name": "01. Get service pricing (fixed / per m²)",
@@ -27022,7 +27022,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"pricing_type\": \"per_m2\",\n  \"price\": 7,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"pricing_type\": \"per_m2\",\n  \"price\": 7,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/vendor/settings/service-pricing",
@@ -27036,7 +27036,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "POST/PUT /api/vendor/settings/service-pricing — applies to this vendor’s service catalog only."
+                "description": "POST/PUT /api/vendor/settings/service-pricing — applies to this vendor’s service catalog only.\n\n**Toggle:** `show_on_client_products_services` — when false, client shop hides area-based pricing (saved settings kept)."
               }
             },
             {
@@ -27088,7 +27088,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"show_tree_options\": true,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/vendor/settings/tree-palm-pricing",
@@ -27102,7 +27102,7 @@
                     "tree-palm-pricing"
                   ]
                 },
-                "description": "POST/PUT /api/vendor/settings/tree-palm-pricing — vendor-scoped tree/palm add-on pricing."
+                "description": "POST/PUT /api/vendor/settings/tree-palm-pricing — vendor-scoped tree/palm add-on pricing.\n\n**Toggle:** `show_on_client_products_services` (alias `show_tree_options`) — when false, tree/palm counters hidden on client app."
               }
             }
           ]

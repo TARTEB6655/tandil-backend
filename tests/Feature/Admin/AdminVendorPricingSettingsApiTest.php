@@ -80,6 +80,8 @@ class AdminVendorPricingSettingsApiTest extends TestCase
             ->postJson("/api/admin/vendors/{$vendor->id}/pricing", [
                 'pricing_type' => 'per_m2',
                 'price' => 70,
+                'show_area_pricing_on_client' => true,
+                'show_tree_pricing_on_client' => true,
                 'price_includes' => [
                     'materials' => true,
                     'installation' => true,

@@ -19,6 +19,12 @@ final class ServiceAreaPricing
 
     public const SETTING_PRICING_TYPE = 'service_pricing_type';
 
+    public const VENDOR_SETTING_SHOW_ON_CLIENT = 'service_pricing_show_on_client';
+
+    public const CLIENT_VISIBILITY_TOGGLE_LABEL = 'Show on client products & services';
+
+    public const CLIENT_VISIBILITY_TOGGLE_DESCRIPTION = 'When off, customers do not see this pricing on the shop app. You can still save prices for later.';
+
     public const SETTING_PRICE = 'service_pricing_price';
 
     public const SETTING_INCLUDES = 'service_pricing_includes';
@@ -153,6 +159,53 @@ final class ServiceAreaPricing
             'pricing_type' => $type,
             'price' => $price,
             'price_includes' => $includes,
+            'show_on_client_products_services' => self::vendorShowAreaPricingOnClient($vendorId),
+        ];
+    }
+
+    public static function vendorShowAreaPricingOnClient(int $vendorId): bool
+    {
+        $raw = Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_SETTING_SHOW_ON_CLIENT), '1');
+
+        return filter_var($raw, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public static function saveVendorAreaPricingVisibility(int $vendorId, bool $show): void
+    {
+        Setting::set(
+            self::vendorSettingKey($vendorId, self::VENDOR_SETTING_SHOW_ON_CLIENT),
+            $show ? '1' : '0',
+            'boolean',
+            'vendor_services'
+        );
+    }
+
+    /**
+     * Whether area-based (fixed / per m²) pricing is exposed on the client shop app for this product.
+     */
+    public static function areaPricingVisibleOnClient(Product $product): bool
+    {
+        if (! self::appliesToProduct($product)) {
+            return false;
+        }
+
+        $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0) {
+            return self::vendorShowAreaPricingOnClient($vendorId);
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function clientVisibilityToggleFields(bool $show): array
+    {
+        return [
+            'show_on_client_products_services' => $show,
+            'toggle_label' => self::CLIENT_VISIBILITY_TOGGLE_LABEL,
+            'toggle_description' => self::CLIENT_VISIBILITY_TOGGLE_DESCRIPTION,
         ];
     }
 
@@ -260,8 +313,13 @@ final class ServiceAreaPricing
      * @param  array<string, bool>|null  $includes
      * @return array{synced_services: int, synced_products: int}
      */
-    public static function saveVendor(int $vendorId, string $pricingType, float $price, ?array $includes): array
-    {
+    public static function saveVendor(
+        int $vendorId,
+        string $pricingType,
+        float $price,
+        ?array $includes,
+        ?bool $showOnClientProductsServices = null
+    ): array {
         $type = self::normalizeType($pricingType, true);
         $price = max(0, round($price, 2));
         $includes = self::normalizeIncludes($includes, true) ?? self::emptyIncludes();
@@ -269,6 +327,10 @@ final class ServiceAreaPricing
         Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_type'), $type, 'text', 'vendor_services');
         Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_price'), (string) $price, 'text', 'vendor_services');
         Setting::set(self::vendorSettingKey($vendorId, 'service_pricing_includes'), json_encode($includes), 'json', 'vendor_services');
+
+        if ($showOnClientProductsServices !== null) {
+            self::saveVendorAreaPricingVisibility($vendorId, $showOnClientProductsServices);
+        }
 
         return self::syncVendorServicesAndProducts($vendorId, $type, $price, $includes);
     }
@@ -359,7 +421,7 @@ final class ServiceAreaPricing
             'is_service' => true,
             'configured' => self::vendorIsConfigured($vendorId),
             'note' => 'Applies to this vendor’s service catalog only.',
-        ]);
+        ], self::clientVisibilityToggleFields(self::vendorShowAreaPricingOnClient($vendorId)));
     }
 
     /**
@@ -429,6 +491,10 @@ final class ServiceAreaPricing
             return false;
         }
 
+        if (! self::areaPricingVisibleOnClient($product)) {
+            return false;
+        }
+
         return self::resolveConfigForProduct($product)['pricing_type'] === self::TYPE_PER_M2;
     }
 
@@ -452,6 +518,10 @@ final class ServiceAreaPricing
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice): float
     {
         if (! self::appliesToProduct($product)) {
+            return round($fallbackProductPrice, 2);
+        }
+
+        if (! self::areaPricingVisibleOnClient($product)) {
             return round($fallbackProductPrice, 2);
         }
 
@@ -584,6 +654,24 @@ final class ServiceAreaPricing
                 'price_unit' => null,
                 'price_label' => self::formatMoney($catalogPrice),
                 'requires_area' => false,
+                'price_includes' => null,
+                'price_includes_labels' => [],
+                'customer_preview' => null,
+                ...ServiceTreePricing::productApiFields($product),
+            ];
+        }
+
+        if (! self::areaPricingVisibleOnClient($product)) {
+            return [
+                'pricing_type' => self::TYPE_FIXED,
+                'price' => $catalogPrice,
+                'catalog_price' => $catalogPrice,
+                'price_per_m2' => null,
+                'currency' => 'AED',
+                'price_unit' => null,
+                'price_label' => self::formatMoney($catalogPrice),
+                'requires_area' => false,
+                'area_pricing_hidden_on_client' => true,
                 'price_includes' => null,
                 'price_includes_labels' => [],
                 'customer_preview' => null,

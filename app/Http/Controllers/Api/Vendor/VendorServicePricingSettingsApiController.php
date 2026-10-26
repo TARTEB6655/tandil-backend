@@ -32,9 +32,12 @@ class VendorServicePricingSettingsApiController extends Controller
         $vendor = $this->vendor($request);
         $this->normalizeFormData($request);
 
+        $this->normalizeClientVisibility($request);
+
         $validated = $request->validate([
             'pricing_type' => 'required|in:fixed,per_m2',
             'price' => 'required|numeric|min:0',
+            'show_on_client_products_services' => 'required|boolean',
             'price_includes' => 'nullable',
             'price_includes.materials' => 'nullable|boolean',
             'price_includes.installation' => 'nullable|boolean',
@@ -45,6 +48,7 @@ class VendorServicePricingSettingsApiController extends Controller
             'pricing_type.required' => 'Select Fixed Price or Price per Square Meter (m²).',
             'pricing_type.in' => 'Pricing type must be fixed or per_m2.',
             'price.required' => 'Enter the price amount.',
+            'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
         ]);
 
         $type = ServiceAreaPricing::normalizeType($validated['pricing_type'], true);
@@ -58,7 +62,8 @@ class VendorServicePricingSettingsApiController extends Controller
             $vendor->id,
             $type,
             (float) $validated['price'],
-            $request->input('price_includes')
+            $request->input('price_includes'),
+            (bool) $validated['show_on_client_products_services']
         );
 
         $payload = ServiceAreaPricing::vendorAdminApiPayload($vendor->id);
@@ -82,8 +87,22 @@ class VendorServicePricingSettingsApiController extends Controller
         return $vendor;
     }
 
+    private function normalizeClientVisibility(Request $request): void
+    {
+        foreach (['show_on_client_products_services', 'show_on_customer_service_products', 'show_area_pricing_on_client'] as $key) {
+            if ($request->has($key)) {
+                $request->merge([
+                    'show_on_client_products_services' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
+                ]);
+                break;
+            }
+        }
+    }
+
     private function normalizeFormData(Request $request): void
     {
+        $this->normalizeClientVisibility($request);
+
         if ($request->has('price_includes') && is_string($request->input('price_includes'))) {
             $decoded = json_decode($request->input('price_includes'), true);
             if (is_array($decoded)) {

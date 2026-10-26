@@ -162,8 +162,9 @@ final class ServiceTreePricing
             'vendor_id' => $vendorId,
             'show_tree_options' => $show,
             'show_on_customer_service_products' => $show,
-            'toggle_label' => 'Show on customer service products',
-            'toggle_description' => 'When off, the tree/palm section is hidden. When on, only rows with a price appear.',
+            'show_on_client_products_services' => $show,
+            'toggle_label' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_LABEL,
+            'toggle_description' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_DESCRIPTION,
             'price_per_tree' => $tree,
             'price_per_tree_label' => 'Price per tree',
             'price_per_tree_description' => 'Unit price for each tree. Customers choose quantity (number of trees) on the service product.',
@@ -733,6 +734,7 @@ final class ServiceTreePricing
     {
         foreach ([
             'show_tree_options',
+            'show_on_client_products_services',
             'show_on_customer_service_products',
             'showTreeOptions',
         ] as $key) {
