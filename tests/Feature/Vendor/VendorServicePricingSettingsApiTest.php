@@ -288,8 +288,20 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
         $this->assertTrue($fields['area_pricing_mode_required']);
         $this->assertSame('multi', $fields['pricing_type']);
-        $this->assertSame(70.0, (float) $fields['price_per_m2']);
-        $this->assertSame(123.0, (float) $fields['checkout_price']);
+        $this->assertNull($fields['price_per_m2']);
+        $this->assertNull($fields['checkout_price']);
+        $this->assertSame(100.0, (float) $fields['price']);
+        $this->assertSame(123.0, (float) $fields['area_pricing_options']['fixed']['checkout_price']);
+        $this->assertSame(70.0, (float) $fields['area_pricing_options']['per_m2']['price_per_m2']);
+        $preview = $fields['customer_preview'];
+        $this->assertSame('multi', $preview['pricing_type']);
+        $this->assertSame(123.0, (float) $preview['fixed']['breakdown']['total']);
+        $this->assertSame(7000.0, (float) $preview['per_m2']['example']['total']);
+        $this->assertSame(
+            123.0,
+            (float) $preview['fixed']['breakdown']['total'],
+            'Fixed preview must not use per-m² rate'
+        );
     }
 
     public function test_vendor_multiselect_checkout_requires_mode_and_totals(): void
