@@ -89,13 +89,29 @@ class ProductSettingsController extends Controller
             ]);
         }
 
-        $product->pricing_type = $pricingType;
-        $product->price = round((float) $validated['price'], 2);
-        $product->price_includes = ServiceAreaPricing::normalizeIncludes(
+        $rate = round((float) $validated['price'], 2);
+        $includes = ServiceAreaPricing::normalizeIncludes(
             $request->input('price_includes'),
             true
-        );
+        ) ?? ServiceAreaPricing::emptyIncludes();
+
+        $product->pricing_type = $pricingType;
+        $product->price_includes = $includes;
+        if ($pricingType === ServiceAreaPricing::TYPE_PER_M2) {
+            // Settings screen `price` is the per-m² rate; catalog list price stays unchanged unless unset.
+            if ((float) $product->price <= 0) {
+                $product->price = $rate;
+            }
+        } else {
+            $product->price = $rate;
+        }
         $product->save();
+
+        $product->loadMissing('services');
+        $service = ServiceAreaPricing::primaryLinkedService($product);
+        if ($service !== null && (int) ($product->vendor_id ?? 0) === 0) {
+            ServiceAreaPricing::applyServiceCatalogPricing($service, $pricingType, $rate, $includes);
+        }
 
         return ApiResponse::success(
             'Product settings updated.',

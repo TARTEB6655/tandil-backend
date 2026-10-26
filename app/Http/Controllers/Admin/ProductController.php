@@ -131,14 +131,24 @@ class ProductController extends Controller
         $cardUrl = $url($rootImagePath);
         $fullUrl = ProductImage::buildFullUrl($rootImagePath);
 
+        $catalogPrice = round((float) $product->price, 2);
+        $pricingFields = ServiceAreaPricing::productApiFields($product);
+        $customerDisplayPrice = isset($pricingFields['price']) && is_numeric($pricingFields['price'])
+            ? round((float) $pricingFields['price'], 2)
+            : $catalogPrice;
+
         return [
             'id' => $product->id,
             'name' => $product->name,
             'description' => $product->description,
             'product_type' => $product->product_type ?? 'simple',
             'type' => $product->type ?? 'product',
-            'price' => $product->price,
-            ...ServiceAreaPricing::productApiFields($product),
+            ...$pricingFields,
+            // Admin catalog edit/list always uses DB catalog price (not customer checkout total).
+            'price' => $catalogPrice,
+            'catalog_price' => $catalogPrice,
+            'customer_display_price' => $customerDisplayPrice,
+            'price_label' => ServiceAreaPricing::formatMoney($catalogPrice),
             'stock' => $product->stock,
             'status' => $product->status,
             'is_featured' => (bool) ($product->is_featured ?? false),
@@ -214,6 +224,58 @@ class ProductController extends Controller
      * Splits only on "\r\n--boundary" (line-boundary) so binary file content is NEVER split when
      * "--boundary" appears inside the file (which would truncate images to half-size).
      */
+    /**
+     * Map common mobile price field aliases onto `price` for create/update.
+     */
+    private function normalizeProductPriceInput(Request $request): void
+    {
+        if ($request->has('price') || $request->request->has('price')) {
+            return;
+        }
+
+        foreach (['unit_price', 'sale_price', 'product_price', 'amount'] as $alias) {
+            $raw = $request->input($alias) ?? $request->request->get($alias);
+            if ($raw !== null && $raw !== '' && is_numeric($raw)) {
+                $request->merge(['price' => $raw]);
+                break;
+            }
+        }
+    }
+
+    /**
+     * Keep linked platform Service row aligned when admin edits service product pricing fields.
+     *
+     * @param  array<string, mixed>  $updateData
+     */
+    private function syncPlatformServiceCatalogFromProduct(Product $product, array $updateData): void
+    {
+        if (($product->type ?? 'product') !== 'service' || (int) ($product->vendor_id ?? 0) > 0) {
+            return;
+        }
+
+        $touched = array_intersect(array_keys($updateData), ['pricing_type', 'price_includes']);
+        if ($touched === []) {
+            return;
+        }
+
+        $service = ServiceAreaPricing::primaryLinkedService($product);
+        if ($service === null) {
+            return;
+        }
+
+        $pricingType = ServiceAreaPricing::normalizeType($product->pricing_type ?? ServiceAreaPricing::TYPE_FIXED, true);
+        $includes = ServiceAreaPricing::normalizeIncludes($product->price_includes, true)
+            ?? ServiceAreaPricing::emptyIncludes();
+        $serviceRate = max(0, round((float) ($service->price ?? 0), 2));
+
+        ServiceAreaPricing::applyServiceCatalogPricing(
+            $service,
+            $pricingType,
+            $serviceRate,
+            $includes
+        );
+    }
+
     private function parsePutMultipartIntoRequest(Request $request): void
     {
         $contentType = $request->header('Content-Type');
@@ -1720,6 +1782,8 @@ class ProductController extends Controller
             $this->parsePutMultipartIntoRequest($request);
         }
 
+        $this->normalizeProductPriceInput($request);
+
         // Capture category_id from form-data early (multipart + files can hide it)
         $categoryIdRaw = $request->input('category_id') ?? $request->request->get('category_id');
         if ($categoryIdRaw !== null && $categoryIdRaw !== '') {
@@ -1845,6 +1909,10 @@ class ProductController extends Controller
             if (array_key_exists($timingKey, $updateData) && $updateData[$timingKey] === '') {
                 $updateData[$timingKey] = null;
             }
+        }
+
+        if (array_key_exists('price', $updateData) && is_numeric($updateData['price'])) {
+            $updateData['price'] = round((float) $updateData['price'], 2);
         }
 
         // category_id: normalize (form-data sends string; empty = null)
@@ -1990,6 +2058,9 @@ class ProductController extends Controller
         }
 
         $product->update($updateData);
+
+        $product->refresh();
+        $this->syncPlatformServiceCatalogFromProduct($product, $updateData);
 
         // Optional: sync product to services (accept single service_id or array service_ids)
         $serviceIds = [];

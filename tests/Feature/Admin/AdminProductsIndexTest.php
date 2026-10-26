@@ -80,6 +80,7 @@ class AdminProductsIndexTest extends TestCase
         $this->actingAs($admin, 'sanctum')
             ->getJson('/api/admin/products')
             ->assertOk()
-            ->assertJsonFragment(['id' => $product->id, 'name' => 'Priced Product']);
+            ->assertJsonFragment(['id' => $product->id, 'name' => 'Priced Product'])
+            ->assertJsonPath('data.0.price', 1500);
     }
 }
