@@ -198,18 +198,14 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Client shop list/detail — explicit ON/OFF for fixed / per m² (mirrors vendor service-pricing toggle).
+     * Client shop list/detail — single ON/OFF for fixed / per m² (vendor service-pricing toggle).
      *
-     * @return array{show_area_pricing_on_client: bool, area_pricing_hidden_on_client: bool}
+     * @return array{show_area_pricing_on_client: bool}
      */
     public static function areaPricingClientVisibilityFields(Product $product): array
     {
-        $applies = self::appliesToProduct($product);
-        $show = self::areaPricingVisibleOnClient($product);
-
         return [
-            'show_area_pricing_on_client' => $show,
-            'area_pricing_hidden_on_client' => $applies && ! $show,
+            'show_area_pricing_on_client' => self::areaPricingVisibleOnClient($product),
         ];
     }
 

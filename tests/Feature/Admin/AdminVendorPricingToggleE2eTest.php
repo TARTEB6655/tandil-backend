@@ -112,7 +112,7 @@ class AdminVendorPricingToggleE2eTest extends TestCase
             ->assertOk();
 
         $hidden = ServiceAreaPricing::productApiFields($product->fresh());
-        $this->assertTrue($hidden['area_pricing_hidden_on_client'] ?? false);
+        $this->assertFalse($hidden['show_area_pricing_on_client']);
         $this->assertFalse($hidden['show_tree_options']);
     }
 }
