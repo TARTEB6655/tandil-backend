@@ -190,6 +190,14 @@ class AuthApiTest extends TestCase
         $response->assertJsonValidationErrors(['email', 'phone']);
     }
 
+    public function test_auth_ping_is_public_and_fast(): void
+    {
+        $this->getJson('/api/auth/ping')
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.login', 'POST /api/auth/login');
+    }
+
     public function test_login_resolves_portal_from_spatie_when_users_role_column_is_stale(): void
     {
         if (! class_exists(Role::class) || ! Schema::hasTable('roles')) {

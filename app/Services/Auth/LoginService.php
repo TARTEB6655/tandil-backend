@@ -4,6 +4,7 @@ namespace App\Services\Auth;
 
 use App\Models\User;
 use App\Support\VendorLoginGate;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Hash;
 
 class LoginService
@@ -22,10 +23,23 @@ class LoginService
     public function attemptPasswordLogin(string $email, string $password, string $portal): array
     {
         $email = strtolower(trim($email));
-        $candidates = User::query()
-            ->whereRaw('LOWER(email) = ?', [$email])
-            ->orderBy('id')
-            ->get();
+
+        try {
+            $candidates = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->with('roles')
+                ->orderBy('id')
+                ->get()
+                ->sortByDesc(fn (User $candidate) => $candidate->matchesLoginPortal($portal) ? 1 : 0)
+                ->values();
+        } catch (QueryException $e) {
+            report($e);
+
+            return $this->failure(
+                'Service temporarily unavailable. Check server database connection (DB_HOST / credentials).',
+                503
+            );
+        }
 
         $user = null;
         foreach ($candidates as $candidate) {

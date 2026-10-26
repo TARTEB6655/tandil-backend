@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Route;
 | API HEALTH CHECK
 |--------------------------------------------------------------------------
 */
-Route::get('/health', function () {
+Route::get('/health', function (\Illuminate\Http\Request $request) {
     $convertUris = [];
     foreach (app('router')->getRoutes() as $route) {
         $uri = (string) $route->uri();
@@ -18,13 +18,31 @@ Route::get('/health', function () {
         }
     }
 
-    return [
+    $payload = [
+        'success' => true,
         'status' => 'API is working',
+        'app_url' => rtrim((string) config('app.url'), '/'),
+        'login_endpoint' => '/api/auth/login',
         'catalog_convert_routes' => array_values(array_unique($convertUris)),
         'catalog_convert_hint' => count($convertUris) > 0
             ? 'Use POST with Bearer admin token. base_url should be site root WITHOUT /api (URL already includes /api/...).'
             : 'Deploy latest code and run: php artisan route:clear && php artisan route:cache',
     ];
+
+    if ($request->boolean('db')) {
+        $dbStart = microtime(true);
+        try {
+            \Illuminate\Support\Facades\DB::select('SELECT 1');
+            $payload['database'] = 'ok';
+            $payload['database_ms'] = round((microtime(true) - $dbStart) * 1000, 2);
+        } catch (\Throwable $e) {
+            $payload['database'] = 'failed';
+            $payload['database_error'] = config('app.debug') ? $e->getMessage() : 'Connection failed';
+            $payload['database_ms'] = round((microtime(true) - $dbStart) * 1000, 2);
+        }
+    }
+
+    return $payload;
 });
 
 /*
@@ -123,6 +141,15 @@ Route::get('/debug/performance', function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('auth')->group(function () {
+    // No database — use from mobile to verify base_url / network before login (avoids 30s login timeout confusion).
+    Route::get('/ping', fn () => response()->json([
+        'success' => true,
+        'message' => 'Auth API reachable.',
+        'data' => [
+            'login' => 'POST /api/auth/login',
+            'body' => ['email' => 'string', 'password' => 'string', 'roles' => 'admin'],
+        ],
+    ]));
     Route::get('/app-roles', [\App\Http\Controllers\Auth\AuthController::class, 'appLoginRoles']);
     Route::get('/technician-signup-areas', [\App\Http\Controllers\Auth\AuthController::class, 'technicianSignupAreas']);
     Route::post('/register', [\App\Http\Controllers\Auth\AuthController::class, 'register']);

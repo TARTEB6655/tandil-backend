@@ -1,10 +1,10 @@
 {
   "info": {
-    "name": "Tandil Backend v6.2.0",
-    "description": "Tandil Backend API. Env: base_url, token.\n\nHierarchy: main folders (Client Dashboard, Admin Dashboard, …) → subfolders → APIs.\nOrder fix (v6.2.0): 2-digit prefixes; optional \"… APIs\" wrapper only when requests\nand folders are mixed at the same level. Does NOT flatten \"Dashboard – All APIs\" modules.\n\nAfter adding APIs: append in the correct subfolder, then optionally run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-08T08:49:10Z\nCOLLECTION_ID: 298aa033-ad49-476b-96e3-9deff814dc55",
+    "name": "Tandil Backend v6.2.1",
+    "description": "Tandil Backend API. Env: base_url, token, vendor_id, product_id.\n\nHierarchy: main folders (Client Dashboard, Admin Dashboard, …) → subfolders → APIs.\n\n**v6.2.1:** Admin vendor pricing = **two APIs** (`/pricing/service` + `/pricing/tree-palm`, flat vendor-matching JSON). Admin product list `price` = catalog DB price.\n\nAfter adding APIs: append in the correct subfolder, then optionally run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-26T00:00:00Z\nCOLLECTION_ID: 298aa033-ad49-476b-96e3-9deff814dc55",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-safe-298aa033",
-    "version": "6.2.0",
+    "version": "6.2.1",
     "_postman_id": "298aa033-ad49-476b-96e3-9deff814dc55"
   },
   "item": [
@@ -8882,7 +8882,7 @@
             },
             {
               "name": "02. Vendor Pricing (Product Settings)",
-              "description": "Admin **Product Settings → Vendor pricing**. Auth: Bearer {{token}} (admin).\n\n**Test order:** **01** list → **02** GET service (area + toggle + includes) → **03** GET tree-palm → **04** POST service → **05** POST tree-palm.\n\nSame parameters as vendor **08b** (`/api/vendor/settings/service-pricing` + `tree-palm-pricing`).",
+              "description": "Admin **Product Settings → Vendor pricing**. Auth: Bearer {{token}} (admin).\n\n**Test order:** **01** list → **02** GET service → **03** GET tree-palm → **04** POST/PUT service → **05** POST/PUT tree-palm.\n\n| Screen | GET | POST/PUT |\n|--------|-----|----------|\n| Area fixed / per m² + toggle + includes | `/api/admin/vendors/{id}/pricing/service` | same URL, flat JSON (vendor `service-pricing` shape) |\n| Tree / palm + toggle + includes | `/api/admin/vendors/{id}/pricing/tree-palm` | same URL (vendor `tree-palm-pricing` shape) |\n\nNo combined `/pricing` endpoint — mobile uses **two** calls per vendor.",
               "item": [
                 {
                   "name": "01. List vendors (Vendor pricing screen)",
@@ -8940,11 +8940,29 @@
                         }
                       ]
                     },
-                    "description": "GET /api/admin/vendors/pricing — **Product Settings → Vendor pricing** list.\n\nCards: `company_name`, `vendor_name`, `email`, `logo_url`, `pricing_status_label` (e.g. \"No vendor pricing set yet\").\n\nAuto-sets {{vendor_id}} from first row."
+                    "description": "GET /api/admin/vendors/pricing — **Product Settings → Vendor pricing** list.\n\nCards: `company_name`, `vendor_name`, `email`, `logo_url`, `pricing_status_label`.\n\nEach item `detail.service_pricing.endpoint` → **02** GET area pricing. `detail.tree_palm_pricing.endpoint` → **03** GET tree/palm.\n\nAuto-sets {{vendor_id}} from first row."
                   }
                 },
                 {
                   "name": "02. Get vendor service pricing (area-based)",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                          "if (pm.response.code === 200) {",
+                          "    var d = pm.response.json().data || {};",
+                          "    pm.expect(d).to.have.property('show_on_client_products_services');",
+                          "    pm.expect(d).to.have.property('price_includes_options');",
+                          "    pm.expect(d).to.have.property('pricing_type');",
+                          "    pm.expect(d.vendor).to.have.property('vendor_id');",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
                   "request": {
                     "method": "GET",
                     "header": [
@@ -8976,6 +8994,23 @@
                 },
                 {
                   "name": "03. Get vendor tree / palm pricing",
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                          "if (pm.response.code === 200) {",
+                          "    var d = pm.response.json().data || {};",
+                          "    pm.expect(d).to.have.property('show_on_client_products_services');",
+                          "    pm.expect(d).to.have.property('price_includes_options');",
+                          "    pm.expect(d).to.have.property('price_per_tree');",
+                          "}"
+                        ]
+                      }
+                    }
+                  ],
                   "request": {
                     "method": "GET",
                     "header": [
@@ -9041,7 +9076,7 @@
                         "service"
                       ]
                     },
-                    "description": "POST/PUT /api/admin/vendors/{vendor_id}/pricing/service — same body as vendor `/api/vendor/settings/service-pricing`."
+                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing/service\n\n**Required:** `show_on_client_products_services`, `pricing_type` (fixed|per_m2), `price`, optional `price_includes` (materials, installation, labor, transportation, delivery).\n\nSame shape as vendor `GET/POST /api/vendor/settings/service-pricing`."
                   }
                 },
                 {
@@ -9064,7 +9099,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"show_on_client_products_services\": false,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
+                      "raw": "{\n  \"show_on_client_products_services\": false,\n  \"show_tree_options\": false,\n  \"price_per_tree\": 50,\n  \"price_per_palm_tree\": 50,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/tree-palm",
@@ -9080,7 +9115,7 @@
                         "tree-palm"
                       ]
                     },
-                    "description": "POST/PUT /api/admin/vendors/{vendor_id}/pricing/tree-palm — same body as vendor `/api/vendor/settings/tree-palm-pricing` (`show_on_client_products_services` or `show_tree_options`)."
+                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing/tree-palm\n\n**Required:** `show_tree_options` or `show_on_client_products_services`, optional `price_per_tree`, `price_per_palm_tree`, `price_includes[...]`.\n\nSame shape as vendor `GET/POST /api/vendor/settings/tree-palm-pricing`."
                   }
                 }
               ]
@@ -18335,7 +18370,7 @@
                     }
                   ]
                 },
-                "description": "List all products (admin). GET {{base_url}}/api/admin/products. Query: per_page (1-100, default 15), filter (all|active|draft|archived), search (optional). No category required. Response: data = array of product objects (id, name, price, image_url, images, primary_image, category, etc.); pagination. Test script auto-sets product_id from first product. Auth: Bearer {{token}}."
+                "description": "List all products (admin). GET {{base_url}}/api/admin/products.\n\nQuery: per_page, filter, search.\n\n**Price fields:** `price` / `catalog_price` = DB catalog (use for admin edit list). `customer_display_price` = client checkout total for services. Update price: **06/07** POST/PUT `/api/admin/products/{id}` with `price` or alias `unit_price`."
               }
             },
             {
@@ -18870,7 +18905,7 @@
                     "{{product_id}}"
                   ]
                 },
-                "description": "Same URL as multipart update. Use when changing text fields only (no image upload). Do not send option_groups_json unless you intend to sync variable options."
+                "description": "PUT or POST {{base_url}}/api/admin/products/{{product_id}} — partial JSON update.\n\n**Price:** send `price` (catalog amount shown in admin list). Aliases: `unit_price`, `sale_price`, `product_price`, `amount`.\n\nResponse `data.price` = saved catalog; services may also include `customer_display_price`."
               }
             },
             {
