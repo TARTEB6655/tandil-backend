@@ -8735,176 +8735,7 @@
                   }
                 },
                 {
-                  "name": "14. Get Service Pricing Settings",
-                  "request": {
-                    "method": "GET",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/service-pricing",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "service-pricing"
-                      ]
-                    },
-                    "description": "GET /api/admin/settings/service-pricing — Fixed / per m² only.\n\n**Postman path:** `05. Admin Dashboard` → `04. Settings (Mobile)` → this request.\n\nTree/palm UI → `/api/admin/settings/tree-palm-pricing` (next requests in this folder)."
-                  }
-                },
-                {
-                  "name": "15. Update Service Pricing Settings (form-data)",
-                  "request": {
-                    "method": "POST",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "pricing_type",
-                          "value": "per_m2",
-                          "type": "text",
-                          "description": "fixed | per_m2"
-                        },
-                        {
-                          "key": "price",
-                          "value": "70",
-                          "type": "text",
-                          "description": "Applies to ALL services"
-                        },
-                        {
-                          "key": "price_includes[materials]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[installation]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[labor]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[transportation]",
-                          "value": "0",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[delivery]",
-                          "value": "0",
-                          "type": "text"
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/service-pricing",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "service-pricing"
-                      ]
-                    },
-                    "description": "POST/PUT `/api/admin/settings/service-pricing` — Fixed / per m² only.\n\nTree/palm UI → `/api/admin/settings/tree-palm-pricing`."
-                  }
-                },
-                {
-                  "name": "16. Update Service Pricing Settings (PUT form-data)",
-                  "request": {
-                    "method": "PUT",
-                    "header": [
-                      {
-                        "key": "Authorization",
-                        "value": "Bearer {{token}}"
-                      },
-                      {
-                        "key": "Accept",
-                        "value": "application/json"
-                      }
-                    ],
-                    "body": {
-                      "mode": "formdata",
-                      "formdata": [
-                        {
-                          "key": "pricing_type",
-                          "value": "fixed",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price",
-                          "value": "7000",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[materials]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[installation]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[labor]",
-                          "value": "1",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[transportation]",
-                          "value": "0",
-                          "type": "text"
-                        },
-                        {
-                          "key": "price_includes[delivery]",
-                          "value": "0",
-                          "type": "text"
-                        }
-                      ]
-                    },
-                    "url": {
-                      "raw": "{{base_url}}/api/admin/settings/service-pricing",
-                      "host": [
-                        "{{base_url}}"
-                      ],
-                      "path": [
-                        "api",
-                        "admin",
-                        "settings",
-                        "service-pricing"
-                      ]
-                    },
-                    "description": "POST/PUT `/api/admin/settings/service-pricing` — Fixed / per m² only.\n\nTree/palm UI → `/api/admin/settings/tree-palm-pricing`."
-                  }
-                },
-                {
-                  "name": "17. Get Tree Palm Pricing Settings",
+                  "name": "14. Get Tree Palm Pricing Settings",
                   "request": {
                     "method": "GET",
                     "header": [
@@ -8929,11 +8760,11 @@
                         "tree-palm-pricing"
                       ]
                     },
-                    "description": "GET /api/admin/settings/tree-palm-pricing — **UI Product Settings** (tree/palm only).\n\n**Response only:** `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes`.\n\nNo `pricing_type` / fixed / per_m2 mix — that stays on `/service-pricing`."
+                    "description": "GET /api/admin/settings/tree-palm-pricing — **UI Product Settings** (tree/palm only).\n\n**Response only:** `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, `price_includes`.\n\nAdmin global fixed/per m² settings API removed — use vendor `/api/vendor/settings/service-pricing` or per-service `/api/admin/services/{id}/settings` where applicable."
                   }
                 },
                 {
-                  "name": "18. Update Tree Palm Pricing Settings (form-data)",
+                  "name": "15. Update Tree Palm Pricing Settings (form-data)",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -19045,7 +18876,7 @@
               }
             }
           ],
-          "description": "**Admin platform catalog only** (`/api/admin/products`).\n\n| Request | Use |\n|---------|-----|\n| Add Platform Simple Product | Checkout-only simple SKU — **no vendor_id** |\n| Add Service Product | Supervisor service SKU |\n| (Pricing settings) | Use **5 → D. Settings (Mobile)** → Service Pricing (`GET/POST /api/admin/settings/service-pricing`) — global for all services, **no** product/service ID |\n| Add Product (Multipart) | Generic — prefer dedicated requests above |\n\n**Vendor products:** `12 → N. Admin – Vendor Management` → `POST /api/admin/vendors/{vendor_id}/products` (NOT this folder)."
+          "description": "**Admin platform catalog only** (`/api/admin/products`).\n\n| Request | Use |\n|---------|-----|\n| Add Platform Simple Product | Checkout-only simple SKU — **no vendor_id** |\n| Add Service Product | Supervisor service SKU |\n| (Tree/palm pricing) | Use **5 → D. Settings (Mobile)** → Tree/Palm Pricing (`/api/admin/settings/tree-palm-pricing`) |\n| Add Product (Multipart) | Generic — prefer dedicated requests above |\n\n**Vendor products:** `12 → N. Admin – Vendor Management` → `POST /api/admin/vendors/{vendor_id}/products` (NOT this folder)."
         }
       ],
       "description": "Public shop (`/api/shop/products`) + **Admin platform catalog** (`/api/admin/products`).\n\nPlatform simple = checkout only (no vendor_id/OTP). Vendor listings = separate Vendor APIs."
@@ -27035,7 +26866,7 @@
                     "service-pricing"
                   ]
                 },
-                "description": "GET /api/vendor/settings/service-pricing — vendor-scoped Fixed / per m² UI (same fields as admin global service-pricing)."
+                "description": "GET /api/vendor/settings/service-pricing — vendor-scoped Fixed / per m² UI (admin global `/api/admin/settings/service-pricing` removed)."
               }
             },
             {

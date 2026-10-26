@@ -43,6 +43,20 @@ class ServiceAreaPricingTest extends TestCase
         }
     }
 
+    public function test_admin_global_service_pricing_settings_api_removed(): void
+    {
+        $this->actingAs($this->admin, 'sanctum')
+            ->getJson('/api/admin/settings/service-pricing')
+            ->assertNotFound();
+
+        $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/admin/settings/service-pricing', [
+                'pricing_type' => 'fixed',
+                'price' => 0,
+            ])
+            ->assertNotFound();
+    }
+
     public function test_global_service_pricing_settings_no_id(): void
     {
         $service = Service::create([
@@ -61,32 +75,26 @@ class ServiceAreaPricingTest extends TestCase
         ]);
         $service->products()->attach($product->id);
 
-        $this->actingAs($this->admin, 'sanctum')
-            ->getJson('/api/admin/settings/service-pricing')
-            ->assertOk()
-            ->assertJsonPath('data.applies_to', 'all_services')
-            ->assertJsonPath('data.service_id', null)
-            ->assertJsonPath('data.product_id', null);
+        $defaults = ServiceAreaPricing::globalAdminApiPayload();
+        $this->assertSame('all_services', $defaults['applies_to']);
+        $this->assertNull($defaults['service_id']);
+        $this->assertNull($defaults['product_id']);
 
-        $this->actingAs($this->admin, 'sanctum')
-            ->post('/api/admin/settings/service-pricing', [
-                'pricing_type' => 'per_m2',
-                'price' => '70',
-                'price_includes' => [
-                    'materials' => '1',
-                    'installation' => '1',
-                    'labor' => '1',
-                    'transportation' => '0',
-                    'delivery' => '0',
-                ],
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.pricing_type', 'per_m2')
-            ->assertJsonPath('data.price', 70)
-            ->assertJsonPath('data.requires_area', false)
-            ->assertJsonPath('data.example_calculation.total', 7000)
-            ->assertJsonPath('data.synced_services', 1)
-            ->assertJsonPath('data.synced_products', 1);
+        $sync = ServiceAreaPricing::saveGlobal('per_m2', 70, [
+            'materials' => true,
+            'installation' => true,
+            'labor' => true,
+            'transportation' => false,
+            'delivery' => false,
+        ]);
+        $this->assertSame(1, $sync['synced_services']);
+        $this->assertSame(1, $sync['synced_products']);
+
+        $saved = ServiceAreaPricing::globalAdminApiPayload();
+        $this->assertSame('per_m2', $saved['pricing_type']);
+        $this->assertSame(70.0, (float) $saved['price']);
+        $this->assertFalse($saved['requires_area']);
+        $this->assertSame(7000.0, (float) $saved['example_calculation']['total']);
 
         $product->refresh();
         $service->refresh();

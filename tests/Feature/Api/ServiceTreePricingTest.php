@@ -96,20 +96,9 @@ class ServiceTreePricingTest extends TestCase
         $this->assertFalse($fields['tree_pricing']['requires_quantity']);
     }
 
-    public function test_old_service_pricing_api_does_not_accept_tree_fields_as_required_mix(): void
+    public function test_global_fixed_pricing_does_not_configure_tree_palm(): void
     {
-        // Old API stays fixed/per_m2 only — tree fields are ignored (dedicated API).
-        $this->actingAs($this->admin, 'sanctum')
-            ->post('/api/admin/settings/service-pricing', [
-                'pricing_type' => 'fixed',
-                'price' => '0',
-                'show_tree_options' => '1',
-                'price_per_tree' => '50',
-                'price_per_palm_tree' => '80',
-            ])
-            ->assertOk()
-            ->assertJsonPath('data.pricing_type', 'fixed')
-            ->assertJsonMissingPath('data.price_per_tree');
+        ServiceAreaPricing::saveGlobal('fixed', 0, ServiceAreaPricing::emptyIncludes());
 
         $this->assertFalse(ServiceTreePricing::globalConfig()['show_tree_options']);
     }
