@@ -113,14 +113,15 @@ final class InstantOrderFee
             'enabled' => $enabled,
             'currency' => config('shop.currency', 'AED'),
             'applies_to' => 'instant_orders',
-            'note' => 'Instant Order Fee: Category/shop (simple) products only. Services listing products (type=service or service-linked packages) never get this fee.',
+            'note' => 'Instant Order Fee: Category and vendor shop checkout (including vendor services in categories). Platform Services-tab booking SKUs (no vendor) are excluded.',
         ];
     }
 
     /**
-     * Two catalog channels:
-     * - Category / shop simple products → Instant Order Fee applies
-     * - Services listing (type=service OR linked via product_service) → no Instant Fee
+     * Lines that skip Instant Order Fee (platform Services channel only).
+     *
+     * - Category / vendor shop products (including vendor type=service, e.g. product 305) → fee applies
+     * - Platform Services listing (no vendor_id, type=service or service-linked SKU) → no fee
      */
     public static function productIsExplicitService(?Product $product): bool
     {
@@ -128,8 +129,11 @@ final class InstantOrderFee
             return false;
         }
 
-        // Services channel (includes landscape packages under Services).
-        return ServiceAreaPricing::appliesToProduct($product);
+        if ((int) ($product->vendor_id ?? 0) > 0) {
+            return false;
+        }
+
+        return OrderFulfillmentType::isServiceProduct($product);
     }
 
     public static function productIsInstantEligible(?Product $product): bool
@@ -138,9 +142,8 @@ final class InstantOrderFee
     }
 
     /**
-     * Instant fee applies when the cart has at least one shop/simple product line.
-     * Service lines no longer block the fee (mixed cart still gets Instant Order Fee).
-     * Service-only carts do not get the fee.
+     * Instant fee applies when the cart has at least one instant-eligible line (category / vendor shop).
+     * Platform Services-only carts (no vendor_id) do not get the fee.
      */
     public static function cartIsInstant(?iterable $cartItems): bool
     {

@@ -277,7 +277,7 @@ class InstantOrderFeeTest extends TestCase
             ->assertJsonPath('data.total', 65);
     }
 
-    public function test_vendor_owned_booking_service_does_not_include_instant_fee(): void
+    public function test_vendor_owned_category_service_includes_instant_fee(): void
     {
         $vendorUser = User::factory()->create(['role' => 'vendor']);
         $vendor = Vendor::create([
@@ -317,11 +317,49 @@ class InstantOrderFeeTest extends TestCase
         $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
 
         $response->assertOk()
-            ->assertJsonPath('data.is_instant_order', false)
-            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 15)
             ->assertJsonPath('data.subtotal', 120)
             ->assertJsonPath('data.shipping', 8)
-            ->assertJsonPath('data.total', 128);
+            ->assertJsonPath('data.total', 143);
+    }
+
+    public function test_vendor_service_buy_now_summary_includes_instant_fee(): void
+    {
+        Setting::set(InstantOrderFee::SETTING_KEY, '10', 'text', 'shop');
+        Setting::set(InstantOrderFee::ENABLED_KEY, '1', 'text', 'shop');
+
+        $vendorUser = User::factory()->create(['role' => 'vendor']);
+        $vendor = Vendor::create([
+            'user_id' => $vendorUser->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Vendor Service',
+            'owner_name' => 'Owner',
+            'email' => $vendorUser->email,
+        ]);
+
+        $category = Category::factory()->create(['shipping_cost' => 0, 'tax_percentage' => 0]);
+        $vendorService = Product::factory()->create([
+            'category_id' => $category->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'service',
+            'price' => 300,
+            'status' => 'active',
+        ]);
+
+        $this->getJson(
+            '/api/shop/order-summary?product_id='.$vendorService->id.'&quantity=1',
+            $this->clientHeaders()
+        )
+            ->assertOk()
+            ->assertJsonPath('data.is_instant_order', true)
+            ->assertJsonPath('data.instant_order_fee', 10)
+            ->assertJsonPath('data.subtotal', 300)
+            ->assertJsonPath('data.total', 310);
     }
 
     public function test_mixed_vendor_product_and_booking_service_still_includes_instant_fee(): void
