@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
 use App\Support\ServiceAreaPricing;
+use App\Support\ServiceTreePricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -90,6 +91,7 @@ class BuyNowCheckoutSmokeTest extends TestCase
         ]);
 
         ServiceAreaPricing::saveVendorMultiselect($vendor->id, true, true, 23, 70, ServiceAreaPricing::emptyIncludes(), true);
+        ServiceTreePricing::saveGlobal(true, 50, 80);
 
         JobSchedulingSetting::current();
         JobTimeSlot::create(['start_time' => '09:00', 'duration_minutes' => 60, 'is_active' => true, 'sort_order' => 1]);
@@ -128,12 +130,16 @@ class BuyNowCheckoutSmokeTest extends TestCase
             'product_id' => $this->product->id,
             'quantity' => 1,
             'unit_price' => 200,
+            'selected_options' => [$this->optA->id, $this->optB->id],
+            'area_pricing_mode' => 'per_m2',
         ]);
         Cart::create([
             'user_id' => $this->client->id,
             'product_id' => $this->product->id,
             'quantity' => 1,
             'unit_price' => 200,
+            'selected_options' => [$this->optA->id, $this->optB->id],
+            'area_pricing_mode' => 'per_m2',
         ]);
 
         $summary = $this->actingAs($this->client, 'sanctum')
@@ -218,6 +224,49 @@ class BuyNowCheckoutSmokeTest extends TestCase
                 'selected_option_ids' => [$this->optA->id, $this->optB->id],
                 'booking_date' => now()->addDays(3)->toDateString(),
                 'booking_slot' => '02:00 PM',
+                'shipping' => [
+                    'full_name' => 'Test',
+                    'phone' => '+971500000000',
+                    'street' => 'St',
+                    'city' => 'Dubai',
+                    'country' => 'AE',
+                ],
+            ])
+            ->assertOk();
+    }
+
+    public function test_smoke_switch_per_m2_then_fixed_buy_now_without_stale_area(): void
+    {
+        config(['services.stripe.secret' => 'sk_test_smoke_switch']);
+        config(['services.stripe.key' => 'pk_test_smoke_switch']);
+        \Illuminate\Support\Facades\Http::fake([
+            'https://api.stripe.com/*' => \Illuminate\Support\Facades\Http::response([
+                'id' => 'pi_smoke_switch',
+                'client_secret' => 'pi_smoke_switch_secret',
+                'status' => 'requires_payment_method',
+            ], 200),
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', $this->buyNowBody('per_m2'))
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 490);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/checkout/review')
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 490);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', $this->buyNowBody('fixed'))
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 138)
+            ->assertJsonPath('data.order_summary.items.0.area_pricing_mode', 'fixed')
+            ->assertJsonPath('data.order_summary.items.0.required_area', null);
+
+        // Mobile often posts payment-intent with shipping only after switching pricing on the product screen.
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/checkout/stripe/payment-intent', [
                 'shipping' => [
                     'full_name' => 'Test',
                     'phone' => '+971500000000',

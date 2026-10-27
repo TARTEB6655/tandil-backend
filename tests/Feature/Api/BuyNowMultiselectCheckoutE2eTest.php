@@ -4,9 +4,9 @@ namespace Tests\Feature\Api;
 
 use App\Enums\VendorStatus;
 use App\Models\Cart;
-use App\Models\Category;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductOption;
 use App\Models\ProductOptionGroup;
@@ -216,14 +216,14 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
             'product_id' => $this->product->id,
             'quantity' => 1,
             'unit_price' => 50,
-            'selected_options' => [],
+            'selected_options' => [$this->optionA->id, $this->optionB->id],
         ]);
         Cart::create([
             'user_id' => $this->client->id,
             'product_id' => $this->product->id,
             'quantity' => 1,
             'unit_price' => 50,
-            'selected_options' => [],
+            'selected_options' => [$this->optionA->id, $this->optionB->id],
         ]);
 
         $this->actingAs($this->client, 'sanctum')
@@ -240,19 +240,21 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
 
     public function test_payment_intent_totals_match_buy_now_summary_for_fixed_mode(): void
     {
-        if (! config('services.stripe.secret')) {
-            config(['services.stripe.secret' => 'sk_test_e2e_multiselect']);
-            config(['services.stripe.key' => 'pk_test_e2e_multiselect']);
-        }
+        config(['services.stripe.secret' => 'sk_test_e2e_multiselect']);
+        config(['services.stripe.key' => 'pk_test_e2e_multiselect']);
 
-        \Illuminate\Support\Facades\Http::fake([
-            'https://api.stripe.com/*' => \Illuminate\Support\Facades\Http::response([
+        \Illuminate\Support\Facades\Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if ($request->method() === 'POST' && str_contains($request->url(), '/v1/customers')) {
+                return \Illuminate\Support\Facades\Http::response(['id' => 'cus_e2e_multiselect'], 200);
+            }
+
+            return \Illuminate\Support\Facades\Http::response([
                 'id' => 'pi_e2e_multiselect',
                 'client_secret' => 'pi_e2e_multiselect_secret',
                 'status' => 'requires_payment_method',
                 'amount' => 13800,
-            ], 200),
-        ]);
+            ], 200);
+        });
 
         $summary = $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', array_merge($this->commonBuyNowBody(), [

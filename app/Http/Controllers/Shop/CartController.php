@@ -938,6 +938,12 @@ class CartController extends Controller
             ];
         }
 
+        if ($request->boolean('is_buy_now') && ! \App\Support\BuyNowCheckoutContext::requestIsExplicitCartCheckout($request)) {
+            throw new \InvalidArgumentException(
+                'Buy now checkout requires product_id (and pricing fields). Call POST /api/shop/buy-now/summary on the product screen first, or pass the same body on checkout/review and payment-intent.'
+            );
+        }
+
         if ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0) {
             return self::checkoutPreviewFromItemsArray($request, $userId);
         }

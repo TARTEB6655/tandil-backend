@@ -1800,6 +1800,15 @@ final class ServiceAreaPricing
         );
     }
 
+    public static function forgetBuyNowArea(int $userId, int $productId): void
+    {
+        if ($userId <= 0 || $productId <= 0) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\Cache::forget(self::buyNowAreaCacheKey($userId, $productId));
+    }
+
     public static function buyNowAreaCacheKey(int $userId, int $productId): string
     {
         return 'shop:buy_now_area:'.$userId.':'.$productId;
