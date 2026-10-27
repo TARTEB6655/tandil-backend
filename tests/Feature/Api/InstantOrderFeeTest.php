@@ -277,7 +277,7 @@ class InstantOrderFeeTest extends TestCase
             ->assertJsonPath('data.total', 65);
     }
 
-    public function test_vendor_owned_category_service_includes_instant_fee(): void
+    public function test_vendor_owned_category_service_does_not_include_instant_fee(): void
     {
         $vendorUser = User::factory()->create(['role' => 'vendor']);
         $vendor = Vendor::create([
@@ -317,14 +317,15 @@ class InstantOrderFeeTest extends TestCase
         $response = $this->getJson('/api/shop/order-summary', $this->clientHeaders());
 
         $response->assertOk()
-            ->assertJsonPath('data.is_instant_order', true)
-            ->assertJsonPath('data.instant_order_fee', 15)
+            ->assertJsonPath('data.is_instant_order', false)
+            ->assertJsonPath('data.instant_order_fee', 0)
             ->assertJsonPath('data.subtotal', 120)
             ->assertJsonPath('data.shipping', 8)
-            ->assertJsonPath('data.total', 143);
+            ->assertJsonPath('data.total', 128)
+            ->assertJsonPath('data.instant_order_fee_skipped_reason', 'service_only_cart');
     }
 
-    public function test_vendor_service_buy_now_summary_includes_instant_fee(): void
+    public function test_vendor_service_buy_now_summary_excludes_instant_fee(): void
     {
         Setting::set(InstantOrderFee::SETTING_KEY, '10', 'text', 'shop');
         Setting::set(InstantOrderFee::ENABLED_KEY, '1', 'text', 'shop');
@@ -356,10 +357,9 @@ class InstantOrderFeeTest extends TestCase
             $this->clientHeaders()
         )
             ->assertOk()
-            ->assertJsonPath('data.is_instant_order', true)
-            ->assertJsonPath('data.instant_order_fee', 10)
-            ->assertJsonPath('data.subtotal', 300)
-            ->assertJsonPath('data.total', 310);
+            ->assertJsonPath('data.is_instant_order', false)
+            ->assertJsonPath('data.instant_order_fee', 0)
+            ->assertJsonPath('data.subtotal', 300);
     }
 
     public function test_mixed_vendor_product_and_booking_service_still_includes_instant_fee(): void

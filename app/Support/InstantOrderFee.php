@@ -113,23 +113,17 @@ final class InstantOrderFee
             'enabled' => $enabled,
             'currency' => config('shop.currency', 'AED'),
             'applies_to' => 'instant_orders',
-            'note' => 'Instant Order Fee: Category and vendor shop checkout (including vendor services in categories). Platform Services-tab booking SKUs (no vendor) are excluded.',
+            'note' => 'Instant Order Fee: category shop products (physical/product SKUs) only. All service lines (type=service, vendor booking services, Services-tab packages) are excluded.',
         ];
     }
 
     /**
-     * Lines that skip Instant Order Fee (platform Services channel only).
-     *
-     * - Category / vendor shop products (including vendor type=service, e.g. product 305) → fee applies
-     * - Platform Services listing (no vendor_id, type=service or service-linked SKU) → no fee
+     * Service / booking catalog lines — never charged Instant Order Fee.
+     * Category products (simple/physical/vendor product type) are instant-eligible.
      */
     public static function productIsExplicitService(?Product $product): bool
     {
         if ($product === null) {
-            return false;
-        }
-
-        if ((int) ($product->vendor_id ?? 0) > 0) {
             return false;
         }
 
@@ -142,8 +136,8 @@ final class InstantOrderFee
     }
 
     /**
-     * Instant fee applies when the cart has at least one instant-eligible line (category / vendor shop).
-     * Platform Services-only carts (no vendor_id) do not get the fee.
+     * Instant fee when the cart has at least one category product line (non-service).
+     * Service-only carts (including vendor type=service in a category) do not get the fee.
      */
     public static function cartIsInstant(?iterable $cartItems): bool
     {
