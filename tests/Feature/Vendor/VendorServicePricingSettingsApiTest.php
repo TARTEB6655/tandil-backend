@@ -310,7 +310,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'multi');
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
-        $this->assertTrue($fields['area_pricing_mode_required']);
+        $this->assertFalse($fields['area_pricing_mode_required']);
+        $this->assertSame('per_m2', $fields['default_area_pricing_mode']);
         $this->assertSame('multi', $fields['pricing_type']);
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertNull($fields['checkout_price']);
@@ -379,8 +380,13 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $this->serviceProduct->id,
             'quantity' => 1,
+        ])->assertSuccessful();
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $this->serviceProduct->id,
+            'quantity' => 1,
             'required_area' => 10,
-        ])->assertStatus(422);
+        ])->assertSuccessful();
 
         $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
             'product_id' => $this->serviceProduct->id,

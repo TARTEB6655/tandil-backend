@@ -315,6 +315,10 @@ final class ServiceAreaPricing
         if (in_array($mode, [self::TYPE_PER_M2, 'per_sqm', 'sqm', 'm2', 'area', 'square_meter'], true)) {
             return self::TYPE_PER_M2;
         }
+        // Catalog / list price only (no fixed addon; per-m² rate applies only when area is sent).
+        if (in_array($mode, ['base', 'catalog', 'list', 'catalog_only'], true)) {
+            return self::TYPE_PER_M2;
+        }
 
         return null;
     }
@@ -361,8 +365,9 @@ final class ServiceAreaPricing
             return null;
         }
 
+        // Multiselect: omitting mode is allowed — checkout defaults to catalog price (per m² path, no area).
         if ($mode === null) {
-            return 'Select Fixed price or Price per square meter (m²) for this item.';
+            return null;
         }
 
         $modes = self::areaModesForProduct($product);
@@ -388,6 +393,10 @@ final class ServiceAreaPricing
 
         if ($normalized !== null) {
             return $normalized;
+        }
+
+        if (self::requiresAreaPricingModeSelection($product)) {
+            return self::TYPE_PER_M2;
         }
 
         return self::implicitAreaPricingMode($product);
@@ -1361,7 +1370,9 @@ final class ServiceAreaPricing
             return [
                 ...self::areaPricingClientVisibilityFields($product),
                 'pricing_type' => 'multi',
-                'area_pricing_mode_required' => true,
+                'area_pricing_mode_required' => false,
+                'default_area_pricing_mode' => self::TYPE_PER_M2,
+                'catalog_price_checkout_hint' => 'Add to cart without area_pricing_mode (or area_pricing_mode base/catalog) charges catalog price only. Send fixed for base+addon; per_m2+required_area for rate×m².',
                 'area_pricing_options' => [
                     'fixed' => [
                         'enabled' => true,
