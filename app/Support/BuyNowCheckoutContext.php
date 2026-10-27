@@ -48,6 +48,17 @@ class BuyNowCheckoutContext
             return;
         }
 
+        $payload = self::payloadFromRequest($request);
+        $payload['saved_at'] = now()->toIso8601String();
+
+        Cache::put(self::cacheKey($userId), $payload, now()->addHours(self::TTL_HOURS));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function payloadFromRequest(Request $request): array
+    {
         $payload = ['product_id' => (int) $request->input('product_id')];
         foreach (self::KEYS as $key) {
             if ($key === 'product_id' || ! $request->has($key)) {
@@ -60,23 +71,15 @@ class BuyNowCheckoutContext
             $payload[$key] = $value;
         }
 
-        Cache::put(self::cacheKey($userId), $payload, now()->addHours(self::TTL_HOURS));
+        return $payload;
     }
 
     /**
-     * Fill missing Buy Now fields when the app continues checkout with is_buy_now only.
+     * Fill missing Buy Now fields when checkout continues without repeating the product screen body.
      */
     public static function hydrateOntoRequest(Request $request, int $userId): void
     {
-        if ($userId <= 0) {
-            return;
-        }
-
-        if (! $request->boolean('is_buy_now') && ! $request->boolean('use_buy_now_context')) {
-            return;
-        }
-
-        if ($request->filled('product_id')) {
+        if ($userId <= 0 || self::requestIsExplicitCartCheckout($request)) {
             return;
         }
 
@@ -85,15 +88,61 @@ class BuyNowCheckoutContext
             return;
         }
 
-        foreach ($cached as $key => $value) {
-            if (! $request->has($key)) {
-                $request->merge([$key => $value]);
+        if ($request->filled('product_id')) {
+            if ((int) $request->input('product_id') !== (int) $cached['product_id']) {
+                return;
             }
+            self::mergeMissingFromCache($request, $cached);
+            if (! $request->has('is_buy_now')) {
+                $request->merge(['is_buy_now' => true]);
+            }
+
+            return;
         }
 
+        if (
+            ! $request->boolean('is_buy_now')
+            && ! $request->boolean('use_buy_now_context')
+            && ! self::shouldAutoApplyCachedBuyNow($request)
+        ) {
+            return;
+        }
+
+        self::mergeMissingFromCache($request, $cached);
         if (! $request->has('is_buy_now')) {
             $request->merge(['is_buy_now' => true]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $cached
+     */
+    private static function mergeMissingFromCache(Request $request, array $cached): void
+    {
+        foreach ($cached as $key => $value) {
+            if ($key === 'saved_at' || $request->has($key)) {
+                continue;
+            }
+            $request->merge([$key => $value]);
+        }
+    }
+
+    public static function requestIsExplicitCartCheckout(Request $request): bool
+    {
+        if ($request->boolean('checkout_as_cart')) {
+            return true;
+        }
+
+        return in_array((string) $request->input('checkout_mode'), ['cart', 'server_cart'], true);
+    }
+
+    public static function shouldAutoApplyCachedBuyNow(Request $request): bool
+    {
+        if (! $request->is('*checkout/review') && ! $request->is('*order-summary')) {
+            return false;
+        }
+
+        return true;
     }
 
     public static function forget(int $userId): void

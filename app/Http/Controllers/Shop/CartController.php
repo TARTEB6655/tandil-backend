@@ -610,6 +610,41 @@ class CartController extends Controller
     }
 
     /**
+     * Use ephemeral single-product preview when product_id is set unless items[] is a true multi-product checkout.
+     */
+    public static function shouldUseSingleProductCheckoutPreview(Request $request): bool
+    {
+        if (! $request->filled('product_id')) {
+            return false;
+        }
+
+        $items = $request->input('items');
+        if (! is_array($items) || $items === []) {
+            return true;
+        }
+
+        $topProductId = (int) $request->input('product_id');
+        $productIds = [];
+        foreach ($items as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $pid = (int) ($row['product_id'] ?? 0);
+            if ($pid > 0) {
+                $productIds[] = $pid;
+            }
+        }
+
+        if ($productIds === []) {
+            return true;
+        }
+
+        $unique = array_values(array_unique($productIds));
+
+        return count($unique) === 1 && $unique[0] === $topProductId;
+    }
+
+    /**
      * Resolve Buy Now quantity from request (quantity preferred, then qty, default 1).
      */
     private static function resolveBuyNowQuantity(Request $request): int
@@ -780,6 +815,8 @@ class CartController extends Controller
         $cartItem->load(['product.category', 'product.primaryImage', 'product.services', 'product.optionGroups.options']);
         $data = self::cartItemToFrontend($cartItem);
 
+        \App\Support\BuyNowCheckoutContext::forget((int) $user->id);
+
         return ApiResponse::success('Item added to cart.', $data, 201);
     }
 
@@ -794,15 +831,8 @@ class CartController extends Controller
         $fallbackDate = self::resolveTopLevelBookingDate($request);
         $fallbackSlot = self::resolveTopLevelBookingSlot($request);
 
-        // Buy Now: product_id wins over items[] (apps often send both; items without area broke pay).
-        // POST /buy-now/summary with product_id always previews that product line.
-        $useBuyNowProduct = $request->filled('product_id')
-            && (
-                $request->boolean('is_buy_now')
-                || $request->is('*buy-now/summary')
-                || self::preferTopLevelProductForCheckoutPreview($request)
-                || ! ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0)
-            );
+        // Buy Now / single-product checkout: top-level product_id wins over stale items[] (cart echo).
+        $useBuyNowProduct = self::shouldUseSingleProductCheckoutPreview($request);
 
         if ($useBuyNowProduct) {
             $request->validate(array_merge([
@@ -1181,14 +1211,17 @@ class CartController extends Controller
             \App\Support\BuyNowCheckoutContext::remember((int) $user->id, $request);
         }
 
-        return ApiResponse::success('Buy now summary retrieved.', [
-            'order_summary' => $orderSummary,
-            'buy_now_checkout' => [
+        $payload = ['order_summary' => $orderSummary];
+        if ($request->filled('product_id')) {
+            $payload['buy_now_checkout'] = [
                 'is_buy_now' => true,
                 'product_id' => (int) $request->input('product_id'),
-                'hint' => 'Send is_buy_now=true on GET checkout/review, order-summary, and payment-intent (product_id optional if same session).',
-            ],
-        ]);
+                'params' => \App\Support\BuyNowCheckoutContext::payloadFromRequest($request),
+                'hint' => 'Repeat is_buy_now=true (or call GET checkout/review after summary — server restores params). Cart checkout: checkout_mode=cart.',
+            ];
+        }
+
+        return ApiResponse::success('Buy now summary retrieved.', $payload);
     }
 
     /**
@@ -1211,7 +1244,8 @@ class CartController extends Controller
             ? $items->isNotEmpty()
             : (is_countable($items) && count($items) > 0);
 
-        if ($hasServerCart && (! $request->filled('product_id') || $request->filled('items'))) {
+        $singleProductBuyNow = self::shouldUseSingleProductCheckoutPreview($request);
+        if ($hasServerCart && (! $request->filled('product_id') || ($request->filled('items') && ! $singleProductBuyNow))) {
             return [
                 'subtotal' => round((float) ($cartPreview['subtotal'] ?? 0), 2),
                 'catalog_discount' => round((float) ($cartPreview['catalog_discount'] ?? 0), 2),
@@ -1331,6 +1365,8 @@ class CartController extends Controller
             self::finalizeOrderSummaryCouponState($summary, null);
             self::normalizeOrderSummaryNumericTypes($summary);
             $summary = self::attachLineItemsToOrderSummary($summary, $cartItems);
+            $summary = self::attachCheckoutSourceMeta($request, $summary, $cartPreview);
+            self::maybeRememberBuyNowCheckoutContext($request, (int) $user->id, $cartPreview);
 
             return [
                 'cart_preview' => $cartPreview,
@@ -1376,10 +1412,68 @@ class CartController extends Controller
                     $pack['order_summary'],
                     $cartItems
                 );
+                $pack['order_summary'] = self::attachCheckoutSourceMeta(
+                    $request,
+                    $pack['order_summary'],
+                    $cartPreview
+                );
             }
         }
 
+        if ($pack['error'] === null) {
+            self::maybeRememberBuyNowCheckoutContext($request, (int) $user->id, $cartPreview);
+        }
+
         return $pack;
+    }
+
+    /**
+     * @param  array{items: \Illuminate\Support\Collection<int, Cart>, subtotal: float}  $cartPreview
+     */
+    private static function maybeRememberBuyNowCheckoutContext(Request $request, int $userId, array $cartPreview): void
+    {
+        if ($userId <= 0 || ! $request->filled('product_id')) {
+            return;
+        }
+
+        if (! self::shouldUseSingleProductCheckoutPreview($request)) {
+            return;
+        }
+
+        $items = $cartPreview['items'] ?? collect();
+        if (! $items instanceof \Illuminate\Support\Collection || $items->count() !== 1) {
+            return;
+        }
+
+        $line = $items->first();
+        if (! $line instanceof Cart || (int) $line->product_id !== (int) $request->input('product_id')) {
+            return;
+        }
+
+        // Ephemeral Buy Now line (not a persisted cart row).
+        if ((int) ($line->id ?? 0) > 0) {
+            return;
+        }
+
+        \App\Support\BuyNowCheckoutContext::remember($userId, $request);
+    }
+
+    /**
+     * @param  array<string, mixed>  $summary
+     * @param  array{items: \Illuminate\Support\Collection<int, Cart>, subtotal: float}  $cartPreview
+     * @return array<string, mixed>
+     */
+    private static function attachCheckoutSourceMeta(Request $request, array $summary, array $cartPreview): array
+    {
+        if (self::shouldUseSingleProductCheckoutPreview($request)) {
+            $summary['checkout_source'] = 'buy_now';
+            $summary['buy_now_product_id'] = (int) $request->input('product_id');
+        } elseif (($cartPreview['items'] ?? collect()) instanceof \Illuminate\Support\Collection
+            && $cartPreview['items']->isNotEmpty()) {
+            $summary['checkout_source'] = 'cart';
+        }
+
+        return $summary;
     }
 
     /**
