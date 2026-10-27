@@ -288,7 +288,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
         $this->assertTrue($fields['area_pricing_mode_required']);
         $this->assertSame('multi', $fields['pricing_type']);
-        $this->assertNull($fields['price_per_m2']);
+        $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertNull($fields['checkout_price']);
         $this->assertSame(100.0, (float) $fields['price']);
         $this->assertSame(123.0, (float) $fields['area_pricing_options']['fixed']['checkout_price']);
@@ -305,6 +305,36 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(7000.0, (float) $preview['when_per_m2_selected']['example']['total']);
         $this->assertSame('AED 23', $fields['area_pricing_options']['fixed']['price_label']);
         $this->assertSame('AED 70 / m²', $fields['area_pricing_options']['per_m2']['price_label']);
+    }
+
+    public function test_legacy_fixed_save_preserves_existing_per_m2_when_both_enabled(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->withToken($this->token)
+            ->postJson('/api/vendor/settings/service-pricing', [
+                'pricing_type' => 'fixed',
+                'price' => 350,
+                'show_on_client_products_services' => true,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.fixed_price', 350)
+            ->assertJsonPath('data.per_m2_price', 70)
+            ->assertJsonPath('data.enable_fixed_price', true)
+            ->assertJsonPath('data.enable_per_m2', true);
+
+        $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
+        $this->assertSame(70.0, (float) $fields['price_per_m2']);
+        $this->assertSame(350.0, (float) $fields['fixed_price_addon']);
     }
 
     public function test_vendor_multiselect_checkout_requires_mode_and_totals(): void

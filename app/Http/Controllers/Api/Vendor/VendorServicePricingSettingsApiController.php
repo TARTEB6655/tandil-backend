@@ -30,16 +30,20 @@ class VendorServicePricingSettingsApiController extends Controller
     public function update(Request $request): JsonResponse
     {
         $vendor = $this->vendor($request);
-        $this->normalizeFormData($request);
+
+        $this->normalizeFormData($request, $vendor->id);
 
         $this->normalizeClientVisibility($request);
 
         $this->normalizeMultiselectFlags($request);
 
+        ServiceAreaPricing::hydrateVendorServicePricingRequest($request, $vendor->id);
+
         $usesMultiselect = $request->has('enable_fixed_price')
             || $request->has('enable_per_m2')
             || $request->has('fixed_price')
-            || $request->has('per_m2_price');
+            || $request->has('per_m2_price')
+            || $request->has('price_per_m2');
 
         if ($usesMultiselect) {
             $validated = $request->validate([
@@ -76,7 +80,7 @@ class VendorServicePricingSettingsApiController extends Controller
             ]);
         }
 
-        $parsed = ServiceAreaPricing::parseVendorServicePricingSaveInput($validated);
+        $parsed = ServiceAreaPricing::parseVendorServicePricingSaveInput($validated, $vendor->id);
 
         $sync = ServiceAreaPricing::saveVendorMultiselect(
             $vendor->id,
@@ -132,7 +136,7 @@ class VendorServicePricingSettingsApiController extends Controller
         }
     }
 
-    private function normalizeFormData(Request $request): void
+    private function normalizeFormData(Request $request, ?int $vendorId = null): void
     {
         $this->normalizeClientVisibility($request);
         $this->normalizeMultiselectFlags($request);

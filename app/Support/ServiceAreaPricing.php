@@ -630,20 +630,30 @@ final class ServiceAreaPricing
      *     show_on_client_products_services: bool
      * }
      */
-    public static function parseVendorServicePricingSaveInput(array $input): array
+    public static function parseVendorServicePricingSaveInput(array $input, ?int $vendorId = null): array
     {
-        $hasMultiselect = array_key_exists('enable_fixed_price', $input)
-            || array_key_exists('enable_per_m2', $input)
-            || array_key_exists('fixed_price', $input)
-            || array_key_exists('per_m2_price', $input);
+        $existing = $vendorId !== null && $vendorId > 0
+            ? self::vendorConfigExpanded($vendorId)
+            : null;
 
         $show = filter_var($input['show_on_client_products_services'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
+        $hasMultiselect = array_key_exists('enable_fixed_price', $input)
+            || array_key_exists('enable_per_m2', $input)
+            || array_key_exists('fixed_price', $input)
+            || array_key_exists('per_m2_price', $input)
+            || array_key_exists('price_per_m2', $input);
+
         if ($hasMultiselect) {
-            $enableFixed = filter_var($input['enable_fixed_price'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $enablePerM2 = filter_var($input['enable_per_m2'] ?? false, FILTER_VALIDATE_BOOLEAN);
-            $fixedPrice = max(0, round((float) ($input['fixed_price'] ?? 0), 2));
-            $perM2Price = max(0, round((float) ($input['per_m2_price'] ?? 0), 2));
+            $enableFixed = array_key_exists('enable_fixed_price', $input)
+                ? filter_var($input['enable_fixed_price'], FILTER_VALIDATE_BOOLEAN)
+                : (bool) ($existing['enable_fixed_price'] ?? false);
+            $enablePerM2 = array_key_exists('enable_per_m2', $input)
+                ? filter_var($input['enable_per_m2'], FILTER_VALIDATE_BOOLEAN)
+                : (bool) ($existing['enable_per_m2'] ?? false);
+
+            $fixedPrice = self::resolveVendorFixedPriceFromInput($input, $existing, $enableFixed);
+            $perM2Price = self::resolveVendorPerM2PriceFromInput($input, $existing, $enablePerM2);
 
             return [
                 'enable_fixed' => $enableFixed,
@@ -657,6 +667,21 @@ final class ServiceAreaPricing
         $type = self::normalizeType((string) ($input['pricing_type'] ?? self::TYPE_FIXED), true);
         $price = max(0, round((float) ($input['price'] ?? 0), 2));
 
+        // Legacy radio body — if vendor already had both modes, keep the other rate when only one slot is posted.
+        if ($existing !== null && ($existing['enable_fixed_price'] ?? false) && ($existing['enable_per_m2'] ?? false)) {
+            return [
+                'enable_fixed' => true,
+                'enable_per_m2' => true,
+                'fixed_price' => $type === self::TYPE_FIXED
+                    ? $price
+                    : (float) ($existing['fixed_price'] ?? 0),
+                'per_m2_price' => $type === self::TYPE_PER_M2
+                    ? $price
+                    : (float) ($existing['per_m2_price'] ?? 0),
+                'show_on_client_products_services' => $show,
+            ];
+        }
+
         return [
             'enable_fixed' => $type === self::TYPE_FIXED,
             'enable_per_m2' => $type === self::TYPE_PER_M2,
@@ -664,6 +689,94 @@ final class ServiceAreaPricing
             'per_m2_price' => $type === self::TYPE_PER_M2 ? $price : 0.0,
             'show_on_client_products_services' => $show,
         ];
+    }
+
+    /**
+     * Map vendor mobile form fields (single price + toggles) into multiselect save shape.
+     */
+    public static function hydrateVendorServicePricingRequest(\Illuminate\Http\Request $request, int $vendorId): void
+    {
+        $existing = self::vendorConfigExpanded($vendorId);
+
+        $hasToggle = $request->has('enable_fixed_price') || $request->has('enable_per_m2');
+        $hasAmount = $request->has('fixed_price') || $request->has('per_m2_price')
+            || $request->has('price_per_m2') || $request->has('pricePerM2');
+
+        if (! $hasToggle && ! $hasAmount && ! $request->has('pricing_type')) {
+            return;
+        }
+
+        $enableFixed = $request->has('enable_fixed_price')
+            ? filter_var($request->input('enable_fixed_price'), FILTER_VALIDATE_BOOLEAN)
+            : (bool) ($existing['enable_fixed_price'] ?? false);
+        $enablePerM2 = $request->has('enable_per_m2')
+            ? filter_var($request->input('enable_per_m2'), FILTER_VALIDATE_BOOLEAN)
+            : (bool) ($existing['enable_per_m2'] ?? false);
+
+        if ($request->has('pricing_type') && ! $request->has('enable_fixed_price') && ! $request->has('enable_per_m2')) {
+            $type = self::normalizeType((string) $request->input('pricing_type'), true);
+            if ($existing['area_pricing_multiselect'] ?? false) {
+                $enableFixed = $type === self::TYPE_FIXED ? true : $enableFixed;
+                $enablePerM2 = $type === self::TYPE_PER_M2 ? true : $enablePerM2;
+            } else {
+                $enableFixed = $type === self::TYPE_FIXED;
+                $enablePerM2 = $type === self::TYPE_PER_M2;
+            }
+        }
+
+        if ($enableFixed || $enablePerM2 || $hasAmount || $hasToggle) {
+            $input = $request->all();
+            $request->merge([
+                'enable_fixed_price' => $enableFixed,
+                'enable_per_m2' => $enablePerM2,
+                'fixed_price' => self::resolveVendorFixedPriceFromInput($input, $existing, $enableFixed),
+                'per_m2_price' => self::resolveVendorPerM2PriceFromInput($input, $existing, $enablePerM2),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $existing
+     */
+    private static function resolveVendorFixedPriceFromInput(array $input, ?array $existing, bool $enableFixed): float
+    {
+        if (! $enableFixed) {
+            return 0.0;
+        }
+        if (array_key_exists('fixed_price', $input) && $input['fixed_price'] !== '' && $input['fixed_price'] !== null) {
+            return max(0, round((float) $input['fixed_price'], 2));
+        }
+        if (array_key_exists('price', $input) && $input['price'] !== '' && $input['price'] !== null) {
+            $type = self::normalizeType((string) ($input['pricing_type'] ?? self::TYPE_FIXED), true);
+            if ($type === self::TYPE_FIXED) {
+                return max(0, round((float) $input['price'], 2));
+            }
+        }
+
+        return max(0, round((float) ($existing['fixed_price'] ?? 0), 2));
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $existing
+     */
+    private static function resolveVendorPerM2PriceFromInput(array $input, ?array $existing, bool $enablePerM2): float
+    {
+        if (! $enablePerM2) {
+            return 0.0;
+        }
+        foreach (['per_m2_price', 'price_per_m2', 'pricePerM2', 'per_sqm_price'] as $key) {
+            if (array_key_exists($key, $input) && $input[$key] !== '' && $input[$key] !== null) {
+                return max(0, round((float) $input[$key], 2));
+            }
+        }
+        if (array_key_exists('price', $input) && $input['price'] !== '' && $input['price'] !== null) {
+            $type = self::normalizeType((string) ($input['pricing_type'] ?? ''), true);
+            if ($type === self::TYPE_PER_M2) {
+                return max(0, round((float) $input['price'], 2));
+            }
+        }
+
+        return max(0, round((float) ($existing['per_m2_price'] ?? 0), 2));
     }
 
     /**
@@ -1211,13 +1324,16 @@ final class ServiceAreaPricing
                 'base_price' => $catalogPrice,
                 'price_label' => self::formatMoney($catalogPrice),
                 'list_price_label' => self::formatMoney($catalogPrice),
-                'fixed_price_addon' => null,
-                'fixed_price' => null,
+                'enable_fixed_price' => true,
+                'enable_per_m2' => true,
+                'fixed_price_addon' => $fixedAddon,
+                'fixed_price' => $fixedAddon,
+                'per_m2_price' => $rate,
                 'checkout_price' => null,
-                'price_per_m2' => null,
-                'unit_rate' => null,
-                'unit_rate_label' => null,
-                'checkout_rate_label' => null,
+                'price_per_m2' => $rate,
+                'unit_rate' => $rate,
+                'unit_rate_label' => self::formatMoney($rate).' / m²',
+                'checkout_rate_label' => self::formatMoney($rate).' / m²',
                 'currency' => 'AED',
                 'price_unit' => null,
                 'requires_area' => false,
@@ -1330,9 +1446,11 @@ final class ServiceAreaPricing
         $enablePerM2 = $vendorExpanded['enable_per_m2'] ?? ($type === self::TYPE_PER_M2);
         $fixedPrice = $vendorExpanded['fixed_price'] ?? ($type === self::TYPE_FIXED ? (float) self::resolveConfigForProduct($product)['price'] : 0.0);
         $perM2Price = $vendorExpanded['per_m2_price'] ?? ($type === self::TYPE_PER_M2 ? (float) self::resolveConfigForProduct($product)['price'] : 0.0);
-        // Admin input shows the global setting amount (Fixed addon / per-m² rate), not the customer total.
+        // Legacy single `price` — one active slot; multiselect apps must use fixed_price + per_m2_price.
         $price = $isService
-            ? round((float) self::resolveConfigForProduct($product)['price'], 2)
+            ? ($type === 'multi'
+                ? round((float) $fixedPrice, 2)
+                : round((float) self::resolveConfigForProduct($product)['price'], 2))
             : round((float) ($product->price ?? 0), 2);
 
         return [
@@ -1363,8 +1481,10 @@ final class ServiceAreaPricing
                     'multiselect' => true,
                 ],
             ],
-            'price' => $price,
+            'price' => $type === 'multi' ? null : $price,
+            'fixed_price_amount' => $enableFixed ? round((float) $fixedPrice, 2) : null,
             'price_per_m2' => $enablePerM2 ? round((float) $perM2Price, 2) : null,
+            'per_m2_price' => $enablePerM2 ? round((float) $perM2Price, 2) : null,
             'currency' => 'AED',
             'price_unit' => $type === self::TYPE_PER_M2 ? 'm²' : ($type === 'multi' ? null : null),
             'price_input_label' => $type === self::TYPE_PER_M2
