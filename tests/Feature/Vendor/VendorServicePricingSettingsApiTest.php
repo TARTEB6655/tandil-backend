@@ -316,7 +316,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertNull($fields['checkout_price']);
         $this->assertSame(100.0, (float) $fields['price']);
-        $this->assertSame(123.0, (float) $fields['area_pricing_options']['fixed']['checkout_price']);
+        $this->assertSame(23.0, (float) $fields['area_pricing_options']['fixed']['checkout_price']);
         $this->assertSame(70.0, (float) $fields['area_pricing_options']['per_m2']['price_per_m2']);
         $preview = $fields['customer_preview'];
         $this->assertSame('multi', $preview['pricing_type']);
@@ -324,7 +324,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(23.0, (float) $preview['breakdown']['fixed_price']);
         $this->assertSame(70.0, (float) $preview['breakdown']['price_per_m2']);
         $this->assertArrayNotHasKey('total', $preview['breakdown']);
-        $this->assertSame(123.0, (float) $preview['when_fixed_selected']['checkout_total']);
+        $this->assertSame(23.0, (float) $preview['when_fixed_selected']['checkout_total']);
         $this->assertArrayNotHasKey('total', $preview['when_fixed_selected']['breakdown']);
         $this->assertArrayNotHasKey('formula', $preview['when_fixed_selected']['breakdown']);
         $this->assertSame(7000.0, (float) $preview['when_per_m2_selected']['example']['total']);
@@ -412,7 +412,43 @@ class VendorServicePricingSettingsApiTest extends TestCase
             null,
             'fixed'
         );
-        $this->assertSame(123.0, $fixedTotal);
+        $this->assertSame(23.0, $fixedTotal);
+    }
+
+    public function test_multiselect_fixed_checkout_with_trees_and_palms_uses_fixed_price_only(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+        $this->serviceProduct->update(['price' => 200]);
+
+        ServiceTreePricing::saveVendor($this->vendor->id, true, 50, 50);
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignClientRole($client);
+
+        $this->actingAs($client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'area_pricing_mode' => 'fixed',
+                'tree_quantity' => 2,
+                'palm_tree_quantity' => 3,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 550)
+            ->assertJsonPath('data.order_summary.checkout_source', 'buy_now');
+
+        $this->actingAs($client, 'sanctum')
+            ->getJson('/api/shop/checkout/review')
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 550);
     }
 
     public function test_multiselect_buy_now_catalog_ignores_stale_cart_area(): void

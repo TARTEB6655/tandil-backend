@@ -1081,7 +1081,8 @@ final class ServiceAreaPricing
     /**
      * Effective unit price for a catalog product (cart / Buy Now without area).
      * Per m² services: configured product catalog price (area × per-m² rate is applied in lineTotal).
-     * Fixed services: product base (catalog) price + global Fixed amount.
+     * Multiselect + area_pricing_mode=fixed: vendor fixed price only (not catalog + fixed).
+     * Legacy single-mode fixed: catalog + fixed addon.
      */
     public static function effectiveUnitPrice(Product $product, float $fallbackProductPrice, ?string $areaPricingMode = null): float
     {
@@ -1093,14 +1094,20 @@ final class ServiceAreaPricing
             return round($fallbackProductPrice, 2);
         }
 
-        $mode = self::normalizeAreaPricingMode($areaPricingMode) ?? self::implicitAreaPricingMode($product);
+        $explicitMode = self::normalizeAreaPricingMode($areaPricingMode);
+        $mode = $explicitMode ?? self::implicitAreaPricingMode($product);
         if ($mode === self::TYPE_PER_M2) {
             return round($fallbackProductPrice, 2);
         }
 
         $modes = self::areaModesForProduct($product);
+        $fixedAmount = (float) $modes['fixed_amount'];
 
-        return round($fallbackProductPrice + (float) $modes['fixed_amount'], 2);
+        if (self::requiresAreaPricingModeSelection($product) && $explicitMode === self::TYPE_FIXED) {
+            return round($fixedAmount, 2);
+        }
+
+        return round($fallbackProductPrice + $fixedAmount, 2);
     }
 
     /**
@@ -1340,10 +1347,40 @@ final class ServiceAreaPricing
             'list_price_display' => 'Listed: '.self::formatMoney(round($catalogPrice, 2)),
             'breakdown' => $breakdown,
             'selection_note' => 'Customer picks Fixed price or Price per m², then adds to cart with area_pricing_mode. Only the chosen mode applies at checkout.',
-            'fixed' => self::customerPreviewFixed($catalogPrice, $fixedAddon),
+            'fixed' => self::customerPreviewMultiselectFixedCheckout($fixedAddon),
             'per_m2' => self::customerPreviewPerM2($catalogPrice, $rate),
-            'when_fixed_selected' => self::customerPreviewFixed($catalogPrice, $fixedAddon),
+            'when_fixed_selected' => self::customerPreviewMultiselectFixedCheckout($fixedAddon),
             'when_per_m2_selected' => self::customerPreviewPerM2($catalogPrice, $rate),
+        ];
+    }
+
+    /**
+     * Multiselect checkout when customer chose Fixed — vendor fixed price is the service total (not catalog + fixed).
+     *
+     * @return array<string, mixed>
+     */
+    public static function customerPreviewMultiselectFixedCheckout(float $fixedPrice): array
+    {
+        $fixedPrice = round($fixedPrice, 2);
+
+        return [
+            'mode' => self::TYPE_FIXED,
+            'fixed_price_label' => self::formatMoney($fixedPrice),
+            'checkout_total' => $fixedPrice,
+            'checkout_total_label' => self::formatMoney($fixedPrice),
+            'breakdown' => [
+                'display_only' => true,
+                'lines' => [
+                    [
+                        'key' => 'fixed_price',
+                        'label' => 'Fixed price',
+                        'amount' => $fixedPrice,
+                        'amount_label' => self::formatMoney($fixedPrice),
+                    ],
+                ],
+                'note' => 'At checkout with area_pricing_mode=fixed, the service line uses this fixed price (catalog is not added again).',
+            ],
+            'note' => 'Checkout total for fixed mode is the vendor fixed price plus options and tree/palm add-ons.',
         ];
     }
 
@@ -1404,7 +1441,7 @@ final class ServiceAreaPricing
         if ($multiselect) {
             $fixedAddon = round((float) $modes['fixed_amount'], 2);
             $rate = round((float) $modes['per_m2_rate'], 2);
-            $fixedTotal = round($catalogPrice + $fixedAddon, 2);
+            $fixedCheckout = round($fixedAddon, 2);
             $preview = self::customerPreviewMulti($catalogPrice, $fixedAddon, $rate);
 
             return [
@@ -1412,16 +1449,17 @@ final class ServiceAreaPricing
                 'pricing_type' => 'multi',
                 'area_pricing_mode_required' => false,
                 'default_area_pricing_mode' => self::TYPE_PER_M2,
-                'catalog_price_checkout_hint' => 'Add to cart without area_pricing_mode (or area_pricing_mode base/catalog) charges catalog price only. Send fixed for base+addon; per_m2+required_area for rate×m².',
+                'catalog_price_checkout_hint' => 'Omit area_pricing_mode (or send base/catalog) for catalog price only. Send area_pricing_mode=fixed for vendor fixed price only (not catalog+fixed). Send per_m2+required_area for rate×m².',
                 'area_pricing_options' => [
                     'fixed' => [
                         'enabled' => true,
                         'mode' => self::TYPE_FIXED,
                         'catalog_price' => $catalogPrice,
                         'fixed_price_addon' => $fixedAddon,
-                        'checkout_price' => $fixedTotal,
+                        'fixed_price' => $fixedAddon,
+                        'checkout_price' => $fixedCheckout,
                         'price_label' => self::formatMoney($fixedAddon),
-                        'price_display_note' => 'Fixed addon only on breakdown; at checkout: catalog + fixed addon.',
+                        'price_display_note' => 'Checkout with area_pricing_mode=fixed uses this fixed price; catalog is not added again.',
                         'customer_preview' => $preview['when_fixed_selected'],
                     ],
                     'per_m2' => [

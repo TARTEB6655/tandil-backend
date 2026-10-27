@@ -194,7 +194,7 @@ class BuyNowCheckoutSmokeTest extends TestCase
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', $body)
             ->assertOk()
-            ->assertJsonPath('data.order_summary.subtotal', 138)
+            ->assertJsonPath('data.order_summary.subtotal', 38)
             ->assertJsonPath('data.order_summary.items.0.area_pricing_mode', 'fixed');
     }
 
@@ -214,7 +214,7 @@ class BuyNowCheckoutSmokeTest extends TestCase
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', $this->buyNowBody('fixed'))
             ->assertOk()
-            ->assertJsonPath('data.order_summary.subtotal', 138);
+            ->assertJsonPath('data.order_summary.subtotal', 38);
 
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/checkout/stripe/payment-intent', [
@@ -260,7 +260,7 @@ class BuyNowCheckoutSmokeTest extends TestCase
         $this->actingAs($this->client, 'sanctum')
             ->postJson('/api/shop/buy-now/summary', $this->buyNowBody('fixed'))
             ->assertOk()
-            ->assertJsonPath('data.order_summary.subtotal', 138)
+            ->assertJsonPath('data.order_summary.subtotal', 38)
             ->assertJsonPath('data.order_summary.items.0.area_pricing_mode', 'fixed')
             ->assertJsonPath('data.order_summary.items.0.required_area', null);
 

@@ -163,10 +163,10 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
 
         $response->assertOk();
         $summary = $response->json('data.order_summary');
-        $this->assertSame(138.0, (float) ($summary['subtotal'] ?? 0));
+        $this->assertSame(38.0, (float) ($summary['subtotal'] ?? 0));
 
         $serviceLine = collect($summary['items'])->first();
-        $this->assertSame(138.0, (float) ($serviceLine['line_total'] ?? 0));
+        $this->assertSame(38.0, (float) ($serviceLine['line_total'] ?? 0));
         $this->assertSame('fixed', $serviceLine['area_pricing_mode'] ?? null);
     }
 
@@ -252,7 +252,7 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
                 'id' => 'pi_e2e_multiselect',
                 'client_secret' => 'pi_e2e_multiselect_secret',
                 'status' => 'requires_payment_method',
-                'amount' => 13800,
+                'amount' => 3800,
             ], 200);
         });
 
@@ -263,7 +263,7 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
             ->assertOk()
             ->json('data.order_summary');
 
-        $this->assertSame(138.0, (float) ($summary['subtotal'] ?? 0));
+        $this->assertSame(38.0, (float) ($summary['subtotal'] ?? 0));
 
         $paymentBody = array_merge($this->commonBuyNowBody(), [
             'is_buy_now' => true,
