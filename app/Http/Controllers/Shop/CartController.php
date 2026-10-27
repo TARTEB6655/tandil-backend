@@ -592,6 +592,24 @@ class CartController extends Controller
     }
 
     /**
+     * Apps often send top-level product_id plus a single items[] row without tree/mode/area.
+     * Prefer the top-level body so Buy Now matches POST /cart/add and product details.
+     */
+    private static function preferTopLevelProductForCheckoutPreview(Request $request): bool
+    {
+        if (! $request->filled('product_id')) {
+            return false;
+        }
+
+        $items = $request->input('items');
+        if (! is_array($items) || count($items) !== 1 || ! is_array($items[0])) {
+            return false;
+        }
+
+        return (int) ($items[0]['product_id'] ?? 0) === (int) $request->input('product_id');
+    }
+
+    /**
      * Resolve Buy Now quantity from request (quantity preferred, then qty, default 1).
      */
     private static function resolveBuyNowQuantity(Request $request): int
@@ -782,6 +800,7 @@ class CartController extends Controller
             && (
                 $request->is('*buy-now/summary')
                 || $request->boolean('is_buy_now')
+                || self::preferTopLevelProductForCheckoutPreview($request)
                 || ! ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0)
             );
 
@@ -983,8 +1002,18 @@ class CartController extends Controller
             $areaPricingMode = ServiceAreaPricing::resolveAreaPricingModeForCheckout($product, $modeFromRow);
 
             $areaRaw = ServiceAreaPricing::resolveAreaFromArray($row);
-            // Top-level Buy Now area / remembered area when items[] omits required_area.
-            if (ServiceAreaPricing::normalizeArea($areaRaw) === null && ServiceAreaPricing::isPerM2($product, $areaPricingMode)) {
+            $rawModeFromRow = null;
+            foreach (['area_pricing_mode', 'areaPricingMode', 'pricing_mode', 'pricingMode'] as $key) {
+                if (array_key_exists($key, $row)) {
+                    $rawModeFromRow = $row[$key];
+                    break;
+                }
+            }
+            // Top-level / cart / remembered area only when customer chose per m² (not catalog on multiselect).
+            if (
+                ServiceAreaPricing::normalizeArea($areaRaw) === null
+                && ServiceAreaPricing::shouldRecallStoredAreaForCheckout($product, $modeFromRow, $rawModeFromRow)
+            ) {
                 $topArea = ServiceAreaPricing::resolveAreaFromRequest($request, false);
                 if (ServiceAreaPricing::normalizeArea($topArea) !== null) {
                     $areaRaw = $topArea;

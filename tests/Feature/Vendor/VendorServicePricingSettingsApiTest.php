@@ -415,6 +415,48 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame(123.0, $fixedTotal);
     }
 
+    public function test_multiselect_buy_now_catalog_ignores_stale_cart_area(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $client = User::factory()->create(['role' => 'client']);
+        $this->assignClientRole($client);
+
+        $this->actingAs($client, 'sanctum')->postJson('/api/shop/cart/add', [
+            'product_id' => $this->serviceProduct->id,
+            'quantity' => 1,
+            'area_pricing_mode' => 'per_m2',
+            'required_area' => 10,
+        ])->assertSuccessful();
+
+        $this->actingAs($client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 100);
+
+        $this->actingAs($client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', [
+                'product_id' => $this->serviceProduct->id,
+                'quantity' => 1,
+                'items' => [
+                    ['product_id' => $this->serviceProduct->id, 'quantity' => 1],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 100);
+    }
+
     private function assignClientRole(User $client): void
     {
         try {

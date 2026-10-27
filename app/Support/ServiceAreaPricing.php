@@ -323,6 +323,46 @@ final class ServiceAreaPricing
         return null;
     }
 
+    public static function isExplicitCatalogCheckoutMode(mixed $rawMode): bool
+    {
+        if ($rawMode === null || $rawMode === '') {
+            return false;
+        }
+
+        return in_array(strtolower(trim((string) $rawMode)), ['base', 'catalog', 'list', 'catalog_only'], true);
+    }
+
+    /**
+     * Whether missing area may be filled from cart / Buy Now cache.
+     * Multiselect with no mode (catalog checkout) must not reuse a stale m² from an old cart line.
+     */
+    public static function shouldRecallStoredAreaForCheckout(Product $product, ?string $modeFromRequest, mixed $rawModeFromRequest = null): bool
+    {
+        if (self::isExplicitCatalogCheckoutMode($rawModeFromRequest)) {
+            return false;
+        }
+
+        if (! self::appliesToProduct($product) || ! self::areaPricingVisibleOnClient($product)) {
+            return false;
+        }
+
+        if ($modeFromRequest === self::TYPE_FIXED) {
+            return false;
+        }
+
+        if ($modeFromRequest === self::TYPE_PER_M2) {
+            return true;
+        }
+
+        if (self::requiresAreaPricingModeSelection($product)) {
+            return false;
+        }
+
+        $modes = self::areaModesForProduct($product);
+
+        return $modes['per_m2'] && ! $modes['fixed'];
+    }
+
     public static function resolveAreaPricingModeFromRequest(\Illuminate\Http\Request $request): ?string
     {
         foreach ([
@@ -1797,7 +1837,19 @@ final class ServiceAreaPricing
         if ($product === null) {
             $product = Product::query()->find($productId);
         }
-        if ($product === null || ! self::isPerM2($product)) {
+        if ($product === null) {
+            return;
+        }
+
+        $modeFromRequest = self::resolveAreaPricingModeFromRequest($request);
+        $rawMode = null;
+        foreach (['area_pricing_mode', 'areaPricingMode', 'pricing_mode', 'pricingMode'] as $key) {
+            if ($request->has($key)) {
+                $rawMode = $request->input($key);
+                break;
+            }
+        }
+        if (! self::shouldRecallStoredAreaForCheckout($product, $modeFromRequest, $rawMode)) {
             return;
         }
 
