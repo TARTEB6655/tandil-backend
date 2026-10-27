@@ -1,10 +1,10 @@
 {
   "info": {
-    "name": "Tandil Backend v6.2.1",
-    "description": "Tandil Backend API. Env: base_url, token, vendor_id, product_id.\n\nHierarchy: main folders (Client Dashboard, Admin Dashboard, …) → subfolders → APIs.\n\n**v6.2.1:** Admin vendor pricing = **two APIs** (`/pricing/service` + `/pricing/tree-palm`, flat vendor-matching JSON). Admin product list `price` = catalog DB price.\n\nAfter adding APIs: append in the correct subfolder, then optionally run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-26T00:00:00Z\nCOLLECTION_ID: 298aa033-ad49-476b-96e3-9deff814dc55",
+    "name": "Tandil Backend v6.3.0",
+    "description": "Tandil Backend API. Env: base_url, token, vendor_id, product_id.\n\nHierarchy: main folders (Client Dashboard, Admin Dashboard, …) → subfolders → APIs.\n\n**v6.3.0:** Vendor/admin **service-pricing multiselect** — `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price` (+ GET `area_pricing_settings`, `price_per_m2`). Legacy single-mode: `pricing_type` + `price`. Shop product detail: `pricing_type` multi + `price_per_m2` / breakdown. Cart: `area_pricing_mode` (`fixed`|`per_m2`) when both enabled.\n\n**v6.2.1:** Admin vendor pricing split `/pricing/service` + `/pricing/tree-palm`.\n\nAfter adding APIs: append in the correct subfolder, then optionally run:\n  php scripts/force_sort_postman_collection.php\n  php scripts/smoke_postman_number_order.php\n\nLAST_SORTED_AT: 2026-10-27T00:00:00Z\nCOLLECTION_ID: 298aa033-ad49-476b-96e3-9deff814dc55",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "tandil-safe-298aa033",
-    "version": "6.2.1",
+    "version": "6.3.0",
     "_postman_id": "298aa033-ad49-476b-96e3-9deff814dc55"
   },
   "item": [
@@ -4423,7 +4423,7 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"required_area\": 7\n}"
+                      "raw": "{\n  \"product_id\": {{product_id}},\n  \"quantity\": 1,\n  \"area_pricing_mode\": \"per_m2\",\n  \"required_area\": 100,\n  \"selected_option_ids\": [1, 2],\n  \"booking_date\": \"2026-09-10\",\n  \"booking_slot\": \"9:00 AM - 10:00 AM\",\n  \"tree_quantity\": 0,\n  \"palm_tree_quantity\": 0\n}"
                     },
                     "url": {
                       "raw": "{{base_url}}/api/shop/cart/add",
@@ -4437,7 +4437,7 @@
                         "add"
                       ]
                     },
-                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Shop/simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Service + per m²:** `required_area` is **optional**.\n```json\n{ \"product_id\": 123, \"booking_date\": \"2026-09-10\", \"booking_slot\": \"9:00 AM - 10:00 AM\" }\n```\nWith area: line total = area × price per m² (e.g. 7 × 100 = 700).\nWithout area: continues with service unit price once (no 422).\nAliases: `required_area`, `requiredArea`, `area`, `area_m2`, `m2`.\n\n**Optional tree / palm quantities (services only, when admin enabled):**\n```json\n{ \"product_id\": 123, \"tree_quantity\": 2, \"palm_tree_quantity\": 1 }\n```\nSkip → normal/base service price. With qty → base + (trees × price_per_tree) + (palms × price_per_palm_tree).\nAliases: `trees` / `tree_quantity`, `palms` / `palm_tree_quantity`."
+                    "description": "POST /api/shop/cart/add — **Cart flow Step 1.**\n\n**Simple product:** `{ \"product_id\": 210, \"quantity\": 1 }`\n\n**Vendor multiselect (fixed + per m² on product detail):** **required** `area_pricing_mode`: `fixed` | `per_m2` (422 if missing). Aliases: `pricing_mode`, `pricingMode`.\n\n**Per m² line:** `required_area` optional; with area → total = rate × area.\n\n**Fixed line:** catalog + fixed addon; omit area.\n\n**Tree/palm (optional):** `tree_quantity`, `palm_tree_quantity` when `show_tree_options`.\n\nCart stores `area_pricing_mode` per line (migrate `carts.area_pricing_mode`). Response includes `area_pricing_mode`, `pricing_type`, `line_total`."
                   }
                 },
                 {
@@ -8882,7 +8882,7 @@
             },
             {
               "name": "02. Vendor Pricing (Product Settings)",
-              "description": "Admin **Product Settings → Vendor pricing**. Auth: Bearer {{token}} (admin).\n\n**Test order:** **01** list → **02** GET service → **03** GET tree-palm → **04** POST/PUT service → **05** POST/PUT tree-palm.\n\n| Screen | GET | POST/PUT |\n|--------|-----|----------|\n| Area fixed / per m² + toggle + includes | `/api/admin/vendors/{id}/pricing/service` | same URL, flat JSON (vendor `service-pricing` shape) |\n| Tree / palm + toggle + includes | `/api/admin/vendors/{id}/pricing/tree-palm` | same URL (vendor `tree-palm-pricing` shape) |\n\nNo combined `/pricing` endpoint — mobile uses **two** calls per vendor.",
+              "description": "Admin **Product Settings → Vendor pricing**. Auth: Bearer {{token}} (admin).\n\n**Test order:** **01** list → **02** GET service → **03** GET tree-palm → **04** POST/PUT service (multiselect or legacy) → **05** POST/PUT tree-palm.\n\n| Screen | GET | POST/PUT |\n|--------|-----|----------|\n| Area pricing | `/api/admin/vendors/{id}/pricing/service` | Multiselect: `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price` + toggle/includes. Legacy: `pricing_type`, `price`. Same shape as vendor service-pricing. |\n| Tree / palm | `/api/admin/vendors/{id}/pricing/tree-palm` | vendor `tree-palm-pricing` shape |\n\nNo combined `/pricing` endpoint — mobile uses **two** calls per vendor.",
               "item": [
                 {
                   "name": "01. List vendors (Vendor pricing screen)",
@@ -8957,6 +8957,8 @@
                           "    pm.expect(d).to.have.property('show_on_client_products_services');",
                           "    pm.expect(d).to.have.property('price_includes_options');",
                           "    pm.expect(d).to.have.property('pricing_type');",
+                          "    pm.expect(d).to.have.property('fixed_price');",
+                          "    pm.expect(d).to.have.property('per_m2_price');",
                           "    pm.expect(d.vendor).to.have.property('vendor_id');",
                           "}"
                         ]
@@ -8989,7 +8991,7 @@
                         "service"
                       ]
                     },
-                    "description": "GET /api/admin/vendors/{vendor_id}/pricing/service — **Area-Based Pricing** screen.\n\nFlat `data` (same as vendor service-pricing): `vendor`, `show_on_client_products_services`, `toggle_label`, `toggle_description`, `pricing_type`, `pricing_type_options`, `price`, `price_includes`, `price_includes_options`, `currency`, `example_calculation`, …"
+                    "description": "GET /api/admin/vendors/{vendor_id}/pricing/service — **Area-Based Pricing** (same as vendor GET service-pricing).\n\n**Multiselect:** `pricing_type`: `multi`, `fixed_price`, `per_m2_price`, `price_per_m2`, `area_pricing_settings`, `enable_fixed_price`, `enable_per_m2`, `price`: null.\n\n**Single mode:** `price` = legacy active rate.\n\nAlso: `vendor`, `show_on_client_products_services`, toggles, `price_includes`, `example_calculation`."
                   }
                 },
                 {
@@ -9041,7 +9043,46 @@
                   }
                 },
                 {
-                  "name": "04. Update vendor service pricing (JSON)",
+                  "name": "04. Update vendor service pricing — multiselect",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                      },
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"show_on_client_products_services\": true,\n  \"enable_fixed_price\": true,\n  \"enable_per_m2\": true,\n  \"fixed_price\": 300,\n  \"per_m2_price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
+                    },
+                    "url": {
+                      "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/pricing/service",
+                      "host": [
+                        "{{base_url}}"
+                      ],
+                      "path": [
+                        "api",
+                        "admin",
+                        "vendors",
+                        "{{vendor_id}}",
+                        "pricing",
+                        "service"
+                      ]
+                    },
+                    "description": "POST/PUT /api/admin/vendors/{vendor_id}/pricing/service — **multiselect** body (same as vendor **02**).\n\nRequired: toggle + both enable flags + `fixed_price` + `per_m2_price` + optional `price_includes`."
+                  }
+                },
+                {
+                  "name": "04b. Update vendor service pricing — legacy single mode",
                   "request": {
                     "method": "POST",
                     "header": [
@@ -9076,7 +9117,7 @@
                         "service"
                       ]
                     },
-                    "description": "POST or PUT /api/admin/vendors/{vendor_id}/pricing/service\n\n**Required:** `show_on_client_products_services`, `pricing_type` (fixed|per_m2), `price`, optional `price_includes` (materials, installation, labor, transportation, delivery).\n\nSame shape as vendor `GET/POST /api/vendor/settings/service-pricing`."
+                    "description": "POST/PUT — legacy `pricing_type` + single `price` (one mode only)."
                   }
                 },
                 {
@@ -18216,7 +18257,7 @@
                     }
                   ]
                 },
-                "description": "Get single product by ID or handle (public).\n\n**Booking (date/time):** `data.booking` — dates[] + slots[] from **global** admin Job Scheduling (folder **K** time-slots). Same times on every product.\n- `slot_source`: `global`\n- `capacity_scope`: `product` — if Product A has 2 bookings at 9–10 AM, that slot is `available:false` **only on Product A**; Product B still shows it available until B also hits max.\n- Capacity settings are live from admin `PUT /api/admin/job-scheduling/working-hours`: `max_bookings_per_slot`, `max_bookings_per_day`, `buffer_minutes` (also each slot's `max_bookings` / `remaining`).\n- FE: enable only `available===true`. Date change → `?date=YYYY-MM-DD`.\n\n**Compare button:** `data.compare_vendors.available` === true when 2+ vendors sell the **same product name** in the same category.\n\n```json\n\"compare_vendors\": {\n  \"available\": true,\n  \"vendor_count\": 2,\n  \"match_by\": \"product_name\",\n  \"label\": \"Compare vendors & prices\"\n}\n```\n\nCompare list: **18 → M** · Vendor store: **18 → P**."
+                "description": "GET /api/shop/products/{id} — product detail (public).\n\n**Vendor area pricing** (when `show_area_pricing_on_client` true):\n- Single fixed: `pricing_type` `fixed`, `checkout_price`, `fixed_price_addon`, `customer_preview.breakdown` (display-only lines, no formula sum in UI).\n- Single per m²: `price_per_m2`, `unit_rate_label`, optional area at cart.\n- **Both enabled:** `pricing_type` `multi`, `area_pricing_mode_required` true, `price_per_m2`, `fixed_price_addon`, `area_pricing_options`, `price_breakdown` / `customer_preview.breakdown` (`do_not_add_lines`). List `price` = catalog only.\n- Tree/palm: `show_tree_options`, `tree_pricing` (separate from area modes).\n- `vendor_id`, `is_vendor_product` on vendor SKUs.\n\n**Booking:** `data.booking` — global slots, **capacity per product** (`?date=YYYY-MM-DD`).\n\n**Compare:** `compare_vendors.available` when 2+ vendors, same product name + category."
               }
             },
             {
@@ -27078,7 +27119,7 @@
         },
         {
           "name": "08b. Service pricing settings (vendor catalog)",
-          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s service products only.\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Fixed / per m² + includes | `/api/vendor/settings/service-pricing` | `show_on_client_products_services`, `pricing_type`, `price`, `price_includes[...]` |\n| Tree / palm + includes | `/api/vendor/settings/tree-palm-pricing` | `show_on_client_products_services` (or `show_tree_options`), `price_per_tree`, `price_per_palm_tree`, `price_includes[...]` |",
+          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s catalog (type product + service).\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Area pricing (multiselect) | `/api/vendor/settings/service-pricing` | **Recommended:** `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price`, `show_on_client_products_services`, `price_includes` |\n| Area pricing (legacy radio) | same | `pricing_type` (`fixed`\\|`per_m2`), `price`, toggle + includes — single mode only |\n| Tree / palm | `/api/vendor/settings/tree-palm-pricing` | `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, includes |",
           "item": [
             {
               "name": "01. Get service pricing (fixed / per m²)",
@@ -27106,11 +27147,11 @@
                     "service-pricing"
                   ]
                 },
-                "description": "GET /api/vendor/settings/service-pricing — vendor-scoped Fixed / per m² UI (admin global `/api/admin/settings/service-pricing` removed)."
+                "description": "GET /api/vendor/settings/service-pricing\n\n**Multiselect GET `data` (both modes on):** `pricing_type`: `multi`, `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price`, `price_per_m2`, `area_pricing_settings` `{ fixed: { enabled, amount }, per_m2: { enabled, rate } }`, `price`: null (use `fixed_price` + `per_m2_price`).\n\n**Single mode:** `pricing_type` `fixed` or `per_m2`, legacy `price` = active rate, `price_per_m2` when per m² only.\n\nAlso: `show_on_client_products_services`, `pricing_type_options[]` (multiselect toggles), `price_includes`, `example_calculation`."
               }
             },
             {
-              "name": "02. Update service pricing (JSON)",
+              "name": "02. Update service pricing — multiselect (fixed + per m²)",
               "request": {
                 "method": "POST",
                 "header": [
@@ -27129,7 +27170,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"pricing_type\": \"per_m2\",\n  \"price\": 7,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"enable_fixed_price\": true,\n  \"enable_per_m2\": true,\n  \"fixed_price\": 300,\n  \"per_m2_price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
                 },
                 "url": {
                   "raw": "{{base_url}}/api/vendor/settings/service-pricing",
@@ -27143,7 +27184,44 @@
                     "service-pricing"
                   ]
                 },
-                "description": "POST/PUT /api/vendor/settings/service-pricing — applies to this vendor’s service catalog only.\n\n**Toggle:** `show_on_client_products_services` — when false, client shop hides area-based pricing (saved settings kept)."
+                "description": "POST/PUT — **multiselect** (recommended). Both toggles can be ON.\n\n**Required:** `show_on_client_products_services`, `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price`, optional `price_includes`.\n\nAliases for m² rate: `price_per_m2`, `pricePerM2`.\n\n**Toggle off client:** `show_on_client_products_services`: false — shop hides area pricing; settings kept.\n\nResponse echoes GET fields including `area_pricing_settings`."
+              }
+            },
+            {
+              "name": "02b. Update service pricing — legacy single mode",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{vendor_token}}"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"pricing_type\": \"per_m2\",\n  \"price\": 70,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": true,\n    \"delivery\": true\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/settings/service-pricing",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "vendor",
+                    "settings",
+                    "service-pricing"
+                  ]
+                },
+                "description": "POST/PUT — **legacy radio** (one mode). `pricing_type`: `fixed` | `per_m2`, single `price`.\n\nIf vendor already has **both** modes saved, posting legacy `fixed`+`price` updates fixed only and **preserves** existing `per_m2_price`."
               }
             },
             {
