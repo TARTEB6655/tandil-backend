@@ -267,6 +267,30 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.order_summary.items.2.line_kind', 'palm_addon');
     }
 
+    public function test_vendor_service_pricing_get_returns_both_rates_when_multiselect(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->withToken($this->token)
+            ->getJson('/api/vendor/settings/service-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.pricing_type', 'multi')
+            ->assertJsonPath('data.fixed_price', 300)
+            ->assertJsonPath('data.per_m2_price', 70)
+            ->assertJsonPath('data.price_per_m2', 70)
+            ->assertJsonPath('data.area_pricing_settings.fixed.amount', 300)
+            ->assertJsonPath('data.area_pricing_settings.per_m2.rate', 70)
+            ->assertJsonPath('data.price', null);
+    }
+
     public function test_vendor_multiselect_service_pricing_save_and_product_detail(): void
     {
         $this->withToken($this->token)

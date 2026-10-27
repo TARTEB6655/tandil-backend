@@ -238,7 +238,9 @@ final class ServiceAreaPricing
         $pricingType = $multiselect
             ? 'multi'
             : ($enablePerM2 ? self::TYPE_PER_M2 : self::TYPE_FIXED);
-        $legacyPrice = $enablePerM2 ? $perM2Price : $fixedPrice;
+        $legacyPrice = $multiselect
+            ? 0.0
+            : ($enablePerM2 ? $perM2Price : $fixedPrice);
 
         return [
             'pricing_type' => $pricingType,
@@ -839,13 +841,13 @@ final class ServiceAreaPricing
      */
     public static function vendorAdminApiPayload(int $vendorId): array
     {
-        $config = self::vendorConfig($vendorId);
+        $expanded = self::vendorConfigExpanded($vendorId);
         $shim = new Product([
             'name' => 'Vendor Services',
             'type' => 'service',
-            'price' => $config['price'],
-            'pricing_type' => $config['pricing_type'],
-            'price_includes' => $config['price_includes'],
+            'price' => 0,
+            'pricing_type' => $expanded['pricing_type'],
+            'price_includes' => $expanded['price_includes'],
             'vendor_id' => $vendorId,
         ]);
         $base = self::productSettingsApi($shim);
@@ -861,7 +863,71 @@ final class ServiceAreaPricing
             'is_service' => true,
             'configured' => self::vendorIsConfigured($vendorId),
             'note' => 'Applies to all of this vendor’s shop products (type product and service). Platform-only SKUs are excluded.',
+            // Canonical vendor rates — always expose both slots (use enable_* + amount; legacy `price` is single-mode only).
+            'pricing_type' => $expanded['pricing_type'],
+            'area_pricing_multiselect' => $expanded['area_pricing_multiselect'],
+            'enable_fixed_price' => $expanded['enable_fixed_price'],
+            'enable_per_m2' => $expanded['enable_per_m2'],
+            'fixed_price' => round((float) $expanded['fixed_price'], 2),
+            'per_m2_price' => round((float) $expanded['per_m2_price'], 2),
+            'fixed_price_amount' => $expanded['enable_fixed_price']
+                ? round((float) $expanded['fixed_price'], 2)
+                : null,
+            'price_per_m2' => $expanded['enable_per_m2']
+                ? round((float) $expanded['per_m2_price'], 2)
+                : null,
+            'price' => self::vendorServicePricingLegacyPriceField($expanded),
+            'area_pricing_settings' => self::vendorAreaPricingSettingsBlock($expanded),
         ], self::clientVisibilityToggleFields(self::vendorShowAreaPricingOnClient($vendorId)));
+    }
+
+    /**
+     * @param  array{
+     *     pricing_type: string,
+     *     area_pricing_multiselect: bool,
+     *     enable_fixed_price: bool,
+     *     enable_per_m2: bool,
+     *     fixed_price: float,
+     *     per_m2_price: float
+     * }  $expanded
+     */
+    public static function vendorAreaPricingSettingsBlock(array $expanded): array
+    {
+        return [
+            'multiselect' => (bool) ($expanded['area_pricing_multiselect'] ?? false),
+            'fixed' => [
+                'enabled' => (bool) ($expanded['enable_fixed_price'] ?? false),
+                'amount' => round((float) ($expanded['fixed_price'] ?? 0), 2),
+            ],
+            'per_m2' => [
+                'enabled' => (bool) ($expanded['enable_per_m2'] ?? false),
+                'rate' => round((float) ($expanded['per_m2_price'] ?? 0), 2),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     area_pricing_multiselect: bool,
+     *     enable_fixed_price: bool,
+     *     enable_per_m2: bool,
+     *     fixed_price: float,
+     *     per_m2_price: float
+     * }  $expanded
+     */
+    public static function vendorServicePricingLegacyPriceField(array $expanded): ?float
+    {
+        if ($expanded['area_pricing_multiselect'] ?? false) {
+            return null;
+        }
+        if ($expanded['enable_per_m2'] ?? false) {
+            return round((float) ($expanded['per_m2_price'] ?? 0), 2);
+        }
+        if ($expanded['enable_fixed_price'] ?? false) {
+            return round((float) ($expanded['fixed_price'] ?? 0), 2);
+        }
+
+        return null;
     }
 
     /**
