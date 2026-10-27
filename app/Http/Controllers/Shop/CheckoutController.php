@@ -66,11 +66,14 @@ class CheckoutController extends Controller
     {
         $user = $request->user();
 
-        $request->validate([
+        $request->validate(array_merge([
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
             'coupon_code' => 'sometimes|string|max:64',
-        ]);
+            'is_buy_now' => 'sometimes|boolean',
+            'use_buy_now_context' => 'sometimes|boolean',
+            'product_id' => 'sometimes|exists:products,id',
+        ], CartController::optionIdsValidationRules()));
 
         $pack = CartController::checkoutTotalsForRequest($request, $user);
         if ($pack['error'] !== null) {

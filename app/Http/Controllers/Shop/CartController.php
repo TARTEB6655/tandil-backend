@@ -798,8 +798,8 @@ class CartController extends Controller
         // POST /buy-now/summary with product_id always previews that product line.
         $useBuyNowProduct = $request->filled('product_id')
             && (
-                $request->is('*buy-now/summary')
-                || $request->boolean('is_buy_now')
+                $request->boolean('is_buy_now')
+                || $request->is('*buy-now/summary')
                 || self::preferTopLevelProductForCheckoutPreview($request)
                 || ! ($request->filled('items') && is_array($request->input('items')) && count($request->input('items')) > 0)
             );
@@ -1127,11 +1127,14 @@ class CartController extends Controller
      */
     public function orderSummary(Request $request)
     {
-        $request->validate([
+        $request->validate(array_merge([
             'use_wallet' => 'sometimes|boolean',
             'wallet_amount' => 'sometimes|numeric|min:0',
             'coupon_code' => 'sometimes|string|max:64',
-        ]);
+            'is_buy_now' => 'sometimes|boolean',
+            'use_buy_now_context' => 'sometimes|boolean',
+            'product_id' => 'sometimes|exists:products,id',
+        ], self::optionIdsValidationRules()));
 
         $user = $request->user();
         $pack = self::checkoutTotalsForRequest($request, $user);
@@ -1174,8 +1177,17 @@ class CartController extends Controller
         $orderSummary = $pack['order_summary'];
         $orderSummary = self::mergeWalletPreviewIntoOrderSummary($orderSummary, $request, $user);
 
+        if ($request->filled('product_id')) {
+            \App\Support\BuyNowCheckoutContext::remember((int) $user->id, $request);
+        }
+
         return ApiResponse::success('Buy now summary retrieved.', [
             'order_summary' => $orderSummary,
+            'buy_now_checkout' => [
+                'is_buy_now' => true,
+                'product_id' => (int) $request->input('product_id'),
+                'hint' => 'Send is_buy_now=true on GET checkout/review, order-summary, and payment-intent (product_id optional if same session).',
+            ],
         ]);
     }
 
@@ -1272,6 +1284,7 @@ class CartController extends Controller
     public static function checkoutTotalsForRequest(Request $request, User $user, bool $strictCoupon = false): array
     {
         self::normalizeCheckoutCouponInput($request);
+        \App\Support\BuyNowCheckoutContext::hydrateOntoRequest($request, (int) $user->id);
 
         try {
             $cartPreview = self::checkoutPreview($request, $user->id);

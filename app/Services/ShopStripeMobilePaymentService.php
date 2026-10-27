@@ -44,6 +44,7 @@ class ShopStripeMobilePaymentService
         $this->mergeNormalizedShipping($request);
         CartController::normalizeCheckoutCouponInput($request);
         app(ShopCheckoutOrderService::class)->normalizeCheckoutRequest($request);
+        \App\Support\BuyNowCheckoutContext::hydrateOntoRequest($request, (int) $user->id);
 
         $request->validate(array_merge([
             'is_buy_now' => 'sometimes|boolean',
@@ -1079,6 +1080,8 @@ class ShopStripeMobilePaymentService
         if ($row->source === 'cart') {
             Cart::where('user_id', $user->id)->delete();
         }
+
+        \App\Support\BuyNowCheckoutContext::forget((int) $user->id);
 
         $walletApplied = (float) ($row->wallet_amount_applied ?? 0);
         if ($walletApplied > 0.0001) {

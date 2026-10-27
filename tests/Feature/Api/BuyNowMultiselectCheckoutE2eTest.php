@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api;
 
 use App\Enums\VendorStatus;
+use App\Models\Cart;
 use App\Models\Category;
 use App\Models\JobSchedulingSetting;
 use App\Models\JobTimeSlot;
@@ -206,6 +207,35 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
             ->assertJsonPath('data.subtotal', 115)
             ->assertJsonPath('data.items.0.line_total', 115)
             ->assertJsonPath('data.items.0.area_pricing_mode', 'per_m2');
+    }
+
+    public function test_checkout_review_uses_buy_now_context_instead_of_db_cart(): void
+    {
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity' => 1,
+            'unit_price' => 50,
+            'selected_options' => [],
+        ]);
+        Cart::create([
+            'user_id' => $this->client->id,
+            'product_id' => $this->product->id,
+            'quantity' => 1,
+            'unit_price' => 50,
+            'selected_options' => [],
+        ]);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->postJson('/api/shop/buy-now/summary', $this->commonBuyNowBody())
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 115);
+
+        $this->actingAs($this->client, 'sanctum')
+            ->getJson('/api/shop/checkout/review?is_buy_now=1')
+            ->assertOk()
+            ->assertJsonPath('data.order_summary.subtotal', 115)
+            ->assertJsonPath('data.order_summary.items.0.line_total', 115);
     }
 
     public function test_payment_intent_totals_match_buy_now_summary_for_fixed_mode(): void
