@@ -286,6 +286,12 @@ class ProductController extends Controller
         $cardUrl = $url($rootImagePath);
         $fullUrl = ProductImage::buildFullUrl($rootImagePath);
 
+        $pricingFields = \App\Support\ServiceAreaPricing::productApiFields($product);
+        if (! $forList) {
+            $pricingFields['trees_and_palm_trees'] = \App\Support\ServiceTreePricing::shopProductTreeSection($product);
+            $pricingFields['client_pricing'] = \App\Support\ServiceAreaPricing::shopProductDetailPricingBlock($product);
+        }
+
         return [
             'id' => $product->id,
             'name' => $product->name,
@@ -294,7 +300,7 @@ class ProductController extends Controller
             'type' => $product->type ?? 'product',
             'vendor_id' => $product->vendor_id !== null ? (int) $product->vendor_id : null,
             'is_vendor_product' => (int) ($product->vendor_id ?? 0) > 0,
-            ...\App\Support\ServiceAreaPricing::productApiFields($product),
+            ...$pricingFields,
             'stock' => $product->stock,
             'max_quantity' => $product->maxPurchaseQuantity(),
             'status' => $product->status,

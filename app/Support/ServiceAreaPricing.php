@@ -508,6 +508,29 @@ final class ServiceAreaPricing
      *
      * @param  array<string, mixed>  $input
      */
+    /**
+     * Full client pricing payload for shop product detail (GET /api/shop/products/{id}).
+     *
+     * @return array<string, mixed>
+     */
+    public static function shopProductDetailPricingBlock(Product $product): array
+    {
+        $fields = self::productApiFields($product);
+
+        return [
+            'visibility' => self::areaPricingClientVisibilityFields($product),
+            'area_ui' => self::areaPricingClientUiFields($product),
+            'pricing_type' => $fields['pricing_type'] ?? self::TYPE_FIXED,
+            'enable_fixed_price' => $fields['enable_fixed_price'] ?? null,
+            'enable_per_m2' => $fields['enable_per_m2'] ?? null,
+            'fixed_price' => $fields['fixed_price'] ?? null,
+            'per_m2_price' => $fields['per_m2_price'] ?? null,
+            'price_per_m2' => $fields['price_per_m2'] ?? null,
+            'area_pricing_options' => $fields['area_pricing_options'] ?? null,
+            'trees_and_palm_trees' => ServiceTreePricing::shopProductTreeSection($product),
+        ];
+    }
+
     public static function resolveVendorShowOnClientFromInput(array $input, ?int $vendorId = null): bool
     {
         foreach ([

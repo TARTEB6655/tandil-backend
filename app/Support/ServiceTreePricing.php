@@ -260,6 +260,22 @@ final class ServiceTreePricing
      *
      * @return array<string, mixed>
      */
+    /**
+     * Shop GET /api/shop/products/{id} — dedicated block for the Trees & palm trees UI section.
+     *
+     * @return array<string, mixed>
+     */
+    public static function shopProductTreeSection(Product $product): array
+    {
+        $fields = self::productApiFields($product);
+
+        return array_merge([
+            'section_title' => 'Trees & palm trees',
+            'section_description' => 'Optional. Add tree and palm counts below. Each line uses its rate from vendor pricing.',
+            'visible' => (bool) ($fields['show_tree_options'] ?? false),
+        ], $fields);
+    }
+
     public static function productApiFields(Product $product): array
     {
         if (! ServiceAreaPricing::appliesToProduct($product)) {
