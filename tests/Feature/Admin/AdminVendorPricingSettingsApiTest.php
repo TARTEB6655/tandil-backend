@@ -124,6 +124,24 @@ class AdminVendorPricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.items.0.pricing_configured', true);
     }
 
+    public function test_tree_palm_update_prefers_show_on_client_over_stale_show_tree_options_false(): void
+    {
+        ['adminToken' => $adminToken, 'vendor' => $vendor] = $this->seedAdminAndVendor();
+
+        $this->withToken($adminToken)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/tree-palm", [
+                'show_on_client_products_services' => true,
+                'show_tree_options' => false,
+                'price_per_tree' => 50,
+                'price_per_palm_tree' => 50,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonPath('data.show_on_customer_service_products', true);
+    }
+
     public function test_non_admin_cannot_access_vendor_pricing_apis(): void
     {
         ['vendor' => $vendor] = $this->seedAdminAndVendor();

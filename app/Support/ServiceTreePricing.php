@@ -728,22 +728,38 @@ final class ServiceTreePricing
     }
 
     /**
+     * Client visibility toggle from request (Postman/mobile often send show_on_client_products_services).
+     */
+    public static function resolveShowTreeOptionsFromRequest(Request $request): ?bool
+    {
+        foreach ([
+            'show_on_client_products_services',
+            'show_on_customer_service_products',
+            'show_on_client',
+            'showOnClientProductsServices',
+        ] as $key) {
+            if ($request->has($key)) {
+                return filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        foreach (['show_tree_options', 'showTreeOptions'] as $key) {
+            if ($request->has($key)) {
+                return filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Normalize admin form-data for tree pricing fields onto the request.
      */
     public static function normalizeAdminFormData(Request $request): void
     {
-        foreach ([
-            'show_tree_options',
-            'show_on_client_products_services',
-            'show_on_customer_service_products',
-            'showTreeOptions',
-        ] as $key) {
-            if ($request->has($key)) {
-                $request->merge([
-                    'show_tree_options' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),
-                ]);
-                break;
-            }
+        $show = self::resolveShowTreeOptionsFromRequest($request);
+        if ($show !== null) {
+            $request->merge(['show_tree_options' => $show]);
         }
 
         foreach (['price_per_tree', 'pricePerTree'] as $key) {
