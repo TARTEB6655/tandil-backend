@@ -27118,8 +27118,67 @@
           ]
         },
         {
+          "name": "08c. Per-service area pricing (vendor mobile — preferred)",
+          "description": "Vendor **service list → one product → area pricing** (screenshot flow). Replaces vendor-wide **08b** for new mobile builds.\n\nAuth: `{{vendor_token}}`.\n\n| Step | Method | Path |\n|------|--------|------|\n| List service products | GET | `/api/vendor/products/area-pricing` |\n| Edit one service | GET | `/api/vendor/products/{product_id}/area-pricing` |\n| Save | POST/PUT | `/api/vendor/products/{product_id}/area-pricing` |\n\nShop: `GET /api/shop/products/{product_id}` reflects per-product rates when saved.",
+          "item": [
+            {
+              "name": "01. List service products (area pricing cards)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{vendor_token}}" },
+                  { "key": "Accept", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/products/area-pricing",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "vendor", "products", "area-pricing"]
+                },
+                "description": "GET /api/vendor/products/area-pricing — cards: name, catalog_price_label, price_per_m2_label, detail_endpoint."
+              }
+            },
+            {
+              "name": "02. Get area pricing for one service",
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{vendor_token}}" },
+                  { "key": "Accept", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/products/{{product_id}}/area-pricing",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "vendor", "products", "{{product_id}}", "area-pricing"]
+                },
+                "description": "GET /api/vendor/products/{product_id}/area-pricing — edit screen: toggles, per_m2_price, fixed_price, require_area_before_checkout, price_includes."
+              }
+            },
+            {
+              "name": "03. Save area pricing for one service",
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{vendor_token}}" },
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"show_on_client_products_services\": true,\n  \"enable_fixed_price\": false,\n  \"enable_per_m2\": true,\n  \"require_area_before_checkout\": false,\n  \"fixed_price\": 0,\n  \"per_m2_price\": 20,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/api/vendor/products/{{product_id}}/area-pricing",
+                  "host": ["{{base_url}}"],
+                  "path": ["api", "vendor", "products", "{{product_id}}", "area-pricing"]
+                },
+                "description": "POST/PUT /api/vendor/products/{product_id}/area-pricing — per-service m² (and optional fixed). Overrides vendor-wide 08b for this SKU on the shop app."
+              }
+            }
+          ]
+        },
+        {
           "name": "08b. Service pricing settings (vendor catalog)",
-          "description": "Mirrors admin **D. Settings → Service Pricing** and **Tree/Palm Pricing**, scoped to this vendor’s catalog (type product + service).\n\nAuth: `{{vendor_token}}` (03 → 04. Vendor login).\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Area pricing (multiselect) | `/api/vendor/settings/service-pricing` | **Recommended:** `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price`, `show_on_client_products_services`, `price_includes` |\n| Area pricing (legacy radio) | same | `pricing_type` (`fixed`\\|`per_m2`), `price`, toggle + includes — single mode only |\n| Tree / palm | `/api/vendor/settings/tree-palm-pricing` | `show_tree_options`, `price_per_tree`, `price_per_palm_tree`, includes |",
+          "description": "**Legacy vendor-wide** area pricing (all catalog SKUs). Prefer **08c** per-service APIs for new mobile.\n\nAuth: `{{vendor_token}}`.\n\n| Screen | GET | POST/PUT body |\n|--------|-----|----------------|\n| Area pricing (multiselect) | `/api/vendor/settings/service-pricing` | `enable_fixed_price`, `enable_per_m2`, `fixed_price`, `per_m2_price`, `show_on_client_products_services`, `price_includes` |\n| Tree / palm | `/api/vendor/settings/tree-palm-pricing` | `show_on_client_products_services`, `price_per_tree`, `price_per_palm_tree`, includes |",
           "item": [
             {
               "name": "01. Get service pricing (fixed / per m²)",
