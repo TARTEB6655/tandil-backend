@@ -1,7 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\Admin\AdminVendorPricingSettingsApiController;
-use App\Http\Controllers\Api\Admin\VendorManagementController;
 use App\Http\Controllers\Api\Vendor\VendorAuthController;
 use App\Http\Controllers\Api\Vendor\VendorComparisonController;
 use App\Http\Controllers\Api\Vendor\VendorDashboardController;
@@ -124,72 +122,4 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::post('/orders/{id}/confirm-delivery', [VendorOrderController::class, 'confirmDelivery']);
         Route::post('/orders/{id}/resend-delivery-otp', [VendorOrderController::class, 'resendDeliveryOtp']);
     });
-});
-
-/*
-|--------------------------------------------------------------------------
-| Admin vendor management API
-|--------------------------------------------------------------------------
-*/
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->group(function () {
-    Route::get('/stats', [VendorManagementController::class, 'stats']);
-    Route::get('/pricing', [AdminVendorPricingSettingsApiController::class, 'index']);
-    Route::get('/management', [VendorManagementController::class, 'management']);
-    Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
-    Route::get('/', [VendorManagementController::class, 'index']);
-    Route::post('/', [VendorManagementController::class, 'store']);
-    Route::get('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'showServicePricing']);
-    Route::put('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'updateServicePricing']);
-    Route::post('/{id}/pricing/service', [AdminVendorPricingSettingsApiController::class, 'updateServicePricing']);
-    Route::get('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'showTreePalmPricing']);
-    Route::put('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'updateTreePalmPricing']);
-    Route::post('/{id}/pricing/tree-palm', [AdminVendorPricingSettingsApiController::class, 'updateTreePalmPricing']);
-    Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
-    Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct']);
-    Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct']);
-    Route::put('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct']);
-    Route::post('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct']);
-    Route::post('/{vendorId}/products/{productId}/toggle', [VendorManagementController::class, 'toggleProduct']);
-    Route::delete('/{vendorId}/products/{productId}', [VendorManagementController::class, 'destroyProduct']);
-    Route::get('/{id}/analytics', [VendorManagementController::class, 'analytics']);
-    Route::get('/{id}/products', [VendorManagementController::class, 'products']);
-    Route::get('/{id}/orders', [VendorManagementController::class, 'orders']);
-    Route::get('/{id}/application-detail', [VendorManagementController::class, 'applicationDetail']);
-    Route::get('/{id}', [VendorManagementController::class, 'show']);
-    Route::put('/{id}', [VendorManagementController::class, 'update']);
-    Route::post('/{id}', [VendorManagementController::class, 'update']);
-    Route::post('/{id}/account-status', [VendorManagementController::class, 'updateAccountStatus']);
-    Route::post('/{id}/approve', [VendorManagementController::class, 'approve']);
-    Route::post('/{id}/reject', [VendorManagementController::class, 'reject']);
-    Route::post('/{id}/request-documents', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'requestDocuments']);
-    Route::post('/{id}/suspend', [VendorManagementController::class, 'suspend']);
-    Route::post('/{id}/activate', [VendorManagementController::class, 'activate']);
-    Route::post('/{id}/under-review', [VendorManagementController::class, 'underReview']);
-    Route::post('/{id}/disable', [VendorManagementController::class, 'disable']);
-    Route::post('/{id}/delete', [VendorManagementController::class, 'destroy']);
-    Route::delete('/{id}', [VendorManagementController::class, 'destroy']);
-});
-
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/contractor-registration')->group(function () {
-    Route::get('/fields', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'fields']);
-    Route::put('/fields/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateField']);
-    Route::post('/fields/reorder', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'reorderFields']);
-    Route::get('/banks', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'banks']);
-    Route::post('/banks', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'storeBank']);
-    Route::put('/banks/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateBank']);
-    Route::delete('/banks/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'destroyBank']);
-    Route::get('/cities', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'cities']);
-    Route::post('/cities', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'storeCity']);
-    Route::put('/cities/{id}', [\App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController::class, 'updateCity']);
-});
-
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/marketplace')->group(function () {
-    Route::get('/analytics', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'analytics']);
-    Route::get('/settings', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'settings']);
-    Route::put('/settings', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'updateSettings']);
-    Route::get('/products', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'products']);
-    Route::post('/products/{id}/approve', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'approveProduct']);
-    Route::post('/products/{id}/reject', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'rejectProduct']);
-    Route::get('/orders', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'vendorOrders']);
-    Route::post('/documents/{id}/verify', [\App\Http\Controllers\Api\Admin\MarketplaceAdminController::class, 'verifyDocument']);
 });

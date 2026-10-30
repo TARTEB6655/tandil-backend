@@ -9,12 +9,16 @@ use Illuminate\Support\Facades\Route;
 */
 Route::get('/health', function (\Illuminate\Http\Request $request) {
     $convertUris = [];
+    $vendorPricingUris = [];
     foreach (app('router')->getRoutes() as $route) {
         $uri = (string) $route->uri();
         if (str_contains($uri, 'convert-to-category')
             || str_contains($uri, 'convert-to-service')
             || str_contains($uri, 'catalog/convert/')) {
             $convertUris[] = implode('|', $route->methods()).' /'.$uri;
+        }
+        if (str_contains($uri, 'admin/vendors') && str_contains($uri, 'pricing/tree-palm')) {
+            $vendorPricingUris[] = implode('|', $route->methods()).' /'.$uri;
         }
     }
 
@@ -24,9 +28,13 @@ Route::get('/health', function (\Illuminate\Http\Request $request) {
         'app_url' => rtrim((string) config('app.url'), '/'),
         'login_endpoint' => '/api/auth/login',
         'catalog_convert_routes' => array_values(array_unique($convertUris)),
+        'vendor_tree_palm_pricing_routes' => array_values(array_unique($vendorPricingUris)),
         'catalog_convert_hint' => count($convertUris) > 0
             ? 'Use POST with Bearer admin token. base_url should be site root WITHOUT /api (URL already includes /api/...).'
             : 'Deploy latest code and run: php artisan route:clear && php artisan route:cache',
+        'vendor_pricing_hint' => count($vendorPricingUris) > 0
+            ? 'POST /api/admin/vendors/{id}/pricing/tree-palm with admin Bearer token.'
+            : 'Missing vendor pricing routes — deploy latest code and run: php artisan optimize:clear && php artisan route:cache',
     ];
 
     if ($request->boolean('db')) {
@@ -1162,6 +1170,8 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/settings')->gro
     Route::put('/legal', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'updateLegal']);
     Route::post('/export-data', [\App\Http\Controllers\Admin\AdminSettingsApiController::class, 'exportData']);
 });
+
+require __DIR__.'/admin_vendor_mobile_api.php';
 
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () use ($legalContentPages) {
     foreach (['client', 'vendor'] as $audience) {
