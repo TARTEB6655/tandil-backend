@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Vendor;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
@@ -32,6 +33,34 @@ final class ProductAreaPricing
     public static function settingKey(int $productId, string $suffix): string
     {
         return 'product_'.$productId.'_'.$suffix;
+    }
+
+    /**
+     * Vendor catalog lines eligible for per-product area pricing (same as shop vendor SKUs).
+     *
+     * @return Builder<Product>
+     */
+    public static function vendorCatalogQuery(int $vendorId): Builder
+    {
+        return Product::query()
+            ->where('vendor_id', $vendorId)
+            ->where('status', 'active')
+            ->orderBy('name');
+    }
+
+    public static function resolveVendorCatalogProduct(Vendor $vendor, int $productId): Product
+    {
+        $product = Product::query()
+            ->where('id', $productId)
+            ->where('vendor_id', $vendor->id)
+            ->where('status', 'active')
+            ->first();
+
+        if ($product === null || ! ServiceAreaPricing::appliesToProduct($product)) {
+            abort(404, 'Service product not found for this vendor.');
+        }
+
+        return $product;
     }
 
     public static function isConfigured(int $productId): bool
@@ -267,6 +296,16 @@ final class ProductAreaPricing
     {
         ServiceAreaPricing::mergeVendorServicePricingRequestAliases($request);
 
+        foreach ([
+            'enable_price_per_m2' => 'enable_per_m2',
+            'enablePricePerM2' => 'enable_per_m2',
+            'enable_area_pricing' => 'enable_per_m2',
+        ] as $from => $to) {
+            if ($request->has($from) && ! $request->has($to)) {
+                $request->merge([$to => $request->input($from)]);
+            }
+        }
+
         $existing = self::configExpanded((int) $product->id);
 
         foreach (['enable_fixed_price', 'enable_per_m2', 'require_area_before_checkout'] as $key) {
@@ -300,12 +339,77 @@ final class ProductAreaPricing
         }
 
         $input = $request->all();
+        self::inferEnableFlagsFromAmounts($input, $enableFixed, $enablePerM2);
+
         $request->merge([
             'enable_fixed_price' => $enableFixed,
             'enable_per_m2' => $enablePerM2,
             'fixed_price' => self::resolveFixedFromInput($input, $existing, $enableFixed),
             'per_m2_price' => self::resolvePerM2FromInput($input, $existing, $enablePerM2),
         ]);
+    }
+
+    /**
+     * Mobile often sends m² rate without toggling enable_per_m2 — infer from amounts.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    private static function inferEnableFlagsFromAmounts(array $input, bool &$enableFixed, bool &$enablePerM2): void
+    {
+        $rawPerM2 = self::peekPerM2FromInput($input);
+        $rawFixed = self::peekFixedFromInput($input);
+
+        if (! $enablePerM2 && $rawPerM2 > 0) {
+            $enablePerM2 = true;
+        }
+        if (! $enableFixed && $rawFixed > 0) {
+            $enableFixed = true;
+        }
+
+        if (array_key_exists('pricing_type', $input) && $input['pricing_type'] !== '' && $input['pricing_type'] !== null) {
+            $type = ServiceAreaPricing::normalizeType((string) $input['pricing_type'], true);
+            if ($type === ServiceAreaPricing::TYPE_PER_M2 && $rawPerM2 > 0) {
+                $enablePerM2 = true;
+            }
+            if ($type === ServiceAreaPricing::TYPE_FIXED && $rawFixed > 0) {
+                $enableFixed = true;
+            }
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function peekPerM2FromInput(array $input): float
+    {
+        foreach (['per_m2_price', 'price_per_m2', 'pricePerM2'] as $key) {
+            if (array_key_exists($key, $input) && $input[$key] !== '' && $input[$key] !== null) {
+                return max(0, round((float) $input[$key], 2));
+            }
+        }
+        if (array_key_exists('price', $input) && ($input['pricing_type'] ?? '') !== ServiceAreaPricing::TYPE_FIXED) {
+            $type = ServiceAreaPricing::normalizeType((string) ($input['pricing_type'] ?? ServiceAreaPricing::TYPE_PER_M2), true);
+            if ($type === ServiceAreaPricing::TYPE_PER_M2) {
+                return max(0, round((float) $input['price'], 2));
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * @param  array<string, mixed>  $input
+     */
+    private static function peekFixedFromInput(array $input): float
+    {
+        if (array_key_exists('fixed_price', $input) && $input['fixed_price'] !== '' && $input['fixed_price'] !== null) {
+            return max(0, round((float) $input['fixed_price'], 2));
+        }
+        if (array_key_exists('price', $input) && ($input['pricing_type'] ?? '') === ServiceAreaPricing::TYPE_FIXED) {
+            return max(0, round((float) $input['price'], 2));
+        }
+
+        return 0.0;
     }
 
     /**

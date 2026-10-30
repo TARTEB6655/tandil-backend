@@ -45,11 +45,7 @@ class AdminVendorProductAreaPricingApiController extends Controller
     {
         $vendor = $this->managedVendor($vendorId);
 
-        $items = Product::query()
-            ->where('vendor_id', $vendor->id)
-            ->where('type', 'service')
-            ->where('status', 'active')
-            ->orderBy('name')
+        $items = ProductAreaPricing::vendorCatalogQuery($vendor->id)
             ->get()
             ->map(fn (Product $product) => ProductAreaPricing::adminListItem($product, $vendor->id))
             ->values()
@@ -100,16 +96,6 @@ class AdminVendorProductAreaPricingApiController extends Controller
 
     private function serviceProductForVendor(Vendor $vendor, int $productId): Product
     {
-        $product = Product::query()
-            ->where('id', $productId)
-            ->where('vendor_id', $vendor->id)
-            ->where('type', 'service')
-            ->first();
-
-        if ($product === null) {
-            abort(404, 'Service product not found for this vendor.');
-        }
-
-        return $product;
+        return ProductAreaPricing::resolveVendorCatalogProduct($vendor, $productId);
     }
 }

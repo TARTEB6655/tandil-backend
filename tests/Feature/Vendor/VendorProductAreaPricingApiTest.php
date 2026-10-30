@@ -110,6 +110,36 @@ class VendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'per_m2');
     }
 
+    public function test_vendor_product_type_catalog_line_can_save_per_m2_without_enable_toggle(): void
+    {
+        $catalogProduct = Product::factory()->create([
+            'category_id' => Category::factory()->create()->id,
+            'vendor_id' => $this->vendor->id,
+            'type' => 'product',
+            'name' => 'Hardscape',
+            'price' => 600,
+            'status' => 'active',
+        ]);
+
+        $this->withToken($this->token)
+            ->postJson('/api/vendor/products/'.$catalogProduct->id.'/area-pricing', [
+                'show_on_client_products_services' => true,
+                'enable_fixed_price' => false,
+                'enable_per_m2' => false,
+                'fixed_price' => 0,
+                'per_m2_price' => 55,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.price_per_m2', 55)
+            ->assertJsonPath('data.enable_per_m2', true);
+
+        $this->getJson('/api/shop/products/'.$catalogProduct->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_area_pricing_on_client', true)
+            ->assertJsonPath('data.price_per_m2', 55);
+    }
+
     public function test_require_area_before_checkout_validates_cart(): void
     {
         ProductAreaPricing::save(
