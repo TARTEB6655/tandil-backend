@@ -86,7 +86,7 @@ class AdminVendorPricingToggleE2eTest extends TestCase
                 'price_per_palm_tree' => 40,
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
             ->assertJsonPath('data.price_per_tree', 30);
 
         $product->refresh();

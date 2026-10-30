@@ -34,7 +34,7 @@ class VendorServiceTreePalmSettingsApiController extends Controller
         $this->normalizeIncludes($request);
 
         $validated = $request->validate([
-            'show_tree_options' => 'required|boolean',
+            'show_on_client_products_services' => 'required|boolean',
             'price_per_tree' => 'nullable|numeric|min:0',
             'price_per_palm_tree' => 'nullable|numeric|min:0',
             'price_includes' => 'nullable',
@@ -44,12 +44,12 @@ class VendorServiceTreePalmSettingsApiController extends Controller
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
         ], [
-            'show_tree_options.required' => 'Set Show on client products & services on or off.',
+            'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
         ]);
 
         ServiceTreePricing::saveVendor(
             $vendor->id,
-            (bool) $validated['show_tree_options'],
+            (bool) $validated['show_on_client_products_services'],
             (float) ($validated['price_per_tree'] ?? 0),
             (float) ($validated['price_per_palm_tree'] ?? 0)
         );

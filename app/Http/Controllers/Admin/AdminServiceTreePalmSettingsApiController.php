@@ -32,7 +32,7 @@ class AdminServiceTreePalmSettingsApiController extends Controller
      * PUT|POST /api/admin/settings/tree-palm-pricing
      *
      * Form-data / JSON — UI fields only:
-     * - show_tree_options: 1|0
+     * - show_on_client_products_services: 1|0
      * - price_per_tree: 50
      * - price_per_palm_tree: 80
      * - price_includes[materials|installation|labor|transportation|delivery]: 0|1
@@ -43,7 +43,7 @@ class AdminServiceTreePalmSettingsApiController extends Controller
         $this->normalizeIncludes($request);
 
         $validated = $request->validate([
-            'show_tree_options' => 'required|boolean',
+            'show_on_client_products_services' => 'required|boolean',
             'price_per_tree' => 'nullable|numeric|min:0',
             'price_per_palm_tree' => 'nullable|numeric|min:0',
             'price_includes' => 'nullable',
@@ -53,11 +53,11 @@ class AdminServiceTreePalmSettingsApiController extends Controller
             'price_includes.transportation' => 'nullable|boolean',
             'price_includes.delivery' => 'nullable|boolean',
         ], [
-            'show_tree_options.required' => 'Set Show on customer service products on or off.',
+            'show_on_client_products_services.required' => 'Set Show on client products & services on or off.',
         ]);
 
         ServiceTreePricing::saveGlobal(
-            (bool) $validated['show_tree_options'],
+            (bool) $validated['show_on_client_products_services'],
             (float) ($validated['price_per_tree'] ?? 0),
             (float) ($validated['price_per_palm_tree'] ?? 0)
         );

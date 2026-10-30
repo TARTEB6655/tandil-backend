@@ -66,13 +66,13 @@ class AdminVendorPricingSettingsApiTest extends TestCase
                 'data' => [
                     'vendor',
                     'show_on_client_products_services',
-                    'show_tree_options',
                     'price_per_tree',
                     'price_per_palm_tree',
                     'price_includes',
                     'price_includes_options',
                 ],
-            ]);
+            ])
+            ->assertJsonMissingPath('data.show_tree_options');
     }
 
     public function test_admin_can_update_service_and_tree_pricing_separately(): void
@@ -113,10 +113,10 @@ class AdminVendorPricingSettingsApiTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
             ->assertJsonPath('data.show_on_client_products_services', true)
             ->assertJsonPath('data.price_per_tree', 25)
-            ->assertJsonPath('data.price_includes.materials', true);
+            ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonMissingPath('data.show_tree_options');
 
         $this->withToken($token)
             ->getJson('/api/admin/vendors/pricing')
@@ -124,7 +124,7 @@ class AdminVendorPricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.items.0.pricing_configured', true);
     }
 
-    public function test_tree_palm_update_prefers_show_on_client_over_stale_show_tree_options_false(): void
+    public function test_tree_palm_update_ignores_removed_show_tree_options_body_field(): void
     {
         ['adminToken' => $adminToken, 'vendor' => $vendor] = $this->seedAdminAndVendor();
 
@@ -137,9 +137,8 @@ class AdminVendorPricingSettingsApiTest extends TestCase
                 'price_includes' => ServiceAreaPricing::emptyIncludes(),
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
             ->assertJsonPath('data.show_on_client_products_services', true)
-            ->assertJsonPath('data.show_on_customer_service_products', true);
+            ->assertJsonMissingPath('data.show_tree_options');
     }
 
     public function test_non_admin_cannot_access_vendor_pricing_apis(): void

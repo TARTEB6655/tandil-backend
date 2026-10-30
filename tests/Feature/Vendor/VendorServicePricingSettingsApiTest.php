@@ -184,7 +184,7 @@ class VendorServicePricingSettingsApiTest extends TestCase
 
         $this->withToken($this->token)
             ->postJson('/api/vendor/settings/tree-palm-pricing', [
-                'show_tree_options' => true,
+                'show_on_client_products_services' => true,
                 'price_per_tree' => 50,
                 'price_per_palm_tree' => 50,
                 'price_includes' => [
@@ -196,12 +196,12 @@ class VendorServicePricingSettingsApiTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
             ->assertJsonPath('data.price_per_tree', 50)
             ->assertJsonPath('data.price_per_palm_tree', 50)
             ->assertJsonPath('data.currency', 'AED')
             ->assertJsonPath('data.toggle_label', 'Show on client products & services')
             ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonMissingPath('data.show_tree_options')
             ->assertJsonMissingPath('data.pricing_type');
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());

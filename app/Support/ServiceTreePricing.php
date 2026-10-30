@@ -160,8 +160,6 @@ final class ServiceTreePricing
 
         return [
             'vendor_id' => $vendorId,
-            'show_tree_options' => $show,
-            'show_on_customer_service_products' => $show,
             'show_on_client_products_services' => $show,
             'toggle_label' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_LABEL,
             'toggle_description' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_DESCRIPTION,
@@ -224,10 +222,9 @@ final class ServiceTreePricing
         }
 
         return [
-            'show_tree_options' => $show,
-            'show_on_customer_service_products' => $show,
-            'toggle_label' => 'Show on customer service products',
-            'toggle_description' => 'When off, the tree/palm section is hidden. When on, only rows with a price appear.',
+            'show_on_client_products_services' => $show,
+            'toggle_label' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_LABEL,
+            'toggle_description' => ServiceAreaPricing::CLIENT_VISIBILITY_TOGGLE_DESCRIPTION,
             'price_per_tree' => $tree,
             'price_per_tree_label' => 'Price per tree',
             'price_per_tree_description' => 'Unit price for each tree. Customers choose quantity (number of trees) on the service product.',
@@ -728,9 +725,9 @@ final class ServiceTreePricing
     }
 
     /**
-     * Client visibility toggle from request (Postman/mobile often send show_on_client_products_services).
+     * Client visibility toggle for tree/palm settings APIs (single field — same as area pricing).
      */
-    public static function resolveShowTreeOptionsFromRequest(Request $request): ?bool
+    public static function resolveShowOnClientFromRequest(Request $request): ?bool
     {
         foreach ([
             'show_on_client_products_services',
@@ -738,12 +735,6 @@ final class ServiceTreePricing
             'show_on_client',
             'showOnClientProductsServices',
         ] as $key) {
-            if ($request->has($key)) {
-                return filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN);
-            }
-        }
-
-        foreach (['show_tree_options', 'showTreeOptions'] as $key) {
             if ($request->has($key)) {
                 return filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN);
             }
@@ -757,9 +748,9 @@ final class ServiceTreePricing
      */
     public static function normalizeAdminFormData(Request $request): void
     {
-        $show = self::resolveShowTreeOptionsFromRequest($request);
+        $show = self::resolveShowOnClientFromRequest($request);
         if ($show !== null) {
-            $request->merge(['show_tree_options' => $show]);
+            $request->merge(['show_on_client_products_services' => $show]);
         }
 
         foreach (['price_per_tree', 'pricePerTree'] as $key) {
@@ -782,8 +773,8 @@ final class ServiceTreePricing
             $nested = is_array($decoded) ? $decoded : null;
         }
         if (is_array($nested)) {
-            if (array_key_exists('show', $nested) && ! $request->has('show_tree_options')) {
-                $request->merge(['show_tree_options' => filter_var($nested['show'], FILTER_VALIDATE_BOOLEAN)]);
+            if (array_key_exists('show', $nested) && ! $request->has('show_on_client_products_services')) {
+                $request->merge(['show_on_client_products_services' => filter_var($nested['show'], FILTER_VALIDATE_BOOLEAN)]);
             }
             if (array_key_exists('price_per_tree', $nested) && ! $request->has('price_per_tree')) {
                 $request->merge(['price_per_tree' => $nested['price_per_tree']]);
@@ -799,7 +790,7 @@ final class ServiceTreePricing
      */
     public static function validatedFromRequest(Request $request): ?array
     {
-        $hasAny = $request->has('show_tree_options')
+        $hasAny = $request->has('show_on_client_products_services')
             || $request->has('price_per_tree')
             || $request->has('price_per_palm_tree')
             || $request->has('tree_pricing');
@@ -811,8 +802,8 @@ final class ServiceTreePricing
         $current = self::globalConfig();
 
         return [
-            'show_tree_options' => $request->has('show_tree_options')
-                ? (bool) $request->boolean('show_tree_options')
+            'show_tree_options' => $request->has('show_on_client_products_services')
+                ? (bool) $request->boolean('show_on_client_products_services')
                 : $current['show_tree_options'],
             'price_per_tree' => $request->has('price_per_tree')
                 ? max(0, round((float) $request->input('price_per_tree'), 2))

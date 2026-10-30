@@ -67,7 +67,7 @@ class ServiceTreePricingTest extends TestCase
     {
         $this->actingAs($this->admin, 'sanctum')
             ->post('/api/admin/settings/tree-palm-pricing', [
-                'show_tree_options' => '1',
+                'show_on_client_products_services' => '1',
                 'price_per_tree' => '50',
                 'price_per_palm_tree' => '80',
                 'price_includes' => [
@@ -79,10 +79,11 @@ class ServiceTreePricingTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
             ->assertJsonPath('data.price_per_tree', 50)
             ->assertJsonPath('data.price_per_palm_tree', 80)
             ->assertJsonPath('data.price_includes.materials', true)
+            ->assertJsonMissingPath('data.show_tree_options')
             ->assertJsonMissingPath('data.pricing_type')
             ->assertJsonMissingPath('data.price_per_m2');
 
@@ -329,19 +330,20 @@ class ServiceTreePricingTest extends TestCase
                 'success',
                 'message',
                 'data' => [
-                    'show_tree_options',
+                    'show_on_client_products_services',
                     'price_per_tree',
                     'price_per_palm_tree',
                     'price_includes',
                 ],
             ])
+            ->assertJsonMissingPath('data.show_tree_options')
             ->assertJsonMissingPath('data.pricing_type')
             ->assertJsonMissingPath('data.price_per_m2');
 
         // --- 2) Admin PUT UI fields only ---
         $this->actingAs($this->admin, 'sanctum')
             ->putJson('/api/admin/settings/tree-palm-pricing', [
-                'show_tree_options' => true,
+                'show_on_client_products_services' => true,
                 'price_per_tree' => 50,
                 'price_per_palm_tree' => 80,
                 'price_includes' => [
@@ -353,11 +355,12 @@ class ServiceTreePricingTest extends TestCase
                 ],
             ])
             ->assertOk()
-            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
             ->assertJsonPath('data.price_per_tree', 50)
             ->assertJsonPath('data.price_per_palm_tree', 80)
             ->assertJsonPath('data.price_includes.materials', true)
-            ->assertJsonPath('data.price_includes.transportation', false);
+            ->assertJsonPath('data.price_includes.transportation', false)
+            ->assertJsonMissingPath('data.show_tree_options');
 
         // --- 3) Admin GET after save ---
         $this->actingAs($this->admin, 'sanctum')
