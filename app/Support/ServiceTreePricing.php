@@ -182,6 +182,18 @@ final class ServiceTreePricing
     }
 
     /**
+     * Tree / palm admin toggle (separate from area-pricing show_on_client in vendor settings).
+     */
+    public static function treePalmVisibleOnClientForProduct(Product $product): bool
+    {
+        if (! ServiceAreaPricing::appliesToProduct($product)) {
+            return false;
+        }
+
+        return (bool) self::resolveConfigForProduct($product)['show_tree_options'];
+    }
+
+    /**
      * Whether the customer UI should offer tree/palm quantity inputs for this product.
      */
     public static function isEnabledForProduct(Product $product): bool
@@ -252,6 +264,7 @@ final class ServiceTreePricing
     {
         if (! ServiceAreaPricing::appliesToProduct($product)) {
             return [
+                'show_tree_palm_on_client' => false,
                 'show_tree_options' => false,
                 'tree_pricing' => null,
             ];
@@ -263,9 +276,10 @@ final class ServiceTreePricing
         $palm = $config['price_per_palm_tree'];
         $treeRow = $show && $tree > 0;
         $palmRow = $show && $palm > 0;
-        $enabled = $treeRow || $palmRow;
+        $enabled = $show && ($treeRow || $palmRow);
 
         return [
+            'show_tree_palm_on_client' => $show,
             'show_tree_options' => $enabled,
             'tree_pricing' => [
                 'enabled' => $enabled,

@@ -181,6 +181,28 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.enable_per_m2', true);
     }
 
+    public function test_tree_palm_shows_on_product_when_area_pricing_hidden_on_client(): void
+    {
+        ServiceAreaPricing::saveVendor(
+            $this->vendor->id,
+            ServiceAreaPricing::TYPE_PER_M2,
+            7,
+            ServiceAreaPricing::emptyIncludes(),
+            false
+        );
+        ServiceTreePricing::saveVendor($this->vendor->id, true, 50, 50);
+
+        $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_area_pricing_on_client', false)
+            ->assertJsonPath('data.show_tree_palm_on_client', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonPath('data.show_tree_options', true)
+            ->assertJsonPath('data.tree_pricing.enabled', true)
+            ->assertJsonPath('data.tree_pricing.trees.unit_price', 50)
+            ->assertJsonPath('data.tree_pricing.palm_trees.unit_price', 50);
+    }
+
     public function test_vendor_tree_palm_pricing_get_and_update(): void
     {
         $this->withToken($this->token)

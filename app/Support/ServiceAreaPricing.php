@@ -483,18 +483,23 @@ final class ServiceAreaPricing
      *
      * @return array{
      *     show_area_pricing_on_client: bool,
+     *     show_tree_palm_on_client: bool,
      *     show_on_client_products_services: bool,
      *     show_on_client: bool
      * }
      */
     public static function areaPricingClientVisibilityFields(Product $product): array
     {
-        $show = self::areaPricingVisibleOnClient($product);
+        $areaShow = self::areaPricingVisibleOnClient($product);
+        $treeShow = ServiceTreePricing::treePalmVisibleOnClientForProduct($product);
+        $anyShow = $areaShow || $treeShow;
 
         return [
-            'show_area_pricing_on_client' => $show,
-            'show_on_client_products_services' => $show,
-            'show_on_client' => $show,
+            'show_area_pricing_on_client' => $areaShow,
+            'show_tree_palm_on_client' => $treeShow,
+            // Legacy/mobile: true when either area pricing OR tree/palm is enabled for the client app.
+            'show_on_client_products_services' => $anyShow,
+            'show_on_client' => $anyShow,
         ];
     }
 
