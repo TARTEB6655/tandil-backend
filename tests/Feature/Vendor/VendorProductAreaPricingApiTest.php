@@ -60,28 +60,38 @@ class VendorProductAreaPricingApiTest extends TestCase
         $this->token = $user->createToken('test', ['vendor'])->plainTextToken;
     }
 
-    public function test_vendor_lists_service_products_for_area_pricing(): void
+    public function test_vendor_lists_services_for_area_pricing_only(): void
     {
+        Product::factory()->create([
+            'category_id' => Category::factory()->create()->id,
+            'vendor_id' => $this->vendor->id,
+            'type' => 'product',
+            'name' => 'Hardscape',
+            'price' => 600,
+            'status' => 'active',
+        ]);
+
         $this->withToken($this->token)
-            ->getJson('/api/vendor/products/area-pricing')
+            ->getJson('/api/vendor/services/area-pricing')
             ->assertOk()
-            ->assertJsonPath('data.items.0.product_id', $this->serviceProduct->id)
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.service_id', $this->serviceProduct->id)
             ->assertJsonPath('data.items.0.name', 'Landscaping')
             ->assertJsonPath('data.items.0.catalog_price', 300)
             ->assertJsonPath('data.items.0.area_pricing_configured', false)
-            ->assertJsonPath('data.items.0.detail_endpoint', '/api/vendor/products/'.$this->serviceProduct->id.'/area-pricing');
+            ->assertJsonPath('data.items.0.detail_endpoint', '/api/vendor/services/'.$this->serviceProduct->id.'/area-pricing');
     }
 
-    public function test_vendor_saves_per_product_area_pricing_and_shop_reflects_rate(): void
+    public function test_vendor_saves_per_service_area_pricing_and_shop_reflects_rate(): void
     {
         $this->withToken($this->token)
-            ->getJson('/api/vendor/products/'.$this->serviceProduct->id.'/area-pricing')
+            ->getJson('/api/vendor/services/'.$this->serviceProduct->id.'/area-pricing')
             ->assertOk()
             ->assertJsonPath('data.screen_title', 'Area pricing for this service')
-            ->assertJsonPath('data.product_name', 'Landscaping');
+            ->assertJsonPath('data.service_name', 'Landscaping');
 
         $this->withToken($this->token)
-            ->postJson('/api/vendor/products/'.$this->serviceProduct->id.'/area-pricing', [
+            ->postJson('/api/vendor/services/'.$this->serviceProduct->id.'/area-pricing', [
                 'show_on_client_products_services' => true,
                 'enable_fixed_price' => false,
                 'enable_per_m2' => true,
@@ -97,11 +107,13 @@ class VendorProductAreaPricingApiTest extends TestCase
 
         $this->assertTrue(ProductAreaPricing::isConfigured($this->serviceProduct->id));
 
-        $this->withToken($this->token)
-            ->getJson('/api/vendor/products/area-pricing')
+        $listResponse = $this->withToken($this->token)
+            ->getJson('/api/vendor/services/area-pricing')
             ->assertOk()
-            ->assertJsonPath('data.items.0.price_per_m2', 20)
-            ->assertJsonPath('data.items.0.price_per_m2_label', 'AED 20 / m²');
+            ->assertJsonPath('data.items.0.price_per_m2', 20);
+        $label = $listResponse->json('data.items.0.price_per_m2_label');
+        $this->assertIsString($label);
+        $this->assertStringStartsWith(ServiceAreaPricing::formatMoney(20).' / m', $label);
 
         $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
             ->assertOk()
@@ -110,7 +122,7 @@ class VendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'per_m2');
     }
 
-    public function test_vendor_product_type_catalog_line_can_save_per_m2_without_enable_toggle(): void
+    public function test_vendor_catalog_product_type_cannot_use_services_area_pricing(): void
     {
         $catalogProduct = Product::factory()->create([
             'category_id' => Category::factory()->create()->id,
@@ -122,22 +134,17 @@ class VendorProductAreaPricingApiTest extends TestCase
         ]);
 
         $this->withToken($this->token)
-            ->postJson('/api/vendor/products/'.$catalogProduct->id.'/area-pricing', [
+            ->getJson('/api/vendor/services/'.$catalogProduct->id.'/area-pricing')
+            ->assertNotFound();
+
+        $this->withToken($this->token)
+            ->postJson('/api/vendor/services/'.$catalogProduct->id.'/area-pricing', [
                 'show_on_client_products_services' => true,
-                'enable_fixed_price' => false,
-                'enable_per_m2' => false,
-                'fixed_price' => 0,
+                'enable_per_m2' => true,
                 'per_m2_price' => 55,
                 'price_includes' => ServiceAreaPricing::emptyIncludes(),
             ])
-            ->assertOk()
-            ->assertJsonPath('data.price_per_m2', 55)
-            ->assertJsonPath('data.enable_per_m2', true);
-
-        $this->getJson('/api/shop/products/'.$catalogProduct->id)
-            ->assertOk()
-            ->assertJsonPath('data.show_area_pricing_on_client', true)
-            ->assertJsonPath('data.price_per_m2', 55);
+            ->assertNotFound();
     }
 
     public function test_require_area_before_checkout_validates_cart(): void

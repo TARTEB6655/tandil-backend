@@ -94,17 +94,17 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::post('/categories/{id}', [VendorCategoryController::class, 'update']);
         Route::delete('/categories/{id}', [VendorCategoryController::class, 'destroy']);
 
+        Route::get('/services/area-pricing', [VendorProductAreaPricingApiController::class, 'index']);
+        Route::get('/services/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'show']);
+        Route::put('/services/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
+        Route::post('/services/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
+
         Route::get('/services', [VendorServiceController::class, 'index']);
         Route::post('/services', [VendorServiceController::class, 'store']);
         Route::get('/services/{id}', [VendorServiceController::class, 'show']);
         Route::put('/services/{id}', [VendorServiceController::class, 'update']);
         Route::post('/services/{id}', [VendorServiceController::class, 'update']);
         Route::delete('/services/{id}', [VendorServiceController::class, 'destroy']);
-
-        Route::get('/products/area-pricing', [VendorProductAreaPricingApiController::class, 'index']);
-        Route::get('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'show']);
-        Route::put('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
-        Route::post('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
 
         Route::get('/products', [VendorProductController::class, 'index']);
         Route::post('/products', [VendorProductController::class, 'store']);

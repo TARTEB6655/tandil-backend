@@ -17,9 +17,9 @@ use Illuminate\Http\Request;
  * Admin per-service product area pricing (same as vendor 08c, scoped by vendor_id).
  *
  * GET  /api/admin/vendors/area-pricing
- * GET  /api/admin/vendors/{vendorId}/products/area-pricing
- * GET  /api/admin/vendors/{vendorId}/products/{productId}/area-pricing
- * PUT|POST /api/admin/vendors/{vendorId}/products/{productId}/area-pricing
+ * GET  /api/admin/vendors/{vendorId}/services/area-pricing
+ * GET  /api/admin/vendors/{vendorId}/services/{serviceId}/area-pricing
+ * PUT|POST /api/admin/vendors/{vendorId}/services/{serviceId}/area-pricing
  */
 class AdminVendorProductAreaPricingApiController extends Controller
 {
@@ -45,15 +45,15 @@ class AdminVendorProductAreaPricingApiController extends Controller
     {
         $vendor = $this->managedVendor($vendorId);
 
-        $items = ProductAreaPricing::vendorCatalogQuery($vendor->id)
+        $items = ProductAreaPricing::vendorServiceProductsQuery($vendor->id)
             ->get()
-            ->map(fn (Product $product) => ProductAreaPricing::adminListItem($product, $vendor->id))
+            ->map(fn (Product $product) => ProductAreaPricing::serviceAreaPricingListItem($product, $vendor->id))
             ->values()
             ->all();
 
-        return ApiResponse::success('Service products for area pricing retrieved.', [
+        return ApiResponse::success('Services for area pricing retrieved.', [
             'vendor_id' => $vendor->id,
-            'screen_title' => 'Service products',
+            'screen_title' => 'Services',
             'screen_description' => 'Tap a service to set its price per m² (and optional fixed price) for the customer app.',
             'items' => $items,
         ]);
@@ -96,6 +96,6 @@ class AdminVendorProductAreaPricingApiController extends Controller
 
     private function serviceProductForVendor(Vendor $vendor, int $productId): Product
     {
-        return ProductAreaPricing::resolveVendorCatalogProduct($vendor, $productId);
+        return ProductAreaPricing::resolveVendorServiceProduct($vendor, $productId);
     }
 }

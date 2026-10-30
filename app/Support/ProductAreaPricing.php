@@ -36,28 +36,30 @@ final class ProductAreaPricing
     }
 
     /**
-     * Vendor catalog lines eligible for per-product area pricing (same as shop vendor SKUs).
+     * Vendor service SKUs only (type=service) — not category products or type=product lines.
      *
      * @return Builder<Product>
      */
-    public static function vendorCatalogQuery(int $vendorId): Builder
+    public static function vendorServiceProductsQuery(int $vendorId): Builder
     {
         return Product::query()
             ->where('vendor_id', $vendorId)
+            ->where('type', 'service')
             ->where('status', 'active')
             ->orderBy('name');
     }
 
-    public static function resolveVendorCatalogProduct(Vendor $vendor, int $productId): Product
+    public static function resolveVendorServiceProduct(Vendor $vendor, int $productId): Product
     {
         $product = Product::query()
             ->where('id', $productId)
             ->where('vendor_id', $vendor->id)
             ->where('status', 'active')
+            ->where('type', 'service')
             ->first();
 
-        if ($product === null || ! ServiceAreaPricing::appliesToProduct($product)) {
-            abort(404, 'Service product not found for this vendor.');
+        if ($product === null) {
+            abort(404, 'Service not found for this vendor.');
         }
 
         return $product;
@@ -185,18 +187,27 @@ final class ProductAreaPricing
     /**
      * @return array<string, mixed>
      */
-    public static function vendorListItem(Product $product): array
+    /**
+     * List card for area-pricing APIs — services only (no category / product-type rows).
+     *
+     * @return array<string, mixed>
+     */
+    public static function serviceAreaPricingListItem(Product $product, ?int $adminVendorId = null): array
     {
         $catalog = round((float) $product->price, 2);
         $config = self::configExpanded((int) $product->id);
         $perM2 = $config['enable_per_m2'] ? round((float) $config['per_m2_price'], 2) : null;
 
+        $serviceId = (int) $product->id;
+        $detailEndpoint = $adminVendorId !== null
+            ? '/api/admin/vendors/'.$adminVendorId.'/services/'.$serviceId.'/area-pricing'
+            : '/api/vendor/services/'.$serviceId.'/area-pricing';
+
         return [
-            'product_id' => (int) $product->id,
+            'id' => $serviceId,
+            'service_id' => $serviceId,
             'name' => (string) $product->name,
             'description' => $product->description,
-            'type' => $product->type ?? 'product',
-            'status' => $product->status,
             'catalog_price' => $catalog,
             'catalog_price_label' => 'Catalog: '.ServiceAreaPricing::formatMoney($catalog),
             'area_pricing_configured' => (bool) $config['configured'],
@@ -205,19 +216,8 @@ final class ProductAreaPricing
                 ? ServiceAreaPricing::formatMoney($perM2).' / m²'
                 : null,
             'show_on_client_products_services' => (bool) $config['show_on_client_products_services'],
-            'detail_endpoint' => '/api/vendor/products/'.$product->id.'/area-pricing',
+            'detail_endpoint' => $detailEndpoint,
         ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function adminListItem(Product $product, int $vendorId): array
-    {
-        $item = self::vendorListItem($product);
-        $item['detail_endpoint'] = '/api/admin/vendors/'.$vendorId.'/products/'.$product->id.'/area-pricing';
-
-        return $item;
     }
 
     /**
@@ -242,7 +242,9 @@ final class ProductAreaPricing
         return [
             'screen_title' => 'Area pricing for this service',
             'screen_description' => 'Set this service’s m² rate (and optional fixed price). Shown on the customer product detail when “Show on client” is on.',
-            'product_id' => (int) $product->id,
+            'service_id' => (int) $product->id,
+            'id' => (int) $product->id,
+            'service_name' => (string) $product->name,
             'product_name' => (string) $product->name,
             'catalog_price' => $catalog,
             'catalog_price_label' => ServiceAreaPricing::formatMoney($catalog),
@@ -268,7 +270,8 @@ final class ProductAreaPricing
                 'total_label' => ServiceAreaPricing::formatMoney(round(100 * $perM2, 2)),
                 'formula' => '100 m² × '.ServiceAreaPricing::formatMoney($perM2).' = '.ServiceAreaPricing::formatMoney(round(100 * $perM2, 2)),
             ] : null,
-            'save_hint' => 'Per-product pricing overrides vendor-wide Product Settings for this SKU on the shop app.',
+            'save_hint' => 'Per-service m² pricing applies on the customer app when “Show on client” is on.',
+            'save_endpoint' => '/api/vendor/services/'.$product->id.'/area-pricing',
         ];
     }
 
@@ -288,7 +291,7 @@ final class ProductAreaPricing
                 'vendor_name' => $profile?->owner_name,
                 'email' => $profile?->email ?? $vendor->user?->email,
             ],
-            'save_endpoint' => '/api/admin/vendors/'.$vendor->id.'/products/'.$product->id.'/area-pricing',
+            'save_endpoint' => '/api/admin/vendors/'.$vendor->id.'/services/'.$product->id.'/area-pricing',
         ]);
     }
 

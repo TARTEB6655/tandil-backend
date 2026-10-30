@@ -8882,7 +8882,7 @@
                         },
                         {
                             "name": "02. Per-service area pricing (admin — preferred)",
-                            "description": "Admin mirror of vendor **08c**. Auth: Bearer {{token}} (admin).\n\n| Step | Method | Path |\n|------|--------|------|\n| List vendors | GET | `/api/admin/vendors/area-pricing` |\n| List vendor service products | GET | `/api/admin/vendors/{vendor_id}/products/area-pricing` |\n| Edit one service | GET | `/api/admin/vendors/{vendor_id}/products/{product_id}/area-pricing` |\n| Save | POST/PUT | same as GET edit path |\n\nBody matches vendor **08c** save (show_on_client_products_services, enable_fixed_price, enable_per_m2, fixed_price, per_m2_price, price_includes).",
+                            "description": "Admin mirror of vendor **08c**. Auth: Bearer {{token}} (admin).\n\n| Step | Method | Path |\n|------|--------|------|\n| List vendors | GET | `/api/admin/vendors/area-pricing` |\n| List vendor services | GET | `/api/admin/vendors/{vendor_id}/services/area-pricing` |\n| Edit one service | GET | `/api/admin/vendors/{vendor_id}/services/{service_id}/area-pricing` |\n| Save | POST/PUT | same as GET edit path |\n\nBody matches vendor **08c** save (show_on_client_products_services, enable_fixed_price, enable_per_m2, fixed_price, per_m2_price, price_includes).",
                             "item": [
                                 {
                                     "name": "01. List vendors (area pricing)",
@@ -8929,9 +8929,9 @@
                                             { "key": "Accept", "value": "application/json" }
                                         ],
                                         "url": {
-                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/products/area-pricing",
+                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/services/area-pricing",
                                             "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "products", "area-pricing"]
+                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "services", "area-pricing"]
                                         }
                                     }
                                 },
@@ -8944,9 +8944,9 @@
                                             { "key": "Accept", "value": "application/json" }
                                         ],
                                         "url": {
-                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/products/{{product_id}}/area-pricing",
+                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/services/{{product_id}}/area-pricing",
                                             "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "products", "{{product_id}}", "area-pricing"]
+                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "services", "{{product_id}}", "area-pricing"]
                                         }
                                     }
                                 },
@@ -8964,9 +8964,9 @@
                                             "raw": "{\n  \"show_on_client_products_services\": true,\n  \"enable_fixed_price\": false,\n  \"enable_per_m2\": true,\n  \"require_area_before_checkout\": false,\n  \"fixed_price\": 0,\n  \"per_m2_price\": 20,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
                                         },
                                         "url": {
-                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/products/{{product_id}}/area-pricing",
+                                            "raw": "{{base_url}}/api/admin/vendors/{{vendor_id}}/services/{{product_id}}/area-pricing",
                                             "host": ["{{base_url}}"],
-                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "products", "{{product_id}}", "area-pricing"]
+                                            "path": ["api", "admin", "vendors", "{{vendor_id}}", "services", "{{product_id}}", "area-pricing"]
                                         }
                                     }
                                 }
@@ -26930,7 +26930,7 @@
                 },
                 {
                     "name": "08c. Per-service area pricing (vendor mobile — preferred)",
-                    "description": "Vendor **service list → one product → area pricing**. Auth: `{{vendor_token}}`.\n\n| Step | Method | Path |\n|------|--------|------|\n| List service products | GET | `/api/vendor/products/area-pricing` |\n| Edit one service | GET | `/api/vendor/products/{product_id}/area-pricing` |\n| Save | POST/PUT | `/api/vendor/products/{product_id}/area-pricing` |\n\nShop: `GET /api/shop/products/{product_id}` reflects per-product rates when saved.",
+                    "description": "Vendor **service list → one product → area pricing**. Auth: `{{vendor_token}}`.\n\n| Step | Method | Path |\n|------|--------|------|\n| List services (type=service only) | GET | `/api/vendor/services/area-pricing` |\n| Edit one service | GET | `/api/vendor/services/{service_id}/area-pricing` |\n| Save | POST/PUT | `/api/vendor/services/{service_id}/area-pricing` |\n\nShop: `GET /api/shop/products/{product_id}` reflects per-product rates when saved.",
                     "item": [
                         {
                             "name": "01. List service products (area pricing cards)",
@@ -26941,9 +26941,9 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/vendor/products/area-pricing",
+                                    "raw": "{{base_url}}/api/vendor/services/area-pricing",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "products", "area-pricing"]
+                                    "path": ["api", "vendor", "services", "area-pricing"]
                                 }
                             }
                         },
@@ -26956,9 +26956,9 @@
                                     { "key": "Accept", "value": "application/json" }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/vendor/products/{{product_id}}/area-pricing",
+                                    "raw": "{{base_url}}/api/vendor/services/{{product_id}}/area-pricing",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "products", "{{product_id}}", "area-pricing"]
+                                    "path": ["api", "vendor", "services", "{{product_id}}", "area-pricing"]
                                 }
                             }
                         },
@@ -26976,9 +26976,9 @@
                                     "raw": "{\n  \"show_on_client_products_services\": true,\n  \"enable_fixed_price\": false,\n  \"enable_per_m2\": true,\n  \"require_area_before_checkout\": false,\n  \"fixed_price\": 0,\n  \"per_m2_price\": 20,\n  \"price_includes\": {\n    \"materials\": true,\n    \"installation\": true,\n    \"labor\": true,\n    \"transportation\": false,\n    \"delivery\": false\n  }\n}"
                                 },
                                 "url": {
-                                    "raw": "{{base_url}}/api/vendor/products/{{product_id}}/area-pricing",
+                                    "raw": "{{base_url}}/api/vendor/services/{{product_id}}/area-pricing",
                                     "host": ["{{base_url}}"],
-                                    "path": ["api", "vendor", "products", "{{product_id}}", "area-pricing"]
+                                    "path": ["api", "vendor", "services", "{{product_id}}", "area-pricing"]
                                 }
                             }
                         }

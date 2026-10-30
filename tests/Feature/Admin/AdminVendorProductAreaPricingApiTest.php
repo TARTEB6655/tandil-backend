@@ -68,8 +68,8 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.items.0.vendor_id', $this->vendor->id)
             ->assertJsonPath(
-                'data.items.0.products_area_pricing_endpoint',
-                '/api/admin/vendors/'.$this->vendor->id.'/products/area-pricing'
+                'data.items.0.services_area_pricing_endpoint',
+                '/api/admin/vendors/'.$this->vendor->id.'/services/area-pricing'
             );
     }
 
@@ -78,24 +78,24 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
         $base = '/api/admin/vendors/'.$this->vendor->id;
 
         $this->withToken($this->adminToken)
-            ->getJson($base.'/products/area-pricing')
+            ->getJson($base.'/services/area-pricing')
             ->assertOk()
             ->assertJsonPath('data.vendor_id', $this->vendor->id)
-            ->assertJsonPath('data.items.0.product_id', $this->serviceProduct->id)
+            ->assertJsonPath('data.items.0.service_id', $this->serviceProduct->id)
             ->assertJsonPath(
                 'data.items.0.detail_endpoint',
-                $base.'/products/'.$this->serviceProduct->id.'/area-pricing'
+                $base.'/services/'.$this->serviceProduct->id.'/area-pricing'
             );
 
         $this->withToken($this->adminToken)
-            ->getJson($base.'/products/'.$this->serviceProduct->id.'/area-pricing')
+            ->getJson($base.'/services/'.$this->serviceProduct->id.'/area-pricing')
             ->assertOk()
             ->assertJsonPath('data.screen_title', 'Area pricing for this service')
             ->assertJsonPath('data.vendor.vendor_id', $this->vendor->id)
             ->assertJsonPath('data.show_on_client_products_services', false);
 
         $this->withToken($this->adminToken)
-            ->postJson($base.'/products/'.$this->serviceProduct->id.'/area-pricing', [
+            ->postJson($base.'/services/'.$this->serviceProduct->id.'/area-pricing', [
                 'show_on_client_products_services' => true,
                 'enable_fixed_price' => true,
                 'enable_per_m2' => true,
@@ -115,7 +115,7 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath('data.show_on_client_products_services', true);
 
         $this->withToken($this->adminToken)
-            ->postJson($base.'/products/'.$this->serviceProduct->id.'/area-pricing', [
+            ->postJson($base.'/services/'.$this->serviceProduct->id.'/area-pricing', [
                 'show_on_client_products_services' => false,
                 'enable_fixed_price' => false,
                 'enable_per_m2' => true,
@@ -132,7 +132,7 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath('data.show_area_pricing_on_client', false);
 
         $this->withToken($this->adminToken)
-            ->postJson($base.'/products/'.$this->serviceProduct->id.'/area-pricing', [
+            ->postJson($base.'/services/'.$this->serviceProduct->id.'/area-pricing', [
                 'show_on_client_products_services' => true,
                 'enable_fixed_price' => false,
                 'enable_per_m2' => true,
@@ -150,7 +150,7 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'per_m2');
     }
 
-    public function test_admin_cannot_manage_other_vendors_product(): void
+    public function test_admin_cannot_manage_other_vendors_service(): void
     {
         $otherVendor = Vendor::create([
             'user_id' => User::factory()->create(['role' => 'vendor'])->id,
@@ -159,13 +159,13 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
         ]);
 
         $this->withToken($this->adminToken)
-            ->getJson('/api/admin/vendors/'.$this->vendor->id.'/products/'.$this->serviceProduct->id.'/area-pricing')
+            ->getJson('/api/admin/vendors/'.$this->vendor->id.'/services/'.$this->serviceProduct->id.'/area-pricing')
             ->assertOk();
 
         Product::query()->whereKey($this->serviceProduct->id)->update(['vendor_id' => $otherVendor->id]);
 
         $this->withToken($this->adminToken)
-            ->getJson('/api/admin/vendors/'.$this->vendor->id.'/products/'.$this->serviceProduct->id.'/area-pricing')
+            ->getJson('/api/admin/vendors/'.$this->vendor->id.'/services/'.$this->serviceProduct->id.'/area-pricing')
             ->assertNotFound();
     }
 }

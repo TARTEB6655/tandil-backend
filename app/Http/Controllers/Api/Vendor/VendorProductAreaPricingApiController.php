@@ -14,9 +14,9 @@ use Illuminate\Http\Request;
 /**
  * Vendor per-service product area pricing (list → edit one product).
  *
- * GET  /api/vendor/products/area-pricing
- * GET  /api/vendor/products/{productId}/area-pricing
- * PUT|POST /api/vendor/products/{productId}/area-pricing
+ * GET  /api/vendor/services/area-pricing
+ * GET  /api/vendor/services/{serviceId}/area-pricing
+ * PUT|POST /api/vendor/services/{serviceId}/area-pricing
  */
 class VendorProductAreaPricingApiController extends Controller
 {
@@ -26,14 +26,14 @@ class VendorProductAreaPricingApiController extends Controller
     {
         $vendor = $this->vendor($request);
 
-        $items = ProductAreaPricing::vendorCatalogQuery($vendor->id)
+        $items = ProductAreaPricing::vendorServiceProductsQuery($vendor->id)
             ->get()
-            ->map(fn (Product $product) => ProductAreaPricing::vendorListItem($product))
+            ->map(fn (Product $product) => ProductAreaPricing::serviceAreaPricingListItem($product))
             ->values()
             ->all();
 
-        return ApiResponse::success('Service products for area pricing retrieved.', [
-            'screen_title' => 'Service products',
+        return ApiResponse::success('Services for area pricing retrieved.', [
+            'screen_title' => 'Services',
             'screen_description' => 'Tap a service to set its price per m² (and optional fixed price) for the customer app.',
             'items' => $items,
         ]);
@@ -76,6 +76,6 @@ class VendorProductAreaPricingApiController extends Controller
 
     private function serviceProductForVendor(Vendor $vendor, int $productId): Product
     {
-        return ProductAreaPricing::resolveVendorCatalogProduct($vendor, $productId);
+        return ProductAreaPricing::resolveVendorServiceProduct($vendor, $productId);
     }
 }
