@@ -106,9 +106,18 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::post('/services/{id}', [VendorServiceController::class, 'update']);
         Route::delete('/services/{id}', [VendorServiceController::class, 'destroy']);
 
+        // Legacy mobile paths (pre v6.3.1) — register before /products/{id} to avoid 500 on "area-pricing" segment.
+        Route::get('/products/area-pricing', [VendorProductAreaPricingApiController::class, 'index']);
+        Route::get('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'show'])
+            ->whereNumber('productId');
+        Route::put('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update'])
+            ->whereNumber('productId');
+        Route::post('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update'])
+            ->whereNumber('productId');
+
         Route::get('/products', [VendorProductController::class, 'index']);
         Route::post('/products', [VendorProductController::class, 'store']);
-        Route::get('/products/{id}', [VendorProductController::class, 'show']);
+        Route::get('/products/{id}', [VendorProductController::class, 'show'])->whereNumber('id');
         Route::put('/products/{id}', [VendorProductController::class, 'update']);
         Route::post('/products/{id}', [VendorProductController::class, 'update']);
         Route::delete('/products/{id}', [VendorProductController::class, 'destroy']);

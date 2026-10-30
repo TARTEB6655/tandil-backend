@@ -89,6 +89,14 @@ class VendorProductAreaPricingApiTest extends TestCase
         }
     }
 
+    public function test_legacy_products_area_pricing_list_path_still_works(): void
+    {
+        $this->withToken($this->token)
+            ->getJson('/api/vendor/products/area-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.service_id', $this->serviceProduct->id);
+    }
+
     public function test_vendor_lists_services_for_area_pricing_only(): void
     {
         Product::factory()->create([

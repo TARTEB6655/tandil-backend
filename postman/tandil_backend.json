@@ -26930,7 +26930,7 @@
                 },
                 {
                     "name": "08c. Per-service area pricing (vendor mobile — preferred)",
-                    "description": "Vendor **service list → one product → area pricing**. Auth: `{{vendor_token}}`.\n\n| Step | Method | Path |\n|------|--------|------|\n| List services (type=service only) | GET | `/api/vendor/services/area-pricing` |\n| Edit one service | GET | `/api/vendor/services/{service_id}/area-pricing` |\n| Save | POST/PUT | `/api/vendor/services/{service_id}/area-pricing` |\n\nShop: `GET /api/shop/products/{product_id}` reflects per-product rates when saved.",
+                    "description": "Vendor **service list → one product → area pricing**. Auth: `{{vendor_token}}`.\n\n| Step | Method | Path |\n|------|--------|------|\n| List services (type=service only) | GET | `/api/vendor/services/area-pricing` |\n| Edit one service | GET | `/api/vendor/services/{service_id}/area-pricing` |\n| Save | POST/PUT | `/api/vendor/services/{service_id}/area-pricing` |\n\n**Legacy alias (old Postman/mobile):** same handlers under `/api/vendor/products/area-pricing` and `/api/vendor/products/{service_id}/area-pricing`.\n\nShop: `GET /api/shop/products/{product_id}` reflects per-service rates when 08c saved.",
                     "item": [
                         {
                             "name": "01. List service products (area pricing cards)",
