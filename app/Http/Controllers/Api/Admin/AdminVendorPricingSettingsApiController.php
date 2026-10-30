@@ -258,7 +258,7 @@ class AdminVendorPricingSettingsApiController extends Controller
                 'show_on_client_products_services' => filter_var($request->input('show_on_client_products_services'), FILTER_VALIDATE_BOOLEAN),
             ]);
         }
-        foreach (['show_area_pricing_on_client', 'show_on_customer_service_products'] as $key) {
+        foreach (['show_on_client', 'show_area_pricing_on_client', 'show_on_customer_service_products'] as $key) {
             if ($request->has($key) && ! $request->has('show_on_client_products_services')) {
                 $request->merge([
                     'show_on_client_products_services' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),

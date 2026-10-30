@@ -173,6 +173,12 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->getJson('/api/vendor/settings/service-pricing')
             ->assertOk()
             ->assertJsonPath('data.show_on_client_products_services', false);
+
+        $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_on_client_products_services', false)
+            ->assertJsonPath('data.show_area_pricing_on_client', false)
+            ->assertJsonPath('data.enable_per_m2', true);
     }
 
     public function test_vendor_tree_palm_pricing_get_and_update(): void
@@ -308,6 +314,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
             ->assertOk()
             ->assertJsonPath('data.show_area_pricing_on_client', true)
+            ->assertJsonPath('data.show_on_client_products_services', true)
+            ->assertJsonPath('data.show_on_client', true)
             ->assertJsonPath('data.pricing_type', 'multi')
             ->assertJsonPath('data.area_pricing_mode_required', true)
             ->assertJsonPath('data.show_area_pricing_mode_selector', true)

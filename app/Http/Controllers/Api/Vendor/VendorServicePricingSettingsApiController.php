@@ -115,7 +115,7 @@ class VendorServicePricingSettingsApiController extends Controller
 
     private function normalizeClientVisibility(Request $request): void
     {
-        foreach (['show_on_client_products_services', 'show_on_customer_service_products', 'show_area_pricing_on_client'] as $key) {
+        foreach (['show_on_client_products_services', 'show_on_client', 'show_on_customer_service_products', 'show_area_pricing_on_client'] as $key) {
             if ($request->has($key)) {
                 $request->merge([
                     'show_on_client_products_services' => filter_var($request->input($key), FILTER_VALIDATE_BOOLEAN),

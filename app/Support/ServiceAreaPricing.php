@@ -477,15 +477,50 @@ final class ServiceAreaPricing
     }
 
     /**
-     * Client shop list/detail — single ON/OFF for fixed / per m² (vendor service-pricing toggle).
+     * Client shop list/detail — ON/OFF for vendor area pricing (same toggle as admin service-pricing).
      *
-     * @return array{show_area_pricing_on_client: bool}
+     * Mobile apps often read {@see show_on_client_products_services}; keep aliases in sync.
+     *
+     * @return array{
+     *     show_area_pricing_on_client: bool,
+     *     show_on_client_products_services: bool,
+     *     show_on_client: bool
+     * }
      */
     public static function areaPricingClientVisibilityFields(Product $product): array
     {
+        $show = self::areaPricingVisibleOnClient($product);
+
         return [
-            'show_area_pricing_on_client' => self::areaPricingVisibleOnClient($product),
+            'show_area_pricing_on_client' => $show,
+            'show_on_client_products_services' => $show,
+            'show_on_client' => $show,
         ];
+    }
+
+    /**
+     * Resolve vendor “show on client” from save body (preserve existing when omitted).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public static function resolveVendorShowOnClientFromInput(array $input, ?int $vendorId = null): bool
+    {
+        foreach ([
+            'show_on_client_products_services',
+            'show_on_client',
+            'show_area_pricing_on_client',
+            'show_on_customer_service_products',
+        ] as $key) {
+            if (array_key_exists($key, $input)) {
+                return filter_var($input[$key], FILTER_VALIDATE_BOOLEAN);
+            }
+        }
+
+        if ($vendorId !== null && $vendorId > 0) {
+            return self::vendorShowAreaPricingOnClient($vendorId);
+        }
+
+        return true;
     }
 
     /**
@@ -734,7 +769,7 @@ final class ServiceAreaPricing
             ? self::vendorConfigExpanded($vendorId)
             : null;
 
-        $show = filter_var($input['show_on_client_products_services'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $show = self::resolveVendorShowOnClientFromInput($input, $vendorId);
 
         $hasMultiselect = array_key_exists('enable_fixed_price', $input)
             || array_key_exists('enable_per_m2', $input)
@@ -1534,9 +1569,16 @@ final class ServiceAreaPricing
         }
 
         if (! self::areaPricingVisibleOnClient($product)) {
+            $vendorId = (int) ($product->vendor_id ?? 0);
+            $expanded = $vendorId > 0 ? self::vendorConfigExpanded($vendorId) : null;
+
             return [
                 ...self::areaPricingClientVisibilityFields($product),
                 ...self::areaPricingClientUiFields($product),
+                'enable_fixed_price' => (bool) ($expanded['enable_fixed_price'] ?? false),
+                'enable_per_m2' => (bool) ($expanded['enable_per_m2'] ?? false),
+                'fixed_price' => $expanded !== null ? round((float) ($expanded['fixed_price'] ?? 0), 2) : null,
+                'per_m2_price' => $expanded !== null ? round((float) ($expanded['per_m2_price'] ?? 0), 2) : null,
                 'pricing_type' => self::TYPE_FIXED,
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
@@ -1626,6 +1668,8 @@ final class ServiceAreaPricing
             return [
                 ...self::areaPricingClientVisibilityFields($product),
                 ...self::areaPricingClientUiFields($product),
+                'enable_fixed_price' => false,
+                'enable_per_m2' => true,
                 'pricing_type' => self::TYPE_PER_M2,
                 // Store/list card: each product's own catalog price (never the global m² rate).
                 'price' => $catalogPrice,
@@ -1655,6 +1699,8 @@ final class ServiceAreaPricing
         return [
             ...self::areaPricingClientVisibilityFields($product),
             ...self::areaPricingClientUiFields($product),
+            'enable_fixed_price' => true,
+            'enable_per_m2' => false,
             'pricing_type' => self::TYPE_FIXED,
             'price' => $total,
             'catalog_price' => $catalogPrice,
