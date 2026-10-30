@@ -489,6 +489,53 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Client shop UI hints — mode selector (Fixed vs per m²) and m² area input.
+     *
+     * @return array{
+     *     show_area_pricing_mode_selector: bool,
+     *     show_per_m2_on_client: bool,
+     *     show_required_area_input: bool,
+     *     area_pricing_mode_required: bool,
+     *     area_pricing_modes_available: list<string>
+     * }
+     */
+    public static function areaPricingClientUiFields(Product $product): array
+    {
+        if (! self::appliesToProduct($product) || ! self::areaPricingVisibleOnClient($product)) {
+            return [
+                'show_area_pricing_mode_selector' => false,
+                'show_per_m2_on_client' => false,
+                'show_required_area_input' => false,
+                'area_pricing_mode_required' => false,
+                'area_pricing_modes_available' => [],
+            ];
+        }
+
+        $modes = self::areaModesForProduct($product);
+        $multiselect = $modes['fixed'] && $modes['per_m2'];
+        $perM2Available = $modes['per_m2'] && $modes['per_m2_rate'] > 0;
+        $fixedAvailable = $modes['fixed'] && ($modes['fixed_amount'] > 0 || $multiselect);
+
+        $available = [];
+        if ($fixedAvailable) {
+            $available[] = self::TYPE_FIXED;
+        }
+        if ($perM2Available) {
+            $available[] = self::TYPE_PER_M2;
+        }
+
+        $selector = $multiselect && count($available) >= 2;
+
+        return [
+            'show_area_pricing_mode_selector' => $selector,
+            'show_per_m2_on_client' => $perM2Available,
+            'show_required_area_input' => $perM2Available,
+            'area_pricing_mode_required' => $selector,
+            'area_pricing_modes_available' => $available,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public static function clientVisibilityToggleFields(bool $show): array
@@ -1470,6 +1517,7 @@ final class ServiceAreaPricing
         if (! $isService) {
             return [
                 ...self::areaPricingClientVisibilityFields($product),
+                ...self::areaPricingClientUiFields($product),
                 'pricing_type' => self::TYPE_FIXED,
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
@@ -1488,6 +1536,7 @@ final class ServiceAreaPricing
         if (! self::areaPricingVisibleOnClient($product)) {
             return [
                 ...self::areaPricingClientVisibilityFields($product),
+                ...self::areaPricingClientUiFields($product),
                 'pricing_type' => self::TYPE_FIXED,
                 'price' => $catalogPrice,
                 'catalog_price' => $catalogPrice,
@@ -1516,8 +1565,8 @@ final class ServiceAreaPricing
 
             return [
                 ...self::areaPricingClientVisibilityFields($product),
+                ...self::areaPricingClientUiFields($product),
                 'pricing_type' => 'multi',
-                'area_pricing_mode_required' => false,
                 'default_area_pricing_mode' => self::TYPE_PER_M2,
                 'catalog_price_checkout_hint' => 'Omit area_pricing_mode (or send base/catalog) for catalog price only. Send area_pricing_mode=fixed for vendor fixed price only (not catalog+fixed). Send per_m2+required_area for rate×m².',
                 'area_pricing_options' => [
@@ -1576,6 +1625,7 @@ final class ServiceAreaPricing
         if ($type === self::TYPE_PER_M2) {
             return [
                 ...self::areaPricingClientVisibilityFields($product),
+                ...self::areaPricingClientUiFields($product),
                 'pricing_type' => self::TYPE_PER_M2,
                 // Store/list card: each product's own catalog price (never the global m² rate).
                 'price' => $catalogPrice,
@@ -1604,6 +1654,7 @@ final class ServiceAreaPricing
 
         return [
             ...self::areaPricingClientVisibilityFields($product),
+            ...self::areaPricingClientUiFields($product),
             'pricing_type' => self::TYPE_FIXED,
             'price' => $total,
             'catalog_price' => $catalogPrice,

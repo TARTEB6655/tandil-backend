@@ -234,6 +234,8 @@ class VendorServicePricingSettingsApiTest extends TestCase
 
         $fields = ServiceAreaPricing::productApiFields($simpleProduct->fresh());
         $this->assertTrue($fields['show_area_pricing_on_client']);
+        $this->assertTrue($fields['show_per_m2_on_client']);
+        $this->assertTrue($fields['show_required_area_input']);
         $this->assertArrayNotHasKey('area_pricing_hidden_on_client', $fields);
         $this->assertSame('per_m2', $fields['pricing_type']);
         $this->assertSame(12.0, (float) $fields['price_per_m2']);
@@ -291,6 +293,31 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.price', null);
     }
 
+    public function test_shop_product_detail_exposes_per_m2_ui_when_vendor_multiselect(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            400,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_area_pricing_on_client', true)
+            ->assertJsonPath('data.pricing_type', 'multi')
+            ->assertJsonPath('data.area_pricing_mode_required', true)
+            ->assertJsonPath('data.show_area_pricing_mode_selector', true)
+            ->assertJsonPath('data.show_per_m2_on_client', true)
+            ->assertJsonPath('data.show_required_area_input', true)
+            ->assertJsonPath('data.price_per_m2', 70)
+            ->assertJsonPath('data.area_pricing_options.per_m2.price_per_m2', 70)
+            ->assertJsonPath('data.area_pricing_modes_available', ['fixed', 'per_m2']);
+    }
+
     public function test_vendor_multiselect_service_pricing_save_and_product_detail(): void
     {
         $this->withToken($this->token)
@@ -310,7 +337,9 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.pricing_type', 'multi');
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
-        $this->assertFalse($fields['area_pricing_mode_required']);
+        $this->assertTrue($fields['area_pricing_mode_required']);
+        $this->assertTrue($fields['show_area_pricing_mode_selector']);
+        $this->assertTrue($fields['show_per_m2_on_client']);
         $this->assertSame('per_m2', $fields['default_area_pricing_mode']);
         $this->assertSame('multi', $fields['pricing_type']);
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
