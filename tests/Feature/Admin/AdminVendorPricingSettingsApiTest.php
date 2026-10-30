@@ -141,6 +141,59 @@ class AdminVendorPricingSettingsApiTest extends TestCase
             ->assertJsonMissingPath('data.show_tree_options');
     }
 
+    public function test_admin_multiselect_fixed_price_updates_with_legacy_fixed_body(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedAdminAndVendor();
+
+        ServiceAreaPricing::saveVendorMultiselect(
+            $vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/service", [
+                'pricing_type' => 'fixed',
+                'price' => 350,
+                'show_on_client_products_services' => true,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.fixed_price', 350)
+            ->assertJsonPath('data.per_m2_price', 70)
+            ->assertJsonPath('data.pricing_type', 'multi');
+    }
+
+    public function test_admin_multiselect_legacy_price_with_pricing_type_multi_updates_fixed(): void
+    {
+        ['adminToken' => $token, 'vendor' => $vendor] = $this->seedAdminAndVendor();
+
+        ServiceAreaPricing::saveVendorMultiselect(
+            $vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->withToken($token)
+            ->postJson("/api/admin/vendors/{$vendor->id}/pricing/service", [
+                'pricing_type' => 'multi',
+                'price' => 400,
+                'show_on_client_products_services' => true,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.fixed_price', 400)
+            ->assertJsonPath('data.per_m2_price', 70);
+    }
+
     public function test_non_admin_cannot_access_vendor_pricing_apis(): void
     {
         ['vendor' => $vendor] = $this->seedAdminAndVendor();

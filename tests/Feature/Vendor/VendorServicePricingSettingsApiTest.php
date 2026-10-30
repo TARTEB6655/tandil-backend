@@ -332,6 +332,30 @@ class VendorServicePricingSettingsApiTest extends TestCase
         $this->assertSame('AED 70 / m²', $fields['area_pricing_options']['per_m2']['price_label']);
     }
 
+    public function test_legacy_multi_pricing_type_routes_price_to_fixed_slot(): void
+    {
+        ServiceAreaPricing::saveVendorMultiselect(
+            $this->vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $this->withToken($this->token)
+            ->postJson('/api/vendor/settings/service-pricing', [
+                'pricing_type' => 'multi',
+                'price' => 425,
+                'show_on_client_products_services' => true,
+                'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.fixed_price', 425)
+            ->assertJsonPath('data.per_m2_price', 70);
+    }
+
     public function test_legacy_fixed_save_preserves_existing_per_m2_when_both_enabled(): void
     {
         ServiceAreaPricing::saveVendorMultiselect(

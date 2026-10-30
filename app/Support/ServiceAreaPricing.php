@@ -743,17 +743,39 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Map mobile / Postman aliases onto canonical multiselect field names.
+     */
+    public static function mergeVendorServicePricingRequestAliases(\Illuminate\Http\Request $request): void
+    {
+        $aliases = [
+            'fixedPrice' => 'fixed_price',
+            'fixed_price_amount' => 'fixed_price',
+            'perM2Price' => 'per_m2_price',
+            'pricePerM2' => 'per_m2_price',
+            'price_per_m2' => 'per_m2_price',
+        ];
+
+        foreach ($aliases as $from => $to) {
+            if ($request->has($from) && ! $request->has($to)) {
+                $request->merge([$to => $request->input($from)]);
+            }
+        }
+    }
+
+    /**
      * Map vendor mobile form fields (single price + toggles) into multiselect save shape.
      */
     public static function hydrateVendorServicePricingRequest(\Illuminate\Http\Request $request, int $vendorId): void
     {
+        self::mergeVendorServicePricingRequestAliases($request);
+
         $existing = self::vendorConfigExpanded($vendorId);
 
         $hasToggle = $request->has('enable_fixed_price') || $request->has('enable_per_m2');
         $hasAmount = $request->has('fixed_price') || $request->has('per_m2_price')
             || $request->has('price_per_m2') || $request->has('pricePerM2');
 
-        if (! $hasToggle && ! $hasAmount && ! $request->has('pricing_type')) {
+        if (! $hasToggle && ! $hasAmount && ! $request->has('pricing_type') && ! $request->has('price')) {
             return;
         }
 
@@ -787,6 +809,51 @@ final class ServiceAreaPricing
     }
 
     /**
+     * Which slot the legacy single `price` field should update (multiselect + mobile tabs).
+     *
+     * @param  array<string, mixed>|null  $existing
+     */
+    private static function resolveVendorLegacyPriceTargetFromInput(array $input, ?array $existing): ?string
+    {
+        foreach (['selected_pricing_type', 'active_pricing_type', 'active_tab', 'price_applies_to', 'area_pricing_mode', 'pricing_mode'] as $key) {
+            if (! array_key_exists($key, $input) || $input[$key] === '' || $input[$key] === null) {
+                continue;
+            }
+            $raw = strtolower(trim((string) $input[$key]));
+            if ($raw === 'multi') {
+                continue;
+            }
+
+            return self::normalizeType($raw, true);
+        }
+
+        if (array_key_exists('pricing_type', $input) && $input['pricing_type'] !== '' && $input['pricing_type'] !== null) {
+            $raw = strtolower(trim((string) $input['pricing_type']));
+            if ($raw === 'multi') {
+                return self::TYPE_FIXED;
+            }
+
+            return self::normalizeType($raw, true);
+        }
+
+        $enableFixed = array_key_exists('enable_fixed_price', $input)
+            ? filter_var($input['enable_fixed_price'], FILTER_VALIDATE_BOOLEAN)
+            : (bool) ($existing['enable_fixed_price'] ?? false);
+        $enablePerM2 = array_key_exists('enable_per_m2', $input)
+            ? filter_var($input['enable_per_m2'], FILTER_VALIDATE_BOOLEAN)
+            : (bool) ($existing['enable_per_m2'] ?? false);
+
+        if ($enableFixed && ! $enablePerM2) {
+            return self::TYPE_FIXED;
+        }
+        if ($enablePerM2 && ! $enableFixed) {
+            return self::TYPE_PER_M2;
+        }
+
+        return null;
+    }
+
+    /**
      * @param  array<string, mixed>|null  $existing
      */
     private static function resolveVendorFixedPriceFromInput(array $input, ?array $existing, bool $enableFixed): float
@@ -798,8 +865,8 @@ final class ServiceAreaPricing
             return max(0, round((float) $input['fixed_price'], 2));
         }
         if (array_key_exists('price', $input) && $input['price'] !== '' && $input['price'] !== null) {
-            $type = self::normalizeType((string) ($input['pricing_type'] ?? self::TYPE_FIXED), true);
-            if ($type === self::TYPE_FIXED) {
+            $target = self::resolveVendorLegacyPriceTargetFromInput($input, $existing);
+            if ($target === self::TYPE_FIXED) {
                 return max(0, round((float) $input['price'], 2));
             }
         }
@@ -821,8 +888,8 @@ final class ServiceAreaPricing
             }
         }
         if (array_key_exists('price', $input) && $input['price'] !== '' && $input['price'] !== null) {
-            $type = self::normalizeType((string) ($input['pricing_type'] ?? ''), true);
-            if ($type === self::TYPE_PER_M2) {
+            $target = self::resolveVendorLegacyPriceTargetFromInput($input, $existing);
+            if ($target === self::TYPE_PER_M2) {
                 return max(0, round((float) $input['price'], 2));
             }
         }
@@ -927,6 +994,9 @@ final class ServiceAreaPricing
                 : null,
             'price' => self::vendorServicePricingLegacyPriceField($expanded),
             'area_pricing_settings' => self::vendorAreaPricingSettingsBlock($expanded),
+            'price_update_hint' => ($expanded['area_pricing_multiselect'] ?? false)
+                ? 'When both modes are on, send fixed_price and per_m2_price (recommended), or legacy price with pricing_type fixed|per_m2, selected_pricing_type, or pricing_type multi (price updates fixed).'
+                : null,
         ], self::clientVisibilityToggleFields(self::vendorShowAreaPricingOnClient($vendorId)));
     }
 
