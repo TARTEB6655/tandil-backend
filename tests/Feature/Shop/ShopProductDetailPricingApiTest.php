@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Support\ProductAreaPricing;
 use App\Support\ServiceAreaPricing;
 use App\Support\ServiceTreePricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -17,6 +18,51 @@ use Tests\TestCase;
 class ShopProductDetailPricingApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_shop_vendor_service_hides_area_pricing_until_per_service_08c_saved(): void
+    {
+        Role::firstOrCreate(['name' => 'vendor', 'guard_name' => 'web']);
+
+        $user = User::factory()->create(['role' => 'vendor']);
+        $user->assignRole('vendor');
+        $vendor = Vendor::create([
+            'user_id' => $user->id,
+            'status' => VendorStatus::Approved->value,
+            'approved_at' => now(),
+        ]);
+        VendorProfile::create([
+            'vendor_id' => $vendor->id,
+            'business_name' => 'Test Vendor',
+            'owner_name' => 'Owner',
+            'email' => $user->email,
+        ]);
+
+        ServiceAreaPricing::saveVendorMultiselect(
+            $vendor->id,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true
+        );
+
+        $product = Product::factory()->create([
+            'category_id' => Category::factory()->create()->id,
+            'vendor_id' => $vendor->id,
+            'type' => 'service',
+            'name' => 'test services one',
+            'price' => 300,
+            'status' => 'active',
+        ]);
+
+        $this->getJson('/api/shop/products/'.$product->id)
+            ->assertOk()
+            ->assertJsonPath('data.show_area_pricing_on_client', false)
+            ->assertJsonPath('data.show_area_pricing_mode_selector', false)
+            ->assertJsonPath('data.show_per_m2_on_client', false)
+            ->assertJsonPath('data.area_pricing_modes_available', []);
+    }
 
     public function test_shop_product_show_includes_client_pricing_and_trees_section(): void
     {
@@ -57,6 +103,17 @@ class ShopProductDetailPricingApiTest extends TestCase
             'price' => 300,
             'status' => 'active',
         ]);
+
+        ProductAreaPricing::save(
+            $product,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
 
         $this->getJson('/api/shop/products/'.$product->id)
             ->assertOk()

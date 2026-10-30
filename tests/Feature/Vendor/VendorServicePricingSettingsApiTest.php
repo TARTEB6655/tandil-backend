@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Support\ProductAreaPricing;
 use App\Support\ServiceAreaPricing;
 use App\Support\ServiceTreePricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -128,6 +129,16 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ServiceAreaPricing::TYPE_PER_M2,
             7,
             ServiceAreaPricing::emptyIncludes()
+        );
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            false,
+            true,
+            0,
+            7,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
         );
 
         $this->serviceProduct->refresh();
@@ -332,6 +343,16 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ServiceAreaPricing::emptyIncludes(),
             true
         );
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            400,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
 
         $this->getJson('/api/shop/products/'.$this->serviceProduct->id)
             ->assertOk()
@@ -365,6 +386,17 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.fixed_price', 23)
             ->assertJsonPath('data.per_m2_price', 70)
             ->assertJsonPath('data.pricing_type', 'multi');
+
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
 
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
         $this->assertTrue($fields['area_pricing_mode_required']);
@@ -440,6 +472,17 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ->assertJsonPath('data.enable_fixed_price', true)
             ->assertJsonPath('data.enable_per_m2', true);
 
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            350,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
+
         $fields = ServiceAreaPricing::productApiFields($this->serviceProduct->fresh());
         $this->assertSame(70.0, (float) $fields['price_per_m2']);
         $this->assertSame(350.0, (float) $fields['fixed_price_addon']);
@@ -455,6 +498,16 @@ class VendorServicePricingSettingsApiTest extends TestCase
             70,
             ServiceAreaPricing::emptyIncludes(),
             true
+        );
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
         );
 
         $client = User::factory()->create(['role' => 'client']);
@@ -509,6 +562,16 @@ class VendorServicePricingSettingsApiTest extends TestCase
             ServiceAreaPricing::emptyIncludes(),
             true
         );
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            300,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
         $this->serviceProduct->update(['price' => 200]);
 
         ServiceTreePricing::saveVendor($this->vendor->id, true, 50, 50);
@@ -544,6 +607,16 @@ class VendorServicePricingSettingsApiTest extends TestCase
             70,
             ServiceAreaPricing::emptyIncludes(),
             true
+        );
+        ProductAreaPricing::save(
+            $this->serviceProduct,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
         );
 
         $client = User::factory()->create(['role' => 'client']);

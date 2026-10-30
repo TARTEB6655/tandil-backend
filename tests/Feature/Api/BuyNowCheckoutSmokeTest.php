@@ -14,6 +14,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Support\ProductAreaPricing;
 use App\Support\ServiceAreaPricing;
 use App\Support\ServiceTreePricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,6 +92,16 @@ class BuyNowCheckoutSmokeTest extends TestCase
         ]);
 
         ServiceAreaPricing::saveVendorMultiselect($vendor->id, true, true, 23, 70, ServiceAreaPricing::emptyIncludes(), true);
+        ProductAreaPricing::save(
+            $this->product,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
+        );
         ServiceTreePricing::saveGlobal(true, 50, 80);
 
         JobSchedulingSetting::current();

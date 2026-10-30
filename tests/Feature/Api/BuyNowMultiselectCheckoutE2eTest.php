@@ -14,6 +14,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use App\Models\VendorProfile;
+use App\Support\ProductAreaPricing;
 use App\Support\ServiceAreaPricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -101,6 +102,16 @@ class BuyNowMultiselectCheckoutE2eTest extends TestCase
             70,
             ServiceAreaPricing::emptyIncludes(),
             true
+        );
+        ProductAreaPricing::save(
+            $this->product,
+            true,
+            true,
+            23,
+            70,
+            ServiceAreaPricing::emptyIncludes(),
+            true,
+            false
         );
 
         JobSchedulingSetting::current();

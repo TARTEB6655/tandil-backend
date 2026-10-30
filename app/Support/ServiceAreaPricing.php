@@ -261,6 +261,18 @@ final class ServiceAreaPricing
     public static function areaModesForProduct(Product $product): array
     {
         $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0 && self::vendorServiceUsesPerProductAreaPricing($product)) {
+            if (ProductAreaPricing::isConfigured((int) $product->id)) {
+                return ProductAreaPricing::modesForProduct($product);
+            }
+
+            return [
+                'fixed' => false,
+                'per_m2' => false,
+                'fixed_amount' => 0.0,
+                'per_m2_rate' => 0.0,
+            ];
+        }
         if ($vendorId > 0 && ProductAreaPricing::isConfigured((int) $product->id)) {
             return ProductAreaPricing::modesForProduct($product);
         }
@@ -447,7 +459,7 @@ final class ServiceAreaPricing
 
     public static function vendorShowAreaPricingOnClient(int $vendorId): bool
     {
-        $raw = Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_SETTING_SHOW_ON_CLIENT), '1');
+        $raw = Setting::get(self::vendorSettingKey($vendorId, self::VENDOR_SETTING_SHOW_ON_CLIENT), '0');
 
         return filter_var($raw, FILTER_VALIDATE_BOOLEAN);
     }
@@ -472,6 +484,10 @@ final class ServiceAreaPricing
         }
 
         $vendorId = (int) ($product->vendor_id ?? 0);
+        if ($vendorId > 0 && self::vendorServiceUsesPerProductAreaPricing($product)) {
+            return ProductAreaPricing::isConfigured((int) $product->id)
+                && ProductAreaPricing::showOnClient($product);
+        }
         if ($vendorId > 0 && ProductAreaPricing::isConfigured((int) $product->id)) {
             return ProductAreaPricing::showOnClient($product);
         }
@@ -1230,6 +1246,15 @@ final class ServiceAreaPricing
         }
 
         return $product->services->isNotEmpty();
+    }
+
+    /**
+     * Vendor catalog lines with type=service — shop/cart area pricing comes from 08c per-service settings only.
+     */
+    public static function vendorServiceUsesPerProductAreaPricing(Product $product): bool
+    {
+        return (int) ($product->vendor_id ?? 0) > 0
+            && strtolower(trim((string) ($product->type ?? ''))) === 'service';
     }
 
     public static function isPerM2(Product $product, ?string $areaPricingMode = null): bool
