@@ -60,6 +60,35 @@ class VendorProductAreaPricingApiTest extends TestCase
         $this->token = $user->createToken('test', ['vendor'])->plainTextToken;
     }
 
+    public function test_new_service_area_pricing_detail_defaults_all_off(): void
+    {
+        $allTrueIncludes = [];
+        foreach (ServiceAreaPricing::INCLUDE_KEYS as $key) {
+            $allTrueIncludes[$key] = true;
+        }
+
+        $this->serviceProduct->update([
+            'pricing_type' => 'per_m2',
+            'price_includes' => $allTrueIncludes,
+        ]);
+
+        $response = $this->withToken($this->token)
+            ->getJson('/api/vendor/services/'.$this->serviceProduct->id.'/area-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.area_pricing_configured', false)
+            ->assertJsonPath('data.show_on_client_products_services', false)
+            ->assertJsonPath('data.show_on_client', false)
+            ->assertJsonPath('data.enable_per_m2', false)
+            ->assertJsonPath('data.enable_fixed_price', false)
+            ->assertJsonPath('data.require_area_before_checkout', false)
+            ->assertJsonPath('data.area_pricing_settings.fixed.enabled', false)
+            ->assertJsonPath('data.area_pricing_settings.per_m2.enabled', false);
+
+        foreach (ServiceAreaPricing::INCLUDE_KEYS as $key) {
+            $response->assertJsonPath('data.price_includes.'.$key, false);
+        }
+    }
+
     public function test_vendor_lists_services_for_area_pricing_only(): void
     {
         Product::factory()->create([

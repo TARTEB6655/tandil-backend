@@ -93,23 +93,12 @@ final class ProductAreaPricing
      */
     public static function configExpanded(int $productId): array
     {
+        if (! self::isConfigured($productId)) {
+            return self::unconfiguredAreaPricingDefaults();
+        }
+
         $includesRaw = Setting::get(self::settingKey($productId, self::SETTING_INCLUDES), null);
         $includes = ServiceAreaPricing::normalizeIncludes($includesRaw, true) ?? ServiceAreaPricing::emptyIncludes();
-
-        if (! self::isConfigured($productId)) {
-            return [
-                'configured' => false,
-                'show_on_client_products_services' => false,
-                'enable_fixed_price' => false,
-                'enable_per_m2' => false,
-                'fixed_price' => 0.0,
-                'per_m2_price' => 0.0,
-                'require_area_before_checkout' => false,
-                'price_includes' => $includes,
-                'area_pricing_multiselect' => false,
-                'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
-            ];
-        }
 
         $enableFixed = filter_var(
             Setting::get(self::settingKey($productId, self::SETTING_ENABLE_FIXED), '0'),
@@ -223,9 +212,45 @@ final class ProductAreaPricing
     /**
      * @return array<string, mixed>
      */
+    /**
+     * Fresh per-service area pricing form — no vendor-wide 08b or platform catalog includes.
+     *
+     * @return array{
+     *     configured: bool,
+     *     show_on_client_products_services: bool,
+     *     enable_fixed_price: bool,
+     *     enable_per_m2: bool,
+     *     fixed_price: float,
+     *     per_m2_price: float,
+     *     require_area_before_checkout: bool,
+     *     price_includes: array<string, bool>,
+     *     area_pricing_multiselect: bool,
+     *     pricing_type: string
+     * }
+     */
+    public static function unconfiguredAreaPricingDefaults(): array
+    {
+        return [
+            'configured' => false,
+            'show_on_client_products_services' => false,
+            'enable_fixed_price' => false,
+            'enable_per_m2' => false,
+            'fixed_price' => 0.0,
+            'per_m2_price' => 0.0,
+            'require_area_before_checkout' => false,
+            'price_includes' => ServiceAreaPricing::emptyIncludes(),
+            'area_pricing_multiselect' => false,
+            'pricing_type' => ServiceAreaPricing::TYPE_FIXED,
+        ];
+    }
+
     public static function vendorManagePayload(Product $product): array
     {
         $config = self::configExpanded((int) $product->id);
+        if (! $config['configured']) {
+            $config = self::unconfiguredAreaPricingDefaults();
+        }
+
         $catalog = round((float) $product->price, 2);
         $perM2 = round((float) $config['per_m2_price'], 2);
         $fixed = round((float) $config['fixed_price'], 2);
@@ -238,6 +263,14 @@ final class ProductAreaPricing
                 'selected' => (bool) ($config['price_includes'][$key] ?? false),
             ];
         }
+
+        $areaSettingsBlock = [
+            'area_pricing_multiselect' => (bool) $config['area_pricing_multiselect'],
+            'enable_fixed_price' => (bool) $config['enable_fixed_price'],
+            'enable_per_m2' => (bool) $config['enable_per_m2'],
+            'fixed_price' => $fixed,
+            'per_m2_price' => $perM2,
+        ];
 
         return [
             'screen_title' => 'Area pricing for this service',
@@ -260,6 +293,9 @@ final class ProductAreaPricing
             'area_pricing_multiselect' => (bool) $config['area_pricing_multiselect'],
             'price_includes' => $config['price_includes'],
             'price_includes_options' => $includeOptions,
+            'show_on_client' => (bool) $config['show_on_client_products_services'],
+            'show_area_pricing_on_client' => (bool) $config['show_on_client_products_services'],
+            'area_pricing_settings' => ServiceAreaPricing::vendorAreaPricingSettingsBlock($areaSettingsBlock),
             'example_calculation' => $config['enable_per_m2'] ? [
                 'title' => 'Example',
                 'area' => 100,
