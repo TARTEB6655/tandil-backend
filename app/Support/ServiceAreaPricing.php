@@ -261,9 +261,6 @@ final class ServiceAreaPricing
     public static function areaModesForProduct(Product $product): array
     {
         $vendorId = (int) ($product->vendor_id ?? 0);
-        if ($vendorId > 0 && ProductAreaPricing::isConfigured((int) $product->id)) {
-            return ProductAreaPricing::modesForProduct($product);
-        }
         if ($vendorId > 0) {
             $config = self::vendorConfigExpanded($vendorId);
 
@@ -472,9 +469,6 @@ final class ServiceAreaPricing
         }
 
         $vendorId = (int) ($product->vendor_id ?? 0);
-        if ($vendorId > 0 && ProductAreaPricing::isConfigured((int) $product->id)) {
-            return ProductAreaPricing::showOnClient($product);
-        }
         if ($vendorId > 0) {
             return self::vendorShowAreaPricingOnClient($vendorId);
         }
@@ -1629,12 +1623,7 @@ final class ServiceAreaPricing
         }
 
         $config = self::resolveConfigForProduct($product);
-        if ((int) ($product->vendor_id ?? 0) > 0 && ProductAreaPricing::isConfigured((int) $product->id)) {
-            $productConfig = ProductAreaPricing::configExpanded((int) $product->id);
-            $includes = $productConfig['price_includes'];
-        } else {
-            $includes = $config['price_includes'];
-        }
+        $includes = $config['price_includes'];
         $modes = self::areaModesForProduct($product);
         $multiselect = self::requiresAreaPricingModeSelection($product);
 
@@ -2000,12 +1989,6 @@ final class ServiceAreaPricing
     {
         if (! self::isPerM2($product, $areaPricingMode)) {
             return null;
-        }
-
-        if (ProductAreaPricing::requiresAreaBeforeCheckout($product)) {
-            if ($areaRaw === null || $areaRaw === '') {
-                return 'Area (m²) is required before checkout for this service. Send required_area (or area).';
-            }
         }
 
         // Area (m²) is optional — customer may continue with service price only.

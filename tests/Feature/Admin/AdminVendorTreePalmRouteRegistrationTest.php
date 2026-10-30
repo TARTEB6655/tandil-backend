@@ -10,16 +10,16 @@ class AdminVendorTreePalmRouteRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_tree_palm_pricing_routes_are_registered(): void
+    public function test_vendor_tree_palm_pricing_routes_are_registered(): void
     {
         $matches = collect(Route::getRoutes())->filter(function ($route) {
             $uri = (string) $route->uri();
 
-            return str_contains($uri, 'admin/vendors/{id}/pricing/tree-palm')
+            return str_contains($uri, 'vendor/settings/tree-palm-pricing')
                 && in_array('POST', $route->methods(), true);
         });
 
-        $this->assertGreaterThan(0, $matches->count(), 'POST admin/vendors/{id}/pricing/tree-palm must be registered.');
+        $this->assertGreaterThan(0, $matches->count(), 'POST vendor/settings/tree-palm-pricing must be registered.');
     }
 
     public function test_health_lists_vendor_tree_palm_pricing_routes(): void
@@ -33,7 +33,7 @@ class AdminVendorTreePalmRouteRegistrationTest extends TestCase
         $this->assertIsArray($routes);
         $this->assertNotEmpty($routes);
         $this->assertTrue(
-            collect($routes)->contains(fn (string $line) => str_contains($line, 'pricing/tree-palm')),
+            collect($routes)->contains(fn (string $line) => str_contains($line, 'tree-palm-pricing')),
             'Health should expose vendor tree-palm pricing routes for deploy verification.'
         );
     }

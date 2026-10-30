@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\Vendor\VendorInventoryController;
 use App\Http\Controllers\Api\Vendor\VendorOrderController;
 use App\Http\Controllers\Api\Vendor\VendorCategoryController;
 use App\Http\Controllers\Api\Vendor\VendorPerformanceAnalyticsController;
-use App\Http\Controllers\Api\Vendor\VendorProductAreaPricingApiController;
 use App\Http\Controllers\Api\Vendor\VendorProductController;
 use App\Http\Controllers\Api\Vendor\VendorProductOptionsController;
 use App\Http\Controllers\Api\Vendor\VendorProfileController;
@@ -100,11 +99,6 @@ Route::middleware(['auth:sanctum', 'role:vendor', 'vendor.account'])->prefix('ve
         Route::put('/services/{id}', [VendorServiceController::class, 'update']);
         Route::post('/services/{id}', [VendorServiceController::class, 'update']);
         Route::delete('/services/{id}', [VendorServiceController::class, 'destroy']);
-
-        Route::get('/products/area-pricing', [VendorProductAreaPricingApiController::class, 'index']);
-        Route::get('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'show']);
-        Route::put('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
-        Route::post('/products/{productId}/area-pricing', [VendorProductAreaPricingApiController::class, 'update']);
 
         Route::get('/products', [VendorProductController::class, 'index']);
         Route::post('/products', [VendorProductController::class, 'store']);

@@ -5,7 +5,6 @@ namespace App\Services\Vendor;
 use App\Enums\VendorStatus;
 use App\Models\Vendor;
 use App\Models\VendorProduct;
-use App\Support\ServiceAreaPricing;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 
@@ -51,29 +50,6 @@ class AdminVendorMobileService
                     $vendor,
                     $metricsMap[$vendor->id] ?? null
                 ))
-                ->values()
-                ->all(),
-            'pagination' => $this->pagination($paginator),
-        ];
-    }
-
-    /**
-     * Admin mobile — Product Settings → Vendor pricing list.
-     *
-     * @return array<string, mixed>
-     */
-    public function pricingListIndex(Request $request): array
-    {
-        $paginator = $this->vendorQuery($request)->paginate(
-            min($request->integer('per_page', 15), 100)
-        );
-
-        return [
-            'screen_title' => 'Vendor pricing',
-            'screen_subtitle' => 'Product Settings',
-            'search_placeholder' => 'Search vendor or company',
-            'items' => collect($paginator->items())
-                ->map(fn (Vendor $vendor) => $this->formatPricingListItem($vendor))
                 ->values()
                 ->all(),
             'pagination' => $this->pagination($paginator),
@@ -177,42 +153,6 @@ class AdminVendorMobileService
                 'delete' => [
                     'method' => 'DELETE',
                     'endpoint' => "/api/admin/vendors/{$vendor->id}/products/{$vp->id}",
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * @param  array<string, int|float>|null  $metrics
-     * @return array<string, mixed>
-     */
-    /**
-     * @return array<string, mixed>
-     */
-    private function formatPricingListItem(Vendor $vendor): array
-    {
-        $vendor->loadMissing(['profile', 'user']);
-        $profile = $vendor->profile;
-        $configured = ServiceAreaPricing::vendorIsConfigured($vendor->id);
-
-        return [
-            'vendor_id' => $vendor->id,
-            'company_name' => $profile?->business_name,
-            'business_name' => $profile?->business_name,
-            'vendor_name' => $profile?->owner_name,
-            'owner_name' => $profile?->owner_name,
-            'email' => $profile?->email ?? $vendor->user?->email,
-            'logo_url' => $this->businessLogoUrl($vendor),
-            'pricing_configured' => $configured,
-            'pricing_status_label' => $configured ? null : 'No vendor pricing set yet',
-            'detail' => [
-                'service_pricing' => [
-                    'method' => 'GET',
-                    'endpoint' => "/api/admin/vendors/{$vendor->id}/pricing/service",
-                ],
-                'tree_palm_pricing' => [
-                    'method' => 'GET',
-                    'endpoint' => "/api/admin/vendors/{$vendor->id}/pricing/tree-palm",
                 ],
             ],
         ];

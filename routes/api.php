@@ -17,7 +17,7 @@ Route::get('/health', function (\Illuminate\Http\Request $request) {
             || str_contains($uri, 'catalog/convert/')) {
             $convertUris[] = implode('|', $route->methods()).' /'.$uri;
         }
-        if (str_contains($uri, 'admin/vendors') && str_contains($uri, 'pricing/tree-palm')) {
+        if (str_contains($uri, 'vendor/settings/tree-palm-pricing')) {
             $vendorPricingUris[] = implode('|', $route->methods()).' /'.$uri;
         }
     }
@@ -33,7 +33,7 @@ Route::get('/health', function (\Illuminate\Http\Request $request) {
             ? 'Use POST with Bearer admin token. base_url should be site root WITHOUT /api (URL already includes /api/...).'
             : 'Deploy latest code and run: php artisan route:clear && php artisan route:cache',
         'vendor_pricing_hint' => count($vendorPricingUris) > 0
-            ? 'POST /api/admin/vendors/{id}/pricing/tree-palm with admin Bearer token.'
+            ? 'POST /api/vendor/settings/tree-palm-pricing with vendor Bearer token.'
             : 'Missing vendor pricing routes — deploy latest code and run: php artisan optimize:clear && php artisan route:cache',
     ];
 
