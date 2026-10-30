@@ -95,6 +95,33 @@ class Product extends Model
     }
 
     /**
+     * Shop URL segment: numeric keys match primary key only (never handle/sku aliases).
+     * Non-numeric keys match handle (slug).
+     */
+    public function scopeWhereShopPublicKey($query, string|int $key)
+    {
+        $key = trim((string) $key);
+
+        if ($key !== '' && ctype_digit($key)) {
+            return $query->where('products.id', (int) $key);
+        }
+
+        return $query->where('products.handle', $key);
+    }
+
+    /**
+     * Resolve a client shop product detail/list key without id/handle collisions
+     * (e.g. GET /api/shop/products/317 must not return another row whose handle is "317").
+     */
+    public static function findVisibleInClientShopByPublicKey(string|int $key): ?self
+    {
+        return static::query()
+            ->visibleInClientShop()
+            ->whereShopPublicKey($key)
+            ->first();
+    }
+
+    /**
      * Next available sort_order value. Scoped to a category when given so new
      * products are placed at the end of their category list.
      */

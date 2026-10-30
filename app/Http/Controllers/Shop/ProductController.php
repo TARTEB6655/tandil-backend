@@ -463,10 +463,7 @@ class ProductController extends Controller
 
             $product = Product::query()
                 ->visibleInClientShop()
-                ->where(function ($q) use ($id) {
-                    $q->where('id', $id)
-                        ->orWhere('handle', $id);
-                })
+                ->whereShopPublicKey($id)
                 ->with([
                     'category',
                     'images',
@@ -526,13 +523,7 @@ class ProductController extends Controller
     public function compareVendors(Request $request, $id)
     {
         try {
-            $product = Product::query()
-                ->visibleInClientShop()
-                ->where(function ($q) use ($id) {
-                    $q->where('id', $id)
-                        ->orWhere('handle', $id);
-                })
-                ->first();
+            $product = Product::findVisibleInClientShopByPublicKey($id);
 
             if (! $product) {
                 return $this->shopProductNotFoundResponse($id);
@@ -671,10 +662,7 @@ class ProductController extends Controller
     private function shopProductNotFoundResponse($id)
     {
         $product = Product::query()
-            ->where(function ($q) use ($id) {
-                $q->where('id', $id)
-                    ->orWhere('handle', $id);
-            })
+            ->whereShopPublicKey($id)
             ->with(['vendorProduct.vendor'])
             ->first();
 
