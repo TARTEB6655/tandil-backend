@@ -57,6 +57,41 @@ class AdminVendorMobileService
     }
 
     /**
+     * Admin — pick vendor, then per-service area pricing (08c admin mirror).
+     *
+     * @return array<string, mixed>
+     */
+    public function areaPricingVendorList(Request $request): array
+    {
+        $paginator = $this->vendorQuery($request)->paginate(
+            min($request->integer('per_page', 15), 100)
+        );
+
+        return [
+            'screen_title' => 'Vendor service pricing',
+            'screen_subtitle' => 'Per-service area pricing',
+            'search_placeholder' => 'Search vendor or company',
+            'items' => collect($paginator->items())
+                ->map(function (Vendor $vendor) {
+                    $vendor->loadMissing(['profile', 'user']);
+                    $profile = $vendor->profile;
+
+                    return [
+                        'vendor_id' => $vendor->id,
+                        'company_name' => $profile?->business_name,
+                        'vendor_name' => $profile?->owner_name,
+                        'email' => $profile?->email ?? $vendor->user?->email,
+                        'logo_url' => $this->businessLogoUrl($vendor),
+                        'products_area_pricing_endpoint' => '/api/admin/vendors/'.$vendor->id.'/products/area-pricing',
+                    ];
+                })
+                ->values()
+                ->all(),
+            'pagination' => $this->pagination($paginator),
+        ];
+    }
+
+    /**
      * Admin mobile — single vendor detail (header, KPIs, products with toggle metadata).
      *
      * @return array<string, mixed>

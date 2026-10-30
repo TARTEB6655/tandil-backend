@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminVendorProductAreaPricingApiController;
 use App\Http\Controllers\Api\Admin\ContractorRegistrationAdminController;
 use App\Http\Controllers\Api\Admin\MarketplaceAdminController;
 use App\Http\Controllers\Api\Admin\VendorManagementController;
@@ -13,10 +14,15 @@ use Illuminate\Support\Facades\Route;
 */
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->group(function () {
     Route::get('/stats', [VendorManagementController::class, 'stats']);
+    Route::get('/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'vendorIndex']);
     Route::get('/management', [VendorManagementController::class, 'management']);
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
     Route::post('/', [VendorManagementController::class, 'store']);
+    Route::get('/{vendorId}/products/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'index']);
+    Route::get('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'show']);
+    Route::put('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update']);
+    Route::post('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update']);
     Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
     Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct']);
     Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct']);
