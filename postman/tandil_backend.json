@@ -8882,7 +8882,7 @@
                         },
                         {
                             "name": "02. Per-service area pricing (admin — preferred)",
-                            "description": "Admin mirror of vendor **08c**. Auth: Bearer {{token}} (admin).\n\n| Step | Method | Path |\n|------|--------|------|\n| List vendors | GET | `/api/admin/vendors/area-pricing` |\n| List vendor services | GET | `/api/admin/vendors/{vendor_id}/services/area-pricing` |\n| Edit one service | GET | `/api/admin/vendors/{vendor_id}/services/{service_id}/area-pricing` |\n| Save | POST/PUT | same as GET edit path |\n\nBody matches vendor **08c** save (show_on_client_products_services, enable_fixed_price, enable_per_m2, fixed_price, per_m2_price, price_includes).",
+                            "description": "Admin mirror of vendor **08c**. Auth: Bearer {{token}} (admin).\n\n| Step | Method | Path |\n|------|--------|------|\n| List vendors | GET | `/api/admin/vendors/area-pricing` |\n| List vendor services | GET | `/api/admin/vendors/{vendor_id}/services/area-pricing` |\n| Edit one service | GET | `/api/admin/vendors/{vendor_id}/services/{service_id}/area-pricing` |\n| Save | POST/PUT | same as GET edit path |\n\n**Legacy alias:** `/api/admin/vendors/{vendor_id}/products/area-pricing` and `.../products/{service_id}/area-pricing` (same handlers).\n\nBody matches vendor **08c** save (show_on_client_products_services, enable_fixed_price, enable_per_m2, fixed_price, per_m2_price, price_includes).",
                             "item": [
                                 {
                                     "name": "01. List vendors (area pricing)",

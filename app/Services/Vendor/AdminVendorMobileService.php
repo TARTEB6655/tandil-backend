@@ -83,6 +83,7 @@ class AdminVendorMobileService
                         'email' => $profile?->email ?? $vendor->user?->email,
                         'logo_url' => $this->businessLogoUrl($vendor),
                         'services_area_pricing_endpoint' => '/api/admin/vendors/'.$vendor->id.'/services/area-pricing',
+                        'products_area_pricing_endpoint' => '/api/admin/vendors/'.$vendor->id.'/products/area-pricing',
                     ];
                 })
                 ->values()

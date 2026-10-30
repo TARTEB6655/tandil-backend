@@ -70,7 +70,19 @@ class AdminVendorProductAreaPricingApiTest extends TestCase
             ->assertJsonPath(
                 'data.items.0.services_area_pricing_endpoint',
                 '/api/admin/vendors/'.$this->vendor->id.'/services/area-pricing'
+            )
+            ->assertJsonPath(
+                'data.items.0.products_area_pricing_endpoint',
+                '/api/admin/vendors/'.$this->vendor->id.'/products/area-pricing'
             );
+    }
+
+    public function test_admin_legacy_products_area_pricing_list_path(): void
+    {
+        $this->withToken($this->adminToken)
+            ->getJson('/api/admin/vendors/'.$this->vendor->id.'/products/area-pricing')
+            ->assertOk()
+            ->assertJsonPath('data.items.0.service_id', $this->serviceProduct->id);
     }
 
     public function test_admin_per_service_area_pricing_end_to_end(): void

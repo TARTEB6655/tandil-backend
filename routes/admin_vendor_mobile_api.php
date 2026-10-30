@@ -19,17 +19,48 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/vendors')->grou
     Route::get('/recent-requests', [VendorManagementController::class, 'recentRequests']);
     Route::get('/', [VendorManagementController::class, 'index']);
     Route::post('/', [VendorManagementController::class, 'store']);
-    Route::get('/{vendorId}/services/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'index']);
-    Route::get('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'show']);
-    Route::put('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update']);
-    Route::post('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update']);
+    Route::get('/{vendorId}/services/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'index'])
+        ->whereNumber('vendorId');
+    Route::get('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'show'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::put('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::post('/{vendorId}/services/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+
+    // Legacy admin mobile paths — before /{vendorId}/products/{productId} (avoids 500 when productId = area-pricing).
+    Route::get('/{vendorId}/products/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'index'])
+        ->whereNumber('vendorId');
+    Route::get('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'show'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::put('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::post('/{vendorId}/products/{productId}/area-pricing', [AdminVendorProductAreaPricingApiController::class, 'update'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+
     Route::get('/{id}/management', [VendorManagementController::class, 'managementDetail']);
-    Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct']);
-    Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct']);
-    Route::put('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct']);
-    Route::post('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct']);
-    Route::post('/{vendorId}/products/{productId}/toggle', [VendorManagementController::class, 'toggleProduct']);
-    Route::delete('/{vendorId}/products/{productId}', [VendorManagementController::class, 'destroyProduct']);
+    Route::post('/{vendorId}/products', [VendorManagementController::class, 'storeProduct'])->whereNumber('vendorId');
+    Route::get('/{vendorId}/products/{productId}', [VendorManagementController::class, 'showProduct'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::put('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::post('/{vendorId}/products/{productId}', [VendorManagementController::class, 'updateProduct'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::post('/{vendorId}/products/{productId}/toggle', [VendorManagementController::class, 'toggleProduct'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
+    Route::delete('/{vendorId}/products/{productId}', [VendorManagementController::class, 'destroyProduct'])
+        ->whereNumber('vendorId')
+        ->whereNumber('productId');
     Route::get('/{id}/analytics', [VendorManagementController::class, 'analytics']);
     Route::get('/{id}/products', [VendorManagementController::class, 'products']);
     Route::get('/{id}/orders', [VendorManagementController::class, 'orders']);
