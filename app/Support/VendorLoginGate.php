@@ -32,12 +32,10 @@ class VendorLoginGate
         }
 
         return match ($vendor->statusEnum()) {
-            VendorStatus::Rejected => 'Your vendor application was rejected.'
-                .($vendor->rejection_reason ? ' Reason: '.$vendor->rejection_reason : ' Please contact admin.'),
+            VendorStatus::Pending, VendorStatus::UnderReview, VendorStatus::Rejected => null,
             VendorStatus::Suspended => 'Your vendor account has been suspended. Please contact admin.',
             VendorStatus::Disabled => 'Your vendor account has been disabled. Please contact admin.',
-            VendorStatus::UnderReview => 'Your vendor application is under admin review. You can sign in after approval.',
-            default => 'Your vendor account is pending admin approval. You can sign in after approval.',
+            default => null,
         };
     }
 

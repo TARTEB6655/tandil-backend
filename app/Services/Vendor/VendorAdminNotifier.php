@@ -48,6 +48,19 @@ class VendorAdminNotifier
         );
     }
 
+    public function applicationReadyForReview(Vendor $vendor): void
+    {
+        $vendor->loadMissing('profile');
+        $label = $this->vendorLabel($vendor);
+
+        $this->notifyAdmins(
+            'Vendor Application Ready for Review',
+            "{$label} uploaded the missing documents. The application is ready for review again.",
+            $vendor,
+            'application_ready_for_review'
+        );
+    }
+
     private function vendorLabel(Vendor $vendor): string
     {
         return $vendor->profile?->business_name

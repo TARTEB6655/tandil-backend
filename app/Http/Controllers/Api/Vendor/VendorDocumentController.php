@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\Vendor;
 
 use App\Enums\VendorDocumentType;
+use App\Enums\VendorStatus;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\VendorDocument;
+use App\Services\Vendor\VendorAdminNotifier;
+use App\Services\Vendor\VendorApplicationService;
 use App\Services\Vendor\VendorDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,6 +45,15 @@ class VendorDocumentController extends Controller
         ]);
 
         $doc = $this->documents->upload($vendor, $data['type'], $request->file('file'));
+
+        $vendor = $vendor->fresh(['profile', 'documents', 'user']);
+        $awaitingDocuments = $vendor->profile?->documents_requested_at !== null
+            || $vendor->status === VendorStatus::UnderReview->value;
+
+        if ($awaitingDocuments
+            && app(VendorApplicationService::class)->missingRequiredDocuments($vendor)->isEmpty()) {
+            app(VendorAdminNotifier::class)->applicationReadyForReview($vendor);
+        }
 
         return ApiResponse::success('Document uploaded.', ['document' => $doc], 201);
     }

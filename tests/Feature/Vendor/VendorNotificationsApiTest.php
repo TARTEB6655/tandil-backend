@@ -68,13 +68,16 @@ class VendorNotificationsApiTest extends TestCase
             ->assertJsonPath('data.notifications.data.0.data.title', 'Vendor hello');
     }
 
-    public function test_under_review_vendor_cannot_access_notifications_until_approved(): void
+    public function test_pending_vendor_can_access_notifications_during_onboarding(): void
     {
         [$vendorUser] = $this->createVendorUser('under_review');
+        $vendorUser->notify(new AdminNotification('Onboarding update', 'Please upload your trade license.'));
 
         $this->actingAs($vendorUser, 'sanctum')
             ->getJson('/api/vendor/notifications')
-            ->assertForbidden();
+            ->assertOk()
+            ->assertJsonPath('data.unread_count', 1)
+            ->assertJsonPath('data.notifications.data.0.data.title', 'Onboarding update');
     }
 
     public function test_vendor_notification_mutations_work(): void

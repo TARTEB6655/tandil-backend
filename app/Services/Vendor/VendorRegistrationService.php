@@ -17,7 +17,7 @@ use Spatie\Permission\Models\Role;
 
 class VendorRegistrationService
 {
-    public const REGISTRATION_SUCCESS_MESSAGE = 'Thank you! We have received your registration request successfully. We will contact you shortly after we review your request.';
+    public const REGISTRATION_SUCCESS_MESSAGE = 'Thank you! We have received your registration request successfully.';
 
     public function __construct(
         private readonly VendorDocumentService $documents,

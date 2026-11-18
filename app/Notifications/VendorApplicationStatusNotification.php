@@ -2,15 +2,19 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use App\Models\Vendor;
-use App\Support\ContractorRegistrationNotifications;
+use App\Notifications\Concerns\SendsFcmPush;
 use App\Support\NotificationAudiencePayload;
+use App\Support\VendorRegistrationNotifications;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 class VendorApplicationStatusNotification extends Notification
 {
     use Queueable;
+    use SendsFcmPush;
 
     public function __construct(
         public Vendor $vendor,
@@ -19,15 +23,32 @@ class VendorApplicationStatusNotification extends Notification
         public ?string $notes = null
     ) {}
 
-    public function via($notifiable): array
+    /**
+     * @return list<string|class-string>
+     */
+    public function via(object $notifiable): array
     {
-        return ['database'];
+        $channels = $this->channelsWithPush(['database']);
+        if ($notifiable instanceof User && filled($notifiable->email)) {
+            $channels[] = 'mail';
+        }
+
+        return $channels;
     }
 
-    public function toArray($notifiable): array
+    public function toMail(object $notifiable): MailMessage
+    {
+        $copy = $this->resolvedCopy();
+
+        return (new MailMessage)
+            ->subject($copy['title'])
+            ->line($copy['message']);
+    }
+
+    public function toArray(object $notifiable): array
     {
         $vendor = $this->vendor->loadMissing('profile');
-        $copy = $this->copyForStatus();
+        $copy = $this->resolvedCopy();
 
         $message = $copy['message'];
         $messageAr = $copy['message_ar'];
@@ -36,8 +57,8 @@ class VendorApplicationStatusNotification extends Notification
             $messageAr .= ' السبب: '.$this->reason;
         }
         if ($this->status === 'missing_documents' && filled($this->notes)) {
-            $message .= ' Admin comments: '.$this->notes;
-            $messageAr .= ' ملاحظات المسؤول: '.$this->notes;
+            $message .= ' '.$this->notes;
+            $messageAr .= ' '.$this->notes;
         }
 
         return NotificationAudiencePayload::merge($notifiable, [
@@ -45,9 +66,9 @@ class VendorApplicationStatusNotification extends Notification
             'title_ar' => $copy['title_ar'],
             'message' => $message,
             'message_ar' => $messageAr,
-            'type' => 'contractor_registration_'.$copy['event'],
+            'type' => 'vendor_registration_'.$copy['event'],
             'meta' => [
-                'entity' => 'contractor_registration',
+                'entity' => 'vendor_registration',
                 'event' => $copy['event'],
                 'vendor_id' => $vendor->id,
                 'status' => $this->status,
@@ -55,6 +76,7 @@ class VendorApplicationStatusNotification extends Notification
                 'notes' => $this->notes,
                 'admin_review_message' => $vendor->profile?->admin_review_message,
                 'business_name' => $vendor->profile?->business_name,
+                'can_resubmit' => $this->status === 'rejected',
             ],
         ]);
     }
@@ -62,13 +84,15 @@ class VendorApplicationStatusNotification extends Notification
     /**
      * @return array{event: string, title: string, title_ar: string, message: string, message_ar: string}
      */
-    private function copyForStatus(): array
+    private function resolvedCopy(): array
     {
         return match ($this->status) {
-            'approved' => ContractorRegistrationNotifications::approved(),
-            'rejected' => ContractorRegistrationNotifications::rejected(),
-            'missing_documents' => ContractorRegistrationNotifications::missingDocuments(),
-            default => ContractorRegistrationNotifications::submitted(),
+            'registration_received' => VendorRegistrationNotifications::registrationReceived(),
+            'registration_under_review', 'submitted' => VendorRegistrationNotifications::underReview(),
+            'approved' => VendorRegistrationNotifications::approved(),
+            'rejected' => VendorRegistrationNotifications::rejected(),
+            'missing_documents' => VendorRegistrationNotifications::missingDocuments(),
+            default => VendorRegistrationNotifications::underReview(),
         };
     }
 }

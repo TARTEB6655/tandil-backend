@@ -20,7 +20,16 @@ class VendorVendorNotifier
 
     public function registrationSubmitted(Vendor $vendor): void
     {
-        $this->notifyVendor($vendor, 'submitted');
+        $this->notifyVendor($vendor, 'registration_received');
+
+        $vendorId = $vendor->id;
+        dispatch(function () use ($vendorId) {
+            sleep(2);
+            $fresh = Vendor::query()->with(['profile', 'user'])->find($vendorId);
+            if ($fresh?->user) {
+                app(self::class)->notifyVendor($fresh, 'registration_under_review');
+            }
+        })->afterResponse();
     }
 
     public function missingDocuments(Vendor $vendor, ?string $notes = null): void
