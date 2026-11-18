@@ -12,13 +12,12 @@ Authorization: Bearer {token}
 Content-Type: application/json
 
 {
-  "token": "<fcm_device_token>",
-  "platform": "android",
-  "device_id": "optional-stable-device-id",
-  "app_version": "1.2.3",
-  "locale": "en"
+  "token": "<device_push_token>",
+  "platform": "ios"
 }
 ```
+
+Optional (analytics only — not required for push delivery): `device_id`, `app_version`, `locale`.
 
 Alias: `POST /api/user/device-token` (same body).
 

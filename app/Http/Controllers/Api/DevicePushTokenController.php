@@ -11,8 +11,8 @@ use Illuminate\Validation\Rule;
 class DevicePushTokenController extends Controller
 {
     /**
-     * Register or refresh an FCM device token for the authenticated user (any role).
-     * Mobile apps should call this after login and whenever the FCM token refreshes.
+     * Register or refresh a device push token for the authenticated user (any role).
+     * Required: token. Recommended: platform (ios|android|web). Optional: device_id, app_version, locale.
      */
     public function store(Request $request)
     {

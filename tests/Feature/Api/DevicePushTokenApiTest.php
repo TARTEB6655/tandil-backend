@@ -11,6 +11,31 @@ class DevicePushTokenApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_register_device_token_accepts_minimal_body(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $user->assignRole('admin');
+        $bearer = $user->createToken('test')->plainTextToken;
+
+        $this->postJson('/api/auth/device-token', [
+            'token' => 'ExponentPushToken[minimal-body-smoke-test-token]',
+            'platform' => 'ios',
+        ], [
+            'Authorization' => 'Bearer '.$bearer,
+            'Accept' => 'application/json',
+        ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        $this->assertDatabaseHas('device_push_tokens', [
+            'user_id' => $user->id,
+            'token' => 'ExponentPushToken[minimal-body-smoke-test-token]',
+            'platform' => 'ios',
+            'app_version' => null,
+            'locale' => null,
+        ]);
+    }
+
     public function test_authenticated_user_can_register_device_token(): void
     {
         $user = User::factory()->create(['role' => 'client']);
