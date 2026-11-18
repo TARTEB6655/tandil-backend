@@ -8,13 +8,16 @@ use App\Models\User;
 
 /**
  * Routes each device to the provider that can wake it:
- * iOS → Apple Push (APNs). Android and other tokens → Firebase (when configured).
+ * Expo (ExponentPushToken) → exp.host;
+ * native iOS hex → APNs;
+ * Android / FCM tokens → Firebase (when configured).
  */
 class PushDeliveryService
 {
     public function __construct(
         private readonly ApnsPushService $apns,
-        private readonly FcmPushService $fcm
+        private readonly FcmPushService $fcm,
+        private readonly ExpoPushService $expo
     ) {}
 
     /**
@@ -31,21 +34,28 @@ class PushDeliveryService
             return;
         }
 
-        $ios = [];
+        $expo = [];
+        $apns = [];
         $other = [];
         foreach ($tokens as $row) {
             if (! $row instanceof DevicePushToken || ! is_string($row->token) || $row->token === '') {
                 continue;
             }
-            if ($this->isIosToken($row)) {
-                $ios[] = $row->token;
+            if (ExpoPushService::isExpoToken($row->token)) {
+                $expo[] = $row->token;
+            } elseif ($this->isNativeApnsToken($row)) {
+                $apns[] = $row->token;
             } else {
                 $other[] = $row->token;
             }
         }
 
-        if ($ios !== []) {
-            $this->apns->sendToTokens($ios, $title, $body, $data);
+        if ($expo !== [] && $this->expo->isEnabled()) {
+            $this->expo->sendToTokens($expo, $title, $body, $data);
+        }
+
+        if ($apns !== []) {
+            $this->apns->sendToTokens($apns, $title, $body, $data);
         }
 
         if ($other !== [] && $this->fcm->isEnabled()) {
@@ -62,17 +72,18 @@ class PushDeliveryService
         }
     }
 
-    private function isIosToken(DevicePushToken $row): bool
+    private function isNativeApnsToken(DevicePushToken $row): bool
     {
-        $platform = strtolower((string) $row->platform);
-        if ($platform === 'ios') {
-            return true;
+        if (ExpoPushService::isExpoToken($row->token)) {
+            return false;
         }
+
+        $platform = strtolower((string) $row->platform);
         if (in_array($platform, ['android', 'web'], true)) {
             return false;
         }
 
-        $hex = strtolower(str_replace([' ', '<', '>'], '', $row->token));
+        $hex = strtolower(str_replace([' ', '<', '>', '-'], '', $row->token));
 
         return (bool) preg_match('/^[a-f0-9]{64}$/', $hex);
     }

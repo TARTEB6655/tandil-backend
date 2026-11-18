@@ -41,18 +41,22 @@ Each push includes:
 - `data.order_id`, `data.payment_status`, `data.order_status` when they apply
 - Android `priority: HIGH` and APNs `apns-priority: 10` with an alert payload (not data-only), so Android and iOS display the notification while the React Native app is backgrounded or closed
 
-### iOS (APNs device token, not Firebase)
+### iOS — Expo (`ExponentPushToken[...]`)
 
-After the app receives the APNs device token, register it with `"platform": "ios"`:
+Expo / React Native apps should register the token from `Notifications.getExpoPushTokenAsync()` (or legacy `ExponentPushToken[...]`) with `"platform": "ios"`. The backend sends via **Expo Push API** (`POST https://exp.host/--/api/v2/push/send`), not direct APNs.
 
 ```json
 {
-  "token": "<64-char hex APNs device token>",
+  "token": "ExponentPushToken[xxxxxxxxxxxxxx]",
   "platform": "ios"
 }
 ```
 
-React Native can read that token from `@react-native-community/push-notification-ios` (`register` event) or Expo `getDevicePushTokenAsync()`. The iOS app needs the Push Notifications capability and a provisioning profile that includes it. The server sends an `alert` with `apns-push-type: alert` and `apns-priority: 10`, which is what iOS displays when the app is backgrounded or closed.
+When a **client** completes checkout and the order becomes **paid**, every **admin** user with tokens in `device_push_tokens` receives a database notification (`type: new_paid_order`) and an Expo push (title/body + `data.order_id`, etc.).
+
+### iOS — native APNs (bare RN / no Expo)
+
+After the app receives the **64-char hex** APNs device token, register it with `"platform": "ios"`. The server uses **APNs** (`.p8` in `.env`). Do not send `ExponentPushToken[...]` if you rely on native APNs.
 
 ### Android (later)
 

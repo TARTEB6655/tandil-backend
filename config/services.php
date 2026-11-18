@@ -142,4 +142,15 @@ return [
             : env('APNS_ENDPOINT', 'https://api.push.apple.com'),
     ],
 
+    /*
+    | Expo Push — React Native / Expo apps (ExponentPushToken[...]).
+    | Server sends to https://exp.host/--/api/v2/push/send (no Firebase key needed for Expo tokens).
+    */
+    'expo' => [
+        'enabled' => filter_var(env('EXPO_PUSH_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'driver' => env('EXPO_PUSH_DRIVER', 'auto'), // auto|http|log
+        'url' => env('EXPO_PUSH_URL', 'https://exp.host/--/api/v2/push/send'),
+        'access_token' => env('EXPO_ACCESS_TOKEN'),
+    ],
+
 ];
